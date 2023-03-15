@@ -9,6 +9,8 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 
 # Local library imports
+from parametricpinn.network import FFNN
+from parametricpinn.ansatz import create_normalized_HBC_ansatz_1D
 
 
 ### Configuration
@@ -41,9 +43,17 @@ else:
     device = torch.device("cpu")
 print(f"Using {device} device")
 
+
 # Seed
-torch.manual_seed(0)
-np.random.seed(0)
+def set_seed(seed):
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+
+
+set_seed(0)
 
 
 ### Solution
@@ -53,89 +63,6 @@ def calculate_displacements_solution(
     return (traction / youngs_modulus) * coordinates + (
         volume_force / youngs_modulus
     ) * (length * coordinates - 1 / 2 * coordinates**2)
-
-
-### Model
-class FFNN(nn.Module):
-    def __init__(self, layer_sizes):
-        super().__init__()
-        self._layer_sizes = layer_sizes
-        self._activation = nn.Tanh
-
-        layers = []
-        for i in range(1, len(self._layer_sizes) - 1):
-            fc_layer = nn.Linear(
-                in_features=self._layer_sizes[i - 1],
-                out_features=self._layer_sizes[i],
-                bias=True,
-            )
-            activation = self._activation()
-            layers.append(fc_layer)
-            layers.append(activation)
-
-        fc_layer_out = nn.Linear(
-            in_features=self._layer_sizes[-2],
-            out_features=self._layer_sizes[-1],
-            bias=True,
-        )
-        layers.append(fc_layer_out)
-
-        self._output = nn.Sequential(*layers)
-
-    def forward(self, x):
-        return self._output(x)
-
-
-class InputNormalization(nn.Module):
-    def __init__(self, min_inputs, max_inputs):
-        super().__init__()
-        self._min_inputs = min_inputs
-        self._max_inputs = max_inputs
-        self._input_ranges = max_inputs - min_inputs
-
-    def forward(self, x):
-        return (((x - self._min_inputs) / self._input_ranges) * 2.0) - 1.0
-
-
-class OutputRenormalization(nn.Module):
-    def __init__(self, min_outputs, max_outputs):
-        super().__init__()
-        self._min_outputs = min_outputs
-        self._max_outputs = max_outputs
-        self._output_ranges = max_outputs - min_outputs
-
-    def forward(self, x):
-        return (((x + 1) / 2) * self._output_ranges) + self._min_outputs
-
-
-class NormalizedAnsatz(nn.Module):
-    def __init__(self, network, min_inputs, max_inputs, min_outputs, max_outputs):
-        super().__init__()
-        self._network = network
-        self._input_normalization = InputNormalization(
-            min_inputs=min_inputs, max_inputs=max_inputs
-        )
-        self._output_renormalization = OutputRenormalization(
-            min_outputs=min_outputs, max_outputs=max_outputs
-        )
-        self._input_range_coordinate = max_inputs[0] - min_inputs[0]
-
-    def _boundary_data(self, coordinate):
-        return -1.0
-
-    def _distance_function(self, coordinate):
-        return coordinate / self._input_range_coordinate
-
-    def forward(self, x):
-        num_inputs = x.shape[0]
-        x_coor = x[:, 0].view((num_inputs, 1))
-        norm_x = self._input_normalization(x)
-
-        norm_y = self._boundary_data(x_coor) + (
-            self._distance_function(x_coor) * self._network(norm_x)
-        )
-        renorm_y = self._output_renormalization(norm_y)
-        return renorm_y
 
 
 ### Data
@@ -488,7 +415,7 @@ if __name__ == "__main__":
     max_output = max_displacement
 
     network = FFNN(layer_sizes=layer_sizes)
-    model = NormalizedAnsatz(
+    model = create_normalized_HBC_ansatz_1D(
         network=network,
         min_inputs=min_inputs,
         max_inputs=max_inputs,
