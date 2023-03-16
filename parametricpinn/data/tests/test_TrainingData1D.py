@@ -39,7 +39,7 @@ class TestTrainingDataset1D:
         expected = self.num_samples
         assert actual == expected
 
-    @pytest.mark.parametrize(("idx"), (0, 1, 2))
+    @pytest.mark.parametrize(("idx"), range(num_samples))
     def test_sample_pde__x_coordinate(self, sut: TrainingDataset1D, idx: int) -> None:
         sample_pde, _ = sut[idx]
 
@@ -73,7 +73,7 @@ class TestTrainingDataset1D:
 
         torch.testing.assert_close(actual, expected)
 
-    @pytest.mark.parametrize(("idx"), (0, 1, 2))
+    @pytest.mark.parametrize(("idx"), range(num_samples))
     def test_sample_pde__y_true(self, sut: TrainingDataset1D, idx: int) -> None:
         sample_pde, _ = sut[idx]
 
@@ -82,7 +82,7 @@ class TestTrainingDataset1D:
         expected = torch.zeros((self.num_points_pde, 1))
         torch.testing.assert_close(actual, expected)
 
-    @pytest.mark.parametrize(("idx"), (0, 1, 2))
+    @pytest.mark.parametrize(("idx"), range(num_samples))
     def test_sample_stress_bc__x_coordinate(
         self, sut: TrainingDataset1D, idx: int
     ) -> None:
@@ -116,7 +116,7 @@ class TestTrainingDataset1D:
 
         torch.testing.assert_close(actual, expected)
 
-    @pytest.mark.parametrize(("idx"), (0, 1, 2))
+    @pytest.mark.parametrize(("idx"), range(num_samples))
     def test_sample_stress_bc__y_true(self, sut: TrainingDataset1D, idx: int) -> None:
         _, sample_stress_bc = sut[idx]
 

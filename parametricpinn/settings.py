@@ -1,4 +1,5 @@
 # Standard library imports
+import random
 
 # Third-party imports
 import numpy as np
@@ -12,8 +13,9 @@ def set_default_dtype(dtype: torch.dtype):
 
 
 def set_seed(seed: int) -> None:
-    np.random.seed(seed)
+    random.seed(seed)
     torch.manual_seed(seed)
+    np.random.seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
