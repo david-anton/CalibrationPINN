@@ -10,6 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 
 # Local library imports
 from parametricpinn.ansatz import create_normalized_HBC_ansatz_1D
+from parametricpinn.data import TrainingDataset1D, collate_training_data_1D
 from parametricpinn.network import FFNN
 from parametricpinn.settings import get_device, set_default_dtype, set_seed
 
@@ -49,101 +50,6 @@ def calculate_displacements_solution(
 
 
 ### Data
-TrainingData = namedtuple("TrainingData", ["x_coor", "x_E", "y_true"])
-
-
-class TrainingDataset(Dataset):
-    def __init__(
-        self,
-        length,
-        traction,
-        min_youngs_modulus,
-        max_youngs_modulus,
-        num_points_pde,
-        num_samples,
-    ):
-        self._length = length
-        self._traction = traction
-        self._min_youngs_modulus = min_youngs_modulus
-        self._max_youngs_modulus = max_youngs_modulus
-        self._num_points_pde = num_points_pde
-        self._num_points_stress_bc = 1
-        self._num_samples = num_samples
-        self._samples_pde = []
-        self._samples_stress_bc = []
-
-        self._generate_samples()
-
-    def _generate_samples(self):
-        youngs_modulus_list = self._generate_uniform_youngs_modulus_list()
-        for i in range(self._num_samples):
-            youngs_modulus = youngs_modulus_list[i]
-            self._add_pde_sample(youngs_modulus)
-            self._add_stress_bc_sample(youngs_modulus)
-
-    def _generate_uniform_youngs_modulus_list(self):
-        return torch.linspace(
-            self._min_youngs_modulus, self._max_youngs_modulus, self._num_samples
-        ).tolist()
-
-    def _add_pde_sample(self, youngs_modulus):
-        x_coor_pde = torch.linspace(
-            0.0, length, self._num_points_pde, requires_grad=True
-        ).view([self._num_points_pde, 1])
-        x_E_pde = torch.full((self._num_points_pde, 1), youngs_modulus)
-        y_true_pde = torch.zeros_like(x_coor_pde)
-        sample_pde = TrainingData(x_coor=x_coor_pde, x_E=x_E_pde, y_true=y_true_pde)
-        self._samples_pde.append(sample_pde)
-
-    def _add_stress_bc_sample(self, youngs_modulus):
-        x_coor_stress_bc = torch.full(
-            (self._num_points_stress_bc, 1), length, requires_grad=True
-        )
-        x_E_stress_bc = torch.full((self._num_points_stress_bc, 1), youngs_modulus)
-        y_true_stress_bc = torch.full((self._num_points_stress_bc, 1), traction)
-        sample_stress_bc = TrainingData(
-            x_coor=x_coor_stress_bc, x_E=x_E_stress_bc, y_true=y_true_stress_bc
-        )
-        self._samples_stress_bc.append(sample_stress_bc)
-
-    def __len__(self):
-        return self._num_samples
-
-    def __getitem__(self, idx):
-        sample_pde = self._samples_pde[idx]
-        sample_stress_bc = self._samples_stress_bc[idx]
-        return sample_pde, sample_stress_bc
-
-
-def collate_training_data(batch):
-    x_coor_pde_batch = []
-    x_E_pde_batch = []
-    y_true_pde_batch = []
-    x_coor_stress_bc_batch = []
-    x_E_stress_bc_batch = []
-    y_true_stress_bc_batch = []
-
-    for sample_pde, sample_stress_bc in batch:
-        x_coor_pde_batch.append(sample_pde.x_coor)
-        x_E_pde_batch.append(sample_pde.x_E)
-        y_true_pde_batch.append(sample_pde.y_true)
-        x_coor_stress_bc_batch.append(sample_stress_bc.x_coor)
-        x_E_stress_bc_batch.append(sample_stress_bc.x_E)
-        y_true_stress_bc_batch.append(sample_stress_bc.y_true)
-
-    batch_pde = TrainingData(
-        x_coor=torch.concat(x_coor_pde_batch, dim=0),
-        x_E=torch.concat(x_E_pde_batch, dim=0),
-        y_true=torch.concat(y_true_pde_batch, dim=0),
-    )
-    batch_stress_bc = TrainingData(
-        x_coor=torch.concat(x_coor_stress_bc_batch, dim=0),
-        x_E=torch.concat(x_E_stress_bc_batch, dim=0),
-        y_true=torch.concat(y_true_stress_bc_batch, dim=0),
-    )
-    return batch_pde, batch_stress_bc
-
-
 class ValidationDataset(Dataset):
     def __init__(
         self,
@@ -406,7 +312,7 @@ if __name__ == "__main__":
         max_outputs=max_output,
     ).to(device)
 
-    train_dataset = TrainingDataset(
+    train_dataset = TrainingDataset1D(
         length=length,
         traction=traction,
         min_youngs_modulus=min_youngs_modulus,
@@ -419,7 +325,7 @@ if __name__ == "__main__":
         batch_size=batch_size_train,
         shuffle=False,
         drop_last=False,
-        collate_fn=collate_training_data,
+        collate_fn=collate_training_data_1D,
     )
 
     valid_dataset = ValidationDataset(
@@ -526,47 +432,12 @@ if __name__ == "__main__":
     )
 
     plot_displacements(
-        youngs_modulus=180000,
-        file_name="displacements_p_pinn_E_180000.png",
-        config=plotter_config,
-    )
-    plot_displacements(
         youngs_modulus=187634,
         file_name="displacements_p_pinn_E_187634.png",
         config=plotter_config,
     )
     plot_displacements(
-        youngs_modulus=190000,
-        file_name="displacements_p_pinn_E_190000.png",
-        config=plotter_config,
-    )
-    plot_displacements(
-        youngs_modulus=200000,
-        file_name="displacements_p_pinn_E_200000.png",
-        config=plotter_config,
-    )
-    plot_displacements(
-        youngs_modulus=210000,
-        file_name="displacements_p_pinn_E_210000.png",
-        config=plotter_config,
-    )
-    plot_displacements(
-        youngs_modulus=220000,
-        file_name="displacements_p_pinn_E_220000.png",
-        config=plotter_config,
-    )
-    plot_displacements(
-        youngs_modulus=230000,
-        file_name="displacements_p_pinn_E_230000.png",
-        config=plotter_config,
-    )
-    plot_displacements(
         youngs_modulus=238356,
         file_name="displacements_p_pinn_E_238356.png",
-        config=plotter_config,
-    )
-    plot_displacements(
-        youngs_modulus=240000,
-        file_name="displacements_p_pinn_E_240000.png",
         config=plotter_config,
     )

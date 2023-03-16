@@ -40,7 +40,7 @@ def sut() -> NormalizedHBCAnsatz1D:
     )
 
 
-def test_normalized_HBC_ansatz_1D(sut):
+def test_normalized_HBC_ansatz_1D(sut: NormalizedHBCAnsatz1D) -> None:
     inputs = torch.Tensor([[0.0, 0.0], [0.5, 1.0], [1.0, 2.0]])
     actual = sut(inputs)
 

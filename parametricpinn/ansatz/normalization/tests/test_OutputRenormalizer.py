@@ -6,6 +6,7 @@ import torch
 
 # Local library imports
 from parametricpinn.ansatz.normalization import OutputRenormalizer
+from parametricpinn.types import Tensor
 
 
 @pytest.mark.parametrize(
@@ -28,7 +29,9 @@ from parametricpinn.ansatz.normalization import OutputRenormalizer
         ),
     ],
 )
-def test_output_renormalizer(min_outputs, max_outputs, expected):
+def test_output_renormalizer(
+    min_outputs: Tensor, max_outputs: Tensor, expected: Tensor
+) -> None:
     sut = OutputRenormalizer(min_outputs=min_outputs, max_outputs=max_outputs)
 
     output = torch.Tensor([[-1.0, -1.0], [0.0, 0.0], [1.0, 1.0]])

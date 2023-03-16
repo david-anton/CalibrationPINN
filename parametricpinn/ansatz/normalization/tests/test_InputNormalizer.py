@@ -6,6 +6,7 @@ import torch
 
 # Local library imports
 from parametricpinn.ansatz.normalization import InputNormalizer
+from parametricpinn.types import Tensor
 
 
 @pytest.mark.parametrize(
@@ -28,7 +29,9 @@ from parametricpinn.ansatz.normalization import InputNormalizer
         ),
     ],
 )
-def test_input_normalizer(min_inputs, max_inputs, inputs):
+def test_input_normalizer(
+    min_inputs: Tensor, max_inputs: Tensor, inputs: Tensor
+) -> None:
     sut = InputNormalizer(min_inputs=min_inputs, max_inputs=max_inputs)
 
     actual = sut(inputs)
