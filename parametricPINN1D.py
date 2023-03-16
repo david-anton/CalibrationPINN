@@ -1,16 +1,20 @@
 # Standard library imports
-from collections import namedtuple
 
 # Third-party imports
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 
 # Local library imports
 from parametricpinn.ansatz import create_normalized_HBC_ansatz_1D
-from parametricpinn.data import TrainingDataset1D, collate_training_data_1D
+from parametricpinn.data import (
+    TrainingDataset1D,
+    collate_training_data_1D,
+    calculate_displacements_solution_1D,
+    ValidationDataset1D,
+    collate_validation_data_1D,
+)
 from parametricpinn.network import FFNN
 from parametricpinn.settings import get_device, set_default_dtype, set_seed
 
@@ -38,97 +42,6 @@ batch_size_valid = num_points_valid
 set_default_dtype(torch.float64)
 set_seed(0)
 device = get_device()
-
-
-### Solution
-def calculate_displacements_solution(
-    coordinates, length, youngs_modulus, traction, volume_force
-):
-    return (traction / youngs_modulus) * coordinates + (
-        volume_force / youngs_modulus
-    ) * (length * coordinates - 1 / 2 * coordinates**2)
-
-
-### Data
-class ValidationDataset(Dataset):
-    def __init__(
-        self,
-        length,
-        min_youngs_modulus,
-        max_youngs_modulus,
-        traction,
-        volume_force,
-        num_points,
-        num_samples,
-    ):
-        self._length = length
-        self._min_youngs_modulus = min_youngs_modulus
-        self._max_youngs_modulus = max_youngs_modulus
-        self._traction = traction
-        self._volume_force = volume_force
-        self._num_points = num_points
-        self._num_samples = num_samples
-        self._samples_x = []
-        self._samples_y_true = []
-
-        self._generate_samples()
-
-    def _generate_samples(self):
-        youngs_modulus_list = self._generate_random_youngs_modulus_list()
-        coordinates_list = self._generate_random_coordinates_list()
-        for i in range(self._num_samples):
-            youngs_modulus = youngs_modulus_list[i]
-            coordinates = coordinates_list[i]
-            self._add_input_sample(coordinates, youngs_modulus)
-            self._add_output_sample(coordinates, youngs_modulus)
-
-    def _generate_random_youngs_modulus_list(self):
-        return (
-            self._min_youngs_modulus
-            + torch.rand((self._num_samples))
-            * (self._max_youngs_modulus - self._min_youngs_modulus)
-        ).tolist()
-
-    def _generate_random_coordinates_list(self):
-        coordinates_array = torch.rand((self._num_points, self._num_samples)) * length
-        return torch.chunk(coordinates_array, self._num_samples, dim=1)
-
-    def _add_input_sample(self, coordinates, youngs_modulus):
-        x_coor = coordinates
-        x_E = torch.full((self._num_points, 1), youngs_modulus)
-        x = torch.concat((x_coor, x_E), dim=1)
-        self._samples_x.append(x)
-
-    def _add_output_sample(self, coordinates, youngs_modulus):
-        y_true = calculate_displacements_solution(
-            coordinates=coordinates,
-            length=self._length,
-            youngs_modulus=youngs_modulus,
-            traction=self._traction,
-            volume_force=self._volume_force,
-        )
-        self._samples_y_true.append(y_true)
-
-    def __len__(self):
-        return self._num_samples
-
-    def __getitem__(self, idx):
-        sample_x = self._samples_x[idx]
-        sample_y_true = self._samples_y_true[idx]
-        return sample_x, sample_y_true
-
-
-def collate_validation_data(batch):
-    x_batch = []
-    y_true_batch = []
-
-    for sample_x, sample_y_true in batch:
-        x_batch.append(sample_x)
-        y_true_batch.append(sample_y_true)
-
-    batch_x = torch.concat(x_batch, dim=0)
-    batch_y_true = torch.concat(y_true_batch, dim=0)
-    return batch_x, batch_y_true
 
 
 ### Loss function
@@ -263,7 +176,7 @@ def plot_valid_hist(valid_epochs, valid_hist, valid_metric, file_name, config):
 def plot_displacements(youngs_modulus, file_name, config):
     num_points = 1000
     x_coor = np.linspace(0.0, length, num_points).reshape((num_points, 1))
-    solution = calculate_displacements_solution(
+    solution = calculate_displacements_solution_1D(
         coordinates=x_coor,
         length=length,
         youngs_modulus=youngs_modulus,
@@ -291,7 +204,7 @@ if __name__ == "__main__":
     min_coordinate = torch.Tensor([0.0])
     max_coordinate = torch.Tensor([length])
     min_displacement = torch.Tensor([0.0])
-    max_displacement = calculate_displacements_solution(
+    max_displacement = calculate_displacements_solution_1D(
         coordinates=max_coordinate,
         length=length,
         youngs_modulus=min_youngs_modulus,
@@ -328,7 +241,7 @@ if __name__ == "__main__":
         collate_fn=collate_training_data_1D,
     )
 
-    valid_dataset = ValidationDataset(
+    valid_dataset = ValidationDataset1D(
         length=length,
         min_youngs_modulus=min_youngs_modulus,
         max_youngs_modulus=max_youngs_modulus,
@@ -342,7 +255,7 @@ if __name__ == "__main__":
         batch_size=batch_size_valid,
         shuffle=False,
         drop_last=False,
-        collate_fn=collate_validation_data,
+        collate_fn=collate_validation_data_1D,
     )
 
     optimizer = torch.optim.LBFGS(

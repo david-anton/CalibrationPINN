@@ -46,23 +46,21 @@ class TrainingDataset1D(Dataset):
         ).tolist()
 
     def _add_pde_sample(self, youngs_modulus: float) -> None:
-        x_coor_pde = torch.linspace(
+        x_coor = torch.linspace(
             0.0, self._length, self._num_points_pde, requires_grad=True
         ).view([self._num_points_pde, 1])
-        x_E_pde = torch.full((self._num_points_pde, 1), youngs_modulus)
-        y_true_pde = torch.zeros_like(x_coor_pde)
-        sample_pde = TrainingData1D(x_coor=x_coor_pde, x_E=x_E_pde, y_true=y_true_pde)
-        self._samples_pde.append(sample_pde)
+        x_E = torch.full((self._num_points_pde, 1), youngs_modulus)
+        y_true = torch.zeros_like(x_coor)
+        sample = TrainingData1D(x_coor=x_coor, x_E=x_E, y_true=y_true)
+        self._samples_pde.append(sample)
 
     def _add_stress_bc_sample(self, youngs_modulus: float) -> None:
-        x_coor_stress_bc = torch.full(
+        x_coor = torch.full(
             (self._num_points_stress_bc, 1), self._length, requires_grad=True
         )
-        x_E_stress_bc = torch.full((self._num_points_stress_bc, 1), youngs_modulus)
-        y_true_stress_bc = torch.full((self._num_points_stress_bc, 1), self._traction)
-        sample_stress_bc = TrainingData1D(
-            x_coor=x_coor_stress_bc, x_E=x_E_stress_bc, y_true=y_true_stress_bc
-        )
+        x_E = torch.full((self._num_points_stress_bc, 1), youngs_modulus)
+        y_true = torch.full((self._num_points_stress_bc, 1), self._traction)
+        sample_stress_bc = TrainingData1D(x_coor=x_coor, x_E=x_E, y_true=y_true)
         self._samples_stress_bc.append(sample_stress_bc)
 
     def __len__(self) -> int:
