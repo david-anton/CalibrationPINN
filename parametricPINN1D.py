@@ -9,8 +9,9 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 
 # Local library imports
-from parametricpinn.network import FFNN
 from parametricpinn.ansatz import create_normalized_HBC_ansatz_1D
+from parametricpinn.network import FFNN
+from parametricpinn.settings import get_device, set_default_dtype, set_seed
 
 
 ### Configuration
@@ -33,27 +34,9 @@ valid_interval = 1
 num_points_valid = 1000
 batch_size_valid = num_points_valid
 
-# Default floating point dtype
-torch.set_default_dtype(torch.float64)
-
-# Device
-if torch.cuda.is_available():
-    device = torch.device("cuda")
-else:
-    device = torch.device("cpu")
-print(f"Using {device} device")
-
-
-# Seed
-def set_seed(seed):
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-
-
+set_default_dtype(torch.float64)
 set_seed(0)
+device = get_device()
 
 
 ### Solution
