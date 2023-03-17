@@ -14,6 +14,7 @@ from parametricpinn.data import (
     ValidationDataset1D,
     collate_validation_data_1D,
 )
+from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm
 from parametricpinn.network import FFNN
 from parametricpinn.preprocessing.plot import (
     PlotterConfig1D,
@@ -81,26 +82,24 @@ def loss_func(
 
 ### Validation
 def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float, float]:
-    valid_metric_mae = torch.nn.L1Loss()
-
     with torch.no_grad():
         ansatz.eval()
         valid_batches = iter(valid_dataloader)
         mae_hist_batches = []
-        mare_hist_batches = []
+        rl2_hist_batches = []
 
         for x, y_true in valid_batches:
             x = x.to(device)
             y_true = y_true.to(device)
             y = ansatz(x)
-            mae_batch = valid_metric_mae(y_true, y)
-            mare_batch = torch.mean((torch.abs(y_true - y)) / y_true)
+            mae_batch = mean_absolute_error(y_true, y)
+            rl2_batch = relative_l2_norm(y_true, y)
             mae_hist_batches.append(mae_batch.item())
-            mare_hist_batches.append(mare_batch.item())
+            rl2_hist_batches.append(rl2_batch.item())
 
         mean_mae = statistics.mean(mae_hist_batches)
-        mean_mare = statistics.mean(mare_hist_batches)
-    return mean_mae, mean_mare
+        mean_rl2 = statistics.mean(rl2_hist_batches)
+    return mean_mae, mean_rl2
 
 
 ####################################################################################################
@@ -176,7 +175,7 @@ if __name__ == "__main__":
     loss_hist_pde = []
     loss_hist_stress_bc = []
     valid_hist_mae = []
-    valid_hist_mare = []
+    valid_hist_rl2 = []
     valid_epochs = []
 
     # Closure for LBFGS
@@ -217,9 +216,9 @@ if __name__ == "__main__":
         loss_hist_stress_bc.append(mean_batch_loss_stress_bc)
 
         if epoch % 1 == 0:
-            mae, mare = validate_model(ansatz, valid_dataloader)
+            mae, rl2 = validate_model(ansatz, valid_dataloader)
             valid_hist_mae.append(mae)
-            valid_hist_mare.append(mare)
+            valid_hist_rl2.append(rl2)
             valid_epochs.append(epoch)
 
     ## Preprocessing
@@ -228,7 +227,7 @@ if __name__ == "__main__":
     plot_loss_hist_1D(
         loss_hist_pde=loss_hist_pde,
         loss_hist_stress_bc=loss_hist_stress_bc,
-        file_name="loss_p_pinn.png",
+        file_name="loss_pinn.png",
         config=plotter_config,
     )
 
@@ -236,15 +235,15 @@ if __name__ == "__main__":
         valid_epochs=valid_epochs,
         valid_hist=valid_hist_mae,
         valid_metric="mean absolute error",
-        file_name="mae_p_pinn.png",
+        file_name="mae_pinn.png",
         config=plotter_config,
     )
 
     plot_valid_hist_1D(
         valid_epochs=valid_epochs,
-        valid_hist=valid_hist_mare,
-        valid_metric="mean absolute relative error",
-        file_name="mare_p_pinn.png",
+        valid_hist=valid_hist_rl2,
+        valid_metric="rel. L2 norm",
+        file_name="rl2_pinn.png",
         config=plotter_config,
     )
 
@@ -254,7 +253,7 @@ if __name__ == "__main__":
         youngs_modulus=187634,
         traction=traction,
         volume_force=volume_force,
-        file_name="displacements_p_pinn_E_187634.png",
+        file_name="displacements_pinn_E_187634.png",
         config=plotter_config,
     )
     plot_displacements_1D(
@@ -263,6 +262,6 @@ if __name__ == "__main__":
         youngs_modulus=238356,
         traction=traction,
         volume_force=volume_force,
-        file_name="displacements_p_pinn_E_238356.png",
+        file_name="displacements_pinn_E_238356.png",
         config=plotter_config,
     )

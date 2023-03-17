@@ -11,7 +11,7 @@ from parametricpinn.types import Tensor
 def calculate_displacements_solution_1D(
     coordinates: Tensor | float,
     length: float,
-    youngs_modulus: float,
+    youngs_modulus: float | Tensor,
     traction: float,
     volume_force: float,
 ) -> Tensor:

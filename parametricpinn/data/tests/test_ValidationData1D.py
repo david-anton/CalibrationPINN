@@ -6,6 +6,7 @@ import torch
 
 # Local library imports
 from parametricpinn.data import (
+    calculate_displacements_solution_1D,
     ValidationDataset1D,
     collate_validation_data_1D,
 )
@@ -15,16 +16,43 @@ from parametricpinn.types import Tensor
 random_seed = 0
 
 
-def calculate_displacements(
-    coordinates: Tensor,
-    length: float,
-    youngs_modulus: Tensor,
-    traction: float,
-    volume_force: float,
-):
-    return (traction / youngs_modulus) * coordinates + (
-        volume_force / youngs_modulus
-    ) * (length * coordinates - 1 / 2 * coordinates**2)
+# def calculate_displacements(
+#     coordinates: Tensor,
+#     length: float,
+#     youngs_modulus: Tensor,
+#     traction: float,
+#     volume_force: float,
+# ):
+#     return (traction / youngs_modulus) * coordinates + (
+#         volume_force / youngs_modulus
+#     ) * (length * coordinates - 1 / 2 * coordinates**2)
+
+
+@pytest.mark.parametrize(
+    ("coordinate", "expected"),
+    [
+        (torch.tensor([[0.0]]), torch.tensor([[0.0]])),
+        (torch.tensor([[1.0]]), torch.tensor([[10.0]])),
+        (torch.tensor([[2.0]]), torch.tensor([[18.0]])),
+    ],
+)
+def test_calculate_displacements_solution_1D(
+    coordinate: Tensor, expected: Tensor
+) -> None:
+    sut = calculate_displacements_solution_1D
+    length = 4.0
+    youngs_modulus = 1.0
+    traction = 3.0
+    volume_force = 2.0
+
+    actual = sut(
+        coordinates=coordinate,
+        length=length,
+        youngs_modulus=youngs_modulus,
+        traction=traction,
+        volume_force=volume_force,
+    )
+    torch.testing.assert_close(actual, expected)
 
 
 class TestValidationDataset1D:
@@ -95,7 +123,7 @@ class TestValidationDataset1D:
         x_coordinates = input[:, 0].view((self.num_points, 1))
         x_youngs_modulus = input[:, 1].view((self.num_points, 1))
 
-        expected = calculate_displacements(
+        expected = calculate_displacements_solution_1D(
             coordinates=x_coordinates,
             length=self.length,
             youngs_modulus=x_youngs_modulus,
