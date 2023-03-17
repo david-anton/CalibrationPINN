@@ -10,7 +10,7 @@ from parametricpinn.training.loss import stress_func_1D, momentum_equation_func_
 from parametricpinn.types import Tensor, Module
 
 youngs_modulus = 1.0
-volume_force = torch.tensor(2.0)
+volume_force = 2.0
 
 
 class FakeAnsatz(nn.Module):
@@ -90,6 +90,6 @@ def test_momentum_equation_func_1D(
         ansatz=fake_ansatz,
         x_coor=x_coordinate,
         x_E=x_youngs_modulus,
-        volume_force=volume_force,
+        volume_force=torch.tensor(volume_force),
     )
     torch.testing.assert_close(actual, expected)

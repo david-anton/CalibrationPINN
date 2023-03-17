@@ -15,7 +15,7 @@ class NormalizedHBCAnsatz1D(nn.Module):
         input_normalizer: Module,
         output_renormalizer: Module,
         input_range_coordinate: Tensor,
-    ):
+    ) -> None:
         super().__init__()
         self._network = network
         self._input_normalizer = input_normalizer

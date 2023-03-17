@@ -83,17 +83,21 @@ def plot_displacements_1D(
 ) -> None:
     num_points = 1000
     x_coor = torch.linspace(0.0, length, num_points).view((num_points, 1))
-    solution = calculate_displacements_solution_1D(
-        coordinates=x_coor,
-        length=length,
-        youngs_modulus=youngs_modulus,
-        traction=traction,
-        volume_force=volume_force,
+    solution = (
+        calculate_displacements_solution_1D(
+            coordinates=x_coor,
+            length=length,
+            youngs_modulus=youngs_modulus,
+            traction=traction,
+            volume_force=volume_force,
+        )
+        .detach()
+        .numpy()
     )
-    x_coor = torch.Tensor(x_coor)
     x_E = torch.full((num_points, 1), youngs_modulus)
     x = torch.concat((x_coor, x_E), dim=1)
     prediction = ansatz(x).detach().numpy()
+    x_coor = x_coor.detach().numpy()
     figure, axes = plt.subplots()
     axes.plot(x_coor, solution, label="solution")
     axes.plot(x_coor, prediction, label="prediction")

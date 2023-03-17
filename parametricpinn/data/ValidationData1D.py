@@ -9,7 +9,7 @@ from parametricpinn.types import Tensor
 
 
 def calculate_displacements_solution_1D(
-    coordinates: Tensor,
+    coordinates: Tensor | float,
     length: float,
     youngs_modulus: float,
     traction: float,
