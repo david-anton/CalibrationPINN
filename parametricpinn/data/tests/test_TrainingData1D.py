@@ -128,91 +128,91 @@ class TestTrainingDataset1D:
 
 class TestCollateTrainingData1D:
     @pytest.fixture
-    def batch(self) -> list[tuple[TrainingData1D, TrainingData1D]]:
+    def fake_batch(self) -> list[tuple[TrainingData1D, TrainingData1D]]:
         sample_pde_0 = TrainingData1D(
-            x_coor=torch.Tensor([[1.0]]),
-            x_E=torch.Tensor([[1.1]]),
-            y_true=torch.Tensor([[1.2]]),
+            x_coor=torch.tensor([[1.0]]),
+            x_E=torch.tensor([[1.1]]),
+            y_true=torch.tensor([[1.2]]),
         )
         sample_stress_bc_0 = TrainingData1D(
-            x_coor=torch.Tensor([[2.0]]),
-            x_E=torch.Tensor([[2.1]]),
-            y_true=torch.Tensor([[2.2]]),
+            x_coor=torch.tensor([[2.0]]),
+            x_E=torch.tensor([[2.1]]),
+            y_true=torch.tensor([[2.2]]),
         )
         sample_pde_1 = TrainingData1D(
-            x_coor=torch.Tensor([[10.0]]),
-            x_E=torch.Tensor([[10.1]]),
-            y_true=torch.Tensor([[10.2]]),
+            x_coor=torch.tensor([[10.0]]),
+            x_E=torch.tensor([[10.1]]),
+            y_true=torch.tensor([[10.2]]),
         )
         sample_stress_bc_1 = TrainingData1D(
-            x_coor=torch.Tensor([[20.0]]),
-            x_E=torch.Tensor([[20.1]]),
-            y_true=torch.Tensor([[20.2]]),
+            x_coor=torch.tensor([[20.0]]),
+            x_E=torch.tensor([[20.1]]),
+            y_true=torch.tensor([[20.2]]),
         )
         return [(sample_pde_0, sample_stress_bc_0), (sample_pde_1, sample_stress_bc_1)]
 
     def test_batch_pde__x_coordinate(
-        self, batch: list[tuple[TrainingData1D, TrainingData1D]]
+        self, fake_batch: list[tuple[TrainingData1D, TrainingData1D]]
     ):
         sut = collate_training_data_1D
 
-        batch_pde, _ = sut(batch)
+        batch_pde, _ = sut(fake_batch)
         actual = batch_pde.x_coor
 
-        expected = torch.Tensor([[1.0], [10.0]])
+        expected = torch.tensor([[1.0], [10.0]])
         torch.testing.assert_close(actual, expected)
 
     def test_batch_pde__x_youngs_modulus(
-        self, batch: list[tuple[TrainingData1D, TrainingData1D]]
+        self, fake_batch: list[tuple[TrainingData1D, TrainingData1D]]
     ):
         sut = collate_training_data_1D
 
-        batch_pde, _ = sut(batch)
+        batch_pde, _ = sut(fake_batch)
         actual = batch_pde.x_E
 
-        expected = torch.Tensor([[1.1], [10.1]])
+        expected = torch.tensor([[1.1], [10.1]])
         torch.testing.assert_close(actual, expected)
 
     def test_batch_pde__y_true(
-        self, batch: list[tuple[TrainingData1D, TrainingData1D]]
+        self, fake_batch: list[tuple[TrainingData1D, TrainingData1D]]
     ):
         sut = collate_training_data_1D
 
-        batch_pde, _ = sut(batch)
+        batch_pde, _ = sut(fake_batch)
         actual = batch_pde.y_true
 
-        expected = torch.Tensor([[1.2], [10.2]])
+        expected = torch.tensor([[1.2], [10.2]])
         torch.testing.assert_close(actual, expected)
 
     def test_batch_stress_bc__x_coordinate(
-        self, batch: list[tuple[TrainingData1D, TrainingData1D]]
+        self, fake_batch: list[tuple[TrainingData1D, TrainingData1D]]
     ):
         sut = collate_training_data_1D
 
-        _, batch_stress_bc = sut(batch)
+        _, batch_stress_bc = sut(fake_batch)
         actual = batch_stress_bc.x_coor
 
-        expected = torch.Tensor([[2.0], [20.0]])
+        expected = torch.tensor([[2.0], [20.0]])
         torch.testing.assert_close(actual, expected)
 
     def test_batch_stress_bc__x_youngs_modulus(
-        self, batch: list[tuple[TrainingData1D, TrainingData1D]]
+        self, fake_batch: list[tuple[TrainingData1D, TrainingData1D]]
     ):
         sut = collate_training_data_1D
 
-        _, batch_stress_bc = sut(batch)
+        _, batch_stress_bc = sut(fake_batch)
         actual = batch_stress_bc.x_E
 
-        expected = torch.Tensor([[2.1], [20.1]])
+        expected = torch.tensor([[2.1], [20.1]])
         torch.testing.assert_close(actual, expected)
 
     def test_batch_stress_bc__y_true(
-        self, batch: list[tuple[TrainingData1D, TrainingData1D]]
+        self, fake_batch: list[tuple[TrainingData1D, TrainingData1D]]
     ):
         sut = collate_training_data_1D
 
-        _, batch_stress_bc = sut(batch)
+        _, batch_stress_bc = sut(fake_batch)
         actual = batch_stress_bc.y_true
 
-        expected = torch.Tensor([[2.2], [20.2]])
+        expected = torch.tensor([[2.2], [20.2]])
         torch.testing.assert_close(actual, expected)

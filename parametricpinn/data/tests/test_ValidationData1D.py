@@ -107,25 +107,25 @@ class TestValidationDataset1D:
 
 class TestCollateValidationData1D:
     @pytest.fixture
-    def batch(self) -> list[tuple[Tensor, Tensor]]:
-        sample_x_0 = torch.Tensor([[1.0, 1.1]])
-        sample_y_true_0 = torch.Tensor([[2.0]])
-        sample_x_1 = torch.Tensor([[10.0, 10.1]])
-        sample_y_true_1 = torch.Tensor([[20.0]])
+    def fake_batch(self) -> list[tuple[Tensor, Tensor]]:
+        sample_x_0 = torch.tensor([[1.0, 1.1]])
+        sample_y_true_0 = torch.tensor([[2.0]])
+        sample_x_1 = torch.tensor([[10.0, 10.1]])
+        sample_y_true_1 = torch.tensor([[20.0]])
         return [(sample_x_0, sample_y_true_0), (sample_x_1, sample_y_true_1)]
 
-    def test_batch_pde__x(self, batch: list[tuple[Tensor, Tensor]]):
+    def test_batch_pde__x(self, fake_batch: list[tuple[Tensor, Tensor]]):
         sut = collate_validation_data_1D
 
-        actual, _ = sut(batch)
+        actual, _ = sut(fake_batch)
 
-        expected = torch.Tensor([[1.0, 1.1], [10.0, 10.1]])
+        expected = torch.tensor([[1.0, 1.1], [10.0, 10.1]])
         torch.testing.assert_close(actual, expected)
 
-    def test_batch_pde__y_true(self, batch: list[tuple[Tensor, Tensor]]):
+    def test_batch_pde__y_true(self, fake_batch: list[tuple[Tensor, Tensor]]):
         sut = collate_validation_data_1D
 
-        _, actual = sut(batch)
+        _, actual = sut(fake_batch)
 
-        expected = torch.Tensor([[2.0], [20.0]])
+        expected = torch.tensor([[2.0], [20.0]])
         torch.testing.assert_close(actual, expected)

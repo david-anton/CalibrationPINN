@@ -41,8 +41,8 @@ def sut() -> NormalizedHBCAnsatz1D:
 
 
 def test_normalized_HBC_ansatz_1D(sut: NormalizedHBCAnsatz1D) -> None:
-    inputs = torch.Tensor([[0.0, 0.0], [0.5, 1.0], [1.0, 2.0]])
+    inputs = torch.tensor([[0.0, 0.0], [0.5, 1.0], [1.0, 2.0]])
     actual = sut(inputs)
 
-    expected = torch.Tensor([[-1.0], [0.0], [1.0]])
+    expected = torch.tensor([[-1.0], [0.0], [1.0]])
     torch.testing.assert_close(actual, expected)
