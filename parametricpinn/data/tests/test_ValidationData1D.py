@@ -6,7 +6,6 @@ import torch
 
 # Local library imports
 from parametricpinn.data import (
-    calculate_displacements_solution_1D,
     ValidationDataset1D,
     collate_validation_data_1D,
 )
@@ -16,13 +15,25 @@ from parametricpinn.types import Tensor
 random_seed = 0
 
 
+def calculate_displacements(
+    coordinates: Tensor,
+    length: float,
+    youngs_modulus: Tensor,
+    traction: float,
+    volume_force: float,
+):
+    return (traction / youngs_modulus) * coordinates + (
+        volume_force / youngs_modulus
+    ) * (length * coordinates - 1 / 2 * coordinates**2)
+
+
 class TestValidationDataset1D:
     length = 10.0
     traction = 1.0
     volume_force = 2.0
     min_youngs_modulus = 3.0
     max_youngs_modulus = 4.0
-    num_points = 4
+    num_points = 3
     num_samples = 3
 
     @pytest.fixture
@@ -40,6 +51,7 @@ class TestValidationDataset1D:
 
     @pytest.fixture
     def x_coordinates_and_youngs_modulus_list(self) -> tuple[list[Tensor], list[float]]:
+        # The random numbers must be generated in the same order as in the system under test.
         set_seed(random_seed)
         coordinates_array = (
             torch.rand((self.num_points, self.num_samples)) * self.length
@@ -75,4 +87,19 @@ class TestValidationDataset1D:
         x_coordinates = x_coordinates_list[idx]
         x_youngs_modulus = torch.full((self.num_points, 1), x_youngs_modulus_list[idx])
         expected = torch.concat((x_coordinates, x_youngs_modulus), dim=1)
+        torch.testing.assert_close(actual, expected)
+
+    @pytest.mark.parametrize(("idx"), range(num_samples))
+    def test_output_sample(self, sut: ValidationDataset1D, idx: int) -> None:
+        input, actual = sut[idx]
+        x_coordinates = input[:, 0].view((self.num_points, 1))
+        x_youngs_modulus = input[:, 1].view((self.num_points, 1))
+
+        expected = calculate_displacements(
+            coordinates=x_coordinates,
+            length=self.length,
+            youngs_modulus=x_youngs_modulus,
+            traction=self.traction,
+            volume_force=self.volume_force,
+        )
         torch.testing.assert_close(actual, expected)
