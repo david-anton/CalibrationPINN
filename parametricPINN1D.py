@@ -17,6 +17,7 @@ from parametricpinn.data import (
 )
 from parametricpinn.network import FFNN
 from parametricpinn.settings import get_device, set_default_dtype, set_seed
+from parametricpinn.training.loss import momentum_equation_func_1D, stress_func_1D
 
 
 ### Configuration
@@ -53,44 +54,19 @@ def loss_func(model, pde_data, stress_bc_data):
         x_coor = pde_data.x_coor.to(device)
         x_E = pde_data.x_E.to(device)
         y_true = pde_data.y_true.to(device)
-        y = pinn_func(model, x_coor, x_E)
+        y = momentum_equation_func_1D(model, x_coor, x_E, volume_force)
         return loss_metric(y_true, y)
 
     def loss_func_stress_bc(model, stress_bc_data):
         x_coor = stress_bc_data.x_coor.to(device)
         x_E = stress_bc_data.x_E.to(device)
         y_true = stress_bc_data.y_true.to(device)
-        y = stress_func(model, x_coor, x_E)
+        y = stress_func_1D(model, x_coor, x_E)
         return loss_metric(y_true, y)
 
     loss_pde = loss_func_pde(model, pde_data)
     loss_stress_bc = loss_func_stress_bc(model, stress_bc_data)
     return loss_pde, loss_stress_bc
-
-
-def pinn_func(model, x_coor, x_E):
-    stress = stress_func(model, x_coor, x_E)
-    stress_x = torch.autograd.grad(
-        stress,
-        x_coor,
-        grad_outputs=torch.ones_like(stress),
-        retain_graph=True,
-        create_graph=True,
-    )[0]
-    return stress_x + volume_force
-
-
-def stress_func(model, x_coor, x_E):
-    x = torch.concat((x_coor, x_E), dim=1)
-    u = model(x)
-    u_x = torch.autograd.grad(
-        u,
-        x_coor,
-        grad_outputs=torch.ones_like(u),
-        retain_graph=True,
-        create_graph=True,
-    )[0]
-    return x_E * u_x
 
 
 ### Validation
