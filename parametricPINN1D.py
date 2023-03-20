@@ -62,18 +62,18 @@ def loss_func(
     stress_bc_data: TrainingDataset1D,
     volume_force: Tensor,
 ) -> tuple[Tensor, Tensor]:
-    def loss_func_pde(model, pde_data):
+    def loss_func_pde(ansatz, pde_data):
         x_coor = pde_data.x_coor.to(device)
         x_E = pde_data.x_E.to(device)
         y_true = pde_data.y_true.to(device)
-        y = momentum_equation_func_1D(model, x_coor, x_E, volume_force)
+        y = momentum_equation_func_1D(ansatz, x_coor, x_E, volume_force)
         return loss_metric(y_true, y)
 
-    def loss_func_stress_bc(model, stress_bc_data):
+    def loss_func_stress_bc(ansatz, stress_bc_data):
         x_coor = stress_bc_data.x_coor.to(device)
         x_E = stress_bc_data.x_E.to(device)
         y_true = stress_bc_data.y_true.to(device)
-        y = stress_func_1D(model, x_coor, x_E)
+        y = stress_func_1D(ansatz, x_coor, x_E)
         return loss_metric(y_true, y)
 
     loss_pde = loss_func_pde(ansatz, pde_data)
@@ -180,14 +180,14 @@ if __name__ == "__main__":
     valid_epochs = []
 
     # Closure for LBFGS
-    def loss_func_closure() -> Tensor:
+    def loss_func_closure() -> float:
         optimizer.zero_grad()
         loss_pde, loss_stress_bc = loss_func(
             ansatz, batch_pde, batch_stress_bc, torch.tensor(volume_force)
         )
         loss = loss_pde + loss_stress_bc
         loss.backward()
-        return loss
+        return loss.item()
 
     for epoch in range(num_epochs):
         train_batches = iter(train_dataloader)
@@ -200,10 +200,6 @@ if __name__ == "__main__":
                 ansatz, batch_pde, batch_stress_bc, torch.tensor(volume_force)
             )
             loss = loss_pde + loss_stress_bc
-
-            # Backward pass
-            optimizer.zero_grad()
-            loss.backward()
 
             # Update parameters
             optimizer.step(loss_func_closure)
@@ -269,6 +265,16 @@ if __name__ == "__main__":
     )
 
     ########## Calibration
+    # class FakeAnsatz(torch.nn.Module):
+    #     def __init__(self) -> None:
+    #         super().__init__()
+
+    #     def forward(self, x: Tensor) -> Tensor:
+    #         y = 2 * x
+    #         return torch.sum(y, dim=1)
+
+    # fake_ansatz = FakeAnsatz()
+
     num_data_points = 100
     E_true = min_youngs_modulus + torch.rand(1) * (
         max_youngs_modulus - min_youngs_modulus
@@ -280,6 +286,7 @@ if __name__ == "__main__":
         coordinates, length, E_true, traction, volume_force
     )
 
+    # ansatz.train()
     E_estimated, loss_hist_cal = calibrate_model(ansatz, coordinates, data)
 
     E_true_as_float = float(E_true[0].item())
@@ -289,4 +296,4 @@ if __name__ == "__main__":
     print(f"True E: {E_true_as_float}")
     print(f"Estimated E: {E_estimated}")
     print(f"Relative error E: {rel_error_E}")
-    # print(f"Loss history: {loss_hist_cal}")
+    print(f"Loss history: {loss_hist_cal}")
