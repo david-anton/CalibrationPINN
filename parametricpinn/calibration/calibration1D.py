@@ -22,13 +22,13 @@ class Predictor(nn.Module):
         self._freeze_ansatz(self.ansatz)
 
     def _freeze_ansatz(self, ansatz: Module) -> None:
-        ansatz.eval()
+        ansatz.train(False)
         for parameters in ansatz.parameters():
             parameters.requires_grad = False
 
     def forward(self, coordinates: Tensor) -> Tensor:
-        length_x = coordinates.shape[0]
-        x_E = self.E * torch.ones((length_x, 1))
+        length_input = coordinates.shape[0]
+        x_E = self.E.expand(length_input, 1)
         x = torch.concat((coordinates, x_E), dim=1)
         return self.ansatz(x)
 
