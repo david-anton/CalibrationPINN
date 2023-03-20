@@ -5,12 +5,14 @@ from typing import Union, TypeAlias
 import numpy as np
 import numpy.typing as npt
 import torch
+import torch.nn as nn
 
 # Local library imports
 
 
 ## Pytorch
 Tensor: TypeAlias = torch.Tensor
+Parameter: TypeAlias = nn.Parameter
 Module: TypeAlias = torch.nn.Module
 
 ## Numpy

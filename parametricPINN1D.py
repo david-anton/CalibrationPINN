@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 
 # Local library imports
 from parametricpinn.ansatz import create_normalized_HBC_ansatz_1D
+from parametricpinn.calibration import calibrate_model
 from parametricpinn.data import (
     TrainingDataset1D,
     collate_training_data_1D,
@@ -179,7 +180,7 @@ if __name__ == "__main__":
     valid_epochs = []
 
     # Closure for LBFGS
-    def loss_func_closure():
+    def loss_func_closure() -> Tensor:
         optimizer.zero_grad()
         loss_pde, loss_stress_bc = loss_func(
             ansatz, batch_pde, batch_stress_bc, torch.tensor(volume_force)
@@ -256,6 +257,7 @@ if __name__ == "__main__":
         file_name="displacements_pinn_E_187634.png",
         config=plotter_config,
     )
+
     plot_displacements_1D(
         ansatz=ansatz,
         length=length,
@@ -265,3 +267,26 @@ if __name__ == "__main__":
         file_name="displacements_pinn_E_238356.png",
         config=plotter_config,
     )
+
+    ########## Calibration
+    num_data_points = 100
+    E_true = min_youngs_modulus + torch.rand(1) * (
+        max_youngs_modulus - min_youngs_modulus
+    )
+    coordinates = torch.linspace(
+        0.0, length, num_data_points, requires_grad=False
+    ).view([num_data_points, 1])
+    data = calculate_displacements_solution_1D(
+        coordinates, length, E_true, traction, volume_force
+    )
+
+    E_estimated, loss_hist_cal = calibrate_model(ansatz, coordinates, data)
+
+    E_true_as_float = float(E_true[0].item())
+    rel_error_E = (E_estimated - E_true_as_float) / E_true_as_float
+
+    print("Calibration results:")
+    print(f"True E: {E_true_as_float}")
+    print(f"Estimated E: {E_estimated}")
+    print(f"Relative error E: {rel_error_E}")
+    # print(f"Loss history: {loss_hist_cal}")
