@@ -264,36 +264,40 @@ if __name__ == "__main__":
         config=plotter_config,
     )
 
-    ########## Calibration
-    # class FakeAnsatz(torch.nn.Module):
-    #     def __init__(self) -> None:
-    #         super().__init__()
-
-    #     def forward(self, x: Tensor) -> Tensor:
-    #         y = 2 * x
-    #         return torch.sum(y, dim=1)
-
-    # fake_ansatz = FakeAnsatz()
-
     num_data_points = 100
-    E_true = min_youngs_modulus + torch.rand(1) * (
-        max_youngs_modulus - min_youngs_modulus
-    )
+    E_true = 200000.0
+    # E_true = min_youngs_modulus + torch.rand(1) * (
+    #     max_youngs_modulus - min_youngs_modulus
+    # )
     coordinates = torch.linspace(
         0.0, length, num_data_points, requires_grad=False
     ).view([num_data_points, 1])
     data = calculate_displacements_solution_1D(
         coordinates, length, E_true, traction, volume_force
     )
+    coordinates = coordinates.to(device)
+    data = data.to(device)
+    # print(f"Coordinates: {coordinates}")
+    # print(f"Data: {data}")
 
     # ansatz.train()
     E_estimated, loss_hist_cal = calibrate_model(ansatz, coordinates, data)
 
-    E_true_as_float = float(E_true[0].item())
-    rel_error_E = (E_estimated - E_true_as_float) / E_true_as_float
+    rel_error_E = (E_estimated - E_true) / E_true
 
     print("Calibration results:")
-    print(f"True E: {E_true_as_float}")
+    print(f"True E: {E_true}")
     print(f"Estimated E: {E_estimated}")
     print(f"Relative error E: {rel_error_E}")
-    print(f"Loss history: {loss_hist_cal}")
+
+    # length_input = coordinates.shape[0]
+    # x_E = torch.tensor([210000.0]).expand(length_input, 1)
+    # x = torch.concat((coordinates, x_E), dim=1)
+    # y = ansatz(x)
+
+    # data_est = calculate_displacements_solution_1D(
+    #     coordinates, length, 200000.0, traction, volume_force
+    # )
+
+    # mse = loss_metric(data, data_est)
+    # print(f"Start loss: {mse}")
