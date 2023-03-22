@@ -1,38 +1,31 @@
 # Standard library imports
 
 # Third-party imports
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 
 # Local library imports
-from parametricpinn.settings import get_device
 from parametricpinn.types import Tensor, Module
 
 
 num_epochs = 10
 loss_metric = torch.nn.MSELoss()
-device = get_device()
+loss_weight = 1e6
 
 
-class AnalyticalAnsatz(torch.nn.Module):
-    def __init__(self, ansatz: Module, initial_E: float):
-        super().__init__()
-        self.ansatz = ansatz
-        self.E = torch.nn.Parameter(torch.tensor([initial_E]), requires_grad=True)
-        self._freeze_ansatz(self.ansatz)
+# class AnalyticalAnsatz(nn.Module):
+#     def __init__(self, ansatz: Module, initial_E: float):
+#         super().__init__()
+#         self.E = torch.nn.Parameter(torch.tensor([initial_E]), requires_grad=True)
 
-    def _freeze_ansatz(self, ansatz: Module) -> None:
-        ansatz.train(False)
-        for parameters in ansatz.parameters():
-            parameters.requires_grad = False
-
-    def forward(self, coordinates):
-        length = 100.0
-        traction = 10.0
-        volume_force = 5.0
-        return (traction / self.E) * coordinates + (volume_force / self.E) * (
-            length * coordinates - 1 / 2 * coordinates**2
-        )
+#     def forward(self, coordinates):
+#         length = 100.0
+#         traction = 10.0
+#         volume_force = 5.0
+#         return (traction / self.E) * coordinates + (volume_force / self.E) * (
+#             length * coordinates - 1 / 2 * coordinates**2
+#         )
 
 
 class Predictor(nn.Module):
@@ -58,11 +51,29 @@ def calibrate_model(
     ansatz: Module, coordinates: Tensor, data: Tensor
 ) -> tuple[float, list[float]]:
     initial_E = 210000.0
-    predictor = AnalyticalAnsatz(ansatz, initial_E)
+    predictor = Predictor(ansatz, initial_E)
+
+    def plot_loss_func(ansatz: Module, coordinates: Tensor, data: Tensor) -> None:
+        E_list = torch.linspace(180000.0, 240000.0, 1000).tolist()
+
+        loss_list = []
+        for E in E_list:
+            predictor = Predictor(ansatz, E)
+            y = predictor(coordinates)
+            loss = loss_metric(y, data)
+            loss_list.append(loss.item())
+
+        figure, axes = plt.subplots()
+        axes.set_title("Loss function")
+        axes.plot(E_list, loss_list, label="loss PDE")
+        axes.set_ylabel("MSE")
+        axes.set_xlabel("epoch")
+        figure.savefig("loss_func.png", bbox_inches="tight")
+        plt.clf()
 
     def loss_func(coordinates: Tensor, data: Tensor) -> Tensor:
         y = predictor(coordinates)
-        return loss_metric(y, data)
+        return loss_weight * loss_metric(y, data)
 
     optimizer = torch.optim.LBFGS(
         params=predictor.parameters(),
@@ -88,4 +99,5 @@ def calibrate_model(
         loss_hist.append(loss.cpu().item())
         print(f"Estimates E: {predictor.E}, Loss: {loss}, Grad: {predictor.E.grad}")
 
+    plot_loss_func(ansatz, coordinates, data)
     return float(predictor.E.cpu().item()), loss_hist
