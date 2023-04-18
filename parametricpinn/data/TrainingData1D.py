@@ -48,7 +48,7 @@ class TrainingDataset1D(Dataset):
     def _add_pde_sample(self, youngs_modulus: float) -> None:
         x_coor = torch.linspace(
             0.0, self._length, self._num_points_pde, requires_grad=True
-        ).view([self._num_points_pde, 1])
+        ).view(self._num_points_pde, 1)
         x_E = torch.full((self._num_points_pde, 1), youngs_modulus)
         y_true = torch.zeros_like(x_coor)
         sample = TrainingData1D(x_coor=x_coor, x_E=x_E, y_true=y_true)
@@ -60,8 +60,8 @@ class TrainingDataset1D(Dataset):
         )
         x_E = torch.full((self._num_points_stress_bc, 1), youngs_modulus)
         y_true = torch.full((self._num_points_stress_bc, 1), self._traction)
-        sample_stress_bc = TrainingData1D(x_coor=x_coor, x_E=x_E, y_true=y_true)
-        self._samples_stress_bc.append(sample_stress_bc)
+        sample = TrainingData1D(x_coor=x_coor, x_E=x_E, y_true=y_true)
+        self._samples_stress_bc.append(sample)
 
     def __len__(self) -> int:
         return self._num_samples
@@ -82,13 +82,19 @@ def collate_training_data_1D(
     x_E_stress_bc_batch = []
     y_true_stress_bc_batch = []
 
-    for sample_pde, sample_stress_bc in batch:
+    def append_to_pde_batch(sample_pde: TrainingData1D) -> None:
         x_coor_pde_batch.append(sample_pde.x_coor)
         x_E_pde_batch.append(sample_pde.x_E)
         y_true_pde_batch.append(sample_pde.y_true)
+
+    def append_to_stress_bc_batch(sample_stress_bc: TrainingData1D) -> None:
         x_coor_stress_bc_batch.append(sample_stress_bc.x_coor)
         x_E_stress_bc_batch.append(sample_stress_bc.x_E)
         y_true_stress_bc_batch.append(sample_stress_bc.y_true)
+
+    for sample_pde, sample_stress_bc in batch:
+        append_to_pde_batch(sample_pde)
+        append_to_stress_bc_batch(sample_stress_bc)
 
     batch_pde = TrainingData1D(
         x_coor=torch.concat(x_coor_pde_batch, dim=0),
