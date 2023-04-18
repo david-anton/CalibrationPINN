@@ -6,9 +6,8 @@ import torch
 import torch.nn as nn
 
 # Local library imports
-from parametricpinn.network import NormalizedNetwork
-from parametricpinn.network.normalization.outputRenormalizer import OutputRenormalizer
-from parametricpinn.network.normalization.inputNormlizer import InputNormalizer
+from parametricpinn.network import create_normalized_network
+from parametricpinn.network.normalization.normalizedNetwork import NormalizedNetwork
 from parametricpinn.types import Tensor
 
 
@@ -28,15 +27,12 @@ max_outputs = torch.tensor([100.0, 200.0])
 
 @pytest.fixture
 def sut() -> NormalizedNetwork:
-    network = NetworkFake()
-    input_normalizer = InputNormalizer(min_inputs=min_inputs, max_inputs=max_inputs)
-    output_renormalizer = OutputRenormalizer(
-        min_outputs=min_outputs, max_outputs=max_outputs
-    )
-    return NormalizedNetwork(
-        network=network,
-        input_normalizer=input_normalizer,
-        output_renormalizer=output_renormalizer,
+    return create_normalized_network(
+        network=NetworkFake(),
+        min_inputs=min_inputs,
+        max_inputs=max_inputs,
+        min_outputs=min_outputs,
+        max_outputs=max_outputs,
     )
 
 

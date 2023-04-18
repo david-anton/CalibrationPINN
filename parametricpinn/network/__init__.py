@@ -1,4 +1,4 @@
 from .ffnn import FFNN
-from .normalization import NormalizedNetwork
+from .normalization import create_normalized_network
 
-__all__ = ["FFNN", "NormalizedNetwork"]
+__all__ = ["FFNN", "create_normalized_network"]

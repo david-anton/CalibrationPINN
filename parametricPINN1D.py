@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import DataLoader
 
 # Local library imports
-from parametricpinn.ansatz import create_normalized_HBC_ansatz_1D
+from parametricpinn.ansatz import HBCAnsatz1D
 from parametricpinn.calibration import calibrate_model
 from parametricpinn.data import (
     TrainingDataset1D,
@@ -16,7 +16,7 @@ from parametricpinn.data import (
     collate_validation_data_1D,
 )
 from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm
-from parametricpinn.network import FFNN
+from parametricpinn.network import FFNN, create_normalized_network
 from parametricpinn.preprocessing.plot import (
     PlotterConfig1D,
     plot_loss_hist_1D,
@@ -35,6 +35,7 @@ min_youngs_modulus = 180000.0
 max_youngs_modulus = 240000.0
 traction = 10.0
 volume_force = 5.0
+displacement_left = 0.0
 # Network
 layer_sizes = [2, 16, 16, 1]
 # Training
@@ -107,7 +108,7 @@ def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float,
 if __name__ == "__main__":
     min_coordinate = 0.0
     max_coordinate = length
-    min_displacement = 0.0
+    min_displacement = displacement_left
     max_displacement = calculate_displacements_solution_1D(
         coordinates=max_coordinate,
         length=length,
@@ -119,15 +120,21 @@ if __name__ == "__main__":
     max_inputs = torch.tensor([max_coordinate, max_youngs_modulus])
     min_output = torch.tensor([min_displacement])
     max_output = torch.tensor([max_displacement])
+    input_range_coordinate = max_coordinate - min_coordinate
 
     network = FFNN(layer_sizes=layer_sizes)
-    ansatz = create_normalized_HBC_ansatz_1D(
+    normalized_network = create_normalized_network(
         network=network,
         min_inputs=min_inputs,
         max_inputs=max_inputs,
         min_outputs=min_output,
         max_outputs=max_output,
     ).to(device)
+    ansatz = HBCAnsatz1D(
+        displacement_left=displacement_left,
+        input_range_coordinate=input_range_coordinate,
+        network=normalized_network,
+    )
 
     train_dataset = TrainingDataset1D(
         length=length,
@@ -264,23 +271,23 @@ if __name__ == "__main__":
         config=plotter_config,
     )
 
-    ## Calibration
-    num_data_points = 100
-    E_true = 200000.0
-    coordinates = torch.linspace(
-        0.0, length, num_data_points, requires_grad=False
-    ).view([num_data_points, 1])
-    data = calculate_displacements_solution_1D(
-        coordinates, length, E_true, traction, volume_force
-    )
-    coordinates = coordinates.to(device)
-    data = data.to(device)
+    # ## Calibration
+    # num_data_points = 100
+    # E_true = 200000.0
+    # coordinates = torch.linspace(
+    #     0.0, length, num_data_points, requires_grad=False
+    # ).view([num_data_points, 1])
+    # data = calculate_displacements_solution_1D(
+    #     coordinates, length, E_true, traction, volume_force
+    # )
+    # coordinates = coordinates.to(device)
+    # data = data.to(device)
 
-    E_estimated, loss_hist_cal = calibrate_model(ansatz, coordinates, data)
+    # E_estimated, loss_hist_cal = calibrate_model(ansatz, coordinates, data)
 
-    rel_error_E = (E_estimated - E_true) / E_true
+    # rel_error_E = (E_estimated - E_true) / E_true
 
-    print("Calibration results:")
-    print(f"True E: {E_true}")
-    print(f"Estimated E: {E_estimated}")
-    print(f"Relative error E: {rel_error_E}")
+    # print("Calibration results:")
+    # print(f"True E: {E_true}")
+    # print(f"Estimated E: {E_estimated}")
+    # print(f"Relative error E: {rel_error_E}")
