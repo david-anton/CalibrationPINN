@@ -16,18 +16,6 @@ from parametricpinn.types import Tensor
 random_seed = 0
 
 
-# def calculate_displacements(
-#     coordinates: Tensor,
-#     length: float,
-#     youngs_modulus: Tensor,
-#     traction: float,
-#     volume_force: float,
-# ):
-#     return (traction / youngs_modulus) * coordinates + (
-#         volume_force / youngs_modulus
-#     ) * (length * coordinates - 1 / 2 * coordinates**2)
-
-
 @pytest.mark.parametrize(
     ("coordinate", "expected"),
     [
@@ -120,9 +108,9 @@ class TestValidationDataset1D:
     @pytest.mark.parametrize(("idx"), range(num_samples))
     def test_output_sample(self, sut: ValidationDataset1D, idx: int) -> None:
         input, actual = sut[idx]
+
         x_coordinates = input[:, 0].view((self.num_points, 1))
         x_youngs_modulus = input[:, 1].view((self.num_points, 1))
-
         expected = calculate_displacements_solution_1D(
             coordinates=x_coordinates,
             length=self.length,

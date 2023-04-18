@@ -5,12 +5,12 @@ import pytest
 import torch
 
 # Local library imports
-from parametricpinn.ansatz.normalization import InputNormalizer
+from parametricpinn.network.normalization.outputRenormalizer import OutputRenormalizer
 from parametricpinn.types import Tensor
 
 
 @pytest.mark.parametrize(
-    ("min_inputs", "max_inputs", "inputs"),
+    ("min_outputs", "max_outputs", "expected"),
     [
         (
             torch.tensor([0.0, 0.0]),
@@ -29,12 +29,12 @@ from parametricpinn.types import Tensor
         ),
     ],
 )
-def test_input_normalizer(
-    min_inputs: Tensor, max_inputs: Tensor, inputs: Tensor
+def test_output_renormalizer(
+    min_outputs: Tensor, max_outputs: Tensor, expected: Tensor
 ) -> None:
-    sut = InputNormalizer(min_inputs=min_inputs, max_inputs=max_inputs)
+    sut = OutputRenormalizer(min_outputs=min_outputs, max_outputs=max_outputs)
 
-    actual = sut(inputs)
+    output = torch.tensor([[-1.0, -1.0], [0.0, 0.0], [1.0, 1.0]])
+    actual = sut(output)
 
-    expected = torch.tensor([[-1.0, -1.0], [0.0, 0.0], [1.0, 1.0]])
     torch.testing.assert_close(actual, expected)
