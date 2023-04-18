@@ -16,6 +16,10 @@
 		}
     },
 
+	"mounts": [
+		"source=${localWorkspaceFolder}/../output,target=/home/docker_user/output,type=bind,consistency=cached"
+	],
+
 	"customizations": {
 		// Configure properties specific to VS Code.
 		"vscode": {

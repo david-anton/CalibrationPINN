@@ -55,6 +55,7 @@ RUN pip install --upgrade pip && \
 
 
 ### Create working directory
+ENV DATA_DIR $HOME_DIR
 ENV APP_DIR $HOME_DIR/app
 RUN mkdir -p $APP_DIR
 

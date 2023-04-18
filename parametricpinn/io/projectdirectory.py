@@ -51,7 +51,8 @@ class ProjectDirectory:
         self._input_subdir = self._join_project_subdir_paths(self._input_subdir_name)
 
     def _join_project_subdir_paths(self, subdir_name: str) -> Path:
-        return self._join_path_to_subdir(self._project_dir, subdir_name)
+        subdir_path = self._project_dir / subdir_name
+        return subdir_path
 
     def _join_path_to_subdir(self, dir_path: Path, subdir_name: str) -> Path:
         subdir_path = dir_path / subdir_name

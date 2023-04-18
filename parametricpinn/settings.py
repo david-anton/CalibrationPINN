@@ -34,6 +34,6 @@ def get_device() -> torch.device:
 
 class Settings:
     def __init__(self) -> None:
-        self.PROJECT_DIR = Path(os.getenv("APP_HOME", os.getenv("HOME", ".")))
+        self.PROJECT_DIR = Path(os.getenv("DATA_DIR", os.getenv("HOME", ".")))
         self.OUTPUT_SUBDIR = "output"
         self.INPUT_SUBDIR = "input"

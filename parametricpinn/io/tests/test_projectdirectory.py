@@ -1,5 +1,6 @@
 # Standard library imports
 from pathlib import Path
+import os
 import shutil
 from typing import Iterator
 
@@ -24,9 +25,15 @@ settings = FakeSetting()
 
 @pytest.fixture
 def sut() -> Iterator[ProjectDirectory]:
+    output_subdir_path = settings.PROJECT_DIR / settings.OUTPUT_SUBDIR
+    input_subdir_path = settings.PROJECT_DIR / settings.INPUT_SUBDIR
+    if not Path.is_dir(output_subdir_path):
+        os.mkdir(output_subdir_path)
+    if not Path.is_dir(input_subdir_path):
+        os.mkdir(input_subdir_path)
     yield ProjectDirectory(settings)
-    shutil.rmtree(settings.PROJECT_DIR / settings.OUTPUT_SUBDIR)
-    shutil.rmtree(settings.PROJECT_DIR / settings.INPUT_SUBDIR)
+    shutil.rmtree(output_subdir_path)
+    shutil.rmtree(input_subdir_path)
 
 
 # Path to output file
@@ -157,7 +164,7 @@ def test_get_input_file_path_for_not_existing_subdirectory(
         )
 
 
-def test_get_path_to_input_file_for_not_existing_input_file(
+def test_get_input_file_path_for_not_existing_input_file(
     sut: ProjectDirectory,
 ) -> None:
     file_name = "not_existing_input_file"

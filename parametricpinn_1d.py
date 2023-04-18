@@ -15,6 +15,7 @@ from parametricpinn.data import (
     ValidationDataset1D,
     collate_validation_data_1D,
 )
+from parametricpinn.io import ProjectDirectory
 from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm
 from parametricpinn.network import FFNN, create_normalized_network
 from parametricpinn.preprocessing.plot import (
@@ -23,7 +24,7 @@ from parametricpinn.preprocessing.plot import (
     plot_valid_hist_1D,
     plot_displacements_1D,
 )
-from parametricpinn.settings import get_device, set_default_dtype, set_seed
+from parametricpinn.settings import get_device, set_default_dtype, set_seed, Settings
 from parametricpinn.training.loss import momentum_equation_func_1D, stress_func_1D
 from parametricpinn.types import Tensor, Module
 
@@ -49,6 +50,12 @@ num_samples_valid = 100
 valid_interval = 1
 num_points_valid = 1000
 batch_size_valid = num_points_valid
+# Output
+output_subdir = "parametric_PINN_1D"
+
+
+settings = Settings()
+project_directory = ProjectDirectory(settings)
 
 # Set up simulation
 set_default_dtype(torch.float64)
@@ -232,6 +239,8 @@ if __name__ == "__main__":
         loss_hist_pde=loss_hist_pde,
         loss_hist_stress_bc=loss_hist_stress_bc,
         file_name="loss_pinn.png",
+        output_subdir=output_subdir,
+        project_directory=project_directory,
         config=plotter_config,
     )
 
@@ -240,6 +249,8 @@ if __name__ == "__main__":
         valid_hist=valid_hist_mae,
         valid_metric="mean absolute error",
         file_name="mae_pinn.png",
+        output_subdir=output_subdir,
+        project_directory=project_directory,
         config=plotter_config,
     )
 
@@ -248,6 +259,8 @@ if __name__ == "__main__":
         valid_hist=valid_hist_rl2,
         valid_metric="rel. L2 norm",
         file_name="rl2_pinn.png",
+        output_subdir=output_subdir,
+        project_directory=project_directory,
         config=plotter_config,
     )
 
@@ -258,6 +271,8 @@ if __name__ == "__main__":
         traction=traction,
         volume_force=volume_force,
         file_name="displacements_pinn_E_187634.png",
+        output_subdir=output_subdir,
+        project_directory=project_directory,
         config=plotter_config,
     )
 
@@ -268,6 +283,8 @@ if __name__ == "__main__":
         traction=traction,
         volume_force=volume_force,
         file_name="displacements_pinn_E_238356.png",
+        output_subdir=output_subdir,
+        project_directory=project_directory,
         config=plotter_config,
     )
 

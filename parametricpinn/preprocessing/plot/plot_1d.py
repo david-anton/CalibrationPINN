@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import torch
 
 # Local library imports
+from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Module
 from parametricpinn.data import calculate_displacements_solution_1D
 
@@ -38,6 +39,8 @@ def plot_loss_hist_1D(
     loss_hist_pde: list[float],
     loss_hist_stress_bc: list[float],
     file_name: str,
+    output_subdir: str,
+    project_directory: ProjectDirectory,
     config: PlotterConfig1D,
 ) -> None:
     figure, axes = plt.subplots()
@@ -50,7 +53,10 @@ def plot_loss_hist_1D(
     axes.tick_params(axis="both", which="minor", labelsize=config.minor_tick_label_size)
     axes.tick_params(axis="both", which="major", labelsize=config.major_tick_label_size)
     axes.legend(fontsize=config.font_size, loc="best")
-    figure.savefig(file_name, bbox_inches="tight", dpi=config.dpi)
+    output_path = project_directory.create_output_file_path(
+        file_name=file_name, subdir_name=output_subdir
+    )
+    figure.savefig(output_path, bbox_inches="tight", dpi=config.dpi)
     plt.clf()
 
 
@@ -59,6 +65,8 @@ def plot_valid_hist_1D(
     valid_hist: list[float],
     valid_metric: str,
     file_name: str,
+    output_subdir: str,
+    project_directory: ProjectDirectory,
     config: PlotterConfig1D,
 ) -> None:
     figure, axes = plt.subplots()
@@ -68,7 +76,10 @@ def plot_valid_hist_1D(
     axes.set_xlabel("epoch", **config.font)
     axes.tick_params(axis="both", which="minor", labelsize=config.minor_tick_label_size)
     axes.tick_params(axis="both", which="major", labelsize=config.major_tick_label_size)
-    figure.savefig(file_name, bbox_inches="tight", dpi=config.dpi)
+    output_path = project_directory.create_output_file_path(
+        file_name=file_name, subdir_name=output_subdir
+    )
+    figure.savefig(output_path, bbox_inches="tight", dpi=config.dpi)
     plt.clf()
 
 
@@ -79,6 +90,8 @@ def plot_displacements_1D(
     traction: float,
     volume_force: float,
     file_name: str,
+    output_subdir: str,
+    project_directory: ProjectDirectory,
     config: PlotterConfig1D,
 ) -> None:
     num_points = 1000
@@ -106,5 +119,8 @@ def plot_displacements_1D(
     axes.tick_params(axis="both", which="minor", labelsize=config.minor_tick_label_size)
     axes.tick_params(axis="both", which="major", labelsize=config.major_tick_label_size)
     axes.legend(fontsize=config.font_size, loc="best")
-    figure.savefig(file_name, bbox_inches="tight", dpi=config.dpi)
+    output_path = project_directory.create_output_file_path(
+        file_name=file_name, subdir_name=output_subdir
+    )
+    figure.savefig(output_path, bbox_inches="tight", dpi=config.dpi)
     plt.clf()
