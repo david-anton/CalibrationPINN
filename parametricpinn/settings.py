@@ -8,7 +8,7 @@ import torch
 # Local library imports
 
 
-def set_default_dtype(dtype: torch.dtype):
+def set_default_dtype(dtype: torch.dtype) -> None:
     torch.set_default_dtype(dtype)
 
 
@@ -28,3 +28,12 @@ def get_device() -> torch.device:
         device = torch.device("cpu")
     print(f"Using {device} device")
     return device
+
+
+class Settings:
+    def __init__(self) -> None:
+        self.PROJECT_DIRECTORY_PATH = Path(
+            os.getenv("APP_HOME", os.getenv("HOME", "."))
+        )
+        self.OUTPUT_SUBDIRECTORY_NAME = "output"
+        self.INPUT_SUBDIRECTORY_NAME = "input"

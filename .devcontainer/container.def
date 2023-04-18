@@ -41,12 +41,12 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu20.04
     rm -rf /var/lib/apt/lists/*
 
     #Set permissions
-    chmod 777 $CONTAINER_HOME 
+    chmod 777 -R $CONTAINER_HOME 
 
 #%test
 
 %environment
-    export APP_HOME=$CONTAINER_HOME
+    export APP_HOME=/data
 
 #%startscript
 #%runscript
