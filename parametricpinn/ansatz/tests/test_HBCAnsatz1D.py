@@ -10,7 +10,7 @@ from parametricpinn.ansatz.HBCAnsatz1D import HBCAnsatz1D
 from parametricpinn.types import Tensor
 
 
-class NetworkFake(nn.Module):
+class FakeNetwork(nn.Module):
     def __init__(self) -> None:
         super().__init__()
 
@@ -21,7 +21,7 @@ class NetworkFake(nn.Module):
 @pytest.fixture
 def sut() -> HBCAnsatz1D:
     input_range_coordinates = 1.0
-    network = NetworkFake()
+    network = FakeNetwork()
     return HBCAnsatz1D(
         network=network,
         displacement_left=0.0,

@@ -11,7 +11,7 @@ from parametricpinn.network.normalization.normalizedNetwork import NormalizedNet
 from parametricpinn.types import Tensor
 
 
-class NetworkFake(nn.Module):
+class FakeNetwork(nn.Module):
     def __init__(self) -> None:
         super().__init__()
 
@@ -28,7 +28,7 @@ max_outputs = torch.tensor([100.0, 200.0])
 @pytest.fixture
 def sut() -> NormalizedNetwork:
     return create_normalized_network(
-        network=NetworkFake(),
+        network=FakeNetwork(),
         min_inputs=min_inputs,
         max_inputs=max_inputs,
         min_outputs=min_outputs,

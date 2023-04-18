@@ -1,4 +1,6 @@
 # Standard library imports
+import os
+from pathlib import Path
 import random
 
 # Third-party imports
@@ -32,8 +34,6 @@ def get_device() -> torch.device:
 
 class Settings:
     def __init__(self) -> None:
-        self.PROJECT_DIRECTORY_PATH = Path(
-            os.getenv("APP_HOME", os.getenv("HOME", "."))
-        )
-        self.OUTPUT_SUBDIRECTORY_NAME = "output"
-        self.INPUT_SUBDIRECTORY_NAME = "input"
+        self.PROJECT_DIR = Path(os.getenv("APP_HOME", os.getenv("HOME", ".")))
+        self.OUTPUT_SUBDIR = "output"
+        self.INPUT_SUBDIR = "input"
