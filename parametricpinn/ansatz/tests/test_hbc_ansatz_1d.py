@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 
 # Local library imports
-from parametricpinn.ansatz.HBCAnsatz1D import HBCAnsatz1D
+from parametricpinn.ansatz.hbc_ansatz_1d import HBCAnsatz1D
 from parametricpinn.types import Tensor
 
 

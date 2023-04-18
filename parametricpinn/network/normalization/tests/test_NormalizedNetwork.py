@@ -7,7 +7,7 @@ import torch.nn as nn
 
 # Local library imports
 from parametricpinn.network import create_normalized_network
-from parametricpinn.network.normalization.normalizedNetwork import NormalizedNetwork
+from parametricpinn.network.normalization.normalizednetwork import NormalizedNetwork
 from parametricpinn.types import Tensor
 
 

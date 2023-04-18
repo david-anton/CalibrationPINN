@@ -5,7 +5,7 @@ import pytest
 import torch
 
 # Local library imports
-from parametricpinn.network.normalization.inputNormlizer import InputNormalizer
+from parametricpinn.network.normalization.inputnormlizer import InputNormalizer
 from parametricpinn.types import Tensor
 
 

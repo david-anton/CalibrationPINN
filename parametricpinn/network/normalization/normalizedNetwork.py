@@ -4,8 +4,8 @@
 import torch.nn as nn
 
 # Local library imports
-from parametricpinn.network.normalization.inputNormlizer import InputNormalizer
-from parametricpinn.network.normalization.outputRenormalizer import OutputRenormalizer
+from parametricpinn.network.normalization.inputnormlizer import InputNormalizer
+from parametricpinn.network.normalization.outputrenormalizer import OutputRenormalizer
 from parametricpinn.types import Module, Tensor
 
 
