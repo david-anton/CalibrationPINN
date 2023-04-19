@@ -1,5 +1,5 @@
 # Standard library imports
-from typing import Union, TypeAlias
+from typing import TypeAlias
 
 # Third-party imports
 import numpy as np
