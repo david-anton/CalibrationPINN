@@ -51,7 +51,7 @@ class TrainingDataset1D(TrainingDataset):
     def _add_pde_sample(self, youngs_modulus: float) -> None:
         x_coor = self._geometry.create_uniform_points(self._num_points_pde)
         x_E = self._generate_full_tensor(youngs_modulus, self._num_points_pde)
-        y_true = torch.zeros_like(x_coor, requires_grad=True)
+        y_true = torch.zeros((self._num_points_pde, 1), requires_grad=True)
         sample = TrainingData1D(x_coor=x_coor, x_E=x_E, y_true=y_true)
         self._samples_pde.append(sample)
 

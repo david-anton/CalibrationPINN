@@ -1,10 +1,8 @@
-# Standard library imports
+from typing import cast
 
-# Third-party imports
 import torch
 from torch.utils.data import Dataset
 
-# Local library imports
 from parametricpinn.data.geometry import Geometry1DProtocol, StretchedRod
 from parametricpinn.types import Tensor
 
@@ -15,7 +13,7 @@ def calculate_displacements_solution_1D(
     youngs_modulus: Tensor | float,
     traction: float,
     volume_force: float,
-) -> Tensor:
+) -> Tensor | float:
     return (traction / youngs_modulus) * coordinates + (
         volume_force / youngs_modulus
     ) * (length * coordinates - 1 / 2 * coordinates**2)
@@ -73,7 +71,7 @@ class ValidationDataset1D(Dataset):
             traction=self._traction,
             volume_force=self._volume_force,
         )
-        self._samples_y_true.append(y_true)
+        self._samples_y_true.append(cast(Tensor, y_true))
 
     def __len__(self) -> int:
         return self._num_samples

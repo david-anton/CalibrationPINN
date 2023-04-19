@@ -67,19 +67,21 @@ class TrainingDataset2D(TrainingDataset):
         x_coor = self._geometry.create_random_points(self._num_points_pde)
         x_E = self._generate_full_tensor(youngs_modulus, self._num_points_pde)
         x_nu = self._generate_full_tensor(poissons_ratio, self._num_points_pde)
-        y_true = torch.zeros_like(x_coor, requires_grad=True)
+        y_true = torch.zeros((self._num_points_pde, 1), requires_grad=True)
         sample = TrainingData2D(x_coor=x_coor, x_E=x_E, x_nu=x_nu, y_true=y_true)
         self._samples_pde.append(sample)
 
     def _add_stress_bc_sample(
         self, youngs_modulus: float, poissons_ratio: float
     ) -> None:
-        x_coor = self._geometry.create_random_points(self._num_points_stress_bc)
+        x_coor = self._geometry.create_uniform_points_on_left_boundary(
+            self._num_points_stress_bc
+        )
         x_E = self._generate_full_tensor(youngs_modulus, self._num_points_stress_bc)
-        x_nu = x_E = self._generate_full_tensor(
+        x_nu = self._generate_full_tensor(
             poissons_ratio, self._num_points_stress_bc
         )
-        y_true = x_E = self._generate_full_tensor(
+        y_true = self._generate_full_tensor(
             self._traction, self._num_points_stress_bc
         )
         sample = TrainingData2D(x_coor=x_coor, x_E=x_E, x_nu=x_nu, y_true=y_true)

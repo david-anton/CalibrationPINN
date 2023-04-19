@@ -8,6 +8,8 @@ from parametricpinn.types import Tensor
 
 
 class Geometry1DProtocol(Protocol):
+    length: float
+
     def create_uniform_points(self, num_points: int) -> Tensor:
         "Returns uniformly distributed points within the geometry."
 
