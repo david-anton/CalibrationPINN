@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import Dataset
 
 # Local library imports
-from parametricpinn.data.geometry import StretchedRod
+from parametricpinn.data.geometry import Geometry1DProtocol, StretchedRod
 from parametricpinn.types import Tensor
 
 
@@ -24,7 +24,7 @@ def calculate_displacements_solution_1D(
 class ValidationDataset1D(Dataset):
     def __init__(
         self,
-        geometry: StretchedRod,
+        geometry: Geometry1DProtocol,
         traction: float,
         volume_force: float,
         min_youngs_modulus: float,

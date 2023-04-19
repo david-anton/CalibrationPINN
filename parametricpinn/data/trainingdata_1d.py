@@ -31,6 +31,8 @@ class TrainingDataset1D(TrainingDataset):
         self._num_points_pde = num_points_pde
         self._num_points_stress_bc = 1
         self._num_samples = num_samples
+        self._samples_pde: list[TrainingData1D] = []
+        self._samples_stress_bc: list[TrainingData1D] = []
 
         self._generate_samples()
 
@@ -62,6 +64,11 @@ class TrainingDataset1D(TrainingDataset):
 
     def __len__(self) -> int:
         return self._num_samples
+
+    def __getitem__(self, idx: int) -> tuple[TrainingData1D, TrainingData1D]:
+        sample_pde = self._samples_pde[idx]
+        sample_stress_bc = self._samples_stress_bc[idx]
+        return sample_pde, sample_stress_bc
 
 
 def collate_training_data_1D(
