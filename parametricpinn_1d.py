@@ -15,7 +15,6 @@ from parametricpinn.data import (
     create_training_dataset_1D,
     create_validation_dataset_1D,
     TrainingDataset1D,
-    
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm

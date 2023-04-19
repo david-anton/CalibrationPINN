@@ -48,15 +48,19 @@ class TrainingDataset1D(Dataset):
 
     def _add_pde_sample(self, youngs_modulus: float) -> None:
         x_coor = self._geometry.create_uniform_points(self._num_points_pde)
-        x_E = torch.full((self._num_points_pde, 1), youngs_modulus)
-        y_true = torch.zeros_like(x_coor)
+        x_E = torch.full((self._num_points_pde, 1), youngs_modulus, requires_grad=True)
+        y_true = torch.zeros_like(x_coor, requires_grad=True)
         sample = TrainingData1D(x_coor=x_coor, x_E=x_E, y_true=y_true)
         self._samples_pde.append(sample)
 
     def _add_stress_bc_sample(self, youngs_modulus: float) -> None:
         x_coor = self._geometry.create_points_at_free_end(self._num_points_stress_bc)
-        x_E = torch.full((self._num_points_stress_bc, 1), youngs_modulus)
-        y_true = torch.full((self._num_points_stress_bc, 1), self._traction)
+        x_E = torch.full(
+            (self._num_points_stress_bc, 1), youngs_modulus, requires_grad=True
+        )
+        y_true = torch.full(
+            (self._num_points_stress_bc, 1), self._traction, requires_grad=True
+        )
         sample = TrainingData1D(x_coor=x_coor, x_E=x_E, y_true=y_true)
         self._samples_stress_bc.append(sample)
 

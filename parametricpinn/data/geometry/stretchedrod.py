@@ -20,7 +20,7 @@ class StretchedRod:
         )
 
     def create_random_points(self, num_points: int) -> Tensor:
-        return torch.rand((num_points, 1)) * self.length
+        return torch.rand((num_points, 1), requires_grad=True) * self.length
 
     def create_points_at_free_end(self, num_points: int) -> Tensor:
         return torch.full((num_points, 1), self.length, requires_grad=True)
