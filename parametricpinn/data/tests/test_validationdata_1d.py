@@ -6,9 +6,10 @@ import torch
 
 # Local library imports
 from parametricpinn.data import (
-    calculate_displacements_solution_1D,
     ValidationDataset1D,
+    calculate_displacements_solution_1D,
     collate_validation_data_1D,
+    create_validation_dataset_1D,
 )
 from parametricpinn.settings import set_seed
 from parametricpinn.types import Tensor
@@ -55,7 +56,7 @@ class TestValidationDataset1D:
     @pytest.fixture
     def sut(self) -> ValidationDataset1D:
         set_seed(random_seed)
-        return ValidationDataset1D(
+        return create_validation_dataset_1D(
             length=self.length,
             traction=self.traction,
             volume_force=self.volume_force,
@@ -66,19 +67,19 @@ class TestValidationDataset1D:
         )
 
     @pytest.fixture
-    def x_coordinates_and_youngs_modulus_list(self) -> tuple[list[Tensor], list[float]]:
+    def x_coordinates_and_youngs_modulus(self) -> tuple[list[Tensor], list[Tensor]]:
         # The random numbers must be generated in the same order as in the system under test.
         set_seed(random_seed)
-        coordinates_array = (
-            torch.rand((self.num_points, self.num_samples)) * self.length
-        )
-        coordinates_list = torch.chunk(coordinates_array, self.num_samples, dim=1)
-        youngs_modulus_list = (
-            self.min_youngs_modulus
-            + torch.rand((self.num_samples))
-            * (self.max_youngs_modulus - self.min_youngs_modulus)
-        ).tolist()
-
+        youngs_modulus_list = []
+        coordinates_list = []
+        for _ in range(self.num_samples):
+            youngs_modulus = (
+                self.min_youngs_modulus
+                + torch.rand((1)) * (self.max_youngs_modulus - self.min_youngs_modulus)
+            ).repeat(self.num_points, 1)
+            youngs_modulus_list.append(youngs_modulus)
+            coordinates = torch.rand((self.num_points, 1)) * self.length
+            coordinates_list.append(coordinates)
         return coordinates_list, youngs_modulus_list
 
     def test_len(self, sut: ValidationDataset1D) -> None:
@@ -91,7 +92,7 @@ class TestValidationDataset1D:
     def test_input_sample(
         self,
         sut: ValidationDataset1D,
-        x_coordinates_and_youngs_modulus_list: tuple[list[Tensor], list[float]],
+        x_coordinates_and_youngs_modulus: tuple[list[Tensor], list[Tensor]],
         idx: int,
     ) -> None:
         actual, _ = sut[idx]
@@ -99,9 +100,9 @@ class TestValidationDataset1D:
         (
             x_coordinates_list,
             x_youngs_modulus_list,
-        ) = x_coordinates_and_youngs_modulus_list
+        ) = x_coordinates_and_youngs_modulus
         x_coordinates = x_coordinates_list[idx]
-        x_youngs_modulus = torch.full((self.num_points, 1), x_youngs_modulus_list[idx])
+        x_youngs_modulus = x_youngs_modulus_list[idx]
         expected = torch.concat((x_coordinates, x_youngs_modulus), dim=1)
         torch.testing.assert_close(actual, expected)
 

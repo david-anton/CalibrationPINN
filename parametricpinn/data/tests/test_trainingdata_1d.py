@@ -9,6 +9,7 @@ from parametricpinn.data import (
     TrainingData1D,
     TrainingDataset1D,
     collate_training_data_1D,
+    create_training_dataset_1D,
 )
 from parametricpinn.types import Tensor
 
@@ -24,7 +25,7 @@ class TestTrainingDataset1D:
 
     @pytest.fixture
     def sut(self) -> TrainingDataset1D:
-        return TrainingDataset1D(
+        return create_training_dataset_1D(
             length=self.length,
             traction=self.traction,
             min_youngs_modulus=self.min_youngs_modulus,

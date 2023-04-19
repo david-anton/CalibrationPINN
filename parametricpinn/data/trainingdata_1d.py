@@ -6,6 +6,7 @@ import torch
 from torch.utils.data import Dataset
 
 # Local library imports
+from parametricpinn.data.geometry import StretchedRod
 
 
 TrainingData1D = namedtuple("TrainingData1D", ["x_coor", "x_E", "y_true"])
@@ -14,14 +15,14 @@ TrainingData1D = namedtuple("TrainingData1D", ["x_coor", "x_E", "y_true"])
 class TrainingDataset1D(Dataset):
     def __init__(
         self,
-        length: float,
+        geometry: StretchedRod,
         traction: float,
         min_youngs_modulus: float,
         max_youngs_modulus: float,
         num_points_pde: int,
         num_samples: int,
     ):
-        self._length = length
+        self._geometry = geometry
         self._traction = traction
         self._min_youngs_modulus = min_youngs_modulus
         self._max_youngs_modulus = max_youngs_modulus
@@ -46,18 +47,14 @@ class TrainingDataset1D(Dataset):
         ).tolist()
 
     def _add_pde_sample(self, youngs_modulus: float) -> None:
-        x_coor = torch.linspace(
-            0.0, self._length, self._num_points_pde, requires_grad=True
-        ).view(self._num_points_pde, 1)
+        x_coor = self._geometry.create_uniform_points(self._num_points_pde)
         x_E = torch.full((self._num_points_pde, 1), youngs_modulus)
         y_true = torch.zeros_like(x_coor)
         sample = TrainingData1D(x_coor=x_coor, x_E=x_E, y_true=y_true)
         self._samples_pde.append(sample)
 
     def _add_stress_bc_sample(self, youngs_modulus: float) -> None:
-        x_coor = torch.full(
-            (self._num_points_stress_bc, 1), self._length, requires_grad=True
-        )
+        x_coor = self._geometry.create_points_at_free_end(self._num_points_stress_bc)
         x_E = torch.full((self._num_points_stress_bc, 1), youngs_modulus)
         y_true = torch.full((self._num_points_stress_bc, 1), self._traction)
         sample = TrainingData1D(x_coor=x_coor, x_E=x_E, y_true=y_true)
@@ -107,3 +104,22 @@ def collate_training_data_1D(
         y_true=torch.concat(y_true_stress_bc_batch, dim=0),
     )
     return batch_pde, batch_stress_bc
+
+
+def create_training_dataset_1D(
+    length: float,
+    traction: float,
+    min_youngs_modulus: float,
+    max_youngs_modulus: float,
+    num_points_pde: int,
+    num_samples: int,
+):
+    geometry = StretchedRod(length=length)
+    return TrainingDataset1D(
+        geometry=geometry,
+        traction=traction,
+        min_youngs_modulus=min_youngs_modulus,
+        max_youngs_modulus=max_youngs_modulus,
+        num_points_pde=num_points_pde,
+        num_samples=num_samples,
+    )

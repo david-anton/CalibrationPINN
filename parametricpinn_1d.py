@@ -9,11 +9,13 @@ from torch.utils.data import DataLoader
 from parametricpinn.ansatz import HBCAnsatz1D
 from parametricpinn.calibration import calibrate_model
 from parametricpinn.data import (
-    TrainingDataset1D,
-    collate_training_data_1D,
     calculate_displacements_solution_1D,
-    ValidationDataset1D,
+    collate_training_data_1D,
     collate_validation_data_1D,
+    create_training_dataset_1D,
+    create_validation_dataset_1D,
+    TrainingDataset1D,
+    
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm
@@ -143,7 +145,7 @@ if __name__ == "__main__":
         network=normalized_network,
     )
 
-    train_dataset = TrainingDataset1D(
+    train_dataset = create_training_dataset_1D(
         length=length,
         traction=traction,
         min_youngs_modulus=min_youngs_modulus,
@@ -159,7 +161,7 @@ if __name__ == "__main__":
         collate_fn=collate_training_data_1D,
     )
 
-    valid_dataset = ValidationDataset1D(
+    valid_dataset = create_validation_dataset_1D(
         length=length,
         min_youngs_modulus=min_youngs_modulus,
         max_youngs_modulus=max_youngs_modulus,
