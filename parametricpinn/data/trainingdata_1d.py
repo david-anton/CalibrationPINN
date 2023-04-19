@@ -3,10 +3,9 @@ from collections import namedtuple
 
 # Third-party imports
 import torch
-from torch.utils.data import Dataset
 
 # Local library imports
-from parametricpinn.data.geometry import StretchedRod
+from parametricpinn.data.geometry import Geometry1DProtocol, StretchedRod
 from parametricpinn.data.trainingdata import TrainingDataset
 from parametricpinn.types import Tensor
 
@@ -17,7 +16,7 @@ TrainingData1D = namedtuple("TrainingData1D", ["x_coor", "x_E", "y_true"])
 class TrainingDataset1D(TrainingDataset):
     def __init__(
         self,
-        geometry: StretchedRod,
+        geometry: Geometry1DProtocol,
         traction: float,
         min_youngs_modulus: float,
         max_youngs_modulus: float,
@@ -55,7 +54,7 @@ class TrainingDataset1D(TrainingDataset):
         self._samples_pde.append(sample)
 
     def _add_stress_bc_sample(self, youngs_modulus: float) -> None:
-        x_coor = self._geometry.create_points_at_free_end(self._num_points_stress_bc)
+        x_coor = self._geometry.create_point_at_free_end()
         x_E = self._generate_full_tensor(youngs_modulus, self._num_points_stress_bc)
         y_true = self._generate_full_tensor(self._traction, self._num_points_stress_bc)
         sample = TrainingData1D(x_coor=x_coor, x_E=x_E, y_true=y_true)
