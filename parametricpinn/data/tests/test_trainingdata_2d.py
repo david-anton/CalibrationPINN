@@ -2,12 +2,11 @@ import pytest
 import torch
 
 from parametricpinn.data import (
-    collate_training_data_2D,
     TrainingData2D,
     TrainingDataset2D,
+    collate_training_data_2D,
 )
 from parametricpinn.types import Tensor
-
 
 traction = 1.0
 min_youngs_modulus = 5.0
@@ -142,6 +141,7 @@ def test_sample_stress_bc__x_youngs_modulus(
     actual = sample_stress_bc.x_E
     torch.testing.assert_close(actual, expected)
 
+
 @pytest.mark.parametrize(
     ("idx_sample", "expected"),
     generate_expected_x_poissons_ratio(num_points_stress_bc),
@@ -218,6 +218,7 @@ def test_batch_pde__x_youngs_modulus(
     expected = torch.tensor([[1.1], [10.1]])
     torch.testing.assert_close(actual, expected)
 
+
 def test_batch_pde__x_poissons_ratio(
     fake_batch: list[tuple[TrainingData2D, TrainingData2D]]
 ):
@@ -262,6 +263,7 @@ def test_batch_stress_bc__x_youngs_modulus(
 
     expected = torch.tensor([[2.1], [20.1]])
     torch.testing.assert_close(actual, expected)
+
 
 def test_batch_stress_bc__x_poissons_ratio(
     fake_batch: list[tuple[TrainingData2D, TrainingData2D]]

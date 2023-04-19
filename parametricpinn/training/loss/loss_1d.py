@@ -1,10 +1,6 @@
-# Standard library imports
-
-# Third-party imports
 import torch
 
-# Local library imports
-from parametricpinn.types import Tensor, Module
+from parametricpinn.types import Module, Tensor
 
 
 def momentum_equation_func_1D(

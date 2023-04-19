@@ -1,13 +1,10 @@
-# Standard library imports
-from pathlib import Path
 import os
 import shutil
+from pathlib import Path
 from typing import Iterator
 
-# Third-party imports
 import pytest
 
-# Local library imports
 from parametricpinn.errors import DirectoryNotFoundError, FileNotFoundError
 from parametricpinn.io.projectdirectory import ProjectDirectory
 from parametricpinn.settings import Settings

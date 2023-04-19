@@ -1,13 +1,9 @@
-# Standard library imports
 import os
-from pathlib import Path
 import random
+from pathlib import Path
 
-# Third-party imports
 import numpy as np
 import torch
-
-# Local library imports
 
 
 def set_default_dtype(dtype: torch.dtype) -> None:

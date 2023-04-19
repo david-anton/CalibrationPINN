@@ -1,14 +1,10 @@
-# Standard library imports
 from collections import namedtuple
 
-# Third-party imports
 import torch
 
-# Local library imports
 from parametricpinn.data.geometry import Geometry1DProtocol, StretchedRod
 from parametricpinn.data.trainingdata import TrainingDataset
 from parametricpinn.types import Tensor
-
 
 TrainingData1D = namedtuple("TrainingData1D", ["x_coor", "x_E", "y_true"])
 

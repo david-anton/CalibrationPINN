@@ -1,10 +1,4 @@
-# Standard library imports
 from pathlib import Path
-from typing import Type
-
-# Third-party imports
-
-# Local library imports
 
 
 class Error(Exception):

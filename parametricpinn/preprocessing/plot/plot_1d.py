@@ -1,13 +1,9 @@
-# Standard library imports
-
-# Third-party imports
 import matplotlib.pyplot as plt
 import torch
 
-# Local library imports
+from parametricpinn.data import calculate_displacements_solution_1D
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Module
-from parametricpinn.data import calculate_displacements_solution_1D
 
 
 class PlotterConfig1D:

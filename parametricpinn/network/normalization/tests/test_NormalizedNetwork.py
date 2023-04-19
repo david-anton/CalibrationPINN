@@ -1,11 +1,7 @@
-# Standard library imports
-
-# Third-party imports
 import pytest
 import torch
 import torch.nn as nn
 
-# Local library imports
 from parametricpinn.network import create_normalized_network
 from parametricpinn.network.normalization.normalizednetwork import NormalizedNetwork
 from parametricpinn.types import Tensor

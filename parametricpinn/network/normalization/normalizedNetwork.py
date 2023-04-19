@@ -1,9 +1,5 @@
-# Standard library imports
-
-# Third-party imports
 import torch.nn as nn
 
-# Local library imports
 from parametricpinn.network.normalization.inputnormlizer import InputNormalizer
 from parametricpinn.network.normalization.outputrenormalizer import OutputRenormalizer
 from parametricpinn.types import Module, Tensor

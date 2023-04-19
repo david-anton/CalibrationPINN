@@ -1,15 +1,10 @@
-# Standard library imports
 from collections import namedtuple
 
-# Third-party imports
 import torch
-from torch.utils.data import Dataset
 
-# Local library imports
 from parametricpinn.data.geometry import Geometry2DProtocol, PlateWithHole
 from parametricpinn.data.trainingdata import TrainingDataset
 from parametricpinn.types import Tensor
-
 
 TrainingData2D = namedtuple("TrainingData2D", ["x_coor", "x_E", "x_nu", "y_true"])
 
@@ -78,12 +73,8 @@ class TrainingDataset2D(TrainingDataset):
             self._num_points_stress_bc
         )
         x_E = self._generate_full_tensor(youngs_modulus, self._num_points_stress_bc)
-        x_nu = self._generate_full_tensor(
-            poissons_ratio, self._num_points_stress_bc
-        )
-        y_true = self._generate_full_tensor(
-            self._traction, self._num_points_stress_bc
-        )
+        x_nu = self._generate_full_tensor(poissons_ratio, self._num_points_stress_bc)
+        y_true = self._generate_full_tensor(self._traction, self._num_points_stress_bc)
         sample = TrainingData2D(x_coor=x_coor, x_E=x_E, x_nu=x_nu, y_true=y_true)
         self._samples_stress_bc.append(sample)
 

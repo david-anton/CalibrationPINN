@@ -1,9 +1,5 @@
-# Standard library imports
-
-# Third-party imports
 import torch.nn as nn
 
-# Local library imports
 from parametricpinn.types import Tensor
 
 

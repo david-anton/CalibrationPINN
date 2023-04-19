@@ -1,11 +1,8 @@
-# Standard library imports
 from typing import NamedTuple, TypeAlias
 
-# Third-party imports
 import torch
 from torch.utils.data import Dataset
 
-# Local library imports
 from parametricpinn.types import Tensor
 
 TrainingData: TypeAlias = NamedTuple

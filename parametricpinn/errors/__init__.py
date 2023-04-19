@@ -1,4 +1,3 @@
-from .errors import DirectoryNotFoundError
-from .errors import FileNotFoundError
+from .errors import DirectoryNotFoundError, FileNotFoundError
 
 __all__ = ["DirectoryNotFoundError", "FileNotFoundError"]

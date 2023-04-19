@@ -1,13 +1,8 @@
-# Standard library imports
-
-# Third-party imports
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 
-# Local library imports
-from parametricpinn.types import Tensor, Module
-
+from parametricpinn.types import Module, Tensor
 
 num_epochs = 10
 loss_metric = torch.nn.MSELoss()

@@ -1,10 +1,6 @@
-# Standard library imports
-
-# Third-party imports
 import pytest
 import torch
 
-# Local library imports
 from parametricpinn.data import (
     ValidationDataset1D,
     calculate_displacements_solution_1D,
@@ -13,7 +9,6 @@ from parametricpinn.data import (
 from parametricpinn.data.tests.testdoubles import FakeGeometry1D
 from parametricpinn.settings import set_seed
 from parametricpinn.types import Tensor
-
 
 length = 10.0
 traction = 1.0

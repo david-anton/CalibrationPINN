@@ -1,16 +1,12 @@
-# Standard library imports
-
-# Third-party imports
 import pytest
 import torch
 
-# Local library imports
 from parametricpinn.training.metrics import (
-    mean_squared_error,
-    mean_absolute_error,
-    mean_relative_error,
-    mean_absolute_relative_error,
     l2_norm,
+    mean_absolute_error,
+    mean_absolute_relative_error,
+    mean_relative_error,
+    mean_squared_error,
     relative_l2_norm,
 )
 from parametricpinn.types import Tensor

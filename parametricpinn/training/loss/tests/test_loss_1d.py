@@ -1,13 +1,9 @@
-# Standard library imports
-
-# Third-party imports
 import pytest
 import torch
 import torch.nn as nn
 
-# Local library imports
-from parametricpinn.training.loss import stress_func_1D, momentum_equation_func_1D
-from parametricpinn.types import Tensor, Module
+from parametricpinn.training.loss import momentum_equation_func_1D, stress_func_1D
+from parametricpinn.types import Module, Tensor
 
 youngs_modulus = 1.0
 volume_force = 2.0

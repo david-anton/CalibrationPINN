@@ -1,10 +1,6 @@
-# Standard library imports
-
-# Third-party imports
 import pytest
 import torch
 
-# Local library imports
 from parametricpinn.data import (
     TrainingData1D,
     TrainingDataset1D,
@@ -12,7 +8,6 @@ from parametricpinn.data import (
 )
 from parametricpinn.data.tests.testdoubles import FakeGeometry1D
 from parametricpinn.types import Tensor
-
 
 length = 0.0
 traction = 1.0

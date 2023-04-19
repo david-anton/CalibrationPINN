@@ -1,10 +1,6 @@
-# Standard library imports
 from pathlib import Path
 from typing import Optional
 
-# Third-party imports
-
-# Local library imports
 from parametricpinn.errors import DirectoryNotFoundError, FileNotFoundError
 from parametricpinn.settings import Settings
 

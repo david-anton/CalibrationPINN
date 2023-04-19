@@ -1,10 +1,6 @@
-# Standard library imports
-
-# Third-party imports
 import pytest
 import torch
 
-# Local library imports
 from parametricpinn.data.geometry import StretchedRod
 from parametricpinn.settings import set_seed
 

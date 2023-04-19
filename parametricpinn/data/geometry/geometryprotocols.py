@@ -1,9 +1,5 @@
-# Standard library imports
 from typing import Protocol
 
-# Third-party imports
-
-# Local library imports
 from parametricpinn.types import Tensor
 
 

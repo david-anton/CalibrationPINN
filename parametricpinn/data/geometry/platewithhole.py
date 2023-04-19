@@ -1,10 +1,6 @@
-# Standard library imports
-
-# Third-party imports
-from shapely.geometry import box, Polygon, Point
 import torch
+from shapely.geometry import Point, Polygon, box
 
-# Local library imports
 from parametricpinn.types import Tensor
 
 

@@ -1,10 +1,6 @@
-# Standard library imports
-
-# Third-party imports
 import pytest
 import torch
 
-# Local library imports
 from parametricpinn.network.normalization.inputnormlizer import InputNormalizer
 from parametricpinn.types import Tensor
 
