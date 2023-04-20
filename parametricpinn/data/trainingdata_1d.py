@@ -45,16 +45,18 @@ class TrainingDataset1D(TrainingDataset):
         ).tolist()
 
     def _add_pde_sample(self, youngs_modulus: float) -> None:
+        shape = (self._num_points_pde, 1)
         x_coor = self._geometry.create_uniform_points(self._num_points_pde)
-        x_E = self._generate_full_tensor(youngs_modulus, self._num_points_pde)
-        y_true = torch.zeros((self._num_points_pde, 1), requires_grad=True)
+        x_E = self._repeat_tensor(torch.tensor([youngs_modulus]), shape)
+        y_true = torch.zeros(shape, requires_grad=True)
         sample = TrainingData1D(x_coor=x_coor, x_E=x_E, y_true=y_true)
         self._samples_pde.append(sample)
 
     def _add_stress_bc_sample(self, youngs_modulus: float) -> None:
+        shape = (self._num_points_stress_bc, 1)
         x_coor = self._geometry.create_point_at_free_end()
-        x_E = self._generate_full_tensor(youngs_modulus, self._num_points_stress_bc)
-        y_true = self._generate_full_tensor(self._traction, self._num_points_stress_bc)
+        x_E = self._repeat_tensor(torch.tensor([youngs_modulus]), shape)
+        y_true = self._repeat_tensor(torch.tensor([self._traction]), shape)
         sample = TrainingData1D(x_coor=x_coor, x_E=x_E, y_true=y_true)
         self._samples_stress_bc.append(sample)
 

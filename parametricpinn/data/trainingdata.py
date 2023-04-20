@@ -9,5 +9,5 @@ TrainingData: TypeAlias = NamedTuple
 
 
 class TrainingDataset(Dataset):
-    def _generate_full_tensor(self, fill_value: float, num_points: int) -> Tensor:
-        return torch.full((num_points, 1), fill_value, requires_grad=True)
+    def _repeat_tensor(self, tensor: Tensor, dim: tuple[int, ...]) -> Tensor:
+        return tensor.repeat(dim)

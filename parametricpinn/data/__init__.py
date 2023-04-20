@@ -5,7 +5,8 @@ from .trainingdata_1d import (
     create_training_dataset_1D,
 )
 from .trainingdata_2d import (
-    TrainingData2D,
+    TrainingData2DPDE,
+    TrainingData2DStressBC,
     TrainingDataset2D,
     collate_training_data_2D,
     create_training_dataset_2D,
@@ -18,7 +19,8 @@ from .validationdata_1d import (
 )
 
 __all__ = [
-    "TrainingData1D",
+    "TrainingData1DPDE",
+    "TrainingData1StressBC",
     "TrainingDataset1D",
     "collate_training_data_1D",
     "create_training_dataset_1D",
