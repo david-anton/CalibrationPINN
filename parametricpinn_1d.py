@@ -8,24 +8,25 @@ from torch.utils.data import DataLoader
 # Local library imports
 from parametricpinn.ansatz import HBCAnsatz1D
 from parametricpinn.calibration import calibrate_model
-from parametricpinn.data import (TrainingDataset1D,
-                                 calculate_displacements_solution_1D,
-                                 collate_training_data_1D,
-                                 collate_validation_data_1D,
-                                 create_training_dataset_1D,
-                                 create_validation_dataset_1D)
+from parametricpinn.data import (
+    TrainingDataset1D,
+    calculate_displacements_solution_1D,
+    collate_training_data_1D,
+    collate_validation_data_1D,
+    create_training_dataset_1D,
+    create_validation_dataset_1D,
+)
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN, create_normalized_network
-from parametricpinn.postprocessing.plot import (PlotterConfig1D,
-                                                plot_displacements_1D,
-                                                plot_loss_hist_1D,
-                                                plot_valid_hist_1D)
-from parametricpinn.settings import (Settings, get_device, set_default_dtype,
-                                     set_seed)
-from parametricpinn.training.loss import (momentum_equation_func_1D,
-                                          stress_func_1D)
-from parametricpinn.training.metrics import (mean_absolute_error,
-                                             relative_l2_norm)
+from parametricpinn.postprocessing.plot import (
+    PlotterConfig1D,
+    plot_displacements_1D,
+    plot_loss_hist_1D,
+    plot_valid_hist_1D,
+)
+from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
+from parametricpinn.training.loss_1d import momentum_equation_func, stress_func
+from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm
 from parametricpinn.types import Module, Tensor
 
 ### Configuration
@@ -73,14 +74,14 @@ def loss_func(
         x_coor = pde_data.x_coor.to(device)
         x_E = pde_data.x_E.to(device)
         y_true = pde_data.y_true.to(device)
-        y = momentum_equation_func_1D(ansatz, x_coor, x_E, volume_force)
+        y = momentum_equation_func(ansatz, x_coor, x_E, volume_force)
         return loss_metric(y_true, y)
 
     def loss_func_stress_bc(ansatz, stress_bc_data):
         x_coor = stress_bc_data.x_coor.to(device)
         x_E = stress_bc_data.x_E.to(device)
         y_true = stress_bc_data.y_true.to(device)
-        y = stress_func_1D(ansatz, x_coor, x_E)
+        y = stress_func(ansatz, x_coor, x_E)
         return loss_metric(y_true, y)
 
     loss_pde = loss_func_pde(ansatz, pde_data)
