@@ -26,19 +26,19 @@ def fake_ansatz() -> Module:
     ("x_coordinate", "x_youngs_modulus", "expected"),
     [
         (
-            torch.tensor([[-1.0]], requires_grad=True),
-            torch.tensor([[youngs_modulus]]),
-            torch.tensor([[2.0]]),
+            torch.tensor([[-1.0], [-1.0]], requires_grad=True),
+            torch.tensor([[youngs_modulus], [youngs_modulus]]),
+            torch.tensor([[2.0], [2.0]]),
         ),
         (
-            torch.tensor([[0.0]], requires_grad=True),
-            torch.tensor([[youngs_modulus]]),
-            torch.tensor([[0.0]]),
+            torch.tensor([[0.0], [0.0]], requires_grad=True),
+            torch.tensor([[youngs_modulus], [youngs_modulus]]),
+            torch.tensor([[0.0], [0.0]]),
         ),
         (
-            torch.tensor([[1.0]], requires_grad=True),
-            torch.tensor([[youngs_modulus]]),
-            torch.tensor([[-2.0]]),
+            torch.tensor([[1.0], [1.0]], requires_grad=True),
+            torch.tensor([[youngs_modulus], [youngs_modulus]]),
+            torch.tensor([[-2.0], [-2.0]]),
         ),
     ],
 )
@@ -55,22 +55,25 @@ def test_stress_func(
 
 
 @pytest.mark.parametrize(
-    ("x_coordinate", "x_youngs_modulus", "expected"),
+    ("x_coordinate", "x_youngs_modulus", "volume_force", "expected"),
     [
         (
-            torch.tensor([[-1.0]], requires_grad=True),
-            torch.tensor([[youngs_modulus]]),
-            torch.tensor([[0.0]]),
+            torch.tensor([[-1.0], [-1.0]], requires_grad=True),
+            torch.tensor([[youngs_modulus], [youngs_modulus]]),
+            torch.tensor([[volume_force], [volume_force]]),
+            torch.tensor([[0.0], [0.0]]),
         ),
         (
-            torch.tensor([[0.0]], requires_grad=True),
-            torch.tensor([[youngs_modulus]]),
-            torch.tensor([[0.0]]),
+            torch.tensor([[0.0], [0.0]], requires_grad=True),
+            torch.tensor([[youngs_modulus], [youngs_modulus]]),
+            torch.tensor([[volume_force], [volume_force]]),
+            torch.tensor([[0.0], [0.0]]),
         ),
         (
-            torch.tensor([[1.0]], requires_grad=True),
-            torch.tensor([[youngs_modulus]]),
-            torch.tensor([[0.0]]),
+            torch.tensor([[1.0], [1.0]], requires_grad=True),
+            torch.tensor([[youngs_modulus], [youngs_modulus]]),
+            torch.tensor([[volume_force], [volume_force]]),
+            torch.tensor([[0.0], [0.0]]),
         ),
     ],
 )
@@ -78,6 +81,7 @@ def test_momentum_equation_func(
     fake_ansatz: Module,
     x_coordinate: Tensor,
     x_youngs_modulus: Tensor,
+    volume_force: Tensor,
     expected: Tensor,
 ):
     sut = momentum_equation_func
@@ -86,6 +90,6 @@ def test_momentum_equation_func(
         ansatz=fake_ansatz,
         x_coor=x_coordinate,
         x_E=x_youngs_modulus,
-        volume_force=torch.tensor(volume_force),
+        volume_force=volume_force,
     )
     torch.testing.assert_close(actual, expected)

@@ -19,8 +19,13 @@ class HBCAnsatz1D(nn.Module):
     def _distance_function(self, x_coordinate: Tensor) -> Tensor:
         return x_coordinate / self._input_range_coordinate
 
+    def _extract_coordinates(self, x: Tensor) -> Tensor:
+        if x.dim() == 1:
+            return torch.unsqueeze(x[0], 0)
+        return torch.unsqueeze(x[:, 0], 1)
+
     def forward(self, x: Tensor) -> Tensor:
-        x_coordinate = torch.unsqueeze(x[:, 0], 1)
+        x_coordinate = self._extract_coordinates(x)
         return self._boundary_data() + (
             self._distance_function(x_coordinate) * self._network(x)
         )

@@ -68,11 +68,11 @@ def loss_func(
     ansatz: Module,
     pde_data: TrainingDataset1D,
     stress_bc_data: TrainingDataset1D,
-    volume_force: Tensor,
 ) -> tuple[Tensor, Tensor]:
     def loss_func_pde(ansatz, pde_data):
         x_coor = pde_data.x_coor.to(device)
         x_E = pde_data.x_E.to(device)
+        volume_force = pde_data.f.to(device)
         y_true = pde_data.y_true.to(device)
         y = momentum_equation_func(ansatz, x_coor, x_E, volume_force)
         return loss_metric(y_true, y)
@@ -146,6 +146,7 @@ if __name__ == "__main__":
     train_dataset = create_training_dataset_1D(
         length=length,
         traction=traction,
+        volume_force=volume_force,
         min_youngs_modulus=min_youngs_modulus,
         max_youngs_modulus=max_youngs_modulus,
         num_points_pde=num_points_pde,
@@ -196,9 +197,7 @@ if __name__ == "__main__":
     # Closure for LBFGS
     def loss_func_closure() -> float:
         optimizer.zero_grad()
-        loss_pde, loss_stress_bc = loss_func(
-            ansatz, batch_pde, batch_stress_bc, torch.tensor(volume_force)
-        )
+        loss_pde, loss_stress_bc = loss_func(ansatz, batch_pde, batch_stress_bc)
         loss = loss_pde + loss_stress_bc
         loss.backward()
         return loss.item()
@@ -210,9 +209,7 @@ if __name__ == "__main__":
 
         for batch_pde, batch_stress_bc in train_batches:
             # Forward pass
-            loss_pde, loss_stress_bc = loss_func(
-                ansatz, batch_pde, batch_stress_bc, torch.tensor(volume_force)
-            )
+            loss_pde, loss_stress_bc = loss_func(ansatz, batch_pde, batch_stress_bc)
             loss = loss_pde + loss_stress_bc
 
             # Update parameters

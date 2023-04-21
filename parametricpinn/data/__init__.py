@@ -1,5 +1,6 @@
 from .trainingdata_1d import (
-    TrainingData1D,
+    TrainingData1DPDE,
+    TrainingData1DStressBC,
     TrainingDataset1D,
     collate_training_data_1D,
     create_training_dataset_1D,
@@ -20,7 +21,7 @@ from .validationdata_1d import (
 
 __all__ = [
     "TrainingData1DPDE",
-    "TrainingData1StressBC",
+    "TrainingData1DStressBC",
     "TrainingDataset1D",
     "collate_training_data_1D",
     "create_training_dataset_1D",
@@ -28,7 +29,8 @@ __all__ = [
     "calculate_displacements_solution_1D",
     "collate_validation_data_1D",
     "create_validation_dataset_1D",
-    "TrainingData2D",
+    "TrainingData2DPDE",
+    "TrainingData2DStressBC",
     "TrainingDataset2D",
     "collate_training_data_2D",
     "create_training_dataset_2D",
