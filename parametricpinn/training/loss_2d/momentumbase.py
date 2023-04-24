@@ -62,10 +62,12 @@ def _traction_func(
 def _divergence_stress_func(
     ansatz: TModule, x_coor: Tensor, x_param: Tensor, stress_func: StressFunc
 ) -> Tensor:
-    def _stress_func(x: Tensor, y: Tensor, idx_x: int, idx_y: int):
-        return stress_func(ansatz, torch.tensor((x, y)), x_param)[idx_x, idx_y]
+    def _stress_func(x: Tensor, y: Tensor, idx_i: int, idx_j: int):
+        return stress_func(ansatz, torch.concat((x, y), 0), x_param)[idx_i, idx_j]
 
-    stress_xx_x = grad(_stress_func, argnums=0)(x_coor[0], x_coor[0], 0, 0)
+    stress_xx_x = grad(_stress_func, argnums=0)(
+        torch.unsqueeze(x_coor[0], 0), torch.unsqueeze(x_coor[0], 0), 0, 0
+    )
     stress_xy_x = grad(_stress_func, argnums=0)(x_coor[0], x_coor[0], 0, 1)
     stress_xy_y = grad(_stress_func, argnums=1)(x_coor[0], x_coor[0], 0, 1)
     stress_yy_y = grad(_stress_func, argnums=1)(x_coor[0], x_coor[0], 1, 1)
@@ -88,4 +90,4 @@ def _displacement_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tens
 
 
 def _transform_ansatz(ansatz: Module) -> TModule:
-    return lambda x_coor, x_param: ansatz(torch.concat((x_coor, x_param)))[0]
+    return lambda x_coor, x_param: ansatz(torch.concat((x_coor, x_param)))

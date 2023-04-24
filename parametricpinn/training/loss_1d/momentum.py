@@ -37,12 +37,13 @@ def _traction_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
 
 
 def _u_x_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
-    return grad(_displacement_func, argnums=1)(ansatz, x_coor, x_param)
+    displacement_func = lambda _x_coor: _displacement_func(ansatz, _x_coor, x_param)[0]
+    return grad(displacement_func, argnums=0)(x_coor)
 
 
 def _u_xx_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
-    u_x_func = lambda _x_coor, _x_param: _u_x_func(ansatz, _x_coor, _x_param)[0]
-    return grad(u_x_func, argnums=0)(x_coor, x_param)
+    u_x_func = lambda _x_coor: _u_x_func(ansatz, _x_coor, x_param)[0]
+    return grad(u_x_func, argnums=0)(x_coor)
 
 
 def _displacement_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
@@ -50,4 +51,4 @@ def _displacement_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tens
 
 
 def _transform_ansatz(ansatz: Module) -> TModule:
-    return lambda x_coor, x_param: ansatz(torch.concat((x_coor, x_param)))[0]
+    return lambda x_coor, x_param: ansatz(torch.concat((x_coor, x_param)))
