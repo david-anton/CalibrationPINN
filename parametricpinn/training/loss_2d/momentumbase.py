@@ -6,8 +6,9 @@ from torch.func import grad, jacrev, vmap
 from parametricpinn.types import Module, Tensor
 
 TModule: TypeAlias = Callable[[Tensor, Tensor], Tensor]
-StressFunc: TypeAlias = Callable[[TModule, Tensor, Tensor], Tensor]
 MomentumFunc: TypeAlias = Callable[[Module, Tensor, Tensor, Tensor], Tensor]
+StressFunc: TypeAlias = Callable[[TModule, Tensor, Tensor], Tensor]
+StrainFunc: TypeAlias = Callable[[TModule, Tensor, Tensor], Tensor]
 TractionFunc: TypeAlias = Callable[[Module, Tensor, Tensor, Tensor], Tensor]
 
 
