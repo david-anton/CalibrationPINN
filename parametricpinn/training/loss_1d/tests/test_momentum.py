@@ -2,7 +2,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from parametricpinn.training.loss_1d import momentum_equation_func, stress_func
+from parametricpinn.training.loss_1d import momentum_equation_func, traction_func
 from parametricpinn.types import Module, Tensor
 
 youngs_modulus = 1.0
@@ -83,13 +83,13 @@ def test_momentum_equation_func(
         ),
     ],
 )
-def test_stress_func(
+def test_traction_func(
     fake_ansatz: Module,
     x_coordinate: Tensor,
     x_youngs_modulus: Tensor,
     expected: Tensor,
 ):
-    sut = stress_func
+    sut = traction_func
 
     actual = sut(ansatz=fake_ansatz, x_coor=x_coordinate, x_param=x_youngs_modulus)
     torch.testing.assert_close(actual, expected)

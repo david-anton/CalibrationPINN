@@ -25,7 +25,7 @@ from parametricpinn.postprocessing.plot import (
     plot_valid_hist_1D,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.loss_1d import momentum_equation_func, stress_func
+from parametricpinn.training.loss_1d import momentum_equation_func, traction_func
 from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm
 from parametricpinn.types import Module, Tensor
 
@@ -81,7 +81,7 @@ def loss_func(
         x_coor = stress_bc_data.x_coor.to(device)
         x_E = stress_bc_data.x_E.to(device)
         y_true = stress_bc_data.y_true.to(device)
-        y = stress_func(ansatz, x_coor, x_E)
+        y = traction_func(ansatz, x_coor, x_E)
         return loss_metric(y_true, y)
 
     loss_pde = loss_func_pde(ansatz, pde_data)
