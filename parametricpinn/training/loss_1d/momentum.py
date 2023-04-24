@@ -9,19 +9,19 @@ TModule: TypeAlias = Callable[[Tensor, Tensor], Tensor]
 
 
 def momentum_equation_func(
-    ansatz: Module, x_coor: Tensor, x_param: Tensor, volume_force: Tensor
+    ansatz: Module, x_coors: Tensor, x_params: Tensor, volume_forces: Tensor
 ) -> Tensor:
     _ansatz = _transform_ansatz(ansatz)
     vmap_func = lambda _x_coor, _x_param, _volume_force: _momentum_equation_func(
         _ansatz, _x_coor, _x_param, _volume_force
     )
-    return vmap(vmap_func)(x_coor, x_param, volume_force)
+    return vmap(vmap_func)(x_coors, x_params, volume_forces)
 
 
-def traction_func(ansatz: Module, x_coor: Tensor, x_param: Tensor) -> Tensor:
+def traction_func(ansatz: Module, x_coors: Tensor, x_params: Tensor) -> Tensor:
     _ansatz = _transform_ansatz(ansatz)
     vmap_func = lambda _x_coor, _x_param: _traction_func(_ansatz, _x_coor, _x_param)
-    return vmap(vmap_func)(x_coor, x_param)
+    return vmap(vmap_func)(x_coors, x_params)
 
 
 def _momentum_equation_func(

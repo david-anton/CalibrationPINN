@@ -13,26 +13,28 @@ TractionFunc: TypeAlias = Callable[[Module, Tensor, Tensor, Tensor], Tensor]
 
 def momentum_equation_func(stress_func: StressFunc) -> MomentumFunc:
     def _func(
-        ansatz: Module, x_coor: Tensor, x_param: Tensor, volume_force: Tensor
+        ansatz: Module, x_coors: Tensor, x_params: Tensor, volume_forces: Tensor
     ) -> Tensor:
         _ansatz = _transform_ansatz(ansatz)
         vmap_func = lambda _x_coor, _x_param, _volume_force: _momentum_equation_func(
             _ansatz, _x_coor, _x_param, _volume_force, stress_func
         )
-        return vmap(vmap_func)(x_coor, x_param, volume_force)
+        return vmap(vmap_func)(x_coors, x_params, volume_forces)
 
     return _func
 
-# def traction_func(stress_func: StressFunc) -> TractionFunc:
-#     def _func(
-#         ansatz: Module, x_coor: Tensor, x_param: Tensor, volume_force: Tensor
-#     ) -> Tensor:
 
-# def _traction_func(
-#         ansatz: TModule, x_coor: Tensor, x_param: Tensor, normal: Tensor, stress_func: StressFunc
-# ) -> Tensor:
-#     stress = stress_func(ansatz, x_coor, x_param)
-#     return torch.matmul(stress, normal)
+def traction_func(stress_func: StressFunc) -> TractionFunc:
+    def _func(
+        ansatz: Module, x_coors: Tensor, x_params: Tensor, normals: Tensor
+    ) -> Tensor:
+        _ansatz = _transform_ansatz(ansatz)
+        vmap_func = lambda _x_coor, _x_param, _normal: _traction_func(
+            _ansatz, _x_coor, _x_param, _normal, stress_func
+        )
+        return vmap(vmap_func)(x_coors, x_params, normals)
+
+    return _func
 
 
 def _momentum_equation_func(
@@ -43,6 +45,17 @@ def _momentum_equation_func(
     stress_func: StressFunc,
 ) -> Tensor:
     return _divergence_stress_func(ansatz, x_coor, x_param, stress_func) + volume_force
+
+
+def _traction_func(
+    ansatz: TModule,
+    x_coor: Tensor,
+    x_param: Tensor,
+    normal: Tensor,
+    stress_func: StressFunc,
+) -> Tensor:
+    stress = stress_func(ansatz, x_coor, x_param)
+    return torch.matmul(stress, normal)
 
 
 def _divergence_stress_func(

@@ -23,7 +23,7 @@ def fake_ansatz() -> Module:
 
 
 @pytest.mark.parametrize(
-    ("x_coordinate", "x_youngs_modulus", "volume_force", "expected"),
+    ("x_coordinate", "x_youngs_modulus", "volume_forces", "expected"),
     [
         (
             torch.tensor([[-1.0], [-1.0]], requires_grad=True),
@@ -49,16 +49,16 @@ def test_momentum_equation_func(
     fake_ansatz: Module,
     x_coordinate: Tensor,
     x_youngs_modulus: Tensor,
-    volume_force: Tensor,
+    volume_forces: Tensor,
     expected: Tensor,
 ):
     sut = momentum_equation_func
 
     actual = sut(
         ansatz=fake_ansatz,
-        x_coor=x_coordinate,
-        x_param=x_youngs_modulus,
-        volume_force=volume_force,
+        x_coors=x_coordinate,
+        x_params=x_youngs_modulus,
+        volume_forces=volume_forces,
     )
     torch.testing.assert_close(actual, expected)
 
@@ -91,5 +91,5 @@ def test_traction_func(
 ):
     sut = traction_func
 
-    actual = sut(ansatz=fake_ansatz, x_coor=x_coordinate, x_param=x_youngs_modulus)
+    actual = sut(ansatz=fake_ansatz, x_coors=x_coordinate, x_params=x_youngs_modulus)
     torch.testing.assert_close(actual, expected)
