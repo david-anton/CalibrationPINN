@@ -23,38 +23,6 @@ def fake_ansatz() -> Module:
 
 
 @pytest.mark.parametrize(
-    ("x_coordinate", "x_youngs_modulus", "expected"),
-    [
-        (
-            torch.tensor([[-1.0], [-1.0]], requires_grad=True),
-            torch.tensor([[youngs_modulus], [youngs_modulus]]),
-            torch.tensor([[2.0], [2.0]]),
-        ),
-        (
-            torch.tensor([[0.0], [0.0]], requires_grad=True),
-            torch.tensor([[youngs_modulus], [youngs_modulus]]),
-            torch.tensor([[0.0], [0.0]]),
-        ),
-        (
-            torch.tensor([[1.0], [1.0]], requires_grad=True),
-            torch.tensor([[youngs_modulus], [youngs_modulus]]),
-            torch.tensor([[-2.0], [-2.0]]),
-        ),
-    ],
-)
-def test_stress_func(
-    fake_ansatz: Module,
-    x_coordinate: Tensor,
-    x_youngs_modulus: Tensor,
-    expected: Tensor,
-):
-    sut = stress_func
-
-    actual = sut(ansatz=fake_ansatz, x_coor=x_coordinate, x_E=x_youngs_modulus)
-    torch.testing.assert_close(actual, expected)
-
-
-@pytest.mark.parametrize(
     ("x_coordinate", "x_youngs_modulus", "volume_force", "expected"),
     [
         (
@@ -89,7 +57,39 @@ def test_momentum_equation_func(
     actual = sut(
         ansatz=fake_ansatz,
         x_coor=x_coordinate,
-        x_E=x_youngs_modulus,
+        x_param=x_youngs_modulus,
         volume_force=volume_force,
     )
+    torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize(
+    ("x_coordinate", "x_youngs_modulus", "expected"),
+    [
+        (
+            torch.tensor([[-1.0], [-1.0]], requires_grad=True),
+            torch.tensor([[youngs_modulus], [youngs_modulus]]),
+            torch.tensor([[2.0], [2.0]]),
+        ),
+        (
+            torch.tensor([[0.0], [0.0]], requires_grad=True),
+            torch.tensor([[youngs_modulus], [youngs_modulus]]),
+            torch.tensor([[0.0], [0.0]]),
+        ),
+        (
+            torch.tensor([[1.0], [1.0]], requires_grad=True),
+            torch.tensor([[youngs_modulus], [youngs_modulus]]),
+            torch.tensor([[-2.0], [-2.0]]),
+        ),
+    ],
+)
+def test_stress_func(
+    fake_ansatz: Module,
+    x_coordinate: Tensor,
+    x_youngs_modulus: Tensor,
+    expected: Tensor,
+):
+    sut = stress_func
+
+    actual = sut(ansatz=fake_ansatz, x_coor=x_coordinate, x_param=x_youngs_modulus)
     torch.testing.assert_close(actual, expected)
