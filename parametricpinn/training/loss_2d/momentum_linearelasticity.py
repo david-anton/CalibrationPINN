@@ -42,6 +42,15 @@ def _voigt_material_tensor_func_plane_strain(x_param: Tensor) -> Tensor:
             [0.0, 0.0, (1.0 - 2 * nu) / 2.0],
         ]
     )
+    # E = torch.unsqueeze(x_param[0], dim=0)
+    # nu = torch.unsqueeze(x_param[1], dim=0)
+    # return (E / ((1.0 + nu) * (1.0 - 2 * nu))) * torch.tensor(
+    #     [
+    #         [1.0 - nu, nu, 0.0],
+    #         [nu, 1.0 - nu, 0.0],
+    #         [0.0, 0.0, (1.0 - 2 * nu) / 2.0],
+    #     ]
+    # )
 
 
 def _voigt_material_tensor_func_plane_stress(x_param: Tensor) -> Tensor:
@@ -54,6 +63,15 @@ def _voigt_material_tensor_func_plane_stress(x_param: Tensor) -> Tensor:
             [0.0, 0.0, (1.0 - nu) / 2.0],
         ]
     )
+    # E = torch.unsqueeze(x_param[0], dim=0)
+    # nu = torch.unsqueeze(x_param[1], dim=0)
+    # return (E / (1.0 - nu**2)) * torch.tensor(
+    #     [
+    #         [1.0, nu, 0.0],
+    #         [nu, 1.0, 0.0],
+    #         [0.0, 0.0, (1.0 - nu) / 2.0],
+    #     ]
+    # )
 
 
 def _stress_func(voigt_material_tensor_func: VoigtMaterialTensorFunc) -> StressFunc:
@@ -64,6 +82,22 @@ def _stress_func(voigt_material_tensor_func: VoigtMaterialTensorFunc) -> StressF
         return torch.tensor(
             [[voigt_stress[0], voigt_stress[2]], [voigt_stress[2], voigt_stress[1]]]
         )
+        # return torch.vstack(
+        #     (
+        #         torch.concat(
+        #             (
+        #                 torch.unsqueeze(voigt_stress[0], dim=0),
+        #                 torch.unsqueeze(voigt_stress[2], dim=0),
+        #             )
+        #         ),
+        #         torch.concat(
+        #             (
+        #                 torch.unsqueeze(voigt_stress[2], dim=0),
+        #                 torch.unsqueeze(voigt_stress[1], dim=0),
+        #             )
+        #         ),
+        #     )
+        # )
 
     return _func
 

@@ -43,15 +43,17 @@ RUN apt-get update && \
     apt-get install -y wget && \
     apt-get install -y nano
 
-#Clean up
-RUN apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
 
 ### Install Python requirements
 RUN pip install --upgrade pip && \
+    pip install --pre torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/nightly/cpu && \
     pip install -r /tmp/$requirements && \
     pip install -r /tmp/$dev_requirements
+
+
+### Clean up
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 
 ### Create working directory
