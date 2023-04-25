@@ -2,7 +2,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from parametricpinn.ansatz.hbc_ansatz_1d import HBCAnsatz1D
+from parametricpinn.ansatz import HBCAnsatz1D
 from parametricpinn.types import Tensor
 
 
@@ -22,21 +22,24 @@ class FakeNetworkSingleInput(nn.Module):
         return torch.tensor([2.0])
 
 
+range_coordinates = 1.0
+displacement_left = 0.0
+
+
 @pytest.fixture
 def sut() -> HBCAnsatz1D:
-    input_range_coordinates = 1.0
     network = FakeNetwork()
     return HBCAnsatz1D(
         network=network,
-        displacement_left=0.0,
-        input_range_coordinate=input_range_coordinates,
+        displacement_left=displacement_left,
+        range_coordinate=range_coordinates,
     )
 
 
-def test_HBC_ansatz_1D(sut_single_input: HBCAnsatz1D) -> None:
-    inputs = torch.tensor([[0.0, 0.0], [0.5, 1.0], [1.0, 2.0]])
+def test_HBC_ansatz_1D(sut: HBCAnsatz1D) -> None:
+    inputs = torch.tensor([[0.0, 0.0], [0.5, 0.0], [1.0, 0.0]])
 
-    actual = sut_single_input(inputs)
+    actual = sut(inputs)
 
     expected = torch.tensor([[0.0], [1.0], [2.0]])
     torch.testing.assert_close(actual, expected)
@@ -44,12 +47,11 @@ def test_HBC_ansatz_1D(sut_single_input: HBCAnsatz1D) -> None:
 
 @pytest.fixture
 def sut_single_input() -> HBCAnsatz1D:
-    input_range_coordinates = 1.0
     network = FakeNetworkSingleInput()
     return HBCAnsatz1D(
         network=network,
-        displacement_left=0.0,
-        input_range_coordinate=input_range_coordinates,
+        displacement_left=displacement_left,
+        range_coordinate=range_coordinates,
     )
 
 
@@ -57,8 +59,8 @@ def sut_single_input() -> HBCAnsatz1D:
     ("input", "expected"),
     [
         (torch.tensor([0.0, 0.0]), torch.tensor([0.0])),
-        (torch.tensor([0.5, 1.0]), torch.tensor([1.0])),
-        (torch.tensor([1.0, 2.0]), torch.tensor([2.0])),
+        (torch.tensor([0.5, 0.0]), torch.tensor([1.0])),
+        (torch.tensor([1.0, 0.0]), torch.tensor([2.0])),
     ],
 )
 def test_HBC_ansatz_for_single_input(

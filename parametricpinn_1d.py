@@ -127,7 +127,7 @@ if __name__ == "__main__":
     max_inputs = torch.tensor([max_coordinate, max_youngs_modulus])
     min_output = torch.tensor([min_displacement])
     max_output = torch.tensor([max_displacement])
-    input_range_coordinate = max_coordinate - min_coordinate
+    range_coordinate = max_coordinate - min_coordinate
 
     network = FFNN(layer_sizes=layer_sizes)
     normalized_network = create_normalized_network(
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     ).to(device)
     ansatz = HBCAnsatz1D(
         displacement_left=displacement_left,
-        input_range_coordinate=input_range_coordinate,
+        range_coordinate=range_coordinate,
         network=normalized_network,
     )
 
