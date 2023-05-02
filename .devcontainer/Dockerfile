@@ -1,5 +1,5 @@
 # Base docker image
-FROM python:3.10
+FROM --platform=linux/amd64 python:3.11
 
 ### Define default arguments
 # Are overwritten by build arguments (if supplied while building the container)
@@ -46,9 +46,10 @@ RUN apt-get update && \
 
 ### Install Python requirements
 RUN pip install --upgrade pip && \
-    pip install --pre torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/nightly/cpu && \
     pip install -r /tmp/$requirements && \
-    pip install -r /tmp/$dev_requirements
+    pip install -r /tmp/$dev_requirements && \
+    pip install --pre torch --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+    # pip install --pre torch --force-reinstall --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 
 
 ### Clean up
