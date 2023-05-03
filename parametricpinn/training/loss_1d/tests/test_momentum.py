@@ -14,7 +14,8 @@ class FakeAnsatz(nn.Module):
         super().__init__()
 
     def forward(self, x: Tensor) -> Tensor:
-        return -(1 / 2 * x**2 * volume_force)
+        _x = torch.unsqueeze(x[0], dim=0)
+        return -(1 / 2 * _x**2 * volume_force)
 
 
 @pytest.fixture
