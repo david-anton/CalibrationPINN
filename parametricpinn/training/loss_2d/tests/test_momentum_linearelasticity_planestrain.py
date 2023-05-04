@@ -6,6 +6,7 @@ from parametricpinn.training.loss_2d import (
     momentum_equation_func_factory,
     traction_func_factory,
 )
+from parametricpinn.training.loss_2d.tests.testdoubles import FakeAnsatz
 from parametricpinn.types import Module, Tensor
 
 
@@ -17,24 +18,9 @@ constant_displacement_x = 1 / 10
 constant_displacement_y = -2 / 5
 
 
-class FakeAnsatzPlaneStrain(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
-        self._constants = torch.tensor(
-            [constant_displacement_x, constant_displacement_y]
-        )
-
-    def forward(self, x: Tensor) -> Tensor:
-        coor_x = torch.unsqueeze(x[0], dim=0)
-        coor_y = torch.unsqueeze(x[1], dim=0)
-        return self._constants * torch.concat(
-            (coor_x**2 * coor_y, coor_x * coor_y**2), dim=0
-        )
-
-
 @pytest.fixture
 def fake_ansatz() -> Module:
-    return FakeAnsatzPlaneStrain()
+    return FakeAnsatz(constant_displacement_x, constant_displacement_y)
 
 
 def generate_volume_force(x_coordinates: Tensor) -> Tensor:

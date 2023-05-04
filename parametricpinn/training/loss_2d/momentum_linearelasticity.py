@@ -63,7 +63,7 @@ def _voigt_material_tensor_func_plane_stress(x_param: Tensor) -> Tensor:
         (
             torch.concat((torch.tensor([1.0]), nu, torch.tensor([0.0])), dim=0),
             torch.concat((nu, torch.tensor([1.0]), torch.tensor([0.0])), dim=0),
-            torch.tensor(
+            torch.concat(
                 (torch.tensor([0.0]), torch.tensor([0.0]), (1.0 - nu) / 2.0), dim=0
             ),
         ),
