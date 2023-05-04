@@ -6,7 +6,9 @@ from parametricpinn.data.geometry import Geometry2DProtocol, PlateWithHole
 from parametricpinn.data.trainingdata import TrainingDataset
 from parametricpinn.types import Tensor
 
-TrainingData2DPDE = namedtuple("TrainingData2DPDE", ["x_coor", "x_E", "x_nu", "y_true"])
+TrainingData2DPDE = namedtuple(
+    "TrainingData2DPDE", ["x_coor", "x_E", "x_nu", "f", "y_true"]
+)
 TrainingData2DStressBC = namedtuple(
     "TrainingData2DStressBC", ["x_coor", "x_E", "x_nu", "normal", "y_true"]
 )
@@ -18,6 +20,7 @@ class TrainingDataset2D(TrainingDataset):
         geometry: Geometry2DProtocol,
         traction: Tensor,
         normal: Tensor,
+        volume_force: Tensor,
         min_youngs_modulus: float,
         max_youngs_modulus: float,
         min_poissons_ratio: float,
@@ -30,6 +33,7 @@ class TrainingDataset2D(TrainingDataset):
         self._geometry = geometry
         self._traction = traction
         self._normal = normal
+        self._volume_force = volume_force
         self._min_youngs_modulus = min_youngs_modulus
         self._max_youngs_modulus = max_youngs_modulus
         self._min_poissons_ratio = min_poissons_ratio
@@ -68,8 +72,11 @@ class TrainingDataset2D(TrainingDataset):
         x_coor = self._geometry.create_random_points(self._num_points_pde)
         x_E = self._repeat_tensor(torch.tensor([youngs_modulus]), shape)
         x_nu = self._repeat_tensor(torch.tensor([poissons_ratio]), shape)
+        f = self._repeat_tensor(self._volume_force, shape)
         y_true = torch.zeros((self._num_points_pde, 1), requires_grad=True)
-        sample = TrainingData2DPDE(x_coor=x_coor, x_E=x_E, x_nu=x_nu, y_true=y_true)
+        sample = TrainingData2DPDE(
+            x_coor=x_coor, x_E=x_E, x_nu=x_nu, f=f, y_true=y_true
+        )
         self._samples_pde.append(sample)
 
     def _add_stress_bc_sample(
@@ -103,6 +110,7 @@ def collate_training_data_2D(
     x_coor_pde_batch = []
     x_E_pde_batch = []
     x_nu_pde_batch = []
+    f_pde_batch = []
     y_true_pde_batch = []
     x_coor_stress_bc_batch = []
     x_E_stress_bc_batch = []
@@ -114,6 +122,7 @@ def collate_training_data_2D(
         x_coor_pde_batch.append(sample_pde.x_coor)
         x_E_pde_batch.append(sample_pde.x_E)
         x_nu_pde_batch.append(sample_pde.x_nu)
+        f_pde_batch.append(sample_pde.f)
         y_true_pde_batch.append(sample_pde.y_true)
 
     def append_to_stress_bc_batch(sample_stress_bc: TrainingData2DStressBC) -> None:
@@ -131,6 +140,7 @@ def collate_training_data_2D(
         x_coor=torch.concat(x_coor_pde_batch, dim=0),
         x_E=torch.concat(x_E_pde_batch, dim=0),
         x_nu=torch.concat(x_nu_pde_batch, dim=0),
+        f=torch.concat(f_pde_batch, dim=0),
         y_true=torch.concat(y_true_pde_batch, dim=0),
     )
     batch_stress_bc = TrainingData2DStressBC(
@@ -148,6 +158,7 @@ def create_training_dataset_2D(
     radius: float,
     traction: Tensor,
     normal: Tensor,
+    volume_force: Tensor,
     min_youngs_modulus: float,
     max_youngs_modulus: float,
     min_poissons_ratio: float,
@@ -161,6 +172,7 @@ def create_training_dataset_2D(
         geometry=geometry,
         traction=traction,
         normal=normal,
+        volume_force=volume_force,
         min_youngs_modulus=min_youngs_modulus,
         max_youngs_modulus=max_youngs_modulus,
         min_poissons_ratio=min_poissons_ratio,
