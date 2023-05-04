@@ -63,32 +63,34 @@ def _divergence_stress_func(
     ansatz: TModule, x_coor: Tensor, x_param: Tensor, stress_func: StressFunc
 ) -> Tensor:
     def _stress_func(x: Tensor, y: Tensor, idx_i: int, idx_j: int):
-        return stress_func(ansatz, torch.tensor([x, y]), x_param)[idx_i, idx_j]
+        return stress_func(
+            ansatz,
+            torch.concat((torch.unsqueeze(x, dim=0), torch.unsqueeze(y, dim=0))),
+            x_param,
+        )[idx_i, idx_j]
 
-    stress_xx_x = grad(_stress_func, argnums=0)(x_coor[0], x_coor[1], 0, 0)
-    stress_xy_x = grad(_stress_func, argnums=0)(x_coor[0], x_coor[1], 0, 1)
-    stress_xy_y = grad(_stress_func, argnums=1)(x_coor[0], x_coor[1], 0, 1)
-    stress_yy_y = grad(_stress_func, argnums=1)(x_coor[0], x_coor[1], 1, 1)
-    return torch.tensor([stress_xx_x + stress_xy_y, stress_xy_x + stress_yy_y])
+    stress_xx_x = torch.unsqueeze(
+        grad(_stress_func, argnums=0)(x_coor[0], x_coor[1], 0, 0), dim=0
+    )
+    stress_xy_x = torch.unsqueeze(
+        grad(_stress_func, argnums=0)(x_coor[0], x_coor[1], 0, 1), dim=0
+    )
+    stress_xy_y = torch.unsqueeze(
+        grad(_stress_func, argnums=1)(x_coor[0], x_coor[1], 0, 1), dim=0
+    )
+    stress_yy_y = torch.unsqueeze(
+        grad(_stress_func, argnums=1)(x_coor[0], x_coor[1], 1, 1), dim=0
+    )
+    return torch.concat((stress_xx_x + stress_xy_y, stress_xy_x + stress_yy_y), dim=0)
 
     # def _stress_func(x: Tensor, y: Tensor, idx_i: int, idx_j: int):
-    #     return stress_func(ansatz, torch.concat((x, y), 0), x_param)[idx_i, idx_j]
+    #     return stress_func(ansatz, torch.tensor([x, y]), x_param)[idx_i, idx_j]
 
-    # stress_xx_x = grad(_stress_func, argnums=0)(
-    #     torch.unsqueeze(x_coor[0], dim=0), torch.unsqueeze(x_coor[1], dim=0), 0, 0
-    # )
-    # stress_xy_x = grad(_stress_func, argnums=0)(
-    #     torch.unsqueeze(x_coor[0], dim=0), torch.unsqueeze(x_coor[1], dim=0), 0, 1
-    # )
-    # stress_xy_y = grad(_stress_func, argnums=1)(
-    #     torch.unsqueeze(x_coor[0], dim=0), torch.unsqueeze(x_coor[1], dim=0), 0, 1
-    # )
-    # stress_yy_y = grad(_stress_func, argnums=1)(
-    #     torch.unsqueeze(x_coor[0], dim=0), torch.unsqueeze(x_coor[1], dim=0), 1, 1
-    # )
-    # return torch.tensor(
-    #     [stress_xx_x[0] + stress_xy_y[0], stress_xy_x[0] + stress_yy_y[0]]
-    # )
+    # stress_xx_x = grad(_stress_func, argnums=0)(x_coor[0], x_coor[1], 0, 0)
+    # stress_xy_x = grad(_stress_func, argnums=0)(x_coor[0], x_coor[1], 0, 1)
+    # stress_xy_y = grad(_stress_func, argnums=1)(x_coor[0], x_coor[1], 0, 1)
+    # stress_yy_y = grad(_stress_func, argnums=1)(x_coor[0], x_coor[1], 1, 1)
+    # return torch.tensor([stress_xx_x + stress_xy_y, stress_xy_x + stress_yy_y])
 
 
 def _strain_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:

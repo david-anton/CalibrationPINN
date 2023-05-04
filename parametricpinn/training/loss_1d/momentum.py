@@ -17,14 +17,12 @@ def momentum_equation_func(
         _ansatz, _x_coor, _x_param, _volume_force
     )
     return vmap(vmap_func)(x_coors, x_params, volume_forces)
-    # return _momentum_equation_func(_ansatz, x_coors, x_params, volume_forces)
 
 
 def traction_func(ansatz: Module, x_coors: Tensor, x_params: Tensor) -> Tensor:
     _ansatz = _transform_ansatz(ansatz)
     vmap_func = lambda _x_coor, _x_param: _traction_func(_ansatz, _x_coor, _x_param)
     return vmap(vmap_func)(x_coors, x_params)
-    # return _traction_func(_ansatz, x_coors, x_params)
 
 
 def _momentum_equation_func(
@@ -39,31 +37,9 @@ def _traction_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
     return x_E * _u_x_func(ansatz, x_coor, x_param)
 
 
-# def _u_x_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
-#     u = _displacement_func(ansatz, x_coor, x_param)
-#     return torch.autograd.grad(
-#         u,
-#         x_coor,
-#         grad_outputs=torch.ones_like(u),
-#         retain_graph=True,
-#         create_graph=True,
-#     )[0]
-
-
 def _u_x_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
     displacement_func = lambda _x_coor: _displacement_func(ansatz, _x_coor, x_param)[0]
     return grad(displacement_func, argnums=0)(x_coor)
-
-
-# def _u_xx_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
-#     u_x = _u_x_func(ansatz, x_coor, x_param)
-#     return torch.autograd.grad(
-#         u_x,
-#         x_coor,
-#         grad_outputs=torch.ones_like(u_x),
-#         retain_graph=True,
-#         create_graph=True,
-#     )[0]
 
 
 def _u_xx_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
