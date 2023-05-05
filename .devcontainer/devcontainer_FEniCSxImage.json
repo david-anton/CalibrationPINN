@@ -11,12 +11,13 @@
 			"username": "docker_user",
 			"uid": "1000",
 			"gid": "1000",
-			"requirements": "conda_venv.yml"
+			"requirements": "requirements.txt",
+			"dev_requirements": "dev_requirements.txt"
 		}
     },
 
 	"mounts": [
-		"source=${localWorkspaceFolder}/../output,target=/data/output,type=bind,consistency=cached"
+		"source=${localWorkspaceFolder}/../output,target=/home/docker_user/output,type=bind,consistency=cached"
 	],
 
 	"customizations": {

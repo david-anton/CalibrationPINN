@@ -1,0 +1,15 @@
+name: venv
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11.2
+  - numpy
+  - matplotlib
+  - shapely
+  - pytest
+  - mypy
+  - black
+  - fenics-dolfinx
+  - pytorch-nightly::pytorch
+  - pytorch-nightly::cpuonly
