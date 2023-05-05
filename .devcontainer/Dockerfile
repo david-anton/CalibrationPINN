@@ -1,5 +1,6 @@
 # Base docker image
-FROM --platform=linux/amd64 python:3.11
+FROM --platform=linux/amd64 dolfinx/dolfinx:stable
+# FROM --platform=linux/amd64 ubuntu:22.04
 
 ### Define default arguments
 # Are overwritten by build arguments (if supplied while building the container)
@@ -21,7 +22,6 @@ ENV USER_NAME docker_user
 ENV USER_UID $uid
 ENV USER_GID $gid
 ENV HOME_DIR /home/$USER_NAME
-
 RUN groupadd --gid $USER_GID $USER_NAME && \
     adduser \
     --disabled-password \
@@ -41,15 +41,32 @@ COPY $dev_requirements /tmp/
 RUN apt-get update && \
     apt-get install -y build-essential && \
     apt-get install -y wget && \
+    apt-get install -y git && \
     apt-get install -y nano
 
 
-### Install Python requirements
+# ### Install utilities
+# RUN mkdir -p /build/python
+
+# # Install Python
+# ENV PYTHON_RELEASE 3.11.3
+# ENV PYTHON_VERSION 3.11
+# RUN cd /build/python && \
+#     apt-get install -y zlib1g-dev libgdbm-dev libncurses5-dev libssl-dev libnss3-dev libffi-dev libreadline-dev libsqlite3-dev libbz2-dev && \
+#     wget https://www.python.org/ftp/python/${PYTHON_RELEASE}/Python-${PYTHON_RELEASE}.tgz && \
+#     tar -xf Python-${PYTHON_RELEASE}.tgz && \
+#     cd Python-${PYTHON_RELEASE} && \
+#     ./configure --enable-optimizations --with-ensurepip=install && \
+#     make -j $(nproc) && \
+#     make altinstall && \
+#     ln -sf /usr/local/bin/python${PYTHON_VERSION} /usr/bin/python && \
+#     ln -sf /usr/local/bin/pip${PYTHON_VERSION} /usr/bin/pip
+
+# Install Python requirements
 RUN pip install --upgrade pip && \
     pip install -r /tmp/$requirements && \
     pip install -r /tmp/$dev_requirements && \
     pip install --pre torch --extra-index-url https://download.pytorch.org/whl/nightly/cpu
-    # pip install --pre torch --force-reinstall --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 
 
 ### Clean up
