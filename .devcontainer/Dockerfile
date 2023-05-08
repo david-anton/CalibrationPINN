@@ -20,19 +20,28 @@ SHELL ["/bin/bash", "--login", "-c"]
 ENV USER_NAME docker_user
 ENV USER_UID $uid
 ENV USER_GID $gid
-ENV HOME_DIR /home/$USER_NAME
+ENV USER_HOME_DIR /home/$USER_NAME
 RUN groupadd --gid $USER_GID $USER_NAME && \
     adduser \
     --disabled-password \
     --gecos "non-root user" \
     --uid $USER_UID \
     --gid $USER_GID \
-    --home $HOME_DIR \
+    --home $USER_HOME_DIR \
     $USER_NAME
+
+
+### Create directories
+ENV DATA_DIR /data
+RUN mkdir $DATA_DIR
+# ENV APP_DIR $DATA_DIR/app
+# RUN mkdir $APP_DIR
+RUN mkdir -p /build/python
 
 
 ### Copy files
 COPY $requirements /tmp/
+COPY $dev_requirements /tmp/
 
 
 ### Install base utilities
@@ -43,29 +52,26 @@ RUN apt-get update && \
     apt-get install -y nano
 
 
-### Install miniconda
-ENV CONDA_DIR /miniconda3
-ENV MINICONDA_INSTALLER Miniconda3-latest-Linux-x86_64.sh
-RUN wget --quiet https://repo.anaconda.com/miniconda/$MINICONDA_INSTALLER -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p $CONDA_DIR && \
-    rm -f ~/miniconda.sh
+### Install utilities
+# Install Python
+ENV PYTHON_RELEASE 3.11.3
+ENV PYTHON_VERSION 3.11
+RUN cd /build/python && \
+    apt-get install -y zlib1g-dev libgdbm-dev libncurses5-dev libssl-dev libnss3-dev libffi-dev libreadline-dev libsqlite3-dev libbz2-dev && \
+    wget https://www.python.org/ftp/python/${PYTHON_RELEASE}/Python-${PYTHON_RELEASE}.tgz && \
+    tar -xf Python-${PYTHON_RELEASE}.tgz && \
+    cd Python-${PYTHON_RELEASE} && \
+    ./configure --enable-optimizations --with-ensurepip=install && \
+    make -j $(nproc) && \
+    make altinstall && \
+    ln -sf /usr/local/bin/python${PYTHON_VERSION} /usr/bin/python && \
+    ln -sf /usr/local/bin/pip${PYTHON_VERSION} /usr/bin/pip
 
-
-### Configure miniconda
-# # Put conda in path variable
-ENV PATH=$CONDA_DIR/bin:$PATH
-# Make conda activate command available from /bin/bash -- login shells
-RUN echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.bash_profile
-# Make conda activate command available from /bin/bash -- interactive non-login shells
-RUN conda init bash
-# Automatically activate conda environment when starting a interactive non-login shell
-RUN echo "conda activate venv" >> ~/.bashrc
-
-
-### Create the virtual conda environment
-RUN conda update --name base --channel defaults conda && \
-    conda env create  --file /tmp/$requirements --force && \
-    conda clean --all --yes
+# Install Python requirements
+RUN pip install --upgrade pip && \
+    pip install -r /tmp/$requirements && \
+    pip install -r /tmp/$dev_requirements && \
+    pip install --pre torch --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 
 
 ### Clean up
@@ -73,16 +79,7 @@ RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 
-### Create working directory
-ENV DATA_DIR /data
-ENV APP_DIR $DATA_DIR/app
-RUN mkdir -p $APP_DIR
-
-
-### Change to non-root user and set working directory
+### Change to non-root user 
 USER $USER_NAME
-WORKDIR $APP_DIR
-
-
-### Entrypoint
-ENTRYPOINT ["conda", "activate", "venv"]
+# ### Set working directory
+# WORKDIR $APP_DIR

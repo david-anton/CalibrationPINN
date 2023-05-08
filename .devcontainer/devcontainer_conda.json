@@ -11,8 +11,7 @@
 			"username": "docker_user",
 			"uid": "1000",
 			"gid": "1000",
-			"requirements": "requirements.txt",
-			"dev_requirements": "dev-requirements.txt"
+			"requirements": "conda_venv.yml"
 		}
     },
 
