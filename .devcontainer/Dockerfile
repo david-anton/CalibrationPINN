@@ -1,7 +1,7 @@
 # Base docker image
-FROM --platform=linux/amd64 ubuntu:22.04
+FROM --platform=linux/amd64 dolfinx/dolfinx:stable
 
-### Define (default) arguments
+### Define default arguments
 # Are overwritten by build arguments (if supplied while building the container)
 ARG uid=1000
 ARG gid=1000
@@ -20,23 +20,20 @@ SHELL ["/bin/bash", "--login", "-c"]
 ENV USER_NAME docker_user
 ENV USER_UID $uid
 ENV USER_GID $gid
-ENV USER_HOME_DIR /home/$USER_NAME
+ENV HOME_DIR /home/$USER_NAME
 RUN groupadd --gid $USER_GID $USER_NAME && \
     adduser \
     --disabled-password \
     --gecos "non-root user" \
     --uid $USER_UID \
     --gid $USER_GID \
-    --home $USER_HOME_DIR \
+    --home $HOME_DIR \
     $USER_NAME
 
 
 ### Create directories
 ENV DATA_DIR /data
 RUN mkdir $DATA_DIR
-# ENV APP_DIR $DATA_DIR/app
-# RUN mkdir $APP_DIR
-RUN mkdir -p /build/python
 
 
 ### Copy files
@@ -46,27 +43,11 @@ COPY $dev_requirements /tmp/
 
 ### Install base utilities
 RUN apt-get update && \
-    apt-get install -y build-essential && \
-    apt-get install -y wget && \
     apt-get install -y git && \
     apt-get install -y nano
 
 
 ### Install utilities
-# Install Python
-ENV PYTHON_RELEASE 3.11.3
-ENV PYTHON_VERSION 3.11
-RUN cd /build/python && \
-    apt-get install -y zlib1g-dev libgdbm-dev libncurses5-dev libssl-dev libnss3-dev libffi-dev libreadline-dev libsqlite3-dev libbz2-dev && \
-    wget https://www.python.org/ftp/python/${PYTHON_RELEASE}/Python-${PYTHON_RELEASE}.tgz && \
-    tar -xf Python-${PYTHON_RELEASE}.tgz && \
-    cd Python-${PYTHON_RELEASE} && \
-    ./configure --enable-optimizations --with-ensurepip=install && \
-    make -j $(nproc) && \
-    make altinstall && \
-    ln -sf /usr/local/bin/python${PYTHON_VERSION} /usr/bin/python && \
-    ln -sf /usr/local/bin/pip${PYTHON_VERSION} /usr/bin/pip
-
 # Install Python requirements
 RUN pip install --upgrade pip && \
     pip install -r /tmp/$requirements && \
