@@ -32,7 +32,7 @@ RUN groupadd --gid $USER_GID $USER_NAME && \
 
 
 ### Create directories
-ENV DATA_DIR /$HOME_DIR
+ENV DATA_DIR $HOME_DIR
 
 
 ### Copy files
