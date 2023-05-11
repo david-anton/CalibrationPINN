@@ -1,4 +1,5 @@
 import dolfinx
+from collections import namedtuple
 from dataclasses import dataclass
 import gmsh
 import sys
@@ -8,6 +9,7 @@ from parametricpinn.settings import Settings
 from dolfinx.io.gmshio import model_to_mesh
 from dolfinx import fem
 from dolfinx.fem import (
+    Function,
     FunctionSpace,
     locate_dofs_topological,
     Constant,
@@ -51,11 +53,12 @@ GOutDimAndTags: TypeAlias = list[tuple[int, int]]
 GOutDimAndTagsMap: TypeAlias = list[Union[GOutDimAndTags, list[Any]]]
 GGeometry: TypeAlias = tuple[GOutDimAndTags, GOutDimAndTagsMap]
 DMesh: TypeAlias = dolfinx.mesh.Mesh
+DFunction: TypeAlias = dolfinx.fem.Function
 DFunctionSpace: TypeAlias = dolfinx.fem.FunctionSpace
 DTestFunction: TypeAlias = ufl.TestFunction
 DConstant: TypeAlias = dolfinx.fem.Constant
 DDofs: TypeAlias = npt.NDArray[np.int32]
-DMeshTags: TypeAlias = Any  # dolfinx.mesh.MeshTags
+DMeshTags: TypeAlias = Any # dolfinx.mesh.MeshTags
 DDirichletBC: TypeAlias = dolfinx.fem.DirichletBCMetaClass
 UFLOperator: TypeAlias = ufl.core.operator.Operator
 UFLMeasure: TypeAlias = ufl.Measure
@@ -361,6 +364,43 @@ def _simulate_once(
         a, L, bcs=dirichlet_bcs, petsc_options={"ksp_type": "preonly", "pc_type": "lu"}
     )
     uh = problem.solve()
+
+    
+
+    # def compute_strain(uh: DFunction):
+    #     pass
+
+    @dataclass
+    class SimulationResults:
+        coordinates_x: NPArray
+        coordinates_y: NPArray
+        displacements_x: NPArray
+        displacements_y: NPArray
+        max_strain: float
+
+    @dataclass 
+    class SimulationConfiguration:
+        youngs_modulus: float
+        poissons_ratio: float
+        element_family: str
+        element_degree: int
+        mesh_resolution: float
+
+
+    def compile_results(uh: DFunction) -> tuple[SimulationResults, SimulationConfiguration]:
+        coordinates = mesh.geometry.x
+        x_coordinates = coordinates[:, 0]
+        y_coordinates = coordinates[:, 1]
+
+        print(f"x-coordinates: {x_coordinates.size}")
+        print(f"y-coordinates: {y_coordinates.size}")
+
+        subspace_uh_x, subspace_uh_y = uh.split()
+        uh_x = subspace_uh_x.x.array
+
+        print(f"uh_x {uh_x.size}")
+
+    compile_results(uh)
 
 
 if __name__ == "__main__":
