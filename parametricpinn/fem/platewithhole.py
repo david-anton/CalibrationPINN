@@ -1,5 +1,4 @@
 import dolfinx
-from collections import namedtuple
 from dataclasses import dataclass
 import gmsh
 import sys
@@ -11,6 +10,8 @@ from dolfinx import fem
 from dolfinx.fem import (
     Function,
     FunctionSpace,
+    TensorFunctionSpace,
+    VectorFunctionSpace,
     locate_dofs_topological,
     Constant,
     dirichletbc,
@@ -39,6 +40,9 @@ from ufl import (
     rhs,
     Argument,
 )
+
+
+
 from mpi4py import MPI
 import numpy as np
 import numpy.typing as npt
@@ -365,10 +369,10 @@ def _simulate_once(
     )
     uh = problem.solve()
 
-    
-
-    # def compute_strain(uh: DFunction):
-    #     pass
+    def conpute_strain(uh: DFunction) -> DFunction:
+        _, epsilon = sigma_and_epsilon_factory()
+        tensor_space = TensorFunctionSpace(mesh, element_family, element_degree)
+        strain = epsilon(uh)
 
     @dataclass
     class SimulationResults:
@@ -387,20 +391,21 @@ def _simulate_once(
         mesh_resolution: float
 
 
-    def compile_results(uh: DFunction) -> tuple[SimulationResults, SimulationConfiguration]:
+    def compile_output(uh: DFunction) -> tuple[SimulationResults, SimulationConfiguration]:
         coordinates = mesh.geometry.x
-        x_coordinates = coordinates[:, 0]
-        y_coordinates = coordinates[:, 1]
+        coordinates_x = coordinates[:, 0]
+        coordinates_y = coordinates[:, 1]
 
-        print(f"x-coordinates: {x_coordinates.size}")
-        print(f"y-coordinates: {y_coordinates.size}")
+        displacements = uh.x.array.reshape((-1, mesh.geometry.dim))
+        displacements_x = displacements[:, 0]
+        displacements_y = displacements[:, 1]
 
-        subspace_uh_x, subspace_uh_y = uh.split()
-        uh_x = subspace_uh_x.x.array
+        print(f"x-coordinates: {coordinates_x.size}")
+        print(f"y-coordinates: {coordinates_y.size}")
+        print(f"x-displacements: {displacements_x.size}")
+        print(f"y-displacements: {displacements_y.size}")
 
-        print(f"uh_x {uh_x.size}")
-
-    compile_results(uh)
+    compile_output(uh)
 
 
 if __name__ == "__main__":
