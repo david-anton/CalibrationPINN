@@ -1,56 +1,42 @@
+from dataclasses import dataclass, asdict
+from typing import Any, Callable, TypeAlias, Union
+import pandas as pd
+
 import dolfinx
-from dataclasses import dataclass
 import gmsh
-import sys
-from typing import Optional, Any, Callable, Union, TypeAlias
-from parametricpinn.io import ProjectDirectory
-from parametricpinn.settings import Settings
-from dolfinx.io.gmshio import model_to_mesh
-from dolfinx import fem
-from dolfinx.fem import (
-    Function,
-    FunctionSpace,
-    TensorFunctionSpace,
-    VectorFunctionSpace,
-    locate_dofs_topological,
-    Constant,
-    dirichletbc,
-    DirichletBCMetaClass,
-)
-from dolfinx.mesh import Mesh, locate_entities, meshtags
-from dolfinx.io import XDMFFile
+import numpy as np
+import numpy.typing as npt
+import petsc4py
 import ufl
+from dolfinx.fem import Constant, FunctionSpace, dirichletbc, locate_dofs_topological
+from dolfinx.fem.petsc import LinearProblem
+from dolfinx.io import XDMFFile
+from dolfinx.io.gmshio import model_to_mesh
+from dolfinx.mesh import Mesh, locate_entities, meshtags
+from mpi4py import MPI
+from petsc4py.PETSc import ScalarType
 from ufl import (
-    VectorElement,
-    as_matrix,
-    inv,
-    as_vector,
-    as_tensor,
-    nabla_grad,
     Measure,
     SpatialCoordinate,
     TestFunction,
     TrialFunction,
-    div,
+    VectorElement,
+    as_matrix,
+    as_tensor,
+    as_vector,
     dot,
     dx,
-    grad,
     inner,
+    inv,
     lhs,
+    nabla_grad,
     rhs,
-    Argument,
 )
 
-
-
-from mpi4py import MPI
-import numpy as np
-import numpy.typing as npt
+from parametricpinn.io import ProjectDirectory
+from parametricpinn.io.readerswriters import PandasDataWriter, DataclassWriter
+from parametricpinn.settings import Settings
 from parametricpinn.types import NPArray
-import petsc4py
-from petsc4py.PETSc import ScalarType
-from dolfinx.fem.petsc import LinearProblem
-
 
 GMesh: TypeAlias = gmsh.model
 GOutDimAndTags: TypeAlias = list[tuple[int, int]]
@@ -62,7 +48,7 @@ DFunctionSpace: TypeAlias = dolfinx.fem.FunctionSpace
 DTestFunction: TypeAlias = ufl.TestFunction
 DConstant: TypeAlias = dolfinx.fem.Constant
 DDofs: TypeAlias = npt.NDArray[np.int32]
-DMeshTags: TypeAlias = Any # dolfinx.mesh.MeshTags
+DMeshTags: TypeAlias = Any  # dolfinx.mesh.MeshTags
 DDirichletBC: TypeAlias = dolfinx.fem.DirichletBCMetaClass
 UFLOperator: TypeAlias = ufl.core.operator.Operator
 UFLMeasure: TypeAlias = ufl.Measure
@@ -82,29 +68,113 @@ class PWHSimulationConfig:
     volume_force_y: float
     traction_left_x: float
     traction_left_y: float
-    element_family: str = "Lagrange"
-    element_degree: int = 1
-    resolution: float = 10
+    element_family: str
+    element_degree: int
+    mesh_resolution: float
 
 
 Config: TypeAlias = PWHSimulationConfig
 BCValue: TypeAlias = Union[DConstant, PETScScalarType]
 
+
+@dataclass
+class SimulationResults:
+    coordinates_x: NPArray
+    coordinates_y: NPArray
+    displacements_x: NPArray
+    displacements_y: NPArray
+
+
 geometric_dim = 2
 
 
 def run_one_simulation(
-    config: Config, output_subdir: str, project_directory: ProjectDirectory
+    model: str,
+    youngs_modulus: float,
+    poissons_ratio: float,
+    edge_length: float,
+    radius: float,
+    volume_force_x: float,
+    volume_force_y: float,
+    traction_left_x: float,
+    traction_left_y: float,
+    save_results: bool,
+    save_metadata: bool,
+    output_subdir: str,
+    project_directory: ProjectDirectory,
+    element_family: str = "Lagrange",
+    element_degree: int = 1,
+    mesh_resolution: float = 10,
 ) -> None:
-    mesh = _generate_mesh(config, output_subdir, project_directory)
-    _simulate_once(mesh, config, output_subdir, project_directory)
+    simulation_config = PWHSimulationConfig(
+        model=model,
+        youngs_modulus=youngs_modulus,
+        poissons_ratio=poissons_ratio,
+        edge_length=edge_length,
+        radius=radius,
+        volume_force_x=volume_force_x,
+        volume_force_y=volume_force_y,
+        traction_left_x=traction_left_x,
+        traction_left_y=traction_left_y,
+        element_family=element_family,
+        element_degree=element_degree,
+        mesh_resolution=mesh_resolution,
+    )
+    mesh = _generate_mesh(
+        simulation_config, save_results, output_subdir, project_directory
+    )
+    simulation_results = _simulate_once(
+        mesh, simulation_config, save_metadata, output_subdir, project_directory
+    )
+    if save_results:
+        _save_results(
+            simulation_results, simulation_config, output_subdir, project_directory
+        )
+
+
+def _save_results(
+    simulation_results: SimulationResults,
+    simulation_config: PWHSimulationConfig,
+    output_subdir: str,
+    project_directory: ProjectDirectory,
+) -> None:
+    _save_simulation_results(simulation_results, output_subdir, project_directory)
+    _save_simulation_config(simulation_config, output_subdir, project_directory)
+
+
+def _save_simulation_results(
+    simulation_results: SimulationResults,
+    output_subdir: str,
+    project_directory: ProjectDirectory,
+) -> None:
+    data_writer = PandasDataWriter(project_directory)
+    file_name = "results"
+    results = simulation_results
+    results_dict = {
+        "coordinates_x": results.coordinates_x,
+        "coordinates_y": results.coordinates_y,
+        "displacements_x": results.displacements_x,
+        "displacements_y": results.displacements_y,
+    }
+    results_dataframe = pd.DataFrame(results_dict)
+    data_writer.write(results_dataframe, file_name, output_subdir, header=True)
+
+
+def _save_simulation_config(
+    simulation_config: PWHSimulationConfig,
+    output_subdir: str,
+    project_directory: ProjectDirectory,
+) -> None:
+    data_writer = DataclassWriter(project_directory)
+    file_name = "simulation_config"
+    data_writer.write(simulation_config, file_name, output_subdir)
 
 
 def _generate_mesh(
     config: Config,
+    save_mesh: bool,
     output_subdir: str,
     project_directory: ProjectDirectory,
-    save_mesh: bool = True,
 ) -> DMesh:
     gmsh.initialize()
     gmesh = _generate_gmesh(config)
@@ -118,7 +188,7 @@ def _generate_mesh(
 def _generate_gmesh(config: Config) -> GMesh:
     length = config.edge_length
     radius = config.radius
-    resolution = config.resolution
+    resolution = config.mesh_resolution
     geometry_kernel = gmsh.model.occ
     solid_marker = 1
 
@@ -194,10 +264,10 @@ BoundaryConditions: TypeAlias = list[Union[DirichletBC, NeumannBC]]
 def _simulate_once(
     mesh: Mesh,
     config: Config,
+    save_metadata: bool,
     output_subdir: str,
     project_directory: ProjectDirectory,
-    save_meta_data: bool = False,
-) -> None:
+) -> SimulationResults:
     model = config.model
     youngs_modulus = config.youngs_modulus
     poissons_ratio = config.poissons_ratio
@@ -311,15 +381,6 @@ def _simulate_once(
             facet_tags[sorted_facet_indices],
         )
 
-    def save_boundary_tags(boundary_tags: DMeshTags) -> None:
-        output_path = project_directory.create_output_file_path(
-            file_name="boundary_tags.xdmf", subdir_name=output_subdir
-        )
-        mesh.topology.create_connectivity(mesh.topology.dim - 1, mesh.topology.dim)
-        with XDMFFile(mesh.comm, output_path, "w") as xdmf:
-            xdmf.write_mesh(mesh)
-            xdmf.write_meshtags(boundary_tags)
-
     def define_boundary_conditions(
         boundary_tags: DMeshTags,
     ) -> BoundaryConditions:
@@ -349,9 +410,42 @@ def _simulate_once(
                 F += condition.bc
         return dirichlet_bcs, F
 
+    def save_boundary_tags_as_xdmf(boundary_tags: DMeshTags) -> None:
+        output_path = project_directory.create_output_file_path(
+            file_name="boundary_tags.xdmf", subdir_name=output_subdir
+        )
+        # mesh.topology.create_connectivity(mesh.topology.dim - 1, mesh.topology.dim)
+        with XDMFFile(mesh.comm, output_path, "w") as xdmf:
+            xdmf.write_mesh(mesh)
+            xdmf.write_meshtags(boundary_tags)
+
+    def save_results_as_xdmf(mesh: DMesh, uh: DFunction) -> None:
+        output_path = project_directory.create_output_file_path(
+            file_name="displacements.xdmf", subdir_name=output_subdir
+        )
+        with XDMFFile(mesh.comm, output_path, "w") as xdmf:
+            xdmf.write_mesh(mesh)
+            xdmf.write_function(uh)
+
+    def compile_output(mesh: DMesh, uh: DFunction) -> SimulationResults:
+        coordinates = mesh.geometry.x
+        coordinates_x = coordinates[:, 0]
+        coordinates_y = coordinates[:, 1]
+
+        displacements = uh.x.array.reshape((-1, mesh.geometry.dim))
+        displacements_x = displacements[:, 0]
+        displacements_y = displacements[:, 1]
+
+        simulation_results = SimulationResults(
+            coordinates_x=coordinates_x,
+            coordinates_y=coordinates_y,
+            displacements_x=displacements_x,
+            displacements_y=displacements_y,
+        )
+
+        return simulation_results
+
     boundary_tags = tag_boundaries()
-    if save_meta_data:
-        save_boundary_tags(boundary_tags)
 
     ds = Measure("ds", domain=mesh, subdomain_data=boundary_tags)
 
@@ -369,76 +463,28 @@ def _simulate_once(
     )
     uh = problem.solve()
 
-    def conpute_strain(uh: DFunction) -> DFunction:
-        _, epsilon = sigma_and_epsilon_factory()
-        tensor_space = TensorFunctionSpace(mesh, element_family, element_degree)
-        strain = epsilon(uh)
+    if save_metadata:
+        save_boundary_tags_as_xdmf(boundary_tags)
+        save_results_as_xdmf(mesh, uh)
 
-    @dataclass
-    class SimulationResults:
-        coordinates_x: NPArray
-        coordinates_y: NPArray
-        displacements_x: NPArray
-        displacements_y: NPArray
-        max_strain: float
-
-    @dataclass 
-    class SimulationConfiguration:
-        youngs_modulus: float
-        poissons_ratio: float
-        element_family: str
-        element_degree: int
-        mesh_resolution: float
-
-
-    def compile_output(uh: DFunction) -> tuple[SimulationResults, SimulationConfiguration]:
-        coordinates = mesh.geometry.x
-        coordinates_x = coordinates[:, 0]
-        coordinates_y = coordinates[:, 1]
-
-        displacements = uh.x.array.reshape((-1, mesh.geometry.dim))
-        displacements_x = displacements[:, 0]
-        displacements_y = displacements[:, 1]
-
-        print(f"x-coordinates: {coordinates_x.size}")
-        print(f"y-coordinates: {coordinates_y.size}")
-        print(f"x-displacements: {displacements_x.size}")
-        print(f"y-displacements: {displacements_y.size}")
-
-    compile_output(uh)
+    return compile_output(mesh, uh)
 
 
 if __name__ == "__main__":
     settings = Settings()
     project_directory = ProjectDirectory(settings)
-    simulation_config = PWHSimulationConfig(
+    run_one_simulation(
         model="plane stress",
         youngs_modulus=210000.0,
         poissons_ratio=0.3,
-        edge_length=100,
-        radius=10,
+        edge_length=100.0,
+        radius=10.0,
         volume_force_x=0.0,
         volume_force_y=0.0,
         traction_left_x=-100.0,
         traction_left_y=0.0,
-    )
-    run_one_simulation(
-        config=simulation_config,
-        output_subdir="mesh_test",
+        save_results=True,
+        save_metadata=True,
+        output_subdir="test_dev",
         project_directory=project_directory,
     )
-
-    # surface_geometry = geometry_kernel.getEntities(dim=2)
-    # assert surface_geometry == geometry[0]
-    # surface_geometry = surface_geometry[0]
-    # field = gmsh.model.mesh.field
-    # constant_meshsize_field = field.add("Constant")
-    # field.setNumbers(constant_meshsize_field, "SurfacesList", [surface_geometry[1]])
-    # field.setNumber(constant_meshsize_field, "IncludeBoundary", 1)
-    # field.setNumber(constant_meshsize_field, "VIn", mesh_resolution)
-    # field.setNumber(constant_meshsize_field, "VOut", mesh_resolution)
-
-    # gmsh.option.setNumber("Mesh.MeshSizeMin", 3)
-    # gmsh.option.setNumber("Mesh.MeshSizeMax", 3)
-
-    # gmsh.model.mesh.setSize(gmsh.model.getEntities(0), resolution)

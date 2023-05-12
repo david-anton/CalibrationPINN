@@ -1,4 +1,5 @@
-from typing import TypeAlias, Union
+from dataclasses import dataclass
+from typing import TypeAlias, Union, Protocol
 
 import numpy as np
 import numpy.typing as npt
@@ -21,3 +22,9 @@ NPArray: TypeAlias = Union[
 
 # Pandas
 PDDataFrame: TypeAlias = pd.DataFrame
+
+
+# dataclass
+@dataclass
+class DataClass(Protocol):
+    pass
