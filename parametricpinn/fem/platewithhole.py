@@ -1,4 +1,5 @@
 from dataclasses import dataclass, asdict
+import os
 from typing import Any, Callable, TypeAlias, Union
 import pandas as pd
 
@@ -130,44 +131,80 @@ def run_one_simulation(
         _save_results(
             simulation_results, simulation_config, output_subdir, project_directory
         )
+    return simulation_results
 
 
-def _save_results(
-    simulation_results: SimulationResults,
-    simulation_config: PWHSimulationConfig,
+def run_simulations(
+    model: str,
+    youngs_moduli: list[float],
+    poissons_ratios: list[float],
+    edge_length: float,
+    radius: float,
+    volume_force_x: float,
+    volume_force_y: float,
+    traction_left_x: float,
+    traction_left_y: float,
+    save_metadata: bool,
     output_subdir: str,
     project_directory: ProjectDirectory,
+    element_family: str = "Lagrange",
+    element_degree: int = 1,
+    mesh_resolution: float = 10,
 ) -> None:
-    _save_simulation_results(simulation_results, output_subdir, project_directory)
-    _save_simulation_config(simulation_config, output_subdir, project_directory)
+    save_results = True
+    simulation_config = PWHSimulationConfig(
+        model=model,
+        youngs_modulus=0.0,
+        poissons_ratio=0.0,
+        edge_length=edge_length,
+        radius=radius,
+        volume_force_x=volume_force_x,
+        volume_force_y=volume_force_y,
+        traction_left_x=traction_left_x,
+        traction_left_y=traction_left_y,
+        element_family=element_family,
+        element_degree=element_degree,
+        mesh_resolution=mesh_resolution,
+    )
+    num_simulations = _determine_number_of_simulations(youngs_moduli, poissons_ratios)
+    mesh = _generate_mesh(
+        simulation_config, save_results, output_subdir, project_directory
+    )
+
+    for simulation_count, (youngs_modulus, poissons_ratio) in enumerate(
+        zip(youngs_moduli, poissons_ratios)
+    ):
+        print(f"Run FEM simulation {simulation_count + 1}/{num_simulations} ...")
+        simulation_config.youngs_modulus = youngs_modulus
+        simulation_config.poissons_ratio = poissons_ratio
+        simulation_name = f"simulation_{simulation_count}"
+        simulation_output_subdir = _join_simulation_output_subdir(
+            simulation_name, output_subdir
+        )
+        simulation_results = _simulate_once(
+            mesh,
+            simulation_config,
+            save_metadata,
+            simulation_output_subdir,
+            project_directory,
+        )
+        _save_results(
+            simulation_results,
+            simulation_config,
+            simulation_output_subdir,
+            project_directory,
+        )
 
 
-def _save_simulation_results(
-    simulation_results: SimulationResults,
-    output_subdir: str,
-    project_directory: ProjectDirectory,
-) -> None:
-    data_writer = PandasDataWriter(project_directory)
-    file_name = "results"
-    results = simulation_results
-    results_dict = {
-        "coordinates_x": results.coordinates_x,
-        "coordinates_y": results.coordinates_y,
-        "displacements_x": results.displacements_x,
-        "displacements_y": results.displacements_y,
-    }
-    results_dataframe = pd.DataFrame(results_dict)
-    data_writer.write(results_dataframe, file_name, output_subdir, header=True)
+def _determine_number_of_simulations(
+    youngs_moduli: list[float], poissons_ratios: list[float]
+) -> int:
+    assert len(youngs_moduli) == len(poissons_ratios)
+    return len(youngs_moduli)
 
 
-def _save_simulation_config(
-    simulation_config: PWHSimulationConfig,
-    output_subdir: str,
-    project_directory: ProjectDirectory,
-) -> None:
-    data_writer = DataclassWriter(project_directory)
-    file_name = "simulation_config"
-    data_writer.write(simulation_config, file_name, output_subdir)
+def _join_simulation_output_subdir(simulation_name: str, output_subdir: str) -> str:
+    return os.path.join(output_subdir, simulation_name)
 
 
 def _generate_mesh(
@@ -176,6 +213,7 @@ def _generate_mesh(
     output_subdir: str,
     project_directory: ProjectDirectory,
 ) -> DMesh:
+    print("Generate mesh for FEM simulation ...")
     gmsh.initialize()
     gmesh = _generate_gmesh(config)
     if save_mesh:
@@ -470,21 +508,73 @@ def _simulate_once(
     return compile_output(mesh, uh)
 
 
+def _save_results(
+    simulation_results: SimulationResults,
+    simulation_config: PWHSimulationConfig,
+    output_subdir: str,
+    project_directory: ProjectDirectory,
+) -> None:
+    _save_simulation_results(simulation_results, output_subdir, project_directory)
+    _save_simulation_config(simulation_config, output_subdir, project_directory)
+
+
+def _save_simulation_results(
+    simulation_results: SimulationResults,
+    output_subdir: str,
+    project_directory: ProjectDirectory,
+) -> None:
+    data_writer = PandasDataWriter(project_directory)
+    file_name = "results"
+    results = simulation_results
+    results_dict = {
+        "coordinates_x": results.coordinates_x,
+        "coordinates_y": results.coordinates_y,
+        "displacements_x": results.displacements_x,
+        "displacements_y": results.displacements_y,
+    }
+    results_dataframe = pd.DataFrame(results_dict)
+    data_writer.write(results_dataframe, file_name, output_subdir, header=True)
+
+
+def _save_simulation_config(
+    simulation_config: PWHSimulationConfig,
+    output_subdir: str,
+    project_directory: ProjectDirectory,
+) -> None:
+    data_writer = DataclassWriter(project_directory)
+    file_name = "simulation_config"
+    data_writer.write(simulation_config, file_name, output_subdir)
+
+
 if __name__ == "__main__":
     settings = Settings()
     project_directory = ProjectDirectory(settings)
-    run_one_simulation(
+    # run_one_simulation(
+    #     model="plane stress",
+    #     youngs_modulus=210000.0,
+    #     poissons_ratio=0.3,
+    #     edge_length=100.0,
+    #     radius=10.0,
+    #     volume_force_x=0.0,
+    #     volume_force_y=0.0,
+    #     traction_left_x=-100.0,
+    #     traction_left_y=0.0,
+    #     save_results=True,
+    #     save_metadata=True,
+    #     output_subdir="test_one_simulation",
+    #     project_directory=project_directory,
+    # )
+    run_simulations(
         model="plane stress",
-        youngs_modulus=210000.0,
-        poissons_ratio=0.3,
+        youngs_moduli=[180000.0, 210000.0, 240000.0],
+        poissons_ratios=[0.2, 0.3, 0.4],
         edge_length=100.0,
         radius=10.0,
         volume_force_x=0.0,
         volume_force_y=0.0,
         traction_left_x=-100.0,
         traction_left_y=0.0,
-        save_results=True,
         save_metadata=True,
-        output_subdir="test_dev",
+        output_subdir="test_multiple_simulation",
         project_directory=project_directory,
     )
