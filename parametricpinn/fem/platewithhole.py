@@ -1,12 +1,12 @@
-from dataclasses import dataclass, asdict
 import os
+from dataclasses import dataclass
 from typing import Any, Callable, TypeAlias, Union
-import pandas as pd
 
 import dolfinx
 import gmsh
 import numpy as np
 import numpy.typing as npt
+import pandas as pd
 import petsc4py
 import ufl
 from dolfinx.fem import Constant, FunctionSpace, dirichletbc, locate_dofs_topological
@@ -35,7 +35,7 @@ from ufl import (
 )
 
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.io.readerswriters import PandasDataWriter, DataclassWriter
+from parametricpinn.io.readerswriters import DataclassWriter, PandasDataWriter
 from parametricpinn.settings import Settings
 from parametricpinn.types import NPArray
 
@@ -56,7 +56,6 @@ UFLMeasure: TypeAlias = ufl.Measure
 UFLSigmaFunc: TypeAlias = Callable[[TrialFunction], UFLOperator]
 UFLEpsilonFunc: TypeAlias = Callable[[TrialFunction], UFLOperator]
 PETScScalarType: TypeAlias = petsc4py.PETSc.ScalarType
-
 
 @dataclass
 class PWHSimulationConfig:
