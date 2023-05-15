@@ -83,6 +83,8 @@ BCValue: TypeAlias = Union[DConstant, PETScScalarType]
 class SimulationResults:
     coordinates_x: NPArray
     coordinates_y: NPArray
+    youngs_modulus: float
+    poissons_ratio: float
     displacements_x: NPArray
     displacements_y: NPArray
 
@@ -179,7 +181,7 @@ def generate_validation_data(
         print(f"Run FEM simulation {simulation_count + 1}/{num_simulations} ...")
         simulation_config.youngs_modulus = youngs_modulus
         simulation_config.poissons_ratio = poissons_ratio
-        simulation_name = f"simulation_{simulation_count}"
+        simulation_name = f"sample_{simulation_count}"
         simulation_output_subdir = _join_simulation_output_subdir(
             simulation_name, output_subdir
         )
@@ -483,6 +485,8 @@ def _simulate_once(
         simulation_results = SimulationResults(
             coordinates_x=coordinates_x,
             coordinates_y=coordinates_y,
+            youngs_modulus=youngs_modulus,
+            poissons_ratio=poissons_ratio,
             displacements_x=displacements_x,
             displacements_y=displacements_y,
         )
@@ -535,14 +539,51 @@ def _save_simulation_results(
     save_to_input_dir: bool,
     project_directory: ProjectDirectory,
 ) -> None:
+    _save_displacements(
+        simulation_results, output_subdir, save_to_input_dir, project_directory
+    )
+    _save_parameters(
+        simulation_results, output_subdir, save_to_input_dir, project_directory
+    )
+
+
+def _save_displacements(
+    simulation_results: SimulationResults,
+    output_subdir: str,
+    save_to_input_dir: bool,
+    project_directory: ProjectDirectory,
+) -> None:
     data_writer = PandasDataWriter(project_directory)
-    file_name = "results"
+    file_name = "displacements"
     results = simulation_results
     results_dict = {
         "coordinates_x": np.ravel(results.coordinates_x),
         "coordinates_y": np.ravel(results.coordinates_y),
         "displacements_x": np.ravel(results.displacements_x),
         "displacements_y": np.ravel(results.displacements_y),
+    }
+    results_dataframe = pd.DataFrame(results_dict)
+    data_writer.write(
+        results_dataframe,
+        file_name,
+        output_subdir,
+        header=True,
+        save_to_input_dir=save_to_input_dir,
+    )
+
+
+def _save_parameters(
+    simulation_results: SimulationResults,
+    output_subdir: str,
+    save_to_input_dir: bool,
+    project_directory: ProjectDirectory,
+) -> None:
+    data_writer = PandasDataWriter(project_directory)
+    file_name = "parameters"
+    results = simulation_results
+    results_dict = {
+        "youngs_modulus": results.youngs_modulus,
+        "poissons_ratio": results.poissons_ratio,
     }
     results_dataframe = pd.DataFrame(results_dict)
     data_writer.write(
