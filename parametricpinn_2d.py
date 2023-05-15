@@ -1,11 +1,8 @@
-# Standard library imports
 import statistics
 
-# Third-party imports
 import torch
 from torch.utils.data import DataLoader
 
-# Local library imports
 from parametricpinn.ansatz import HBCAnsatz2D
 from parametricpinn.data import (
     TrainingData2DPDE,
@@ -13,6 +10,7 @@ from parametricpinn.data import (
     collate_training_data_2D,
     create_training_dataset_2D,
 )
+from parametricpinn.fem.platewithhole import run_one_simulation, run_simulations
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN, create_normalized_network
 
@@ -33,6 +31,7 @@ from parametricpinn.types import Module, Tensor
 
 ### Configuration
 # Set up
+model = "plane stress"
 edge_length = 100.0
 radius = 10.0
 traction = torch.tensor([-100.0, 0.0])
@@ -45,20 +44,21 @@ max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 32, 32, 2]
 # Training
-num_samples_train = 100
+num_samples_per_parameter = 128
+num_samples_train = num_samples_per_parameter**2
 num_points_pde = 4096
 num_points_stress_bc = 64
-num_samples_per_parameter = 16
 batch_size_train = num_samples_train
 num_epochs = 100000
 loss_metric = torch.nn.MSELoss()
-# # Validation
-# num_samples_valid = 100
-# valid_interval = 1
-# num_points_valid = 1000
-# batch_size_valid = num_points_valid
+# Validation
+regenerate_valid_data = True
+num_samples_valid = 128
+valid_interval = 1
+num_points_valid = 4096
+batch_size_valid = num_samples_valid
 # Output
-output_subdir = "parametric_PINN_2D"
+input_subdir = output_subdir = "parametric_PINN_2D"
 
 
 settings = Settings()

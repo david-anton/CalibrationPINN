@@ -1,11 +1,8 @@
-# Standard library imports
 import statistics
 
-# Third-party imports
 import torch
 from torch.utils.data import DataLoader
 
-# Local library imports
 from parametricpinn.ansatz import HBCAnsatz1D
 from parametricpinn.calibration import calibrate_model
 from parametricpinn.data import (
@@ -41,16 +38,16 @@ displacement_left = 0.0
 # Network
 layer_sizes = [2, 16, 16, 1]
 # Training
-num_samples_train = 100
-num_points_pde = 100
+num_samples_train = 128
+num_points_pde = 128
 batch_size_train = num_samples_train
 num_epochs = 100
 loss_metric = torch.nn.MSELoss()
 # Validation
-num_samples_valid = 100
+num_samples_valid = 128
 valid_interval = 1
-num_points_valid = 1000
-batch_size_valid = num_points_valid
+num_points_valid = 1024
+batch_size_valid = num_samples_valid
 # Output
 output_subdir = "parametric_PINN_1D"
 

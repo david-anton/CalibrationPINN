@@ -58,6 +58,7 @@ UFLSigmaFunc: TypeAlias = Callable[[TrialFunction], UFLOperator]
 UFLEpsilonFunc: TypeAlias = Callable[[TrialFunction], UFLOperator]
 PETScScalarType: TypeAlias = petsc4py.PETSc.ScalarType
 
+
 @dataclass
 class PWHSimulationConfig:
     model: str
@@ -200,7 +201,9 @@ def _determine_number_of_simulations(
     youngs_moduli: list[float], poissons_ratios: list[float]
 ) -> int:
     if not len(youngs_moduli) == len(poissons_ratios):
-        raise FEMConfigurationError(f"Not the same number of Young's moduli and Poissons ratios.")
+        raise FEMConfigurationError(
+            f"Not the same number of Young's moduli and Poissons ratios."
+        )
     return len(youngs_moduli)
 
 

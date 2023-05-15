@@ -16,6 +16,7 @@ class FileNotFoundError(Error):
         self._message = f"The requested file {path_to_file} could not be found!"
         super().__init__(self._message)
 
+
 class FEMConfigurationError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
