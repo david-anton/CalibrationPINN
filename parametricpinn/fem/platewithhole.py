@@ -468,12 +468,12 @@ def _simulate_once(
 
     def compile_output(mesh: DMesh, uh: DFunction) -> SimulationResults:
         coordinates = mesh.geometry.x
-        coordinates_x = coordinates[:, 0]
-        coordinates_y = coordinates[:, 1]
+        coordinates_x = coordinates[:, 0].reshape((-1, 1))
+        coordinates_y = coordinates[:, 1].reshape((-1, 1))
 
         displacements = uh.x.array.reshape((-1, mesh.geometry.dim))
-        displacements_x = displacements[:, 0]
-        displacements_y = displacements[:, 1]
+        displacements_x = displacements[:, 0].reshape((-1, 1))
+        displacements_y = displacements[:, 1].reshape((-1, 1))
 
         simulation_results = SimulationResults(
             coordinates_x=coordinates_x,
@@ -528,10 +528,10 @@ def _save_simulation_results(
     file_name = "results"
     results = simulation_results
     results_dict = {
-        "coordinates_x": results.coordinates_x,
-        "coordinates_y": results.coordinates_y,
-        "displacements_x": results.displacements_x,
-        "displacements_y": results.displacements_y,
+        "coordinates_x": np.ravel(results.coordinates_x),
+        "coordinates_y": np.ravel(results.coordinates_y),
+        "displacements_x": np.ravel(results.displacements_x),
+        "displacements_y": np.ravel(results.displacements_y),
     }
     results_dataframe = pd.DataFrame(results_dict)
     data_writer.write(results_dataframe, file_name, output_subdir, header=True)
