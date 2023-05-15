@@ -34,6 +34,7 @@ from ufl import (
     rhs,
 )
 
+from parametricpinn.errors import FEMConfigurationError
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import DataclassWriter, PandasDataWriter
 from parametricpinn.settings import Settings
@@ -198,7 +199,8 @@ def run_simulations(
 def _determine_number_of_simulations(
     youngs_moduli: list[float], poissons_ratios: list[float]
 ) -> int:
-    assert len(youngs_moduli) == len(poissons_ratios)
+    if not len(youngs_moduli) == len(poissons_ratios):
+        raise FEMConfigurationError(f"Not the same number of Young's moduli and Poissons ratios.")
     return len(youngs_moduli)
 
 
@@ -373,7 +375,7 @@ def _simulate_once(
                 ]
             )
         else:
-            raise TypeError(f"Unknown model: {model}")
+            raise FEMConfigurationError(f"Unknown model: {model}")
 
         elasticity_matrix = inv(compliance_matrix)
 
