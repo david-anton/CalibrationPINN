@@ -6,7 +6,7 @@ from parametricpinn.types import Module, Tensor
 
 class HBCAnsatz1D(nn.Module):
     def __init__(
-        self, displacement_left: float, range_coordinate: float, network: Module
+        self, network: Module, displacement_left: float, range_coordinate: float
     ) -> None:
         super().__init__()
         self._displacement_left = displacement_left

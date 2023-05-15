@@ -1,5 +1,8 @@
+import os
 import statistics
+from datetime import date
 
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
@@ -13,6 +16,7 @@ from parametricpinn.data import (
 from parametricpinn.fem.platewithhole import (
     generate_validation_data as _generate_validation_data,
 )
+from parametricpinn.fem.platewithhole import run_simulation
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN, create_normalized_network
 
@@ -63,7 +67,9 @@ valid_interval = 1
 num_points_valid = 4096
 batch_size_valid = num_samples_valid
 # Output
-input_subdir = output_subdir = "parametric_PINN_2D"
+current_date = date.today().strftime("%Y%m%d")
+input_subdir = output_subdir = os.path.join(f"{current_date}_Parametric_PINN_2D")
+output_subdir_preprocessing = os.path.join(f"{current_date}_Preprocessing")
 save_metadata = False
 
 
@@ -165,6 +171,55 @@ def generate_validation_data() -> None:
     )
 
 
+def determine_normalization_values() -> dict[str, Tensor]:
+    min_coordinate_x = -edge_length
+    max_coordinate_x = 0.0
+    min_coordinate_y = 0.0
+    max_coordinate_y = edge_length
+    min_coordinates = torch.tensor([min_coordinate_x, min_coordinate_y])
+    max_coordinates = torch.tensor([max_coordinate_x, max_coordinate_y])
+    range_coordinates = max_coordinates - min_coordinates
+
+    min_parameters = torch.tensor([min_youngs_modulus, min_poissons_ratio])
+    max_parameters = torch.tensor([max_youngs_modulus, max_poissons_ratio])
+
+    min_inputs = torch.concat((min_coordinates, min_parameters))
+    max_inputs = torch.concat((max_coordinates, max_parameters))
+
+    _output_subdir = os.path.join(
+        output_subdir_preprocessing, "results_for_determining_scaling_values"
+    )
+    results_for_max_parameters = run_simulation(
+        model=model,
+        youngs_modulus=max_youngs_modulus,
+        poissons_ratio=max_poissons_ratio,
+        edge_length=edge_length,
+        radius=radius,
+        volume_force_x=volume_force_x,
+        volume_force_y=volume_force_y,
+        traction_left_x=traction_left_x,
+        traction_left_y=traction_left_y,
+        save_results=False,
+        save_metadata=False,
+        output_subdir=_output_subdir,
+        project_directory=project_directory,
+    )
+    min_displacement_x = np.amin(results_for_max_parameters.displacements_x)
+    max_displacement_x = 0.0
+    min_displacement_y = np.amin(results_for_max_parameters.displacements_y)
+    max_displacement_y = 0.0
+    min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
+    max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
+    return {
+        "min_inputs": min_inputs,
+        "max_inputs": max_inputs,
+        "min_outputs": min_outputs,
+        "max_outputs": max_outputs,
+        "range_coordinate_x": range_coordinates[0],
+        "range_coordinate_y": range_coordinates[1],
+    }
+
+
 ####################################################################################################
 if __name__ == "__main__":
     train_dataset = create_training_dataset_2D(
@@ -209,35 +264,23 @@ if __name__ == "__main__":
     #     collate_fn=collate_validation_data_1D,
     # )
 
-    min_coordinate = 0.0
-    # max_coordinate = length
-    # min_displacement = displacement_left
-    # max_displacement = calculate_displacements_solution_1D(
-    #     coordinates=max_coordinate,
-    #     length=length,
-    #     youngs_modulus=min_youngs_modulus,
-    #     traction=traction_left,
-    #     volume_force=volume_force,
-    # )
-    # min_inputs = torch.tensor([min_coordinate, min_youngs_modulus])
-    # max_inputs = torch.tensor([max_coordinate, max_youngs_modulus])
-    # min_output = torch.tensor([min_displacement])
-    # max_output = torch.tensor([max_displacement])
-    # range_coordinate = max_coordinate - min_coordinate
+    normalization_values = determine_normalization_values()
 
-#     network = FFNN(layer_sizes=layer_sizes)
-#     normalized_network = create_normalized_network(
-#         network=network,
-#         min_inputs=min_inputs,
-#         max_inputs=max_inputs,
-#         min_outputs=min_output,
-#         max_outputs=max_output,
-#     ).to(device)
-#     ansatz = HBCAnsatz1D(
-#         displacement_left=displacement_left,
-#         range_coordinate=range_coordinate,
-#         network=normalized_network,
-#     )
+    network = FFNN(layer_sizes=layer_sizes)
+    normalized_network = create_normalized_network(
+        network=network,
+        min_inputs=normalization_values["min_inputs"],
+        max_inputs=normalization_values["max_inputs"],
+        min_outputs=normalization_values["min_outputs"],
+        max_outputs=normalization_values["max_outputs"],
+    ).to(device)
+    ansatz = HBCAnsatz2D(
+        network=normalized_network,
+        displacement_x_right=0.0,
+        displacement_y_bottom=0.0,
+        range_coordinate_x=normalization_values["range_coordinate_x"],
+        range_coordinate_y=normalization_values["range_coordinate_y"],
+    )
 
 
 #     optimizer = torch.optim.LBFGS(
