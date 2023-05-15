@@ -17,7 +17,8 @@
     },
 
 	"mounts": [
-		"source=${localWorkspaceFolder}/../output,target=/home/docker_user/output,type=bind,consistency=cached"
+		"source=${localWorkspaceFolder}/../output,target=/home/docker_user/output,type=bind,consistency=cached",
+		"source=${localWorkspaceFolder}/../input,target=/home/docker_user/input,type=bind,consistency=cached"
 	],
 
 	"customizations": {

@@ -18,8 +18,8 @@ class TrainingDataset2D(TrainingDataset):
     def __init__(
         self,
         geometry: Geometry2DProtocol,
-        traction: Tensor,
-        normal: Tensor,
+        traction_left: Tensor,
+        normal_left: Tensor,
         volume_force: Tensor,
         min_youngs_modulus: float,
         max_youngs_modulus: float,
@@ -31,8 +31,8 @@ class TrainingDataset2D(TrainingDataset):
     ):
         super().__init__()
         self._geometry = geometry
-        self._traction = traction
-        self._normal = normal
+        self._traction = traction_left
+        self._normal = normal_left
         self._volume_force = volume_force
         self._min_youngs_modulus = min_youngs_modulus
         self._max_youngs_modulus = max_youngs_modulus
@@ -156,8 +156,8 @@ def collate_training_data_2D(
 def create_training_dataset_2D(
     edge_length: float,
     radius: float,
-    traction: Tensor,
-    normal: Tensor,
+    traction_left: Tensor,
+    normal_left: Tensor,
     volume_force: Tensor,
     min_youngs_modulus: float,
     max_youngs_modulus: float,
@@ -170,8 +170,8 @@ def create_training_dataset_2D(
     geometry = PlateWithHole(edge_length=edge_length, radius=radius)
     return TrainingDataset2D(
         geometry=geometry,
-        traction=traction,
-        normal=normal,
+        traction_left=traction_left,
+        normal_left=normal_left,
         volume_force=volume_force,
         min_youngs_modulus=min_youngs_modulus,
         max_youngs_modulus=max_youngs_modulus,

@@ -22,6 +22,14 @@ class ProjectDirectory:
             subdir_path = self._join_path_to_subdir(self._output_subdir, subdir_name)
         return self._join_path_to_file(subdir_path, file_name)
 
+    def create_input_file_path(
+        self, file_name: str, subdir_name: Optional[str] = None
+    ) -> Path:
+        subdir_path = self._input_subdir
+        if subdir_name is not None:
+            subdir_path = self._join_path_to_subdir(self._input_subdir, subdir_name)
+        return self._join_path_to_file(subdir_path, file_name)
+
     def get_output_file_path(
         self, file_name: str, subdir_name: Optional[str] = None
     ) -> Path:

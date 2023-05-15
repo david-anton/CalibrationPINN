@@ -60,6 +60,33 @@ def test_create_output_file_path_with_additional_output_subdirectory(
     assert expected == actual
 
 
+# Path to input file
+def test_create_input_file_path_without_additional_input_subdirectory(
+    sut: ProjectDirectory,
+) -> None:
+    file_name = "input_file.txt"
+
+    actual = sut.create_input_file_path(file_name=file_name)
+
+    expected = settings.PROJECT_DIR / settings.INPUT_SUBDIR / file_name
+    assert expected == actual
+
+
+def test_create_input_file_path_with_additional_input_subdirectory(
+    sut: ProjectDirectory,
+) -> None:
+    file_name = "input_file.txt"
+    subdir_name = "input_subdirectory"
+
+    actual = sut.create_input_file_path(
+        file_name=file_name,
+        subdir_name=subdir_name,
+    )
+
+    expected = settings.PROJECT_DIR / settings.INPUT_SUBDIR / subdir_name / file_name
+    assert expected == actual
+
+
 # Path to existing output file
 def test_get_output_file_path_without_additional_output_subdirectory(
     sut: ProjectDirectory,

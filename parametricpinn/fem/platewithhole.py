@@ -90,7 +90,7 @@ class SimulationResults:
 geometric_dim = 2
 
 
-def run_one_simulation(
+def run_simulation(
     model: str,
     youngs_modulus: float,
     poissons_ratio: float,
@@ -135,7 +135,7 @@ def run_one_simulation(
     return simulation_results
 
 
-def run_simulations(
+def generate_validation_data(
     model: str,
     youngs_moduli: list[float],
     poissons_ratios: list[float],
@@ -150,9 +150,10 @@ def run_simulations(
     project_directory: ProjectDirectory,
     element_family: str = "Lagrange",
     element_degree: int = 1,
-    mesh_resolution: float = 10,
+    mesh_resolution: float = 0.1,
 ) -> None:
     save_results = True
+    save_to_input_dir = True
     simulation_config = PWHSimulationConfig(
         model=model,
         youngs_modulus=0.0,
@@ -194,6 +195,7 @@ def run_simulations(
             simulation_config,
             simulation_output_subdir,
             project_directory,
+            save_to_input_dir=save_to_input_dir,
         )
 
 
@@ -517,14 +519,20 @@ def _save_results(
     simulation_config: PWHSimulationConfig,
     output_subdir: str,
     project_directory: ProjectDirectory,
+    save_to_input_dir: bool = False,
 ) -> None:
-    _save_simulation_results(simulation_results, output_subdir, project_directory)
-    _save_simulation_config(simulation_config, output_subdir, project_directory)
+    _save_simulation_results(
+        simulation_results, output_subdir, save_to_input_dir, project_directory
+    )
+    _save_simulation_config(
+        simulation_config, output_subdir, save_to_input_dir, project_directory
+    )
 
 
 def _save_simulation_results(
     simulation_results: SimulationResults,
     output_subdir: str,
+    save_to_input_dir: bool,
     project_directory: ProjectDirectory,
 ) -> None:
     data_writer = PandasDataWriter(project_directory)
@@ -537,17 +545,26 @@ def _save_simulation_results(
         "displacements_y": np.ravel(results.displacements_y),
     }
     results_dataframe = pd.DataFrame(results_dict)
-    data_writer.write(results_dataframe, file_name, output_subdir, header=True)
+    data_writer.write(
+        results_dataframe,
+        file_name,
+        output_subdir,
+        header=True,
+        save_to_input_dir=save_to_input_dir,
+    )
 
 
 def _save_simulation_config(
     simulation_config: PWHSimulationConfig,
     output_subdir: str,
+    save_to_input_dir: bool,
     project_directory: ProjectDirectory,
 ) -> None:
     data_writer = DataclassWriter(project_directory)
     file_name = "simulation_config"
-    data_writer.write(simulation_config, file_name, output_subdir)
+    data_writer.write(
+        simulation_config, file_name, output_subdir, save_to_input_dir=save_to_input_dir
+    )
 
 
 if __name__ == "__main__":
@@ -568,7 +585,7 @@ if __name__ == "__main__":
     #     output_subdir="test_one_simulation",
     #     project_directory=project_directory,
     # )
-    run_simulations(
+    generate_validation_data(
         model="plane stress",
         youngs_moduli=[180000.0, 210000.0, 240000.0],
         poissons_ratios=[0.2, 0.3, 0.4],

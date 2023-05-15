@@ -10,7 +10,9 @@ from parametricpinn.data import (
     collate_training_data_2D,
     create_training_dataset_2D,
 )
-from parametricpinn.fem.platewithhole import run_one_simulation, run_simulations
+from parametricpinn.fem.platewithhole import (
+    generate_validation_data as _generate_validation_data,
+)
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN, create_normalized_network
 
@@ -34,9 +36,12 @@ from parametricpinn.types import Module, Tensor
 model = "plane stress"
 edge_length = 100.0
 radius = 10.0
-traction = torch.tensor([-100.0, 0.0])
-normal = torch.tensor([-1.0, 0.0])
-volume_force = torch.tensor([0.0, 0.0])
+traction_left_x = -100.0
+traction_left_y = 0.0
+normal_left_x = -1.0
+normal_left_y = 0.0
+volume_force_x = 0.0
+volume_force_y = 0.0
 min_youngs_modulus = 180000.0
 max_youngs_modulus = 240000.0
 min_poissons_ratio = 0.2
@@ -59,6 +64,7 @@ num_points_valid = 4096
 batch_size_valid = num_samples_valid
 # Output
 input_subdir = output_subdir = "parametric_PINN_2D"
+save_metadata = False
 
 
 settings = Settings()
@@ -73,6 +79,9 @@ device = get_device()
 ### Loss function
 momentum_equation_func = momentum_equation_func_factory(model)
 traction_func = traction_func_factory(model)
+traction_left = torch.tensor([traction_left_x, traction_left_y])
+normal_left = torch.tensor([normal_left_x, normal_left_y])
+volume_force = torch.tensor([volume_force_x, volume_force_y])
 
 
 def loss_func(
@@ -128,13 +137,41 @@ def loss_func(
 #     return mean_mae, mean_rl2
 
 
+def generate_validation_data() -> None:
+    def _generate_random_parameter_list(
+        size: int, min_value: float, max_value: float
+    ) -> list[float]:
+        return min_value + torch.rand(size) * (max_value - min_value)
+
+    youngs_moduli = _generate_random_parameter_list(
+        num_samples_valid, min_youngs_modulus, max_youngs_modulus
+    )
+    poissons_ratios = _generate_random_parameter_list(
+        num_samples_valid, min_poissons_ratio, max_poissons_ratio
+    )
+    _generate_validation_data(
+        model=model,
+        youngs_moduli=youngs_moduli,
+        poissons_ratios=poissons_ratios,
+        edge_length=edge_length,
+        radius=radius,
+        volume_force_x=volume_force_x,
+        volume_force_y=volume_force_y,
+        traction_left_x=traction_left_x,
+        traction_left_y=traction_left_y,
+        save_metadata=save_metadata,
+        output_subdir=input_subdir,
+        project_directory=project_directory,
+    )
+
+
 ####################################################################################################
 if __name__ == "__main__":
     train_dataset = create_training_dataset_2D(
         edge_length=edge_length,
         radius=radius,
-        traction=traction,
-        normal=normal,
+        traction_left=traction_left,
+        normal_left=normal_left,
         volume_force=volume_force,
         min_youngs_modulus=min_youngs_modulus,
         max_youngs_modulus=max_youngs_modulus,
@@ -151,6 +188,9 @@ if __name__ == "__main__":
         drop_last=False,
         collate_fn=collate_training_data_2D,
     )
+
+    if regenerate_valid_data:
+        generate_validation_data()
 
     # valid_dataset = create_validation_dataset_1D(
     #     length=length,
@@ -170,20 +210,20 @@ if __name__ == "__main__":
     # )
 
     min_coordinate = 0.0
-    max_coordinate = length
-    min_displacement = displacement_left
-    max_displacement = calculate_displacements_solution_1D(
-        coordinates=max_coordinate,
-        length=length,
-        youngs_modulus=min_youngs_modulus,
-        traction=traction,
-        volume_force=volume_force,
-    )
-    min_inputs = torch.tensor([min_coordinate, min_youngs_modulus])
-    max_inputs = torch.tensor([max_coordinate, max_youngs_modulus])
-    min_output = torch.tensor([min_displacement])
-    max_output = torch.tensor([max_displacement])
-    range_coordinate = max_coordinate - min_coordinate
+    # max_coordinate = length
+    # min_displacement = displacement_left
+    # max_displacement = calculate_displacements_solution_1D(
+    #     coordinates=max_coordinate,
+    #     length=length,
+    #     youngs_modulus=min_youngs_modulus,
+    #     traction=traction_left,
+    #     volume_force=volume_force,
+    # )
+    # min_inputs = torch.tensor([min_coordinate, min_youngs_modulus])
+    # max_inputs = torch.tensor([max_coordinate, max_youngs_modulus])
+    # min_output = torch.tensor([min_displacement])
+    # max_output = torch.tensor([max_displacement])
+    # range_coordinate = max_coordinate - min_coordinate
 
 #     network = FFNN(layer_sizes=layer_sizes)
 #     normalized_network = create_normalized_network(

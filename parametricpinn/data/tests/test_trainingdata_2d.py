@@ -9,8 +9,8 @@ from parametricpinn.data import (
 )
 from parametricpinn.types import Tensor
 
-traction = torch.tensor([1.0, 1.0])
-normal = torch.tensor([2.0, 2.0])
+traction_left = torch.tensor([1.0, 1.0])
+normal_left = torch.tensor([2.0, 2.0])
 volume_foce = torch.tensor([3.0, 3.0])
 min_youngs_modulus = 5.0
 max_youngs_modulus = 6.0
@@ -54,8 +54,8 @@ def sut() -> TrainingDataset2D:
     fake_geometry = FakeGeometry2D()
     return TrainingDataset2D(
         geometry=fake_geometry,
-        traction=traction,
-        normal=normal,
+        traction_left=traction_left,
+        normal_left=normal_left,
         volume_force=volume_foce,
         min_youngs_modulus=min_youngs_modulus,
         max_youngs_modulus=max_youngs_modulus,
@@ -176,7 +176,7 @@ def test_sample_stress_bc__normal(sut: TrainingDataset2D, idx_sample: int) -> No
 
     actual = sample_stress_bc.normal
 
-    expected = normal.repeat((num_points_stress_bc, 1))
+    expected = normal_left.repeat((num_points_stress_bc, 1))
     torch.testing.assert_close(actual, expected)
 
 
@@ -186,7 +186,7 @@ def test_sample_stress_bc__y_true(sut: TrainingDataset2D, idx_sample: int) -> No
 
     actual = sample_stress_bc.y_true
 
-    expected = traction.repeat((num_points_stress_bc, 1))
+    expected = traction_left.repeat((num_points_stress_bc, 1))
     torch.testing.assert_close(actual, expected)
 
 
