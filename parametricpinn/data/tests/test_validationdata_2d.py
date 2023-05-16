@@ -42,14 +42,26 @@ youngs_modulus_0 = torch.tensor([11.0], dtype=torch.float64)
 poissons_ratio_0 = torch.tensor([11.1], dtype=torch.float64)
 youngs_modulus_1 = torch.tensor([21.0], dtype=torch.float64)
 poissons_ratio_1 = torch.tensor([21.1], dtype=torch.float64)
-displacements_x_0 = torch.tensor([31.0, 32.0, 33.0, 34.0], dtype=torch.float64).reshape((-1, 1))
-displacements_y_0 = torch.tensor([31.1, 32.1, 33.1, 34.1], dtype=torch.float64).reshape((-1, 1))
-displacements_x_1 = torch.tensor([41.0, 42.0, 43.0, 44.0], dtype=torch.float64).reshape((-1, 1))
-displacements_y_1 = torch.tensor([41.1, 42.1, 43.1, 44.1], dtype=torch.float64).reshape((-1, 1))
+displacements_x_0 = torch.tensor([31.0, 32.0, 33.0, 34.0], dtype=torch.float64).reshape(
+    (-1, 1)
+)
+displacements_y_0 = torch.tensor([31.1, 32.1, 33.1, 34.1], dtype=torch.float64).reshape(
+    (-1, 1)
+)
+displacements_x_1 = torch.tensor([41.0, 42.0, 43.0, 44.0], dtype=torch.float64).reshape(
+    (-1, 1)
+)
+displacements_y_1 = torch.tensor([41.1, 42.1, 43.1, 44.1], dtype=torch.float64).reshape(
+    (-1, 1)
+)
 
 coordinates_all = torch.concat((coordinates_x, coordinates_y), dim=1)
-parameters_0_all = torch.concat((youngs_modulus_0, poissons_ratio_0)).repeat((size_validation_data, 1))
-parameters_1_all = torch.concat((youngs_modulus_1, poissons_ratio_1)).repeat((size_validation_data, 1))
+parameters_0_all = torch.concat((youngs_modulus_0, poissons_ratio_0)).repeat(
+    (size_validation_data, 1)
+)
+parameters_1_all = torch.concat((youngs_modulus_1, poissons_ratio_1)).repeat(
+    (size_validation_data, 1)
+)
 displacements_0_all = torch.concat((displacements_x_0, displacements_y_0), dim=1)
 displacements_1_all = torch.concat((displacements_x_1, displacements_y_1), dim=1)
 
@@ -179,7 +191,6 @@ def test_output_sample(
     torch.testing.assert_close(actual, expected)
 
 
-
 ## Test collate_validation_data_2D()
 @pytest.fixture
 def fake_batch() -> list[tuple[Tensor, Tensor]]:
@@ -199,6 +210,7 @@ def test_batch_pde__x(fake_batch: list[tuple[Tensor, Tensor]]):
     sample_1 = torch.concat((coordinates_all, parameters_1_all), dim=1)
     expected = torch.concat((sample_0, sample_1), dim=0)
     torch.testing.assert_close(actual, expected)
+
 
 def test_batch_pde__y_true(fake_batch: list[tuple[Tensor, Tensor]]):
     sut = collate_validation_data_2D

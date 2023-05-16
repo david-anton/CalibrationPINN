@@ -1,13 +1,19 @@
-from .plot_1d import (
-    PlotterConfig1D,
+from .plot_displacements_1d import (
+    DisplacementsPlotterConfig1D,
     plot_displacements_1D,
-    plot_loss_hist_1D,
-    plot_valid_hist_1D,
 )
 
+from .plot_history import (
+    HistoryPlotterConfig,
+    plot_loss_history,
+    plot_valid_history,
+)
+
+
 __all__ = [
-    "PlotterConfig1D",
-    "plot_loss_hist_1D",
-    "plot_valid_hist_1D",
+    "DisplacementsPlotterConfig1D",
     "plot_displacements_1D",
+    "HistoryPlotterConfig",
+    "plot_loss_history",
+    "plot_valid_history",
 ]

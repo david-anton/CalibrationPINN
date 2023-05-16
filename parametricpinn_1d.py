@@ -1,3 +1,4 @@
+from datetime import date
 import statistics
 
 import torch
@@ -17,10 +18,11 @@ from parametricpinn.data import (
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN, create_normalized_network
 from parametricpinn.postprocessing.plot import (
-    PlotterConfig1D,
+    DisplacementsPlotterConfig1D,
     plot_displacements_1D,
-    plot_loss_hist_1D,
-    plot_valid_hist_1D,
+    HistoryPlotterConfig,
+    plot_loss_history,
+    plot_valid_history,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
 from parametricpinn.training.loss_1d import momentum_equation_func, traction_func
@@ -49,7 +51,8 @@ valid_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Output
-output_subdir = "parametric_PINN_1D"
+current_date = date.today().strftime("%Y%m%d")
+output_subdir = f"{current_date}_Parametric_PINN_1D"
 
 
 settings = Settings()
@@ -215,13 +218,13 @@ if __name__ == "__main__":
             # Update parameters
             optimizer.step(loss_func_closure)
 
-            loss_hist_pde_batches.append(loss_pde.cpu().item())
-            loss_hist_stress_bc_batches.append(loss_stress_bc.cpu().item())
+            loss_hist_pde_batches.append(loss_pde.detach().cpu().item())
+            loss_hist_stress_bc_batches.append(loss_stress_bc.detach().cpu().item())
 
-        mean_batch_loss_pde = statistics.mean(loss_hist_pde_batches)
-        mean_batch_loss_stress_bc = statistics.mean(loss_hist_stress_bc_batches)
-        loss_hist_pde.append(mean_batch_loss_pde)
-        loss_hist_stress_bc.append(mean_batch_loss_stress_bc)
+        mean_loss_pde = statistics.mean(loss_hist_pde_batches)
+        mean_loss_stress_bc = statistics.mean(loss_hist_stress_bc_batches)
+        loss_hist_pde.append(mean_loss_pde)
+        loss_hist_stress_bc.append(mean_loss_stress_bc)
 
         if epoch % 1 == 0:
             mae, rl2 = validate_model(ansatz, valid_dataloader)
@@ -229,37 +232,40 @@ if __name__ == "__main__":
             valid_hist_rl2.append(rl2)
             valid_epochs.append(epoch)
 
-    ## Preprocessing
-    plotter_config = PlotterConfig1D()
 
-    plot_loss_hist_1D(
+    ### Postprocessing
+    history_plotter_config = HistoryPlotterConfig()
+
+    plot_loss_history(
         loss_hist_pde=loss_hist_pde,
         loss_hist_stress_bc=loss_hist_stress_bc,
         file_name="loss_pinn.png",
         output_subdir=output_subdir,
         project_directory=project_directory,
-        config=plotter_config,
+        config=history_plotter_config,
     )
 
-    plot_valid_hist_1D(
+    plot_valid_history(
         valid_epochs=valid_epochs,
         valid_hist=valid_hist_mae,
         valid_metric="mean absolute error",
         file_name="mae_pinn.png",
         output_subdir=output_subdir,
         project_directory=project_directory,
-        config=plotter_config,
+        config=history_plotter_config,
     )
 
-    plot_valid_hist_1D(
+    plot_valid_history(
         valid_epochs=valid_epochs,
         valid_hist=valid_hist_rl2,
         valid_metric="rel. L2 norm",
         file_name="rl2_pinn.png",
         output_subdir=output_subdir,
         project_directory=project_directory,
-        config=plotter_config,
+        config=history_plotter_config,
     )
+
+    displacements_plotter_config = DisplacementsPlotterConfig1D()
 
     plot_displacements_1D(
         ansatz=ansatz,
@@ -270,7 +276,7 @@ if __name__ == "__main__":
         file_name="displacements_pinn_E_187634.png",
         output_subdir=output_subdir,
         project_directory=project_directory,
-        config=plotter_config,
+        config=displacements_plotter_config,
     )
 
     plot_displacements_1D(
@@ -282,7 +288,7 @@ if __name__ == "__main__":
         file_name="displacements_pinn_E_238356.png",
         output_subdir=output_subdir,
         project_directory=project_directory,
-        config=plotter_config,
+        config=displacements_plotter_config,
     )
 
     # ## Calibration
