@@ -47,6 +47,12 @@ displacements_y_0 = torch.tensor([31.1, 32.1, 33.1, 34.1], dtype=torch.float64).
 displacements_x_1 = torch.tensor([41.0, 42.0, 43.0, 44.0], dtype=torch.float64).reshape((-1, 1))
 displacements_y_1 = torch.tensor([41.1, 42.1, 43.1, 44.1], dtype=torch.float64).reshape((-1, 1))
 
+coordinates_all = torch.concat((coordinates_x, coordinates_y), dim=1)
+parameters_0_all = torch.concat((youngs_modulus_0, poissons_ratio_0)).repeat((size_validation_data, 1))
+parameters_1_all = torch.concat((youngs_modulus_1, poissons_ratio_1)).repeat((size_validation_data, 1))
+displacements_0_all = torch.concat((displacements_x_0, displacements_y_0), dim=1)
+displacements_1_all = torch.concat((displacements_x_1, displacements_y_1), dim=1)
+
 
 def write_input_data() -> None:
     displacement_input_0 = {
@@ -121,20 +127,17 @@ def sut() -> Iterator[ValidationDataset2D]:
 def expected_sample(idx_sample: int) -> tuple[Tensor, Tensor]:
     # The random indices must be generated in the same order as in the system under test.
     set_seed(random_seed)
-    coordinates_all = torch.concat((coordinates_x, coordinates_y), dim=1)
     # Sample 0
     random_indices_0 = torch.randperm(size_validation_data)[:num_points]
-    displacements_0_all = torch.concat((displacements_x_0, displacements_y_0), dim=1)
     coordinates_0 = coordinates_all[random_indices_0]
-    parameters_0 = torch.concat((youngs_modulus_0, poissons_ratio_0)).repeat((num_points, 1))
+    parameters_0 = parameters_0_all[random_indices_0]
     displacements_0 = displacements_0_all[random_indices_0]
     sample_x_0 = torch.concat((coordinates_0, parameters_0), dim=1)
-    sampl_y_true_0 = displacements_0
+    sample_y_true_0 = displacements_0
     # Sample 1
     random_indices_1 = torch.randperm(size_validation_data)[:num_points]
-    displacements_1_all = torch.concat((displacements_x_1, displacements_y_1), dim=1)
     coordinates_1 = coordinates_all[random_indices_1]
-    parameters_1 = torch.concat((youngs_modulus_1, poissons_ratio_1)).repeat((num_points, 1))
+    parameters_1 = parameters_1_all[random_indices_1]
     displacements_1 = displacements_1_all[random_indices_1]
     sample_x_1 = torch.concat((coordinates_1, parameters_1), dim=1)
     sample_y_true_1 = displacements_1
@@ -177,36 +180,32 @@ def test_output_sample(
 
 
 
-# ### Test collate_validation_data_2D()
-# @pytest.fixture
-# def fake_batch() -> list[tuple[Tensor, Tensor]]:
-#     coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
-#     displacements_0 = torch.concat((displacements_x_0, displacements_y_0), dim=1)
-#     parameters_0 = torch.concat((youngs_modulus_0, poissons_ratio_0)).repeat((num_points, 1))
-#     sample_x_0 = torch.concat((coordinates, parameters_0))
-#     sample_y_true_0 = displacements_0
-#     displacements_1 = torch.concat((displacements_x_1, displacements_y_1), dim=1)
-#     parameters_1 = torch.concat((youngs_modulus_1, poissons_ratio_1)).repeat((num_points, 1))
-#     sample_x_1 = torch.concat((coordinates, parameters_1))
-#     sample_y_true_1 = displacements_1
-#     return [(sample_x_0, sample_y_true_0), (sample_x_1, sample_y_true_1)]
+## Test collate_validation_data_2D()
+@pytest.fixture
+def fake_batch() -> list[tuple[Tensor, Tensor]]:
+    sample_x_0 = torch.concat((coordinates_all, parameters_0_all), dim=1)
+    sample_y_true_0 = displacements_0_all
+    sample_x_1 = torch.concat((coordinates_all, parameters_1_all), dim=1)
+    sample_y_true_1 = displacements_1_all
+    return [(sample_x_0, sample_y_true_0), (sample_x_1, sample_y_true_1)]
 
 
-# def test_batch_pde__x(fake_batch: list[tuple[Tensor, Tensor]]):
-#     sut = collate_validation_data_2D
+def test_batch_pde__x(fake_batch: list[tuple[Tensor, Tensor]]):
+    sut = collate_validation_data_2D
 
-#     actual, _ = sut(fake_batch)
+    actual, _ = sut(fake_batch)
 
-#     coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
+    sample_0 = torch.concat((coordinates_all, parameters_0_all), dim=1)
+    sample_1 = torch.concat((coordinates_all, parameters_1_all), dim=1)
+    expected = torch.concat((sample_0, sample_1), dim=0)
+    torch.testing.assert_close(actual, expected)
 
+def test_batch_pde__y_true(fake_batch: list[tuple[Tensor, Tensor]]):
+    sut = collate_validation_data_2D
 
-#     torch.testing.assert_close(actual, expected)
+    _, actual = sut(fake_batch)
 
-
-# def test_batch_pde__y_true(fake_batch: list[tuple[Tensor, Tensor]]):
-#     sut = collate_validation_data_1D
-
-#     _, actual = sut(fake_batch)
-
-#     expected = torch.tensor([[2.0], [20.0]])
-#     torch.testing.assert_close(actual, expected)
+    sample_0 = displacements_0_all
+    sample_1 = displacements_1_all
+    expected = torch.concat((sample_0, sample_1), dim=0)
+    torch.testing.assert_close(actual, expected)
