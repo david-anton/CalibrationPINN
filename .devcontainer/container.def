@@ -15,6 +15,7 @@ From: nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
     export DATA_DIR=/data
 
     # Install fenicsx as Ubuntu package
+    apt-get update
     apt-get install -y software-properties-common
     add-apt-repository ppa:fenics-packages/fenics
     apt-get update
