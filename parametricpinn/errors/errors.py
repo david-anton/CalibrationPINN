@@ -20,3 +20,8 @@ class FileNotFoundError(Error):
 class FEMConfigurationError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
+
+
+class TestConfigurationError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)

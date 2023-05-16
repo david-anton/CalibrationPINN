@@ -1,3 +1,13 @@
-from .errors import DirectoryNotFoundError, FileNotFoundError, FEMConfigurationError
+from .errors import (
+    DirectoryNotFoundError,
+    FileNotFoundError,
+    FEMConfigurationError,
+    TestConfigurationError,
+)
 
-__all__ = ["DirectoryNotFoundError", "FileNotFoundError", "FEMConfigurationError"]
+__all__ = [
+    "DirectoryNotFoundError",
+    "FileNotFoundError",
+    "FEMConfigurationError",
+    "TestConfigurationError",
+]
