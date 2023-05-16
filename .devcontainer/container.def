@@ -7,7 +7,6 @@ From: nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
 %files
     app/requirements.txt /data/requirements.txt
     app /data/app
-    input /data/input
 
 # %app*
 
