@@ -19,7 +19,8 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu20.04
     apt-get install -y software-properties-common
     add-apt-repository ppa:fenics-packages/fenics
     apt-get update
-    DEBIAN_FRONTEND=noninteractive apt-get install -y fenicsx
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get install -y fenicsx
 
     # Install Python requirements
     pip3 install --upgrade pip
