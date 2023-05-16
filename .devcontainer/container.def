@@ -15,11 +15,11 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu20.04
     export DATA_DIR=/data
 
     # Install fenicsx as Ubuntu package
+    export DEBIAN_FRONTEND=noninteractive
     apt-get update
     apt-get install -y software-properties-common
     add-apt-repository ppa:fenics-packages/fenics
     apt-get update
-    export DEBIAN_FRONTEND=noninteractive
     apt-get install -y fenicsx
 
     # Install Python requirements
