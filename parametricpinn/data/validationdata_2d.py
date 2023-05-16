@@ -1,9 +1,10 @@
 import torch
-from torch.utils.data import Dataset
+import os
 
+from parametricpinn.data.dataset import Dataset
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader
-from parametricpinn.types import Tensor
+from parametricpinn.types import Tensor, NPArray
 
 
 class ValidationDataset2D(Dataset):
@@ -12,40 +13,51 @@ class ValidationDataset2D(Dataset):
         input_subdir: str,
         num_points: int,
         num_samples: int,
-        project_directory: ProjectDirectory
+        project_directory: ProjectDirectory,
     ) -> None:
         self._input_subdir = input_subdir
         self._num_points = num_points
         self._num_samples = num_samples
         self._data_reader = CSVDataReader(project_directory)
+        self._file_name_displacements = "displacements"
+        self._file_name_parameters = "parameters"
+        self._slice_coordinates = slice(0, 2)
+        self._slice_displacements = slice(2, 4)
         self._samples_x: list[Tensor] = []
         self._samples_y_true: list[Tensor] = []
 
         self._load_samples()
 
     def _load_samples(self) -> None:
-        for i in range(self._num_samples):
-            displacements = self._data_reader.read()
-            parameters = self._data_reader.read()
-            self._add_input_sample(displacements, parameters)
-            self._add_output_sample(displacements)
+        for idx_sample in range(self._num_samples):
+            displacements = self._read_data(self._file_name_displacements, idx_sample)
+            parameters = self._read_data(self._file_name_parameters, idx_sample)
+            random_indices = self._generate_random_indices(displacements.size(dim=0))
+            self._add_input_sample(displacements, parameters, random_indices)
+            self._add_output_sample(displacements, random_indices)
 
+    def _read_data(self, file_name, idx_sample) -> Tensor:
+        sample_subdir = f"sample_{idx_sample}"
+        input_subdir = os.path.join(self._input_subdir, sample_subdir)
+        data = self._data_reader.read(file_name, input_subdir)
+        return torch.tensor(data)
 
-    # def _add_input_sample(self, coordinates: Tensor, youngs_modulus: Tensor) -> None:
-    #     x_coor = coordinates
-    #     x_E = youngs_modulus.repeat(self._num_points, 1)
-    #     x = torch.concat((x_coor, x_E), dim=1)
-    #     self._samples_x.append(x)
+    def _generate_random_indices(self, max_index: int):
+        return torch.randperm(max_index)[: self._num_points]
 
-    # def _add_output_sample(self, coordinates: Tensor, youngs_modulus: Tensor) -> None:
-    #     y_true = calculate_displacements_solution_1D(
-    #         coordinates=coordinates,
-    #         length=self._geometry.length,
-    #         youngs_modulus=youngs_modulus,
-    #         traction=self._traction,
-    #         volume_force=self._volume_force,
-    #     )
-    #     self._samples_y_true.append(cast(Tensor, y_true))
+    def _add_input_sample(
+        self, displacements: Tensor, parameters: Tensor, random_indices: Tensor
+    ) -> None:
+        x_coor_all = displacements[:, self._slice_coordinates]
+        x_coor = x_coor_all[random_indices, :]
+        x_params = self._repeat_tensor(parameters, (self._num_points, 1))
+        x = torch.concat((x_coor, x_params), dim=1)
+        self._samples_x.append(x)
+
+    def _add_output_sample(self, displacements: Tensor, random_indices: Tensor) -> None:
+        y_true_all = displacements[:, self._slice_displacements]
+        y_true = y_true_all[random_indices, :]
+        self._samples_y_true.append(y_true)
 
     def __len__(self) -> int:
         return self._num_samples
@@ -56,37 +68,30 @@ class ValidationDataset2D(Dataset):
         return sample_x, sample_y_true
 
 
-# def collate_validation_data_1D(
-#     batch: list[tuple[Tensor, Tensor]]
-# ) -> tuple[Tensor, Tensor]:
-#     x_batch = []
-#     y_true_batch = []
+def collate_validation_data_2D(
+    batch: list[tuple[Tensor, Tensor]]
+) -> tuple[Tensor, Tensor]:
+    x_batch = []
+    y_true_batch = []
 
-#     for sample_x, sample_y_true in batch:
-#         x_batch.append(sample_x)
-#         y_true_batch.append(sample_y_true)
+    for sample_x, sample_y_true in batch:
+        x_batch.append(sample_x)
+        y_true_batch.append(sample_y_true)
 
-#     batch_x = torch.concat(x_batch, dim=0)
-#     batch_y_true = torch.concat(y_true_batch, dim=0)
-#     return batch_x, batch_y_true
+    batch_x = torch.concat(x_batch, dim=0)
+    batch_y_true = torch.concat(y_true_batch, dim=0)
+    return batch_x, batch_y_true
 
 
-# def create_validation_dataset_1D(
-#     length: float,
-#     traction: float,
-#     volume_force: float,
-#     min_youngs_modulus: float,
-#     max_youngs_modulus: float,
-#     num_points: int,
-#     num_samples: int,
-# ):
-#     geometry = StretchedRod(length=length)
-#     return ValidationDataset1D(
-#         geometry=geometry,
-#         traction=traction,
-#         volume_force=volume_force,
-#         min_youngs_modulus=min_youngs_modulus,
-#         max_youngs_modulus=max_youngs_modulus,
-#         num_points=num_points,
-#         num_samples=num_samples,
-#     )
+def create_validation_dataset_2D(
+    input_subdir: str,
+    num_points: int,
+    num_samples: int,
+    project_directory: ProjectDirectory,
+):
+    return ValidationDataset2D(
+        input_subdir=input_subdir,
+        num_points=num_points,
+        num_samples=num_samples,
+        project_directory=project_directory,
+    )

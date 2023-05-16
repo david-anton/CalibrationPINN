@@ -3,7 +3,7 @@ from collections import namedtuple
 import torch
 
 from parametricpinn.data.geometry import Geometry1DProtocol, StretchedRod
-from parametricpinn.data.trainingdata import TrainingDataset
+from parametricpinn.data.dataset import Dataset
 from parametricpinn.types import Tensor
 
 TrainingData1DPDE = namedtuple("TrainingData1DPDE", ["x_coor", "x_E", "f", "y_true"])
@@ -12,7 +12,7 @@ TrainingData1DStressBC = namedtuple(
 )
 
 
-class TrainingDataset1D(TrainingDataset):
+class TrainingDataset1D(Dataset):
     def __init__(
         self,
         geometry: Geometry1DProtocol,

@@ -19,6 +19,12 @@ from .validationdata_1d import (
     create_validation_dataset_1D,
 )
 
+from .validationdata_2d import (
+    ValidationDataset2D,
+    collate_validation_data_2D,
+    create_validation_dataset_2D,
+)
+
 __all__ = [
     "TrainingData1DPDE",
     "TrainingData1DStressBC",
@@ -34,4 +40,7 @@ __all__ = [
     "TrainingDataset2D",
     "collate_training_data_2D",
     "create_training_dataset_2D",
+    "ValidationDataset2D",
+    "collate_validation_data_2D",
+    "create_validation_dataset_2D",
 ]

@@ -3,6 +3,7 @@ from typing import cast
 import torch
 from torch.utils.data import Dataset
 
+from parametricpinn.data.dataset import Dataset
 from parametricpinn.data.geometry import Geometry1DProtocol, StretchedRod
 from parametricpinn.types import Tensor
 
@@ -49,17 +50,17 @@ class ValidationDataset1D(Dataset):
             self._add_input_sample(coordinates, youngs_modulus)
             self._add_output_sample(coordinates, youngs_modulus)
 
-    def _generate_random_coordinates(self) -> Tensor:
-        return self._geometry.create_random_points(self._num_points)
-
     def _generate_random_youngs_modulus(self) -> Tensor:
         return self._min_youngs_modulus + torch.rand((1)) * (
             self._max_youngs_modulus - self._min_youngs_modulus
         )
 
+    def _generate_random_coordinates(self) -> Tensor:
+        return self._geometry.create_random_points(self._num_points)
+
     def _add_input_sample(self, coordinates: Tensor, youngs_modulus: Tensor) -> None:
         x_coor = coordinates
-        x_E = youngs_modulus.repeat(self._num_points, 1)
+        x_E = self._repeat_tensor(youngs_modulus, (self._num_points, 1))
         x = torch.concat((x_coor, x_E), dim=1)
         self._samples_x.append(x)
 

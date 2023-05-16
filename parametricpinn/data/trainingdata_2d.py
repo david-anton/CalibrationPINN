@@ -3,7 +3,7 @@ from collections import namedtuple
 import torch
 
 from parametricpinn.data.geometry import Geometry2DProtocol, PlateWithHole
-from parametricpinn.data.trainingdata import TrainingDataset
+from parametricpinn.data.dataset import Dataset
 from parametricpinn.types import Tensor
 
 TrainingData2DPDE = namedtuple(
@@ -14,7 +14,7 @@ TrainingData2DStressBC = namedtuple(
 )
 
 
-class TrainingDataset2D(TrainingDataset):
+class TrainingDataset2D(Dataset):
     def __init__(
         self,
         geometry: Geometry2DProtocol,

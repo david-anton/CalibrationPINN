@@ -606,37 +606,3 @@ def _save_simulation_config(
     data_writer.write(
         simulation_config, file_name, output_subdir, save_to_input_dir=save_to_input_dir
     )
-
-
-if __name__ == "__main__":
-    settings = Settings()
-    project_directory = ProjectDirectory(settings)
-    # run_one_simulation(
-    #     model="plane stress",
-    #     youngs_modulus=210000.0,
-    #     poissons_ratio=0.3,
-    #     edge_length=100.0,
-    #     radius=10.0,
-    #     volume_force_x=0.0,
-    #     volume_force_y=0.0,
-    #     traction_left_x=-100.0,
-    #     traction_left_y=0.0,
-    #     save_results=True,
-    #     save_metadata=True,
-    #     output_subdir="test_one_simulation",
-    #     project_directory=project_directory,
-    # )
-    generate_validation_data(
-        model="plane stress",
-        youngs_moduli=[180000.0, 210000.0, 240000.0],
-        poissons_ratios=[0.2, 0.3, 0.4],
-        edge_length=100.0,
-        radius=10.0,
-        volume_force_x=0.0,
-        volume_force_y=0.0,
-        traction_left_x=-100.0,
-        traction_left_y=0.0,
-        save_metadata=True,
-        output_subdir="test_multiple_simulation",
-        project_directory=project_directory,
-    )
