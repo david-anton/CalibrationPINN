@@ -14,7 +14,12 @@ From: nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
 
     # Install base utilities
     apt-get update
-    apt-get install -y nano
+    apt-get install -y \
+    nano
+
+    # Install packages for gmsh
+    apt-get -y install -y \
+    libglu1 
 
     # Install fenicsx as Ubuntu package
     apt-get update
