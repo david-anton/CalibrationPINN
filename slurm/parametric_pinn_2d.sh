@@ -11,5 +11,5 @@
 SCRIPT=parametric_pinn_2d.py
 
 # srun singularity exec --cleanenv --nv --no-mount /home/davanton/.bashrc,/home/davanton/.bash_profile parametricpinn.sif python3 app/${SCRIPT}
-srun singularity exec --cleanenv --nv --no-mount /home/davanton/.bashrc,/home/davanton/.bash_profile parametricpinn.sif nano /home/davanton/.bashrc
+srun singularity exec --cleanenv --nv --no-mount /home/davanton/.bashrc,/home/davanton/.bash_profile parametricpinn.sif cat /home/davanton/.bashrc
 ##srun singularity exec --cleanenv --nv --no-mount /home/davanton/.bashrc,/home/davanton/.bash_profile --bind output:/data/output,input:/data/input parametricpinn.sif python3 /data/app/${SCRIPT}
