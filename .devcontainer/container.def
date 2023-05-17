@@ -26,6 +26,7 @@ From: nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
     # Install Python requirements
     pip3 install --upgrade pip
     pip3 install -r $DATA_DIR/requirements.txt
+    pip3 install --pre torch --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 
     # Clean up
     apt-get clean && \
