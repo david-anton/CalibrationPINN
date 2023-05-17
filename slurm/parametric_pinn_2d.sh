@@ -10,4 +10,4 @@
 
 SCRIPT=parametric_pinn_2d.py
 
-srun singularity exec --cleanenv --nv --bind output:/data/output,input:/data/input parametricpinn.sif python /data/app/${SCRIPT}
+srun singularity exec --cleanenv --nv --bind output:/data/output,input:/data/input parametricpinn.sif python3 /data/app/${SCRIPT}

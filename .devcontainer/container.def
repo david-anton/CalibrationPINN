@@ -15,12 +15,13 @@ From: nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
     export DATA_DIR=/data
 
     # Install fenicsx as Ubuntu package
-    export DEBIAN_FRONTEND=noninteractive
+    # export DEBIAN_FRONTEND=noninteractive
     apt-get update
     apt-get install -y software-properties-common
     add-apt-repository ppa:fenics-packages/fenics
     apt-get update
-    apt-get install -y fenicsx
+    DEBIAN_FRONTEND=noninteractive apt-get install -y fenicsx
+    # unset DEBIAN_FRONTEND
 
     # Install Python requirements
     pip3 install --upgrade pip
