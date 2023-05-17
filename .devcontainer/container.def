@@ -19,7 +19,15 @@ From: nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
 
     # Install packages for gmsh
     apt-get -y install -y \
-    libglu1 
+    libgl1 
+    # apt-get -y install \
+    # libglu1 \
+    # libxcursor-dev \
+    # libxft2 \
+    # libxinerama1 \
+    # libfltk1.3-dev \ 
+    # libfreetype6-dev  \
+    # libgl1-mesa-dev \
 
     # Install fenicsx as Ubuntu package
     apt-get update
