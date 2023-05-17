@@ -17,24 +17,15 @@ From: nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
     apt-get install -y \
     nano
 
-    # # Install packages for gmsh
-    # apt-get -y install -y \
-    # libgl1 
-    # # apt-get -y install \
-    # # libglu1 \
-    # # libxcursor-dev \
-    # # libxft2 \
-    # # libxinerama1 \
-    # # libfltk1.3-dev \ 
-    # # libfreetype6-dev  \
-    # # libgl1-mesa-dev \
-
     # Install fenicsx as Ubuntu package
     apt-get update
     apt-get install -y software-properties-common
     add-apt-repository ppa:fenics-packages/fenics
     apt-get update
-    DEBIAN_FRONTEND=noninteractive apt-get install -y fenicsx gmsh
+    DEBIAN_FRONTEND=noninteractive apt-get install -y fenicsx
+
+    # Install gmsh
+    apt-get install -y gmsh
 
     # Install Python requirements
     pip3 install --upgrade pip
