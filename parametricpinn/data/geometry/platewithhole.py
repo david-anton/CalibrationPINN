@@ -44,7 +44,8 @@ class PlateWithHole:
         )
 
     def _is_point_in_shape(self, point: Tensor) -> bool:
-        return self._shape.contains(Point(point[0], point[1]))
+        _point = point.detach().numpy()
+        return self._shape.contains(Point(_point[0], _point[1]))
 
     def _create_shape(self) -> Polygon:
         plate = box(self._x_min, self._x_max, self._y_min, self._y_max)
