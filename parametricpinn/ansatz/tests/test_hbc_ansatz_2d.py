@@ -43,15 +43,15 @@ def sut() -> HBCAnsatz2D:
 def test_HBC_ansatz_2D(sut: HBCAnsatz2D) -> None:
     inputs = torch.tensor(
         [
-            [0.0, 0.0, 0.0],
-            [0.0, 0.5, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.5, 0.0, 0.0],
-            [0.5, 0.5, 0.0],
-            [0.5, 1.0, 0.0],
-            [1.0, 0.0, 0.0],
-            [1.0, 0.5, 0.0],
-            [1.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.5, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.5, 0.0, 0.0, 0.0],
+            [0.5, 0.5, 0.0, 0.0],
+            [0.5, 1.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0, 0.0],
+            [1.0, 0.5, 0.0, 0.0],
+            [1.0, 1.0, 0.0, 0.0],
         ]
     )
 
@@ -88,15 +88,15 @@ def sut_single_input() -> HBCAnsatz2D:
 @pytest.mark.parametrize(
     ("input", "expected"),
     [
-        (torch.tensor([0.0, 0.0, 0.0]), torch.tensor([0.0, 0.0])),
-        (torch.tensor([0.0, 0.5, 0.0]), torch.tensor([0.0, 1.0])),
-        (torch.tensor([0.0, 1.0, 0.0]), torch.tensor([0.0, 2.0])),
-        (torch.tensor([0.5, 0.0, 0.0]), torch.tensor([1.0, 0.0])),
-        (torch.tensor([0.5, 0.5, 0.0]), torch.tensor([1.0, 1.0])),
-        (torch.tensor([0.5, 1.0, 0.0]), torch.tensor([1.0, 2.0])),
-        (torch.tensor([1.0, 0.0, 0.0]), torch.tensor([2.0, 0.0])),
-        (torch.tensor([1.0, 0.5, 0.0]), torch.tensor([2.0, 1.0])),
-        (torch.tensor([1.0, 1.0, 0.0]), torch.tensor([2.0, 2.0])),
+        (torch.tensor([0.0, 0.0, 0.0, 0.0]), torch.tensor([0.0, 0.0])),
+        (torch.tensor([0.0, 0.5, 0.0, 0.0]), torch.tensor([0.0, 1.0])),
+        (torch.tensor([0.0, 1.0, 0.0, 0.0]), torch.tensor([0.0, 2.0])),
+        (torch.tensor([0.5, 0.0, 0.0, 0.0]), torch.tensor([1.0, 0.0])),
+        (torch.tensor([0.5, 0.5, 0.0, 0.0]), torch.tensor([1.0, 1.0])),
+        (torch.tensor([0.5, 1.0, 0.0, 0.0]), torch.tensor([1.0, 2.0])),
+        (torch.tensor([1.0, 0.0, 0.0, 0.0]), torch.tensor([2.0, 0.0])),
+        (torch.tensor([1.0, 0.5, 0.0, 0.0]), torch.tensor([2.0, 1.0])),
+        (torch.tensor([1.0, 1.0, 0.0, 0.0]), torch.tensor([2.0, 2.0])),
     ],
 )
 def test_HBC_ansatz_for_single_input(
