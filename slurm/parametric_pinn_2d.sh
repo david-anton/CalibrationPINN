@@ -18,6 +18,6 @@ srun singularity exec \
  --no-home \
  --bind output:/data/output,input:/data/input,app:/data/app \
  parametricpinn.sif \
- python3 /data/app/${SCRIPT}
+ python3 -u /data/app/${SCRIPT}
 
 

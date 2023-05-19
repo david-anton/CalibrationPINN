@@ -52,24 +52,25 @@ max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 32, 32, 2]
 # Training
-num_samples_per_parameter = 128
+num_samples_per_parameter = 2
 num_samples_train = num_samples_per_parameter**2
 num_points_pde = 4096
 num_points_stress_bc = 64
 batch_size_train = num_samples_train
-num_epochs = 100000
-loss_metric = torch.nn.MSELoss()
+num_epochs =2
+loss_metric = torch.nn.MSELoss(reduction='mean')
 # Validation
 regenerate_valid_data = True
-num_samples_valid = 128
+num_samples_valid = 2
 valid_interval = 1
 num_points_valid = 4096
 batch_size_valid = num_samples_valid
+fem_mesh_resolution = 1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 input_subdir = output_subdir = os.path.join(f"{current_date}_Parametric_PINN_2D")
 output_subdir_preprocessing = os.path.join(f"{current_date}_Preprocessing")
-save_metadata = False
+save_metadata = True
 
 
 settings = Settings()
@@ -111,8 +112,9 @@ def loss_func(
         x_E = stress_bc_data.x_E
         x_nu = stress_bc_data.x_nu
         x_param = torch.concat((x_E, x_nu), dim=1).to(device)
+        normal = stress_bc_data.normal.to(device)
         y_true = stress_bc_data.y_true.to(device)
-        y = traction_func(ansatz, x_coor, x_E)
+        y = traction_func(ansatz, x_coor, x_param, normal)
         return loss_metric(y_true, y)
 
     loss_pde = loss_func_pde(ansatz, pde_data)
@@ -147,7 +149,8 @@ def generate_validation_data() -> None:
     def _generate_random_parameter_list(
         size: int, min_value: float, max_value: float
     ) -> list[float]:
-        return min_value + torch.rand(size) * (max_value - min_value)
+        random_params = min_value + torch.rand(size) * (max_value - min_value)
+        return random_params.tolist()
 
     youngs_moduli = _generate_random_parameter_list(
         num_samples_valid, min_youngs_modulus, max_youngs_modulus
@@ -168,6 +171,7 @@ def generate_validation_data() -> None:
         save_metadata=save_metadata,
         output_subdir=input_subdir,
         project_directory=project_directory,
+        mesh_resolution=fem_mesh_resolution,
     )
 
 
@@ -187,7 +191,7 @@ def determine_normalization_values() -> dict[str, Tensor]:
     max_inputs = torch.concat((max_coordinates, max_parameters))
 
     _output_subdir = os.path.join(
-        output_subdir_preprocessing, "results_for_determining_scaling_values"
+        output_subdir_preprocessing, "results_for_determining_normalization_values"
     )
     results_for_max_parameters = run_simulation(
         model=model,
@@ -203,6 +207,7 @@ def determine_normalization_values() -> dict[str, Tensor]:
         save_metadata=False,
         output_subdir=_output_subdir,
         project_directory=project_directory,
+        mesh_resolution = fem_mesh_resolution
     )
     min_displacement_x = np.amin(results_for_max_parameters.displacements_x)
     max_displacement_x = 0.0
@@ -274,14 +279,14 @@ if __name__ == "__main__":
         max_inputs=normalization_values["max_inputs"],
         min_outputs=normalization_values["min_outputs"],
         max_outputs=normalization_values["max_outputs"],
-    ).to(device)
+    )
     ansatz = HBCAnsatz2D(
         network=normalized_network,
         displacement_x_right=0.0,
         displacement_y_bottom=0.0,
         range_coordinate_x=normalization_values["range_coordinate_x"],
         range_coordinate_y=normalization_values["range_coordinate_y"],
-    )
+    ).to(device)
 
     optimizer = torch.optim.LBFGS(
         params=ansatz.parameters(),
@@ -336,7 +341,6 @@ if __name__ == "__main__":
             valid_hist_mae.append(mae)
             valid_hist_rl2.append(rl2)
             valid_epochs.append(epoch)
-
 
     ### Postprocessing
     print("Postprocessing ...")

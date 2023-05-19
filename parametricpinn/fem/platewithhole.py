@@ -109,7 +109,7 @@ def run_simulation(
     project_directory: ProjectDirectory,
     element_family: str = "Lagrange",
     element_degree: int = 1,
-    mesh_resolution: float = 10,
+    mesh_resolution: float = 1,
 ) -> None:
     simulation_config = PWHSimulationConfig(
         model=model,
@@ -153,7 +153,7 @@ def generate_validation_data(
     project_directory: ProjectDirectory,
     element_family: str = "Lagrange",
     element_degree: int = 1,
-    mesh_resolution: float = 0.1,
+    mesh_resolution: float = 1,
 ) -> None:
     save_results = True
     save_to_input_dir = True
