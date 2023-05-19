@@ -175,12 +175,12 @@ if __name__ == "__main__":
         max_inputs=max_inputs,
         min_outputs=min_output,
         max_outputs=max_output,
-    ).to(device)
+    )
     ansatz = HBCAnsatz1D(
         displacement_left=displacement_left,
         range_coordinate=range_coordinate,
         network=normalized_network,
-    )
+    ).to(device)
 
     optimizer = torch.optim.LBFGS(
         params=ansatz.parameters(),
