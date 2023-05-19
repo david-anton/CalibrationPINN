@@ -6,7 +6,8 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
 
-##singularity build --fakeroot --force parametricpinn.sif app/.devcontainer/container.def
+## Build command
+## singularity build --fakeroot --force parametricpinn.sif app/.devcontainer/container.def
 
 SCRIPT=parametric_pinn_2d.py
 
