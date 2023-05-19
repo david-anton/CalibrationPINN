@@ -76,7 +76,7 @@ class TrainingDataset2D(Dataset):
         x_E = self._repeat_tensor(torch.tensor([youngs_modulus]), shape)
         x_nu = self._repeat_tensor(torch.tensor([poissons_ratio]), shape)
         f = self._repeat_tensor(self._volume_force, shape)
-        y_true = torch.zeros((self._num_points_pde, 1), requires_grad=True)
+        y_true = torch.zeros((self._num_points_pde, 2), requires_grad=True)
         sample = TrainingData2DPDE(
             x_coor=x_coor, x_E=x_E, x_nu=x_nu, f=f, y_true=y_true
         )
