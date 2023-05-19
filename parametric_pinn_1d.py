@@ -236,7 +236,6 @@ if __name__ == "__main__":
             valid_hist_rl2.append(rl2)
             valid_epochs.append(epoch)
 
-
     ### Postprocessing
     print("Postprocessing ...")
     history_plotter_config = HistoryPlotterConfig()

@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 from dataclasses import dataclass
 from typing import Any, Callable, TypeAlias, Union
@@ -172,7 +173,11 @@ def generate_validation_data(
     )
     num_simulations = _determine_number_of_simulations(youngs_moduli, poissons_ratios)
     mesh = _generate_mesh(
-        simulation_config, save_results, output_subdir, project_directory
+        simulation_config,
+        save_results,
+        output_subdir,
+        project_directory,
+        save_to_input_dir=save_to_input_dir,
     )
 
     for simulation_count, (youngs_modulus, poissons_ratio) in enumerate(
@@ -191,6 +196,7 @@ def generate_validation_data(
             save_metadata,
             simulation_output_subdir,
             project_directory,
+            save_to_input_dir=save_to_input_dir,
         )
         _save_results(
             simulation_results,
@@ -220,12 +226,13 @@ def _generate_mesh(
     save_mesh: bool,
     output_subdir: str,
     project_directory: ProjectDirectory,
+    save_to_input_dir: bool = False,
 ) -> DMesh:
     print("Generate mesh for FEM simulation ...")
     gmsh.initialize()
     gmesh = _generate_gmesh(config)
     if save_mesh:
-        _save_gmesh(output_subdir, project_directory)
+        _save_gmesh(output_subdir, save_to_input_dir, project_directory)
     mesh = _load_mesh_from_gmsh_model(gmesh)
     gmsh.finalize()
     return mesh
@@ -275,9 +282,12 @@ def _generate_gmesh(config: Config) -> GMesh:
     return gmsh.model
 
 
-def _save_gmesh(output_subdir: str, project_directory: ProjectDirectory) -> None:
-    output_path = project_directory.create_output_file_path(
-        file_name="mesh.msh", subdir_name=output_subdir
+def _save_gmesh(
+    output_subdir: str, save_to_input_dir: bool, project_directory: ProjectDirectory
+) -> None:
+    file_name = "mesh.msh"
+    output_path = _join_output_path(
+        project_directory, file_name, output_subdir, save_to_input_dir
     )
     gmsh.write(str(output_path))
 
@@ -313,6 +323,7 @@ def _simulate_once(
     save_metadata: bool,
     output_subdir: str,
     project_directory: ProjectDirectory,
+    save_to_input_dir: bool = False,
 ) -> SimulationResults:
     model = config.model
     youngs_modulus = config.youngs_modulus
@@ -457,8 +468,9 @@ def _simulate_once(
         return dirichlet_bcs, F
 
     def save_boundary_tags_as_xdmf(boundary_tags: DMeshTags) -> None:
-        output_path = project_directory.create_output_file_path(
-            file_name="boundary_tags.xdmf", subdir_name=output_subdir
+        file_name = "boundary_tags.xdmf"
+        output_path = _join_output_path(
+            project_directory, file_name, output_subdir, save_to_input_dir
         )
         # mesh.topology.create_connectivity(mesh.topology.dim - 1, mesh.topology.dim)
         with XDMFFile(mesh.comm, output_path, "w") as xdmf:
@@ -466,8 +478,9 @@ def _simulate_once(
             xdmf.write_meshtags(boundary_tags)
 
     def save_results_as_xdmf(mesh: DMesh, uh: DFunction) -> None:
-        output_path = project_directory.create_output_file_path(
-            file_name="displacements.xdmf", subdir_name=output_subdir
+        file_name = "displacements.xdmf"
+        output_path = _join_output_path(
+            project_directory, file_name, output_subdir, save_to_input_dir
         )
         with XDMFFile(mesh.comm, output_path, "w") as xdmf:
             xdmf.write_mesh(mesh)
@@ -582,8 +595,8 @@ def _save_parameters(
     file_name = "parameters"
     results = simulation_results
     results_dict = {
-        "youngs_modulus": results.youngs_modulus,
-        "poissons_ratio": results.poissons_ratio,
+        "youngs_modulus": np.array([results.youngs_modulus]),
+        "poissons_ratio": np.array([results.poissons_ratio]),
     }
     results_dataframe = pd.DataFrame(results_dict)
     data_writer.write(
@@ -606,3 +619,19 @@ def _save_simulation_config(
     data_writer.write(
         simulation_config, file_name, output_subdir, save_to_input_dir=save_to_input_dir
     )
+
+
+def _join_output_path(
+    project_directory: ProjectDirectory,
+    file_name: str,
+    output_subdir: str,
+    save_to_input_dir: bool,
+) -> Path:
+    if save_to_input_dir:
+        return project_directory.create_input_file_path(
+            file_name=file_name, subdir_name=output_subdir
+        )
+    else:
+        return project_directory.create_output_file_path(
+            file_name=file_name, subdir_name=output_subdir
+        )
