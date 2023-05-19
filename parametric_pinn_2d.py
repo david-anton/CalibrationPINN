@@ -31,7 +31,6 @@ from parametricpinn.training.loss_2d import (
     momentum_equation_func_factory,
     traction_func_factory,
 )
-
 from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm
 from parametricpinn.types import Module, Tensor
 
@@ -223,6 +222,7 @@ def determine_normalization_values() -> dict[str, Tensor]:
 
 ####################################################################################################
 if __name__ == "__main__":
+    print("Create training data ...")
     train_dataset = create_training_dataset_2D(
         edge_length=edge_length,
         radius=radius,
@@ -245,12 +245,14 @@ if __name__ == "__main__":
         collate_fn=collate_training_data_2D,
     )
 
+    print("Load validation data ...")
     if regenerate_valid_data:
+        print("Run FE simulations to generate validation data ...")
         generate_validation_data()
 
     valid_dataset = create_validation_dataset_2D(
         input_subdir=input_subdir,
-        num_points=num_points_vaild,
+        num_points=num_points_valid,
         num_samples=num_samples_valid,
         project_directory=project_directory,
     )
@@ -262,6 +264,7 @@ if __name__ == "__main__":
         collate_fn=collate_validation_data_2D,
     )
 
+    print("Run FE simulation to determine normalization values ...")
     normalization_values = determine_normalization_values()
 
     network = FFNN(layer_sizes=layer_sizes)
@@ -305,6 +308,7 @@ if __name__ == "__main__":
         loss.backward()
         return loss.item()
 
+    print("Start training ...")
     for epoch in range(num_epochs):
         train_batches = iter(train_dataloader)
         loss_hist_pde_batches = []
@@ -327,6 +331,7 @@ if __name__ == "__main__":
         loss_hist_stress_bc.append(mean_loss_stress_bc)
 
         if epoch % 1 == 0:
+            print(f"Validation: Epoch {epoch} / {num_epochs}")
             mae, rl2 = validate_model(ansatz, valid_dataloader)
             valid_hist_mae.append(mae)
             valid_hist_rl2.append(rl2)
@@ -334,6 +339,7 @@ if __name__ == "__main__":
 
 
     ### Postprocessing
+    print("Postprocessing ...")
     history_plotter_config = HistoryPlotterConfig()
 
     plot_loss_history(
