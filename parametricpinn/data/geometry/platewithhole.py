@@ -28,7 +28,7 @@ class PlateWithHole:
         coordinates_x = torch.full((num_points, 1), self._x_min, requires_grad=True)
         coordinates_y = torch.linspace(
             self._y_min, self._y_max, num_points, requires_grad=True
-        )
+        ).view(num_points, 1)
         return torch.concat((coordinates_x, coordinates_y), dim=1)
 
     def _create_one_random_point(self) -> Tensor:
