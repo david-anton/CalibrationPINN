@@ -116,6 +116,7 @@ def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float,
 
 ####################################################################################################
 if __name__ == "__main__":
+    print("Create training data ...")
     train_dataset = create_training_dataset_1D(
         length=length,
         traction=traction,
@@ -133,6 +134,7 @@ if __name__ == "__main__":
         collate_fn=collate_training_data_1D,
     )
 
+    print("Generate validation data ...")
     valid_dataset = create_validation_dataset_1D(
         length=length,
         min_youngs_modulus=min_youngs_modulus,
@@ -205,6 +207,7 @@ if __name__ == "__main__":
         loss.backward()
         return loss.item()
 
+    print("Start training ...")
     for epoch in range(num_epochs):
         train_batches = iter(train_dataloader)
         loss_hist_pde_batches = []
@@ -227,6 +230,7 @@ if __name__ == "__main__":
         loss_hist_stress_bc.append(mean_loss_stress_bc)
 
         if epoch % 1 == 0:
+            print(f"Validation: Epoch {epoch} / {num_epochs}")
             mae, rl2 = validate_model(ansatz, valid_dataloader)
             valid_hist_mae.append(mae)
             valid_hist_rl2.append(rl2)
@@ -234,6 +238,7 @@ if __name__ == "__main__":
 
 
     ### Postprocessing
+    print("Postprocessing ...")
     history_plotter_config = HistoryPlotterConfig()
 
     plot_loss_history(

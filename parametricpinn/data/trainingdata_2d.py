@@ -59,6 +59,9 @@ class TrainingDataset2D(Dataset):
                 poissons_ratio = poissons_ratios_list[j]
                 self._add_pde_sample(youngs_modulus, poissons_ratio)
                 self._add_stress_bc_sample(youngs_modulus, poissons_ratio)
+                num_sample = i * self._num_samples_per_parameter + j
+                total_num_samples = self._num_samples_per_parameter**2
+                print(f"Add training sample {num_sample} / {total_num_samples}")
 
     def _generate_uniform_parameter_list(
         self, min_parameter: float, max_parameter: float

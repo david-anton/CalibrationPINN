@@ -222,7 +222,7 @@ def determine_normalization_values() -> dict[str, Tensor]:
 
 ####################################################################################################
 if __name__ == "__main__":
-    print("Create training data ...")
+    print("Generate training data ...")
     train_dataset = create_training_dataset_2D(
         edge_length=edge_length,
         radius=radius,
