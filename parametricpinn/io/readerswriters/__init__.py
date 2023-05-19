@@ -1,8 +1,8 @@
-from .csvDataReader import CSVDataReader
-from .dataclassWriter import DataclassWriter
-from .datDataReader import DATDataReader
-from .numpyDataReader import NumpyDataReader
-from .pandasDataWriter import PandasDataWriter
+from .csvdatareader import CSVDataReader
+from .dataclasswriter import DataclassWriter
+from .datdatareader import DATDataReader
+from .numpydatareader import NumpyDataReader
+from .pandasdatawriter import PandasDataWriter
 
 __all__ = [
     "CSVDataReader",
