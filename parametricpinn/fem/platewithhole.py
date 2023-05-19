@@ -631,7 +631,6 @@ def _join_output_path(
         return project_directory.create_input_file_path(
             file_name=file_name, subdir_name=output_subdir
         )
-    else:
-        return project_directory.create_output_file_path(
-            file_name=file_name, subdir_name=output_subdir
-        )
+    return project_directory.create_output_file_path(
+        file_name=file_name, subdir_name=output_subdir
+    )
