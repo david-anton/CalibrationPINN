@@ -7,7 +7,7 @@ From: nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
 
 %post
     # Configure environment (only for build time)
-    export DATA_DIR=/development/ParametricPINN
+    export DATA_DIR=/home/davanton/development/ParametricPINN
 
     # Install base utilities
     apt-get update
@@ -36,7 +36,7 @@ From: nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
 # %test
 
 %environment
-    export DATA_DIR=/development/ParametricPINN
+    export DATA_DIR=/home/davanton/development/ParametricPINN
 
 # %startscript
 # %runscript
