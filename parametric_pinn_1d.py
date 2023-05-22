@@ -216,7 +216,6 @@ if __name__ == "__main__":
         for batch_pde, batch_stress_bc in train_batches:
             # Forward pass
             loss_pde, loss_stress_bc = loss_func(ansatz, batch_pde, batch_stress_bc)
-            loss = loss_pde + loss_stress_bc
 
             # Update parameters
             optimizer.step(loss_func_closure)

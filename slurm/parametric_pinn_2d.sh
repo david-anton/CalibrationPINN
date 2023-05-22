@@ -15,6 +15,6 @@ srun singularity exec \
  --cleanenv \
  --nv \
  parametricpinn.sif \
- python3 -u /development/ParametricPINN/app/${SCRIPT}
+ python3 -u /home/davanton/development/ParametricPINN/app/${SCRIPT}
 
 
