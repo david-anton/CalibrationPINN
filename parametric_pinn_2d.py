@@ -60,9 +60,9 @@ batch_size_train = num_samples_train
 num_epochs = 100000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 num_samples_valid = 128
-valid_interval = 16
+valid_interval = 1
 num_points_valid = 4096
 batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
