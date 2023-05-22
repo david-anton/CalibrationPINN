@@ -76,9 +76,13 @@ class TrainingDataset2D(Dataset):
         x_E = self._repeat_tensor(torch.tensor([youngs_modulus]), shape)
         x_nu = self._repeat_tensor(torch.tensor([poissons_ratio]), shape)
         f = self._repeat_tensor(self._volume_force, shape)
-        y_true = torch.zeros((self._num_points_pde, 2), requires_grad=True)
+        y_true = torch.zeros((self._num_points_pde, 2))
         sample = TrainingData2DPDE(
-            x_coor=x_coor, x_E=x_E, x_nu=x_nu, f=f, y_true=y_true
+            x_coor=x_coor.detach(),
+            x_E=x_E.detach(),
+            x_nu=x_nu.detach(),
+            f=f.detach(),
+            y_true=y_true.detach(),
         )
         self._samples_pde.append(sample)
 
@@ -94,7 +98,11 @@ class TrainingDataset2D(Dataset):
         normal = self._repeat_tensor(self._normal, shape)
         y_true = self._repeat_tensor(self._traction, shape)
         sample = TrainingData2DStressBC(
-            x_coor=x_coor, x_E=x_E, x_nu=x_nu, normal=normal, y_true=y_true
+            x_coor=x_coor.detach(),
+            x_E=x_E.detach(),
+            x_nu=x_nu.detach(),
+            normal=normal.detach(),
+            y_true=y_true.detach(),
         )
         self._samples_stress_bc.append(sample)
 

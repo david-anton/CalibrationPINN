@@ -57,8 +57,8 @@ num_samples_train = num_samples_per_parameter**2
 num_points_pde = 4096
 num_points_stress_bc = 64
 batch_size_train = num_samples_train
-num_epochs =100000
-loss_metric = torch.nn.MSELoss(reduction='mean')
+num_epochs = 100000
+loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
 regenerate_valid_data = True
 num_samples_valid = 128
@@ -207,7 +207,7 @@ def determine_normalization_values() -> dict[str, Tensor]:
         save_metadata=False,
         output_subdir=_output_subdir,
         project_directory=project_directory,
-        mesh_resolution = fem_mesh_resolution
+        mesh_resolution=fem_mesh_resolution,
     )
     min_displacement_x = np.amin(results_for_max_parameters.displacements_x)
     max_displacement_x = 0.0

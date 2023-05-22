@@ -82,15 +82,19 @@ def _divergence_stress_func(
         grad(_stress_func, argnums=1)(x_coor[0], x_coor[1], 1, 1), dim=0
     )
     return torch.concat((stress_xx_x + stress_xy_y, stress_xy_x + stress_yy_y), dim=0)
+    # def _stress_to_voigt(stress: Tensor) -> Tensor:
+    #     stress_xx = torch.unsqueeze(stress[0, 0], dim=0)
+    #     stress_yy = torch.unsqueeze(stress[1, 1], dim=0)
+    #     stress_xy = torch.unsqueeze(stress[0, 1], dim=0)
+    #     return torch.concat((stress_xx, stress_yy, stress_xy), dim=0)
 
-    # def _stress_func(x: Tensor, y: Tensor, idx_i: int, idx_j: int):
-    #     return stress_func(ansatz, torch.tensor([x, y]), x_param)[idx_i, idx_j]
-
-    # stress_xx_x = grad(_stress_func, argnums=0)(x_coor[0], x_coor[1], 0, 0)
-    # stress_xy_x = grad(_stress_func, argnums=0)(x_coor[0], x_coor[1], 0, 1)
-    # stress_xy_y = grad(_stress_func, argnums=1)(x_coor[0], x_coor[1], 0, 1)
-    # stress_yy_y = grad(_stress_func, argnums=1)(x_coor[0], x_coor[1], 1, 1)
-    # return torch.tensor([stress_xx_x + stress_xy_y, stress_xy_x + stress_yy_y])
+    # _stress_func = lambda _x_coor: _stress_to_voigt(stress_func(ansatz, _x_coor, x_param))
+    # jac_stress = jacrev(_stress_func, argnums=0)(x_coor)
+    # stress_xx_x = torch.unsqueeze(jac_stress[0, 0], dim=0)
+    # stress_xy_y = torch.unsqueeze(jac_stress[2, 1], dim=0)
+    # stress_yx_x = torch.unsqueeze(jac_stress[2, 0], dim=0)
+    # stress_yy_y = torch.unsqueeze(jac_stress[1, 1], dim=0)
+    # return torch.concat((stress_xx_x + stress_xy_y, stress_yx_x + stress_yy_y), dim=0)
 
 
 def _strain_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:

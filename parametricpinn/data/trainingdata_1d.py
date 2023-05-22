@@ -54,8 +54,13 @@ class TrainingDataset1D(Dataset):
         x_coor = self._geometry.create_uniform_points(self._num_points_pde)
         x_E = self._repeat_tensor(torch.tensor([youngs_modulus]), shape)
         f = self._repeat_tensor(torch.tensor([self._volume_force]), shape)
-        y_true = torch.zeros(shape, requires_grad=True)
-        sample = TrainingData1DPDE(x_coor=x_coor, x_E=x_E, f=f, y_true=y_true)
+        y_true = torch.zeros(shape)
+        sample = TrainingData1DPDE(
+            x_coor=x_coor.detach(),
+            x_E=x_E.detach(),
+            f=f.detach(),
+            y_true=y_true.detach(),
+        )
         self._samples_pde.append(sample)
 
     def _add_stress_bc_sample(self, youngs_modulus: float) -> None:
@@ -63,7 +68,9 @@ class TrainingDataset1D(Dataset):
         x_coor = self._geometry.create_point_at_free_end()
         x_E = self._repeat_tensor(torch.tensor([youngs_modulus]), shape)
         y_true = self._repeat_tensor(torch.tensor([self._traction]), shape)
-        sample = TrainingData1DStressBC(x_coor=x_coor, x_E=x_E, y_true=y_true)
+        sample = TrainingData1DStressBC(
+            x_coor=x_coor.detach(), x_E=x_E.detach(), y_true=y_true.detach()
+        )
         self._samples_stress_bc.append(sample)
 
     def __len__(self) -> int:
