@@ -128,7 +128,7 @@ def test_sample_pde__y_true(sut: TrainingDataset2D, idx_sample: int) -> None:
 
     actual = sample_pde.y_true
 
-    expected = torch.zeros((num_points_pde, 1))
+    expected = torch.zeros((num_points_pde, 2))
     torch.testing.assert_close(actual, expected)
 
 
