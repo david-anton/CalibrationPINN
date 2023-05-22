@@ -310,7 +310,7 @@ if __name__ == "__main__":
         optimizer.zero_grad()
         loss_pde, loss_stress_bc = loss_func(ansatz, batch_pde, batch_stress_bc)
         loss = loss_pde + loss_stress_bc
-        loss.backward()
+        loss.backward(retain_graph=True)
         return loss.item()
 
     print("Start training ...")
