@@ -54,15 +54,15 @@ layer_sizes = [4, 32, 32, 2]
 # Training
 num_samples_per_parameter = 64
 num_samples_train = num_samples_per_parameter**2
-num_points_pde = 2048
+num_points_pde = 256
 num_points_stress_bc = 64
-batch_size_train = num_samples_train
+batch_size_train = 1024
 num_epochs = 100000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
 regenerate_valid_data = False
 input_subdir_valid = "20230522_validation_data_pwh"
-num_samples_valid = 64
+num_samples_valid = 32
 valid_interval = 10
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
