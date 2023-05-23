@@ -12,8 +12,11 @@ from parametricpinn.training.loss_2d.momentumbase import (
     traction_func,
 )
 from parametricpinn.types import Tensor
+from parametricpinn.settings import get_device
 
 VoigtMaterialTensorFunc: TypeAlias = Callable[[Tensor], Tensor]
+
+device = get_device()
 
 
 def momentum_equation_func_factory(model: str) -> MomentumFunc:
@@ -37,23 +40,19 @@ def _voigt_material_tensor_func_plane_strain(x_param: Tensor) -> Tensor:
     nu = torch.unsqueeze(x_param[1], dim=0)
     return (E / ((1.0 + nu) * (1.0 - 2 * nu))) * torch.stack(
         (
-            torch.concat((1.0 - nu, nu, torch.tensor([0.0])), dim=0),
-            torch.concat((nu, 1.0 - nu, torch.tensor([0.0])), dim=0),
+            torch.concat((1.0 - nu, nu, torch.tensor([0.0]).to(device)), dim=0),
+            torch.concat((nu, 1.0 - nu, torch.tensor([0.0]).to(device)), dim=0),
             torch.concat(
-                (torch.tensor([0.0]), torch.tensor([0.0]), (1.0 - 2 * nu) / 2.0), dim=0
+                (
+                    torch.tensor([0.0]).to(device),
+                    torch.tensor([0.0]).to(device),
+                    (1.0 - 2 * nu) / 2.0,
+                ),
+                dim=0,
             ),
         ),
         dim=0,
     )
-    # E = x_param[0]
-    # nu = x_param[1]
-    # return (E / ((1.0 + nu) * (1.0 - 2 * nu))) * torch.tensor(
-    #     [
-    #         [1.0 - nu, nu, 0.0],
-    #         [nu, 1.0 - nu, 0.0],
-    #         [0.0, 0.0, (1.0 - 2 * nu) / 2.0],
-    #     ]
-    # )
 
 
 def _voigt_material_tensor_func_plane_stress(x_param: Tensor) -> Tensor:
@@ -61,23 +60,25 @@ def _voigt_material_tensor_func_plane_stress(x_param: Tensor) -> Tensor:
     nu = torch.unsqueeze(x_param[1], dim=0)
     return (E / (1.0 - nu**2)) * torch.stack(
         (
-            torch.concat((torch.tensor([1.0]), nu, torch.tensor([0.0])), dim=0),
-            torch.concat((nu, torch.tensor([1.0]), torch.tensor([0.0])), dim=0),
             torch.concat(
-                (torch.tensor([0.0]), torch.tensor([0.0]), (1.0 - nu) / 2.0), dim=0
+                (torch.tensor([1.0]).to(device), nu, torch.tensor([0.0]).to(device)),
+                dim=0,
+            ),
+            torch.concat(
+                (nu, torch.tensor([1.0]).to(device), torch.tensor([0.0]).to(device)),
+                dim=0,
+            ),
+            torch.concat(
+                (
+                    torch.tensor([0.0]).to(device),
+                    torch.tensor([0.0]).to(device),
+                    (1.0 - nu) / 2.0,
+                ),
+                dim=0,
             ),
         ),
         dim=0,
     )
-    # E = x_param[0]
-    # nu = x_param[1]
-    # return (E / (1.0 - nu**2)) * torch.tensor(
-    #     [
-    #         [1.0, nu, 0.0],
-    #         [nu, 1.0, 0.0],
-    #         [0.0, 0.0, (1.0 - nu) / 2.0],
-    #     ]
-    # )
 
 
 def _stress_func(voigt_material_tensor_func: VoigtMaterialTensorFunc) -> StressFunc:
@@ -95,9 +96,6 @@ def _stress_func(voigt_material_tensor_func: VoigtMaterialTensorFunc) -> StressF
             ),
             dim=0,
         )
-        # return torch.tensor(
-        #     [[voigt_stress[0], voigt_stress[2]], [voigt_stress[2], voigt_stress[1]]]
-        # )
 
     return _func
 
@@ -119,7 +117,3 @@ def _voigt_strain_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tens
     strain_yy = torch.unsqueeze(strain[1, 1], dim=0)
     strain_xy = torch.unsqueeze(strain[0, 1], dim=0)
     return torch.concat((strain_xx, strain_yy, 2 * strain_xy), dim=0)
-    # strain_xx = strain[0, 0]
-    # strain_yy = strain[1, 1]
-    # strain_xy = strain[0, 1]
-    # return torch.tensor([strain_xx, strain_yy, 2 * strain_xy])

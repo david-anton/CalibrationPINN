@@ -5,6 +5,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from parametricpinn.types import Device
+
 
 def set_default_dtype(dtype: torch.dtype) -> None:
     torch.set_default_dtype(dtype)
@@ -19,7 +21,7 @@ def set_seed(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
-def get_device() -> torch.device:
+def get_device() -> Device:
     if torch.cuda.is_available():
         device = torch.device("cuda")
     else:

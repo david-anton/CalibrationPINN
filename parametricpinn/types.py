@@ -11,6 +11,7 @@ import torch.nn as nn
 Tensor: TypeAlias = torch.Tensor
 Parameter: TypeAlias = nn.Parameter
 Module: TypeAlias = torch.nn.Module
+Device: TypeAlias = torch.device
 
 # Numpy
 NPArray: TypeAlias = Union[
