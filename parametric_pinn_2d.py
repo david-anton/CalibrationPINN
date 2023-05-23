@@ -61,6 +61,7 @@ num_epochs = 100000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
 regenerate_valid_data = False
+input_subdir_valid = "20230522_validation_data_pwh"
 num_samples_valid = 64
 valid_interval = 10
 num_points_valid = 1024
@@ -68,9 +69,8 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-input_subdir_valid = os.path.join(f"{current_date}_validation_data_pwh")
-output_subdir = os.path.join(f"{current_date}_parametric_pinn_pwh")
-output_subdir_preprocessing = os.path.join(f"{current_date}_preprocessing")
+output_subdir = f"{current_date}_parametric_pinn_pwh"
+output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
 
