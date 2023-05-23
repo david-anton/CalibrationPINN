@@ -54,22 +54,23 @@ layer_sizes = [4, 32, 32, 2]
 # Training
 num_samples_per_parameter = 64
 num_samples_train = num_samples_per_parameter**2
-num_points_pde = 4096
+num_points_pde = 2048
 num_points_stress_bc = 64
 batch_size_train = num_samples_train
 num_epochs = 100000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
 regenerate_valid_data = False
-num_samples_valid = 128
+num_samples_valid = 64
 valid_interval = 10
-num_points_valid = 4096
+num_points_valid = 1024
 batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-input_subdir = output_subdir = os.path.join(f"{current_date}_Parametric_PINN_2D")
-output_subdir_preprocessing = os.path.join(f"{current_date}_Preprocessing")
+input_subdir_valid = os.path.join(f"{current_date}_validation_data_pwh")
+output_subdir = os.path.join(f"{current_date}_parametric_pinn_pwh")
+output_subdir_preprocessing = os.path.join(f"{current_date}_preprocessing")
 save_metadata = True
 
 
@@ -169,7 +170,7 @@ def generate_validation_data() -> None:
         traction_left_x=traction_left_x,
         traction_left_y=traction_left_y,
         save_metadata=save_metadata,
-        output_subdir=input_subdir,
+        output_subdir=input_subdir_valid,
         project_directory=project_directory,
         mesh_resolution=fem_mesh_resolution,
     )
@@ -256,7 +257,7 @@ if __name__ == "__main__":
         generate_validation_data()
 
     valid_dataset = create_validation_dataset_2D(
-        input_subdir=input_subdir,
+        input_subdir=input_subdir_valid,
         num_points=num_points_valid,
         num_samples=num_samples_valid,
         project_directory=project_directory,
