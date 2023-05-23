@@ -221,8 +221,8 @@ def determine_normalization_values() -> dict[str, Tensor]:
         "max_inputs": max_inputs.to(device),
         "min_outputs": min_outputs.to(device),
         "max_outputs": max_outputs.to(device),
-        "range_coordinate_x": range_coordinates[0].to(device),
-        "range_coordinate_y": range_coordinates[1].to(device),
+        "range_coordinate_x": range_coordinates[0].item(),
+        "range_coordinate_y": range_coordinates[1].item(),
     }
 
 
