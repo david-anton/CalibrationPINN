@@ -12,7 +12,6 @@
 SCRIPT=parametric_pinn_2d.py
 
 srun singularity exec \
- --cleanenv \
  --nv \
  parametricpinn.sif \
  python3 -u /home/davanton/development/ParametricPINN/app/${SCRIPT}
