@@ -12,6 +12,8 @@
 SCRIPT=parametric_pinn_2d.py
 
 srun singularity exec \
+ --cleanenv \
+ --env CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES \
  --nv \
  parametricpinn.sif \
  python3 -u /home/davanton/development/ParametricPINN/app/${SCRIPT}
