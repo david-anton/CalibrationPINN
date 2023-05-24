@@ -69,7 +69,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_pwh"
+output_subdir = f"{current_date}_parametric_pinn_pwh_float32"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -78,7 +78,7 @@ settings = Settings()
 project_directory = ProjectDirectory(settings)
 
 # Set up simulation
-set_default_dtype(torch.float64)
+set_default_dtype(torch.float32)
 set_seed(0)
 device = get_device()
 
