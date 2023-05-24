@@ -54,9 +54,9 @@ layer_sizes = [4, 32, 32, 2]
 # Training
 num_samples_per_parameter = 64
 num_samples_train = num_samples_per_parameter**2
-num_points_pde = 256
+num_points_pde = 64
 num_points_stress_bc = 64
-batch_size_train = 1024
+batch_size_train = 256
 num_epochs = 100000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     train_dataloader = DataLoader(
         dataset=train_dataset,
         batch_size=batch_size_train,
-        shuffle=False,
+        shuffle=True,
         drop_last=False,
         collate_fn=collate_training_data_2D,
     )
