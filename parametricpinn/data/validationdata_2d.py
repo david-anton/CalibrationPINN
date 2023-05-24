@@ -40,7 +40,7 @@ class ValidationDataset2D(Dataset):
         sample_subdir = f"sample_{idx_sample}"
         input_subdir = os.path.join(self._input_subdir, sample_subdir)
         data = self._data_reader.read(file_name, input_subdir)
-        return torch.tensor(data)
+        return torch.tensor(data, dtype=torch.get_default_dtype())
 
     def _generate_random_indices(self, max_index: int):
         return torch.randperm(max_index)[: self._num_points]

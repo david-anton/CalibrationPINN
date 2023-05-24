@@ -10,6 +10,7 @@ from parametricpinn.types import Device
 
 def set_default_dtype(dtype: torch.dtype) -> None:
     torch.set_default_dtype(dtype)
+    print(f"Using {torch.get_default_dtype()} as default data type")
 
 
 def set_seed(seed: int) -> None:
