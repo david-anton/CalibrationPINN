@@ -79,7 +79,7 @@ settings = Settings()
 project_directory = ProjectDirectory(settings)
 
 # Set up simulation
-set_default_dtype(torch.float32)
+set_default_dtype(torch.float64)
 set_seed(0)
 device = get_device()
 
@@ -229,16 +229,6 @@ def determine_normalization_values() -> dict[str, Tensor]:
     max_displacement_y = 0.0
     min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
     max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
-
-    print("###################################")
-    print("###################################")
-    print(f"min_inputs: {min_inputs}")
-    print(f"max_inputs: {max_inputs}")
-    print(f"min_outputs: {min_outputs}")
-    print(f"max_outputs: {max_outputs}")
-    print(f"range_coordinates: {range_coordinates}")
-    print("###################################")
-    print("###################################")
 
     return {
         "min_inputs": min_inputs.to(device),
