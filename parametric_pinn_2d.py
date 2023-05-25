@@ -135,7 +135,6 @@ def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float,
             y_true = y_true.to(device)
             y = ansatz(x)
             print(f"y: {y}")
-            print(f"y_true: {y_true}")
             mae_batch = mean_absolute_error(y_true, y)
             rl2_batch = relative_l2_norm(y_true, y)
             print(f"mae: {mae_batch}")
@@ -327,6 +326,8 @@ if __name__ == "__main__":
             # Forward pass
             loss_pde, loss_stress_bc = loss_func(ansatz, batch_pde, batch_stress_bc)
             loss = loss_pde + loss_stress_bc
+            print(f"loss_pde: {loss_pde}")
+            print(f"loss_stress_bc: {loss_stress_bc}")
 
             # Update parameters
             optimizer.step(loss_func_closure)
