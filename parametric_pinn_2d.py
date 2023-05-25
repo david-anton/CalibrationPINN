@@ -227,13 +227,13 @@ def determine_normalization_values() -> dict[str, Tensor]:
     max_displacement_x = 0.0
     min_displacement_y = np.amin(results_for_max_parameters.displacements_y)
     max_displacement_y = 0.0
-    min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
+    min_outputs = torch.tensor([min_displacement_x, min_displacement_y], dtype=torch.get_default_dtype())
     max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
 
     print("###################################")
     print("###################################")
-    print(f"min_displacement_x: {min_displacement_x}")
-    print(f"min_displacement_y: {min_displacement_y}")
+    print(f"min_displacement_x: {type(min_displacement_x)}")
+    print(f"min_displacement_y: {type(min_displacement_y)}")
     print(f"min_inputs: {min_inputs}")
     print(f"max_inputs: {max_inputs}")
     print(f"min_outputs: {min_outputs}")
