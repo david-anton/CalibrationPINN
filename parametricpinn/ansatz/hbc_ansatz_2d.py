@@ -35,6 +35,9 @@ class HBCAnsatz2D(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         x_coor = self._extract_coordinates(x)
-        return self._boundary_data_func() + (
+        y = self._boundary_data_func() + (
             self._distance_func(x_coor) * self._network(x)
         )
+        print(x)
+        print(y)
+        return y

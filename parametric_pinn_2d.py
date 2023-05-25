@@ -232,8 +232,6 @@ def determine_normalization_values() -> dict[str, Tensor]:
 
     print("###################################")
     print("###################################")
-    print(f"min_displacement_x: {type(min_displacement_x)}")
-    print(f"min_displacement_y: {type(min_displacement_y)}")
     print(f"min_inputs: {min_inputs}")
     print(f"max_inputs: {max_inputs}")
     print(f"min_outputs: {min_outputs}")
