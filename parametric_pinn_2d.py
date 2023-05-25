@@ -226,12 +226,6 @@ def determine_normalization_values() -> dict[str, Tensor]:
     max_displacement_y = 0.0
     min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
     max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
-    print(torch.isnan(min_inputs).any())
-    print(torch.isnan(max_inputs).any())
-    print(torch.isnan(min_outputs).any())
-    print(torch.isnan(max_outputs).any())
-    print(range_coordinates[0].item())
-    print(range_coordinates[1].item())
     return {
         "min_inputs": min_inputs.to(device),
         "max_inputs": max_inputs.to(device),
