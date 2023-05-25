@@ -142,11 +142,11 @@ def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float,
             print(f"y: {y}")
             print(f"dtype y: {y.dtype}")
             print(f"is y nan: {torch.isnan(y).any()}")
-            raise SystemExit
             mae_batch = mean_absolute_error(y_true, y)
             rl2_batch = relative_l2_norm(y_true, y)
             print(f"mae: {mae_batch}")
             print(f"rL2: {rl2_batch}")
+            raise SystemExit
             mae_hist_batches.append(mae_batch.cpu().item())
             rl2_hist_batches.append(rl2_batch.cpu().item())
 
