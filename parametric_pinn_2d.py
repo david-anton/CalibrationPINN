@@ -65,7 +65,7 @@ num_samples_valid = 32
 valid_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
-fem_mesh_resolution = 0.1
+fem_mesh_resolution = 10 #0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdir = f"{current_date}_parametric_pinn_pwh_float32_shuffled_64_pde_points_500_epochs"
@@ -131,10 +131,11 @@ def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float,
         rl2_hist_batches = []
 
         for x, y_true in valid_batches:
-            x.to(device)
-            y_true.to(device)
-            y = ansatz(x)
+            x = x.to(device)
+            y_true = y_true.to(device)
+            y = ansatz(torch.ones_like(x).to(device))
             print(f"y: {y}")
+            raise SystemExit
             mae_batch = mean_absolute_error(y_true, y)
             rl2_batch = relative_l2_norm(y_true, y)
             print(f"mae: {mae_batch}")
