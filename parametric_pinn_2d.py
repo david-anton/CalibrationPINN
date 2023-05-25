@@ -65,7 +65,7 @@ num_samples_valid = 32
 valid_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
-fem_mesh_resolution = 1  # 0.1
+fem_mesh_resolution = 10  # 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdir = (
@@ -223,11 +223,11 @@ def determine_normalization_values() -> dict[str, Tensor]:
         project_directory=project_directory,
         mesh_resolution=fem_mesh_resolution,
     )
-    min_displacement_x = np.amin(results_for_max_parameters.displacements_x)
+    min_displacement_x = float(np.amin(results_for_max_parameters.displacements_x))
     max_displacement_x = 0.0
-    min_displacement_y = np.amin(results_for_max_parameters.displacements_y)
+    min_displacement_y = float(np.amin(results_for_max_parameters.displacements_y))
     max_displacement_y = 0.0
-    min_outputs = torch.tensor([min_displacement_x, min_displacement_y], dtype=torch.get_default_dtype())
+    min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
     max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
 
     print("###################################")
