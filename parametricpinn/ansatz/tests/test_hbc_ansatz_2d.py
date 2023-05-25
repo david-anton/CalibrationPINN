@@ -24,8 +24,7 @@ class FakeNetworkSingleInput(nn.Module):
 
 displacement_x_right = 0.0
 displacement_y_bottom = 0.0
-range_coordinate_x = 1.0
-range_coordinate_y = 1.0
+range_coordinates = torch.tensor([1.0, 1.0])
 
 
 @pytest.fixture
@@ -35,8 +34,7 @@ def sut() -> HBCAnsatz2D:
         network=network,
         displacement_x_right=displacement_x_right,
         displacement_y_bottom=displacement_y_bottom,
-        range_coordinate_x=range_coordinate_x,
-        range_coordinate_y=range_coordinate_y,
+        range_coordinates=range_coordinates,
     )
 
 
@@ -80,8 +78,7 @@ def sut_single_input() -> HBCAnsatz2D:
         network=network,
         displacement_x_right=displacement_x_right,
         displacement_y_bottom=displacement_y_bottom,
-        range_coordinate_x=range_coordinate_x,
-        range_coordinate_y=range_coordinate_y,
+        range_coordinates=range_coordinates,
     )
 
 

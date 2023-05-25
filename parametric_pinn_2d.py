@@ -126,7 +126,7 @@ def loss_func(
 
 ### Validation
 def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float, float]:
-    # ansatz.eval()
+    ansatz.eval()
     with torch.no_grad():
         valid_batches = iter(valid_dataloader)
         mae_hist_batches = []
@@ -229,13 +229,23 @@ def determine_normalization_values() -> dict[str, Tensor]:
     max_displacement_y = 0.0
     min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
     max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
+
+    print("###################################")
+    print("###################################")
+    print(min_inputs)
+    print(max_inputs)
+    print(min_outputs)
+    print(max_outputs)
+    print(range_coordinates)
+    print("###################################")
+    print("###################################")
+
     return {
         "min_inputs": min_inputs.to(device),
         "max_inputs": max_inputs.to(device),
         "min_outputs": min_outputs.to(device),
         "max_outputs": max_outputs.to(device),
-        "range_coordinate_x": range_coordinates[0].item(),
-        "range_coordinate_y": range_coordinates[1].item(),
+        "range_coordinates": range_coordinates.to(device)
     }
 
 
@@ -298,8 +308,7 @@ if __name__ == "__main__":
         network=normalized_network,
         displacement_x_right=0.0,
         displacement_y_bottom=0.0,
-        range_coordinate_x=normalization_values["range_coordinate_x"],
-        range_coordinate_y=normalization_values["range_coordinate_y"],
+        range_coordinates=normalization_values["range_coordinates"],
     ).to(device)
 
     optimizer = torch.optim.LBFGS(

@@ -13,19 +13,14 @@ class HBCAnsatz2D(nn.Module):
         network: Module,
         displacement_x_right: float,
         displacement_y_bottom: float,
-        range_coordinate_x: float,
-        range_coordinate_y: float,
+        range_coordinates: Tensor
     ) -> None:
         super().__init__()
         self._network = network
         self._boundary_data = torch.tensor(
             [displacement_x_right, displacement_y_bottom]
         ).to(device)
-        self._range_coordinates = torch.tensor(
-            [range_coordinate_x, range_coordinate_y]
-        ).to(device)
-        print(f"Boundary data: {self._boundary_data.dtype}")
-        print(f"Range coordinates: {self._range_coordinates.dtype}")
+        self._range_coordinates = range_coordinates
 
     def _boundary_data_func(self) -> Tensor:
         return self._boundary_data
