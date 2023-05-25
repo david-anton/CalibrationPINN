@@ -65,10 +65,12 @@ num_samples_valid = 32
 valid_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
-fem_mesh_resolution = 1 #0.1
+fem_mesh_resolution = 1  # 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_pwh_float32_shuffled_64_pde_points_500_epochs"
+output_subdir = (
+    f"{current_date}_parametric_pinn_pwh_float32_shuffled_64_pde_points_500_epochs"
+)
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 

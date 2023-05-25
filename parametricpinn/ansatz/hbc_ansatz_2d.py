@@ -18,8 +18,12 @@ class HBCAnsatz2D(nn.Module):
     ) -> None:
         super().__init__()
         self._network = network
-        self._boundary_data = torch.tensor([displacement_x_right, displacement_y_bottom]).to(device)
-        self._range_coordinates = torch.tensor([range_coordinate_x, range_coordinate_y]).to(device)
+        self._boundary_data = torch.tensor(
+            [displacement_x_right, displacement_y_bottom]
+        ).to(device)
+        self._range_coordinates = torch.tensor(
+            [range_coordinate_x, range_coordinate_y]
+        ).to(device)
 
     def _boundary_data_func(self) -> Tensor:
         return self._boundary_data
@@ -37,20 +41,5 @@ class HBCAnsatz2D(nn.Module):
         y = self._boundary_data_func() + (
             self._distance_func(x_coor) * self._network(x)
         )
-        print("#####################")
-        print("#####################")
-        print(x[torch.isnan(x)])
-        print("#####################")
-        print("#####################")
-        print("#####################")
-        print("#####################")
-        print(x_coor[torch.isnan(x_coor)])
-        print("#####################")
-        print("#####################")
-        print("#####################")
-        print("#####################")
-        print(y[torch.isnan(y)])
-        print("#####################")
-        print("#####################")
 
         return y
