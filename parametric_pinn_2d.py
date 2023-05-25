@@ -131,13 +131,15 @@ def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float,
         rl2_hist_batches = []
 
         for x, y_true in valid_batches:
-            print(x)
             x = x.to(device)
-            print(x)
             y_true = y_true.to(device)
             y = ansatz(x)
+            print(f"y: {y}")
+            print(f"y_true: {y_true}")
             mae_batch = mean_absolute_error(y_true, y)
             rl2_batch = relative_l2_norm(y_true, y)
+            print(f"mae: {mae_batch}")
+            print(f"rL2: {rl2_batch}")
             mae_hist_batches.append(mae_batch.cpu().item())
             rl2_hist_batches.append(rl2_batch.cpu().item())
 
