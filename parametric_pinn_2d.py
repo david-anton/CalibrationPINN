@@ -124,7 +124,7 @@ def loss_func(
 
 ### Validation
 def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float, float]:
-    ansatz.eval()
+    # ansatz.eval()
     with torch.no_grad():
         valid_batches = iter(valid_dataloader)
         mae_hist_batches = []
@@ -326,8 +326,6 @@ if __name__ == "__main__":
             # Forward pass
             loss_pde, loss_stress_bc = loss_func(ansatz, batch_pde, batch_stress_bc)
             loss = loss_pde + loss_stress_bc
-            print(f"loss_pde: {loss_pde}")
-            print(f"loss_stress_bc: {loss_stress_bc}")
 
             # Update parameters
             optimizer.step(loss_func_closure)
