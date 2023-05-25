@@ -13,7 +13,7 @@ class HBCAnsatz2D(nn.Module):
         network: Module,
         displacement_x_right: float,
         displacement_y_bottom: float,
-        range_coordinates: Tensor
+        range_coordinates: Tensor,
     ) -> None:
         super().__init__()
         self._network = network

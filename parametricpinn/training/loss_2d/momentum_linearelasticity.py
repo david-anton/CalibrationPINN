@@ -2,6 +2,7 @@ from typing import Callable, TypeAlias
 
 import torch
 
+from parametricpinn.settings import get_device
 from parametricpinn.training.loss_2d.momentumbase import (
     MomentumFunc,
     StressFunc,
@@ -12,7 +13,6 @@ from parametricpinn.training.loss_2d.momentumbase import (
     traction_func,
 )
 from parametricpinn.types import Tensor
-from parametricpinn.settings import get_device
 
 VoigtMaterialTensorFunc: TypeAlias = Callable[[Tensor], Tensor]
 

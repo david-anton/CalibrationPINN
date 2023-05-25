@@ -1,12 +1,12 @@
-import pytest
-import torch
-import numpy as np
 import os
-from pathlib import Path
 import shutil
+from pathlib import Path
 from typing import Iterator
 
+import numpy as np
 import pandas as pd
+import pytest
+import torch
 
 from parametricpinn.data import (
     ValidationDataset2D,
@@ -28,7 +28,6 @@ class FakeSetting(Settings):
 
 
 random_seed = 0
-data_type = torch.float32
 settings = FakeSetting()
 project_directory = ProjectDirectory(settings)
 data_writer = PandasDataWriter(project_directory)
@@ -43,18 +42,10 @@ youngs_modulus_0 = torch.tensor([11.0])
 poissons_ratio_0 = torch.tensor([11.1])
 youngs_modulus_1 = torch.tensor([21.0])
 poissons_ratio_1 = torch.tensor([21.1])
-displacements_x_0 = torch.tensor([31.0, 32.0, 33.0, 34.0]).reshape(
-    (-1, 1)
-)
-displacements_y_0 = torch.tensor([31.1, 32.1, 33.1, 34.1]).reshape(
-    (-1, 1)
-)
-displacements_x_1 = torch.tensor([41.0, 42.0, 43.0, 44.0]).reshape(
-    (-1, 1)
-)
-displacements_y_1 = torch.tensor([41.1, 42.1, 43.1, 44.1]).reshape(
-    (-1, 1)
-)
+displacements_x_0 = torch.tensor([31.0, 32.0, 33.0, 34.0]).reshape((-1, 1))
+displacements_y_0 = torch.tensor([31.1, 32.1, 33.1, 34.1]).reshape((-1, 1))
+displacements_x_1 = torch.tensor([41.0, 42.0, 43.0, 44.0]).reshape((-1, 1))
+displacements_y_1 = torch.tensor([41.1, 42.1, 43.1, 44.1]).reshape((-1, 1))
 
 coordinates_all = torch.concat((coordinates_x, coordinates_y), dim=1)
 parameters_0_all = torch.concat((youngs_modulus_0, poissons_ratio_0)).repeat(

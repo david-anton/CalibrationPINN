@@ -2,8 +2,8 @@ from collections import namedtuple
 
 import torch
 
-from parametricpinn.data.geometry import Geometry2DProtocol, PlateWithHole
 from parametricpinn.data.dataset import Dataset
+from parametricpinn.data.geometry import Geometry2DProtocol, PlateWithHole
 from parametricpinn.types import Tensor
 
 TrainingData2DPDE = namedtuple(

@@ -215,7 +215,7 @@ if __name__ == "__main__":
 
         for batch_pde, batch_stress_bc in train_batches:
             ansatz.train()
-            
+
             # Forward pass
             loss_pde, loss_stress_bc = loss_func(ansatz, batch_pde, batch_stress_bc)
 

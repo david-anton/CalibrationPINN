@@ -1,10 +1,11 @@
-import torch
 import os
+
+import torch
 
 from parametricpinn.data.dataset import Dataset
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader
-from parametricpinn.types import Tensor, NPArray
+from parametricpinn.types import NPArray, Tensor
 
 
 class ValidationDataset2D(Dataset):

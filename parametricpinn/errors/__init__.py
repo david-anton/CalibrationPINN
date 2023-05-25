@@ -1,7 +1,7 @@
 from .errors import (
     DirectoryNotFoundError,
-    FileNotFoundError,
     FEMConfigurationError,
+    FileNotFoundError,
     TestConfigurationError,
 )
 

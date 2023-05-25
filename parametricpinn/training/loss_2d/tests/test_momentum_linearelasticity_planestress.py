@@ -9,7 +9,6 @@ from parametricpinn.training.loss_2d import (
 from parametricpinn.training.loss_2d.tests.testdoubles import FakeAnsatz
 from parametricpinn.types import Module, Tensor
 
-
 model = "plane stress"
 youngs_modulus = 1.0
 poissons_ratio = 0.25

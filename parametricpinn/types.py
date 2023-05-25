@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TypeAlias, Union, Protocol
+from typing import Protocol, TypeAlias, Union
 
 import numpy as np
 import numpy.typing as npt
