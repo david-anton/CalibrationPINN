@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from parametricpinn.types import Module, Tensor
 from parametricpinn.settings import get_device
+from parametricpinn.types import Module, Tensor
 
 device = get_device()
 
@@ -24,6 +24,8 @@ class HBCAnsatz2D(nn.Module):
         self._range_coordinates = torch.tensor(
             [range_coordinate_x, range_coordinate_y]
         ).to(device)
+        print(f"Boundary data: {self._boundary_data.dtype}")
+        print(f"Range coordinates: {self._range_coordinates.dtype}")
 
     def _boundary_data_func(self) -> Tensor:
         return self._boundary_data
@@ -38,8 +40,6 @@ class HBCAnsatz2D(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         x_coor = self._extract_coordinates(x)
-        y = self._boundary_data_func() + (
+        return self._boundary_data_func() + (
             self._distance_func(x_coor) * self._network(x)
         )
-
-        return y
