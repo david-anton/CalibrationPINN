@@ -37,16 +37,20 @@ class HBCAnsatz2D(nn.Module):
         y = self._boundary_data_func() + (
             self._distance_func(x_coor) * self._network(x)
         )
-        if torch.isnan(x):
-            print("#########################")
-            print("#########################")
-            print("x is nan")
-            print("#########################")
-            print("#########################")
-        if torch.isnan(x_coor):
-            print("#########################")
-            print("#########################")
-            print("x_coor is nan")
-            print("#########################")
-            print("#########################")
+        print("#####################")
+        print("#####################")
+        print(x[torch.isnan(x)])
+        print("#####################")
+        print("#####################")
+        print("#####################")
+        print("#####################")
+        print(x_coor[torch.isnan(x_coor)])
+        print("#####################")
+        print("#####################")
+        print("#####################")
+        print("#####################")
+        print(y[torch.isnan(y)])
+        print("#####################")
+        print("#####################")
+
         return y
