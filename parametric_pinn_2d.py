@@ -65,12 +65,10 @@ num_samples_valid = 32
 valid_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
-fem_mesh_resolution = 1  # 0.1
+fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = (
-    f"{current_date}_parametric_pinn_pwh_float32_shuffled_64_pde_points_500_epochs"
-)
+output_subdir = f"{current_date}_parametric_pinn_pwh_64_pde_points_64_params_500_epochs"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -134,22 +132,10 @@ def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float,
 
         for x, y_true in valid_batches:
             x = x.to(device)
-            print(f"is x nan: {torch.isnan(x).any()}")
-            print(f"dtype x: {x.dtype}")
             y_true = y_true.to(device)
-            y_test = ansatz(torch.ones_like(x, dtype=torch.float32).to(device))
             y = ansatz(x)
-            print(f"y_test: {y_test}")
-            print(f"dtype y_test: {y_test.dtype}")
-            print(f"is y_test nan: {torch.isnan(y_test).any()}")
-            print(f"y: {y}")
-            print(f"dtype y: {y.dtype}")
-            print(f"is y nan: {torch.isnan(y).any()}")
             mae_batch = mean_absolute_error(y_true, y)
             rl2_batch = relative_l2_norm(y_true, y)
-            print(f"mae: {mae_batch}")
-            print(f"rL2: {rl2_batch}")
-            raise SystemExit
             mae_hist_batches.append(mae_batch.cpu().item())
             rl2_hist_batches.append(rl2_batch.cpu().item())
 
@@ -207,7 +193,7 @@ def determine_normalization_values() -> dict[str, Tensor]:
     _output_subdir = os.path.join(
         output_subdir_preprocessing, "results_for_determining_normalization_values"
     )
-    results_for_max_parameters = run_simulation(
+    simulation_results = run_simulation(
         model=model,
         youngs_modulus=max_youngs_modulus,
         poissons_ratio=max_poissons_ratio,
@@ -223,9 +209,9 @@ def determine_normalization_values() -> dict[str, Tensor]:
         project_directory=project_directory,
         mesh_resolution=fem_mesh_resolution,
     )
-    min_displacement_x = float(np.amin(results_for_max_parameters.displacements_x))
+    min_displacement_x = float(np.amin(simulation_results.displacements_x))
     max_displacement_x = 0.0
-    min_displacement_y = float(np.amin(results_for_max_parameters.displacements_y))
+    min_displacement_y = float(np.amin(simulation_results.displacements_y))
     max_displacement_y = 0.0
     min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
     max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
@@ -235,7 +221,7 @@ def determine_normalization_values() -> dict[str, Tensor]:
         "max_inputs": max_inputs.to(device),
         "min_outputs": min_outputs.to(device),
         "max_outputs": max_outputs.to(device),
-        "range_coordinates": range_coordinates.to(device)
+        "range_coordinates": range_coordinates.to(device),
     }
 
 
@@ -355,7 +341,7 @@ if __name__ == "__main__":
             valid_hist_mae.append(mae)
             valid_hist_rl2.append(rl2)
             valid_epochs.append(epoch)
-            print(f"Validation: Epoch {epoch} / {num_epochs}, MAE: {mae}")
+            print(f"Validation: Epoch {epoch} / {num_epochs}, MAE: {mae}, rL2: {rl2}")
 
     ### Postprocessing
     print("Postprocessing ...")
