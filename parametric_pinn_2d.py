@@ -124,15 +124,15 @@ def loss_func(
 
 ### Validation
 def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float, float]:
-    # ansatz.eval()
+    ansatz.eval()
     with torch.no_grad():
         valid_batches = iter(valid_dataloader)
         mae_hist_batches = []
         rl2_hist_batches = []
 
         for x, y_true in valid_batches:
-            x = x.to(device)
-            y_true = y_true.to(device)
+            x.to(device)
+            y_true.to(device)
             y = ansatz(x)
             print(f"y: {y}")
             mae_batch = mean_absolute_error(y_true, y)
