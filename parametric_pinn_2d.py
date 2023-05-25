@@ -232,11 +232,13 @@ def determine_normalization_values() -> dict[str, Tensor]:
 
     print("###################################")
     print("###################################")
-    print(min_inputs)
-    print(max_inputs)
-    print(min_outputs)
-    print(max_outputs)
-    print(range_coordinates)
+    print(f"min_displacement_x: {min_displacement_x}")
+    print(f"min_displacement_y: {min_displacement_y}")
+    print(f"min_inputs: {min_inputs}")
+    print(f"max_inputs: {max_inputs}")
+    print(f"min_outputs: {min_outputs}")
+    print(f"max_outputs: {max_outputs}")
+    print(f"range_coordinates: {range_coordinates}")
     print("###################################")
     print("###################################")
 
