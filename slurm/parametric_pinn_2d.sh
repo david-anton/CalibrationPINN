@@ -16,6 +16,6 @@ srun singularity exec \
  --env CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES \
  --nv \
  parametricpinn.sif \
- python3 -u /home/davanton/development/ParametricPINN/app/${SCRIPT}
+ python3 /home/davanton/development/ParametricPINN/app/${SCRIPT}
 
 
