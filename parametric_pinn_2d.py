@@ -136,8 +136,8 @@ def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float,
             y = ansatz(x)
             mae_batch = mean_absolute_error(y_true, y)
             rl2_batch = relative_l2_norm(y_true, y)
-            mae_hist_batches.append(mae_batch.item())
-            rl2_hist_batches.append(rl2_batch.item())
+            mae_hist_batches.append(mae_batch.cpu().item())
+            rl2_hist_batches.append(rl2_batch.cpu().item())
 
         mean_mae = statistics.mean(mae_hist_batches)
         mean_rl2 = statistics.mean(rl2_hist_batches)
