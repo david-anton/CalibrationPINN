@@ -65,7 +65,7 @@ num_samples_valid = 32
 valid_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
-fem_mesh_resolution = 10  # 0.1
+fem_mesh_resolution = 1  # 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdir = (
