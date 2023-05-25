@@ -332,21 +332,23 @@ if __name__ == "__main__":
         loss_hist_pde_batches = []
         loss_hist_stress_bc_batches = []
 
-        # for batch_pde, batch_stress_bc in train_batches:
-        #     # Forward pass
-        #     loss_pde, loss_stress_bc = loss_func(ansatz, batch_pde, batch_stress_bc)
-        #     loss = loss_pde + loss_stress_bc
+        for batch_pde, batch_stress_bc in train_batches:
+            ansatz.train()
+            
+            # Forward pass
+            loss_pde, loss_stress_bc = loss_func(ansatz, batch_pde, batch_stress_bc)
+            loss = loss_pde + loss_stress_bc
 
-        #     # Update parameters
-        #     optimizer.step(loss_func_closure)
+            # Update parameters
+            optimizer.step(loss_func_closure)
 
-        #     loss_hist_pde_batches.append(loss_pde.detach().cpu().item())
-        #     loss_hist_stress_bc_batches.append(loss_stress_bc.detach().cpu().item())
+            loss_hist_pde_batches.append(loss_pde.detach().cpu().item())
+            loss_hist_stress_bc_batches.append(loss_stress_bc.detach().cpu().item())
 
-        # mean_loss_pde = statistics.mean(loss_hist_pde_batches)
-        # mean_loss_stress_bc = statistics.mean(loss_hist_stress_bc_batches)
-        # loss_hist_pde.append(mean_loss_pde)
-        # loss_hist_stress_bc.append(mean_loss_stress_bc)
+        mean_loss_pde = statistics.mean(loss_hist_pde_batches)
+        mean_loss_stress_bc = statistics.mean(loss_hist_stress_bc_batches)
+        loss_hist_pde.append(mean_loss_pde)
+        loss_hist_stress_bc.append(mean_loss_stress_bc)
 
         if epoch % valid_interval == 0 or epoch == num_epochs:
             mae, rl2 = validate_model(ansatz, valid_dataloader)

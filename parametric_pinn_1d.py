@@ -1,5 +1,5 @@
-from datetime import date
 import statistics
+from datetime import date
 
 import torch
 from torch.utils.data import DataLoader
@@ -19,8 +19,8 @@ from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN, create_normalized_network
 from parametricpinn.postprocessing.plot import (
     DisplacementsPlotterConfig1D,
-    plot_displacements_1D,
     HistoryPlotterConfig,
+    plot_displacements_1D,
     plot_loss_history,
     plot_valid_history,
 )
@@ -214,6 +214,8 @@ if __name__ == "__main__":
         loss_hist_stress_bc_batches = []
 
         for batch_pde, batch_stress_bc in train_batches:
+            ansatz.train()
+            
             # Forward pass
             loss_pde, loss_stress_bc = loss_func(ansatz, batch_pde, batch_stress_bc)
 
