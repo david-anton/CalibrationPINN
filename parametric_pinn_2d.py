@@ -132,7 +132,6 @@ def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float,
 
         for x, y_true in valid_batches:
             x = x.to(device)
-            print(x)
             y_true = y_true.to(device)
             y = ansatz(x)
             mae_batch = mean_absolute_error(y_true, y)
@@ -140,6 +139,7 @@ def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float,
             mae_hist_batches.append(mae_batch.cpu().item())
             rl2_hist_batches.append(rl2_batch.cpu().item())
 
+        print(mae_hist_batches)
         mean_mae = statistics.mean(mae_hist_batches)
         mean_rl2 = statistics.mean(rl2_hist_batches)
     return mean_mae, mean_rl2
