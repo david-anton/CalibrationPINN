@@ -53,23 +53,22 @@ max_poissons_ratio = 0.4
 layer_sizes = [4, 32, 32, 2]
 # Training
 num_samples_per_parameter = 64
-num_samples_train = num_samples_per_parameter**2
 num_points_pde = 64
 num_points_stress_bc = 64
-batch_size_train = 256
-num_epochs = 100000
+batch_size_train = 128
+num_epochs = 500
 loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
 regenerate_valid_data = False
 input_subdir_valid = "20230522_validation_data_pwh"
 num_samples_valid = 32
-valid_interval = 10
+valid_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_pwh_float32_shuffled_64_pde_points"
+output_subdir = f"{current_date}_parametric_pinn_pwh_float32_shuffled_64_pde_points_500_epochs"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -337,11 +336,11 @@ if __name__ == "__main__":
         loss_hist_stress_bc.append(mean_loss_stress_bc)
 
         if epoch % valid_interval == 0 or epoch == num_epochs:
-            print(f"Validation: Epoch {epoch} / {num_epochs}")
             mae, rl2 = validate_model(ansatz, valid_dataloader)
             valid_hist_mae.append(mae)
             valid_hist_rl2.append(rl2)
             valid_epochs.append(epoch)
+            print(f"Validation: Epoch {epoch} / {num_epochs}, MAE: {mae}")
 
     ### Postprocessing
     print("Postprocessing ...")
