@@ -52,9 +52,9 @@ max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 32, 32, 2]
 # Training
-num_samples_per_parameter = 2 #64
-num_points_pde = 2 #64
-num_points_stress_bc = 2 #64
+num_samples_per_parameter = 64
+num_points_pde = 64
+num_points_stress_bc = 64
 batch_size_train = 128
 num_epochs = 500
 loss_metric = torch.nn.MSELoss(reduction="mean")
