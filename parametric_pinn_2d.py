@@ -135,6 +135,9 @@ def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float,
         for x, y_true in valid_batches:
             x = x.to(device)
             print(f"is x nan: {torch.isnan(x).any()}")
+            print(f"dtype x: {x.dtype}")
+            x = torch.cast(x, torch.float32)
+            print(f"dtype x after casting: {x.dtype}")
             y_true = y_true.to(device)
             y_test = ansatz(torch.ones_like(x, dtype=torch.float32).to(device))
             y = ansatz(x)
