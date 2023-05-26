@@ -68,7 +68,9 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_pwh_64_pde_points_64_params_4_32_neurons"
+output_subdir = (
+    f"{current_date}_parametric_pinn_pwh_64_pde_points_64_params_4_32_neurons"
+)
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -103,11 +105,6 @@ def loss_func(
         volume_force = pde_data.f.to(device)
         y_true = pde_data.y_true.to(device)
         y = momentum_equation_func(ansatz, x_coor, x_param, volume_force)
-        print(f"x_coor: {x_coor.size()}")
-        print(f"x_param: {x_param.size()}")
-        print(f"volume_force: {volume_force.size()}")
-        print(f"y: {y.size()}")
-        print(f"y_true: {y_true.size()}")
         return loss_metric(y_true, y)
 
     def loss_func_stress_bc(
@@ -120,11 +117,9 @@ def loss_func(
         normal = stress_bc_data.normal.to(device)
         y_true = stress_bc_data.y_true.to(device)
         y = traction_func(ansatz, x_coor, x_param, normal)
-        print(f"x_coor: {x_coor.size()}")
-        print(f"x_param: {x_param.size()}")
-        print(f"normal: {normal.size()}")
-        print(f"y: {y.size()}")
-        print(f"y_true: {y_true.size()}")
+        print(f"normal: {normal}")
+        print(f"y: {y}")
+        print(f"y_true: {y_true}")
         return loss_metric(y_true, y)
 
     loss_pde = loss_func_pde(ansatz, pde_data)
