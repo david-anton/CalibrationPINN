@@ -45,17 +45,17 @@ normal_left_x = -1.0
 normal_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-min_youngs_modulus = 180000.0
-max_youngs_modulus = 240000.0
-min_poissons_ratio = 0.2
-max_poissons_ratio = 0.4
+min_youngs_modulus = 210000.0 #180000.0
+max_youngs_modulus = 210000.0 #240000.0
+min_poissons_ratio = 0.3 #0.2
+max_poissons_ratio = 0.3 #0.4
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Training
-num_samples_per_parameter = 64
-num_points_pde = 64
+num_samples_per_parameter = 1 #64
+num_points_pde = 4096 #64
 num_points_stress_bc = 64
-batch_size_train = 128
+batch_size_train = 1 #128
 num_epochs = 500
 loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
@@ -117,9 +117,6 @@ def loss_func(
         normal = stress_bc_data.normal.to(device)
         y_true = stress_bc_data.y_true.to(device)
         y = traction_func(ansatz, x_coor, x_param, normal)
-        print(f"normal: {normal}")
-        print(f"y: {y}")
-        print(f"y_true: {y_true}")
         return loss_metric(y_true, y)
 
     loss_pde = loss_func_pde(ansatz, pde_data)
@@ -260,19 +257,19 @@ if __name__ == "__main__":
         print("Run FE simulations to generate validation data ...")
         generate_validation_data()
 
-    valid_dataset = create_validation_dataset_2D(
-        input_subdir=input_subdir_valid,
-        num_points=num_points_valid,
-        num_samples=num_samples_valid,
-        project_directory=project_directory,
-    )
-    valid_dataloader = DataLoader(
-        dataset=valid_dataset,
-        batch_size=batch_size_valid,
-        shuffle=False,
-        drop_last=False,
-        collate_fn=collate_validation_data_2D,
-    )
+    # valid_dataset = create_validation_dataset_2D(
+    #     input_subdir=input_subdir_valid,
+    #     num_points=num_points_valid,
+    #     num_samples=num_samples_valid,
+    #     project_directory=project_directory,
+    # )
+    # valid_dataloader = DataLoader(
+    #     dataset=valid_dataset,
+    #     batch_size=batch_size_valid,
+    #     shuffle=False,
+    #     drop_last=False,
+    #     collate_fn=collate_validation_data_2D,
+    # )
 
     print("Run FE simulation to determine normalization values ...")
     normalization_values = determine_normalization_values()
@@ -341,12 +338,13 @@ if __name__ == "__main__":
         loss_hist_pde.append(mean_loss_pde)
         loss_hist_stress_bc.append(mean_loss_stress_bc)
 
-        if epoch % valid_interval == 0 or epoch == num_epochs:
-            mae, rl2 = validate_model(ansatz, valid_dataloader)
-            valid_hist_mae.append(mae)
-            valid_hist_rl2.append(rl2)
-            valid_epochs.append(epoch)
-            print(f"Validation: Epoch {epoch} / {num_epochs}, MAE: {mae}, rL2: {rl2}")
+        print(f"Epoch {epoch} / {num_epochs}, loss_pde: {loss_pde}, loss_bc: {loss_stress_bc}")
+        # if epoch % valid_interval == 0 or epoch == num_epochs:
+        #     mae, rl2 = validate_model(ansatz, valid_dataloader)
+        #     valid_hist_mae.append(mae)
+        #     valid_hist_rl2.append(rl2)
+        #     valid_epochs.append(epoch)
+        #     print(f"Validation: Epoch {epoch} / {num_epochs}, MAE: {mae}, rL2: {rl2}")
 
     ### Postprocessing
     print("Postprocessing ...")
@@ -361,22 +359,22 @@ if __name__ == "__main__":
         config=history_plotter_config,
     )
 
-    plot_valid_history(
-        valid_epochs=valid_epochs,
-        valid_hist=valid_hist_mae,
-        valid_metric="mean absolute error",
-        file_name="mae_pinn.png",
-        output_subdir=output_subdir,
-        project_directory=project_directory,
-        config=history_plotter_config,
-    )
+    # plot_valid_history(
+    #     valid_epochs=valid_epochs,
+    #     valid_hist=valid_hist_mae,
+    #     valid_metric="mean absolute error",
+    #     file_name="mae_pinn.png",
+    #     output_subdir=output_subdir,
+    #     project_directory=project_directory,
+    #     config=history_plotter_config,
+    # )
 
-    plot_valid_history(
-        valid_epochs=valid_epochs,
-        valid_hist=valid_hist_rl2,
-        valid_metric="rel. L2 norm",
-        file_name="rl2_pinn.png",
-        output_subdir=output_subdir,
-        project_directory=project_directory,
-        config=history_plotter_config,
-    )
+    # plot_valid_history(
+    #     valid_epochs=valid_epochs,
+    #     valid_hist=valid_hist_rl2,
+    #     valid_metric="rel. L2 norm",
+    #     file_name="rl2_pinn.png",
+    #     output_subdir=output_subdir,
+    #     project_directory=project_directory,
+    #     config=history_plotter_config,
+    # )
