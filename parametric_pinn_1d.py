@@ -43,7 +43,7 @@ layer_sizes = [2, 16, 16, 1]
 num_samples_train = 128
 num_points_pde = 128
 batch_size_train = num_samples_train
-num_epochs = 100
+num_epochs = 120
 loss_metric = torch.nn.MSELoss()
 # Validation
 num_samples_valid = 128
