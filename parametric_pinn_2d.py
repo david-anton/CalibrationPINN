@@ -103,6 +103,11 @@ def loss_func(
         volume_force = pde_data.f.to(device)
         y_true = pde_data.y_true.to(device)
         y = momentum_equation_func(ansatz, x_coor, x_param, volume_force)
+        print(f"x_coor: {x_coor.size()}")
+        print(f"x_param: {x_param.size()}")
+        print(f"volume_force: {volume_force.size()}")
+        print(f"y: {y.size()}")
+        print(f"y_true: {y_true.size()}")
         return loss_metric(y_true, y)
 
     def loss_func_stress_bc(
@@ -115,6 +120,11 @@ def loss_func(
         normal = stress_bc_data.normal.to(device)
         y_true = stress_bc_data.y_true.to(device)
         y = traction_func(ansatz, x_coor, x_param, normal)
+        print(f"x_coor: {x_coor.size()}")
+        print(f"x_param: {x_param.size()}")
+        print(f"normal: {normal.size()}")
+        print(f"y: {y.size()}")
+        print(f"y_true: {y_true.size()}")
         return loss_metric(y_true, y)
 
     loss_pde = loss_func_pde(ansatz, pde_data)
