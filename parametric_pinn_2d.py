@@ -195,7 +195,7 @@ def determine_normalization_values() -> dict[str, Tensor]:
     )
     simulation_results = run_simulation(
         model=model,
-        youngs_modulus=max_youngs_modulus,
+        youngs_modulus=min_youngs_modulus,
         poissons_ratio=max_poissons_ratio,
         edge_length=edge_length,
         radius=radius,
