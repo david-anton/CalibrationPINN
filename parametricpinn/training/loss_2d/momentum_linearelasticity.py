@@ -58,11 +58,19 @@ def _voigt_material_tensor_func_plane_stress(x_param: Tensor) -> Tensor:
     return (E / (1.0 - nu**2)) * torch.stack(
         (
             torch.concat(
-                (torch.tensor([1.0]).to(x_param.device), nu, torch.tensor([0.0]).to(x_param.device)),
+                (
+                    torch.tensor([1.0]).to(x_param.device),
+                    nu,
+                    torch.tensor([0.0]).to(x_param.device),
+                ),
                 dim=0,
             ),
             torch.concat(
-                (nu, torch.tensor([1.0]).to(x_param.device), torch.tensor([0.0]).to(x_param.device)),
+                (
+                    nu,
+                    torch.tensor([1.0]).to(x_param.device),
+                    torch.tensor([0.0]).to(x_param.device),
+                ),
                 dim=0,
             ),
             torch.concat(
