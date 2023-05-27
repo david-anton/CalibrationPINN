@@ -68,9 +68,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = (
-    f"{current_date}_parametric_pinn_pwh_E_200k_220k_nu_025_035"
-)
+output_subdir = f"{current_date}_parametric_pinn_pwh_E_200k_220k_nu_025_035"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -338,7 +336,9 @@ if __name__ == "__main__":
         loss_hist_pde.append(mean_loss_pde)
         loss_hist_stress_bc.append(mean_loss_stress_bc)
 
-        print(f"Epoch {epoch} / {num_epochs}, PDE: {mean_loss_pde}, BC: {mean_loss_stress_bc}")
+        print(
+            f"Epoch {epoch} / {num_epochs}, PDE: {mean_loss_pde}, BC: {mean_loss_stress_bc}"
+        )
         # if epoch % valid_interval == 0 or epoch == num_epochs:
         #     mae, rl2 = validate_model(ansatz, valid_dataloader)
         #     valid_hist_mae.append(mae)

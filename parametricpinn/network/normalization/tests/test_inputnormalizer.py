@@ -58,7 +58,7 @@ def test_input_normalizer(
             torch.tensor([0.0, 0.0]),
             torch.tensor([0.0, 0.0]),
             torch.tensor([0.0, 0.0]),
-        )
+        ),
     ],
 )
 def test_input_normalizer_for_one_input(
