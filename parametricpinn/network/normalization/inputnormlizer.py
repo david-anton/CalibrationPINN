@@ -10,7 +10,7 @@ class InputNormalizer(nn.Module):
         self._min_inputs = min_inputs
         self._max_inputs = max_inputs
         self._input_ranges = max_inputs - min_inputs
-        self._atol = torch.tensor([1e-7])
+        self._atol = torch.tensor([1e-7]).to(self._input_ranges.device)
 
     def forward(self, x: Tensor) -> Tensor:
         return (
