@@ -45,10 +45,10 @@ normal_left_x = -1.0
 normal_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-min_youngs_modulus = 200000.0
-max_youngs_modulus = 220000.0
-min_poissons_ratio = 0.25
-max_poissons_ratio = 0.35
+min_youngs_modulus = 180000.0
+max_youngs_modulus = 240000.0
+min_poissons_ratio = 0.2
+max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Training
@@ -68,7 +68,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_pwh_E_200k_220k_nu_025_035"
+output_subdir = f"{current_date}_parametric_pinn_pwh_E_180k_240k_nu_02_04"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -339,12 +339,12 @@ if __name__ == "__main__":
         print(
             f"Epoch {epoch} / {num_epochs}, PDE: {mean_loss_pde}, BC: {mean_loss_stress_bc}"
         )
-        # if epoch % valid_interval == 0 or epoch == num_epochs:
-        #     mae, rl2 = validate_model(ansatz, valid_dataloader)
-        #     valid_hist_mae.append(mae)
-        #     valid_hist_rl2.append(rl2)
-        #     valid_epochs.append(epoch)
-        #     print(f"Validation: Epoch {epoch} / {num_epochs}, MAE: {mae}, rL2: {rl2}")
+        if epoch % valid_interval == 0 or epoch == num_epochs:
+            mae, rl2 = validate_model(ansatz, valid_dataloader)
+            valid_hist_mae.append(mae)
+            valid_hist_rl2.append(rl2)
+            valid_epochs.append(epoch)
+            print(f"Validation: Epoch {epoch} / {num_epochs}, MAE: {mae}, rL2: {rl2}")
 
     ### Postprocessing
     print("Postprocessing ...")
@@ -359,22 +359,22 @@ if __name__ == "__main__":
         config=history_plotter_config,
     )
 
-    # plot_valid_history(
-    #     valid_epochs=valid_epochs,
-    #     valid_hist=valid_hist_mae,
-    #     valid_metric="mean absolute error",
-    #     file_name="mae_pinn.png",
-    #     output_subdir=output_subdir,
-    #     project_directory=project_directory,
-    #     config=history_plotter_config,
-    # )
+    plot_valid_history(
+        valid_epochs=valid_epochs,
+        valid_hist=valid_hist_mae,
+        valid_metric="mean absolute error",
+        file_name="mae_pinn.png",
+        output_subdir=output_subdir,
+        project_directory=project_directory,
+        config=history_plotter_config,
+    )
 
-    # plot_valid_history(
-    #     valid_epochs=valid_epochs,
-    #     valid_hist=valid_hist_rl2,
-    #     valid_metric="rel. L2 norm",
-    #     file_name="rl2_pinn.png",
-    #     output_subdir=output_subdir,
-    #     project_directory=project_directory,
-    #     config=history_plotter_config,
-    # )
+    plot_valid_history(
+        valid_epochs=valid_epochs,
+        valid_hist=valid_hist_rl2,
+        valid_metric="rel. L2 norm",
+        file_name="rl2_pinn.png",
+        output_subdir=output_subdir,
+        project_directory=project_directory,
+        config=history_plotter_config,
+    )
