@@ -52,10 +52,10 @@ max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Training
-num_samples_per_parameter = 64
+num_samples_per_parameter = 128
 num_points_pde = 256
 num_points_stress_bc = 64
-batch_size_train = 256
+batch_size_train = 512
 num_epochs = 500
 loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
@@ -68,7 +68,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_pwh_pde_points_256_parameters_64_batchsize_256"
+output_subdir = f"{current_date}_parametric_pinn_pwh_pde_points_256_parameters_128_batchsize_512"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
