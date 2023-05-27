@@ -45,17 +45,17 @@ normal_left_x = -1.0
 normal_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-min_youngs_modulus = 210000.0 #180000.0
-max_youngs_modulus = 210000.0 #240000.0
-min_poissons_ratio = 0.3 #0.2
-max_poissons_ratio = 0.3 #0.4
+min_youngs_modulus = 200000.0
+max_youngs_modulus = 220000.0
+min_poissons_ratio = 0.25
+max_poissons_ratio = 0.35
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Training
-num_samples_per_parameter = 1 #64
-num_points_pde = 4096 #64
+num_samples_per_parameter = 64
+num_points_pde = 64
 num_points_stress_bc = 64
-batch_size_train = 1 #128
+batch_size_train = 256
 num_epochs = 500
 loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
@@ -69,7 +69,7 @@ fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdir = (
-    f"{current_date}_parametric_pinn_pwh_64_pde_points_64_params_4_32_neurons"
+    f"{current_date}_parametric_pinn_pwh_E_200k_220k_nu_025_035"
 )
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
@@ -257,19 +257,19 @@ if __name__ == "__main__":
         print("Run FE simulations to generate validation data ...")
         generate_validation_data()
 
-    # valid_dataset = create_validation_dataset_2D(
-    #     input_subdir=input_subdir_valid,
-    #     num_points=num_points_valid,
-    #     num_samples=num_samples_valid,
-    #     project_directory=project_directory,
-    # )
-    # valid_dataloader = DataLoader(
-    #     dataset=valid_dataset,
-    #     batch_size=batch_size_valid,
-    #     shuffle=False,
-    #     drop_last=False,
-    #     collate_fn=collate_validation_data_2D,
-    # )
+    valid_dataset = create_validation_dataset_2D(
+        input_subdir=input_subdir_valid,
+        num_points=num_points_valid,
+        num_samples=num_samples_valid,
+        project_directory=project_directory,
+    )
+    valid_dataloader = DataLoader(
+        dataset=valid_dataset,
+        batch_size=batch_size_valid,
+        shuffle=False,
+        drop_last=False,
+        collate_fn=collate_validation_data_2D,
+    )
 
     print("Run FE simulation to determine normalization values ...")
     normalization_values = determine_normalization_values()
@@ -338,7 +338,7 @@ if __name__ == "__main__":
         loss_hist_pde.append(mean_loss_pde)
         loss_hist_stress_bc.append(mean_loss_stress_bc)
 
-        print(f"Epoch {epoch} / {num_epochs}, loss_pde: {loss_pde}, loss_bc: {loss_stress_bc}")
+        print(f"Epoch {epoch} / {num_epochs}, PDE: {mean_loss_pde}, BC: {mean_loss_stress_bc}")
         # if epoch % valid_interval == 0 or epoch == num_epochs:
         #     mae, rl2 = validate_model(ansatz, valid_dataloader)
         #     valid_hist_mae.append(mae)
