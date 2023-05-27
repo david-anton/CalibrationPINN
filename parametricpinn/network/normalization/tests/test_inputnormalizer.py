@@ -34,3 +34,39 @@ def test_input_normalizer(
 
     expected = torch.tensor([[-1.0, -1.0], [0.0, 0.0], [1.0, 1.0]])
     torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize(
+    ("min_inputs", "max_inputs", "inputs"),
+    [
+        (
+            torch.tensor([-10.0, -0.1]),
+            torch.tensor([-10.0, -0.1]),
+            torch.tensor([-10.0, -0.1]),
+        ),
+        (
+            torch.tensor([10.0, 0.1]),
+            torch.tensor([10.0, 0.1]),
+            torch.tensor([10.0, 0.1]),
+        ),
+        (
+            torch.tensor([-10.0, 10.0]),
+            torch.tensor([-10.0, 10.0]),
+            torch.tensor([-10.0, 10.0]),
+        ),
+        (
+            torch.tensor([0.0, 0.0]),
+            torch.tensor([0.0, 0.0]),
+            torch.tensor([0.0, 0.0]),
+        )
+    ],
+)
+def test_input_normalizer_for_one_input(
+    min_inputs: Tensor, max_inputs: Tensor, inputs: Tensor
+) -> None:
+    sut = InputNormalizer(min_inputs=min_inputs, max_inputs=max_inputs)
+
+    actual = sut(inputs)
+
+    expected = torch.tensor([0.0, 0.0])
+    torch.testing.assert_close(actual, expected)
