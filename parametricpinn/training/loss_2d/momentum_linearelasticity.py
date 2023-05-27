@@ -2,7 +2,6 @@ from typing import Callable, TypeAlias
 
 import torch
 
-from parametricpinn.settings import get_device
 from parametricpinn.training.loss_2d.momentumbase import (
     MomentumFunc,
     StressFunc,
@@ -15,8 +14,6 @@ from parametricpinn.training.loss_2d.momentumbase import (
 from parametricpinn.types import Tensor
 
 VoigtMaterialTensorFunc: TypeAlias = Callable[[Tensor], Tensor]
-
-device = get_device()
 
 
 def momentum_equation_func_factory(model: str) -> MomentumFunc:
@@ -40,12 +37,12 @@ def _voigt_material_tensor_func_plane_strain(x_param: Tensor) -> Tensor:
     nu = torch.unsqueeze(x_param[1], dim=0)
     return (E / ((1.0 + nu) * (1.0 - 2 * nu))) * torch.stack(
         (
-            torch.concat((1.0 - nu, nu, torch.tensor([0.0]).to(device)), dim=0),
-            torch.concat((nu, 1.0 - nu, torch.tensor([0.0]).to(device)), dim=0),
+            torch.concat((1.0 - nu, nu, torch.tensor([0.0]).to(x_param.device)), dim=0),
+            torch.concat((nu, 1.0 - nu, torch.tensor([0.0]).to(x_param.device)), dim=0),
             torch.concat(
                 (
-                    torch.tensor([0.0]).to(device),
-                    torch.tensor([0.0]).to(device),
+                    torch.tensor([0.0]).to(x_param.device),
+                    torch.tensor([0.0]).to(x_param.device),
                     (1.0 - 2 * nu) / 2.0,
                 ),
                 dim=0,
@@ -61,17 +58,17 @@ def _voigt_material_tensor_func_plane_stress(x_param: Tensor) -> Tensor:
     return (E / (1.0 - nu**2)) * torch.stack(
         (
             torch.concat(
-                (torch.tensor([1.0]).to(device), nu, torch.tensor([0.0]).to(device)),
+                (torch.tensor([1.0]).to(x_param.device), nu, torch.tensor([0.0]).to(x_param.device)),
                 dim=0,
             ),
             torch.concat(
-                (nu, torch.tensor([1.0]).to(device), torch.tensor([0.0]).to(device)),
+                (nu, torch.tensor([1.0]).to(x_param.device), torch.tensor([0.0]).to(x_param.device)),
                 dim=0,
             ),
             torch.concat(
                 (
-                    torch.tensor([0.0]).to(device),
-                    torch.tensor([0.0]).to(device),
+                    torch.tensor([0.0]).to(x_param.device),
+                    torch.tensor([0.0]).to(x_param.device),
                     (1.0 - nu) / 2.0,
                 ),
                 dim=0,

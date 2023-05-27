@@ -1,10 +1,7 @@
 import torch
 import torch.nn as nn
 
-from parametricpinn.settings import get_device
 from parametricpinn.types import Module, Tensor
-
-device = get_device()
 
 
 class HBCAnsatz2D(nn.Module):
@@ -19,7 +16,7 @@ class HBCAnsatz2D(nn.Module):
         self._network = network
         self._boundary_data = torch.tensor(
             [displacement_x_right, displacement_y_bottom]
-        ).to(device)
+        ).to(network.device)
         self._range_coordinates = range_coordinates
 
     def _boundary_data_func(self) -> Tensor:
