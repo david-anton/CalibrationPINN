@@ -16,7 +16,7 @@ class HBCAnsatz2D(nn.Module):
         self._network = network
         self._boundary_data = torch.tensor(
             [displacement_x_right, displacement_y_bottom]
-        ).to(network.device)
+        ).to(range_coordinates.device)
         self._range_coordinates = range_coordinates
 
     def _boundary_data_func(self) -> Tensor:
