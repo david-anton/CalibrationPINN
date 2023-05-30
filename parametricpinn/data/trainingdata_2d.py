@@ -19,27 +19,28 @@ class TrainingDataset2D(Dataset):
         self,
         geometry: Geometry2DProtocol,
         traction_left: Tensor,
-        normal_left: Tensor,
         volume_force: Tensor,
         min_youngs_modulus: float,
         max_youngs_modulus: float,
         min_poissons_ratio: float,
         max_poissons_ratio: float,
         num_points_pde: int,
-        num_points_stress_bc: int,
+        num_points_per_stress_bc: int,
         num_samples_per_parameter: int,
     ):
         super().__init__()
         self._geometry = geometry
-        self._traction = traction_left
-        self._normal = normal_left
+        self._traction_left = traction_left
+        self._traction_top = torch.tensor([0.0, 0.0], device=traction_left.device)
+        self._traction_hole = torch.tensor([0.0, 0.0], device=traction_left.device)
+        self._num_stress_bcs = 3
         self._volume_force = volume_force
         self._min_youngs_modulus = min_youngs_modulus
         self._max_youngs_modulus = max_youngs_modulus
         self._min_poissons_ratio = min_poissons_ratio
         self._max_poissons_ratio = max_poissons_ratio
         self._num_points_pde = num_points_pde
-        self._num_points_stress_bc = num_points_stress_bc
+        self._num_points_per_stress_bc = num_points_per_stress_bc
         self._num_samples_per_parameter = num_samples_per_parameter
         self._samples_pde: list[TrainingData2DPDE] = []
         self._samples_stress_bc: list[TrainingData2DStressBC] = []
@@ -89,14 +90,35 @@ class TrainingDataset2D(Dataset):
     def _add_stress_bc_sample(
         self, youngs_modulus: float, poissons_ratio: float
     ) -> None:
-        shape = (self._num_points_stress_bc, 1)
-        x_coor = self._geometry.create_uniform_points_on_left_boundary(
-            self._num_points_stress_bc
+        shape_bcs = (self._num_points_per_stress_bc, 1)
+        shape_params = (self._num_stress_bcs * self._num_points_per_stress_bc, 1)
+        (
+            x_coor_left,
+            normal_left,
+        ) = self._geometry.create_uniform_points_on_left_boundary(
+            self._num_points_per_stress_bc
         )
-        x_E = self._repeat_tensor(torch.tensor([youngs_modulus]), shape)
-        x_nu = self._repeat_tensor(torch.tensor([poissons_ratio]), shape)
-        normal = self._repeat_tensor(self._normal, shape)
-        y_true = self._repeat_tensor(self._traction, shape)
+        x_coor_top, normal_top = self._geometry.create_uniform_points_on_top_boundary(
+            self._num_points_per_stress_bc
+        )
+        (
+            x_coor_hole,
+            normal_hole,
+        ) = self._geometry.create_uniform_points_on_hole_boundary(
+            self._num_points_per_stress_bc
+        )
+        x_E = self._repeat_tensor(torch.tensor([youngs_modulus]), shape_params)
+        x_nu = self._repeat_tensor(torch.tensor([poissons_ratio]), shape_params)
+        x_coor = torch.concat((x_coor_left, x_coor_top, x_coor_hole), dim=0)
+        normal = torch.concat((normal_left, normal_top, normal_hole), dim=0)
+        y_true = torch.concat(
+            (
+                self._traction_left.repeat(shape_bcs),
+                self._traction_top.repeat(shape_bcs),
+                self._traction_hole.repeat(shape_bcs),
+            ),
+            dim=0,
+        )
         sample = TrainingData2DStressBC(
             x_coor=x_coor.detach(),
             x_E=x_E.detach(),
@@ -168,27 +190,25 @@ def create_training_dataset_2D(
     edge_length: float,
     radius: float,
     traction_left: Tensor,
-    normal_left: Tensor,
     volume_force: Tensor,
     min_youngs_modulus: float,
     max_youngs_modulus: float,
     min_poissons_ratio: float,
     max_poissons_ratio: float,
     num_points_pde: int,
-    num_points_stress_bc: int,
+    num_points_per_stress_bc: int,
     num_samples_per_parameter: int,
 ):
     geometry = PlateWithHole(edge_length=edge_length, radius=radius)
     return TrainingDataset2D(
         geometry=geometry,
         traction_left=traction_left,
-        normal_left=normal_left,
         volume_force=volume_force,
         min_youngs_modulus=min_youngs_modulus,
         max_youngs_modulus=max_youngs_modulus,
         min_poissons_ratio=min_poissons_ratio,
         max_poissons_ratio=max_poissons_ratio,
         num_points_pde=num_points_pde,
-        num_points_stress_bc=num_points_stress_bc,
+        num_points_per_stress_bc=num_points_per_stress_bc,
         num_samples_per_parameter=num_samples_per_parameter,
     )
