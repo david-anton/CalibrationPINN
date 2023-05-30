@@ -29,23 +29,25 @@ class PlateWithHole:
     def create_uniform_points_on_left_boundary(
         self, num_points: int
     ) -> tuple[Tensor, Tensor]:
-        coordinates_x = torch.full((num_points, 1), self._x_min, requires_grad=True)
+        shape = (num_points, 1)
+        coordinates_x = torch.full(shape, self._x_min, requires_grad=True)
         coordinates_y = torch.linspace(
             self._y_min, self._y_max, num_points, requires_grad=True
         ).view(num_points, 1)
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
-        normals = torch.tensor([-1.0, 0.0]).repeat((num_points, 1))
+        normals = torch.tensor([-1.0, 0.0]).repeat(shape)
         return coordinates, normals
 
     def create_uniform_points_on_top_boundary(
         self, num_points: int
     ) -> tuple[Tensor, Tensor]:
+        shape = (num_points, 1)
         coordinates_x = torch.linspace(
             self._x_min, self._x_max, num_points, requires_grad=True
         ).view(num_points, 1)
-        coordinates_y = torch.full((num_points, 1), self._y_max, requires_grad=True)
+        coordinates_y = torch.full(shape, self._y_max, requires_grad=True)
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
-        normals = torch.tensor([-1.0, 0.0]).repeat((num_points, 1))
+        normals = torch.tensor([0.0, 1.0]).repeat(shape)
         return coordinates, normals
 
     def create_uniform_points_on_hole_boundary(

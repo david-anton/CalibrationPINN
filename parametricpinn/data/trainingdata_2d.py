@@ -90,8 +90,21 @@ class TrainingDataset2D(Dataset):
     def _add_stress_bc_sample(
         self, youngs_modulus: float, poissons_ratio: float
     ) -> None:
-        shape_bcs = (self._num_points_per_stress_bc, 1)
-        shape_params = (self._num_stress_bcs * self._num_points_per_stress_bc, 1)
+        x_coor, normal = self._create_coordinates_and_normals_for_stress_bcs()
+        x_E, x_nu = self._create_parameters_for_stress_bcs(
+            youngs_modulus, poissons_ratio
+        )
+        y_true = self._create_tractions_for_stress_bcs()
+        sample = TrainingData2DStressBC(
+            x_coor=x_coor.detach(),
+            x_E=x_E.detach(),
+            x_nu=x_nu.detach(),
+            normal=normal.detach(),
+            y_true=y_true.detach(),
+        )
+        self._samples_stress_bc.append(sample)
+
+    def _create_coordinates_and_normals_for_stress_bcs(self) -> tuple[Tensor, Tensor]:
         (
             x_coor_left,
             normal_left,
@@ -107,26 +120,28 @@ class TrainingDataset2D(Dataset):
         ) = self._geometry.create_uniform_points_on_hole_boundary(
             self._num_points_per_stress_bc
         )
-        x_E = self._repeat_tensor(torch.tensor([youngs_modulus]), shape_params)
-        x_nu = self._repeat_tensor(torch.tensor([poissons_ratio]), shape_params)
         x_coor = torch.concat((x_coor_left, x_coor_top, x_coor_hole), dim=0)
         normal = torch.concat((normal_left, normal_top, normal_hole), dim=0)
-        y_true = torch.concat(
+        return x_coor, normal
+
+    def _create_parameters_for_stress_bcs(
+        self, youngs_modulus: float, poissons_ratio: float
+    ) -> tuple[Tensor, Tensor]:
+        shape = (self._num_stress_bcs * self._num_points_per_stress_bc, 1)
+        x_E = self._repeat_tensor(torch.tensor([youngs_modulus]), shape)
+        x_nu = self._repeat_tensor(torch.tensor([poissons_ratio]), shape)
+        return x_E, x_nu
+
+    def _create_tractions_for_stress_bcs(self) -> Tensor:
+        shape = (self._num_points_per_stress_bc, 1)
+        return torch.concat(
             (
-                self._traction_left.repeat(shape_bcs),
-                self._traction_top.repeat(shape_bcs),
-                self._traction_hole.repeat(shape_bcs),
+                self._traction_left.repeat(shape),
+                self._traction_top.repeat(shape),
+                self._traction_hole.repeat(shape),
             ),
             dim=0,
         )
-        sample = TrainingData2DStressBC(
-            x_coor=x_coor.detach(),
-            x_E=x_E.detach(),
-            x_nu=x_nu.detach(),
-            normal=normal.detach(),
-            y_true=y_true.detach(),
-        )
-        self._samples_stress_bc.append(sample)
 
     def __len__(self) -> int:
         return self._num_samples_per_parameter**2
