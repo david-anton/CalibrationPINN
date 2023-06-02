@@ -1,5 +1,7 @@
+import numpy as np
 import pytest
 import torch
+from shapely.geometry import Point, Polygon, box
 
 from parametricpinn.data import (
     TrainingData2DPDE,
@@ -7,64 +9,82 @@ from parametricpinn.data import (
     TrainingDataset2D,
     collate_training_data_2D,
 )
+from parametricpinn.data.geometry import PlateWithHole
 from parametricpinn.types import Tensor
 
-traction_left = torch.tensor([1.0, 1.0])
-normal_left = torch.tensor([2.0, 2.0])
-volume_foce = torch.tensor([3.0, 3.0])
-min_youngs_modulus = 5.0
-max_youngs_modulus = 6.0
-min_poissons_ratio = 7.0
-max_poissons_ratio = 8.0
-num_points_pde = 4
-num_points_stress_bc = 3
+edge_length = 10.0
+radius = 1.0
+x_min = -edge_length
+x_max = 0.0
+y_min = 0.0
+y_max = edge_length
+volume_foce = torch.tensor([10.0, 10.0])
+min_youngs_modulus = 180000.0
+max_youngs_modulus = 240000.0
+min_poissons_ratio = 0.2
+max_poissons_ratio = 0.4
+traction_left = torch.tensor([-100.0, 0.0])
+traction_top = torch.tensor([0.0, 0.0])
+traction_hole = torch.tensor([0.0, 0.0])
 num_samples_per_parameter = 2
 num_samples = num_samples_per_parameter**2
-
-
-class FakeGeometry2D:
-    def create_random_points(self, num_points: int) -> Tensor:
-        return torch.tensor([[0.0, 0.0], [10.0, 10.0]])
-
-    def create_uniform_points_on_left_boundary(self, num_points):
-        return torch.tensor([[0.0, 0.0], [0.0, 10.0]])
-
-
-def generate_expected_x_youngs_modulus(num_points: int):
-    return [
-        (0, torch.tensor([min_youngs_modulus]).repeat(num_points, 1)),
-        (1, torch.tensor([min_youngs_modulus]).repeat(num_points, 1)),
-        (2, torch.tensor([max_youngs_modulus]).repeat(num_points, 1)),
-        (3, torch.tensor([max_youngs_modulus]).repeat(num_points, 1)),
-    ]
-
-
-def generate_expected_x_poissons_ratio(num_points: int):
-    return [
-        (0, torch.tensor([min_poissons_ratio]).repeat(num_points, 1)),
-        (1, torch.tensor([max_poissons_ratio]).repeat(num_points, 1)),
-        (2, torch.tensor([min_poissons_ratio]).repeat(num_points, 1)),
-        (3, torch.tensor([max_poissons_ratio]).repeat(num_points, 1)),
-    ]
+num_points_pde = 3
+num_points_per_stress_bc = 3
+num_points_stress_bcs = 3 * num_points_per_stress_bc
 
 
 ### Test TrainingDataset1D
+def _create_plate_with_hole_shape() -> Polygon:
+    plate = box(x_min, x_max, y_min, y_max)
+    hole = Point(0, 0).buffer(radius)
+    return plate.difference(hole)
+
+
+geometry = PlateWithHole(edge_length=edge_length, radius=radius)
+shape = _create_plate_with_hole_shape()
+
+
 @pytest.fixture
 def sut() -> TrainingDataset2D:
-    fake_geometry = FakeGeometry2D()
+    fake_geometry = geometry
     return TrainingDataset2D(
         geometry=fake_geometry,
         traction_left=traction_left,
-        normal_left=normal_left,
         volume_force=volume_foce,
         min_youngs_modulus=min_youngs_modulus,
         max_youngs_modulus=max_youngs_modulus,
         min_poissons_ratio=min_poissons_ratio,
         max_poissons_ratio=max_poissons_ratio,
         num_points_pde=num_points_pde,
-        num_points_stress_bc=num_points_stress_bc,
+        num_points_per_stress_bc=num_points_per_stress_bc,
         num_samples_per_parameter=num_samples_per_parameter,
     )
+
+
+def assert_if_coordinates_are_inside_shape(coordinates: Tensor) -> bool:
+    coordinates_list = coordinates.tolist()
+    for one_coordinate in coordinates_list:
+        if not shape.contains(Point(one_coordinate[0], one_coordinate[1])):
+            return False
+    return True
+
+
+def generate_expected_x_youngs_modulus(num_points: int):
+    return [
+        (0, torch.full((num_points, 1), min_youngs_modulus)),
+        (1, torch.full((num_points, 1), min_youngs_modulus)),
+        (2, torch.full((num_points, 1), max_youngs_modulus)),
+        (3, torch.full((num_points, 1), max_youngs_modulus)),
+    ]
+
+
+def generate_expected_x_poissons_ratio(num_points: int):
+    return [
+        (0, torch.full((num_points, 1), min_poissons_ratio)),
+        (1, torch.full((num_points, 1), max_poissons_ratio)),
+        (2, torch.full((num_points, 1), min_poissons_ratio)),
+        (3, torch.full((num_points, 1), max_poissons_ratio)),
+    ]
 
 
 def test_len(sut: TrainingDataset2D) -> None:
@@ -80,8 +100,7 @@ def test_sample_pde__x_coordinates(sut: TrainingDataset2D, idx_sample: int) -> N
 
     actual = sample_pde.x_coor
 
-    expected = torch.tensor([[0.0, 0.0], [10.0, 10.0]])
-    torch.testing.assert_close(actual, expected)
+    assert assert_if_coordinates_are_inside_shape(actual)
 
 
 @pytest.mark.parametrize(
@@ -140,13 +159,28 @@ def test_sample_stress_bc__x_coordinates(
 
     actual = sample_stress_bc.x_coor
 
-    expected = torch.tensor([[0.0, 0.0], [0.0, 10.0]])
+    expected = torch.tensor(
+        [
+            [-edge_length, 0.0],
+            [-edge_length, edge_length / 2],
+            [-edge_length, edge_length],
+            [-edge_length, edge_length],
+            [-edge_length / 2, edge_length],
+            [0.0, edge_length],
+            [-radius, 0.0],
+            [
+                -torch.cos(torch.deg2rad(torch.tensor(45))) * radius,
+                torch.sin(torch.deg2rad(torch.tensor(45))) * radius,
+            ],
+            [0.0, radius],
+        ]
+    )
     torch.testing.assert_close(actual, expected)
 
 
 @pytest.mark.parametrize(
     ("idx_sample", "expected"),
-    generate_expected_x_youngs_modulus(num_points_stress_bc),
+    generate_expected_x_youngs_modulus(num_points_stress_bcs),
 )
 def test_sample_stress_bc__x_youngs_modulus(
     sut: TrainingDataset2D, idx_sample: int, expected: Tensor
@@ -154,12 +188,13 @@ def test_sample_stress_bc__x_youngs_modulus(
     _, sample_stress_bc = sut[idx_sample]
 
     actual = sample_stress_bc.x_E
+
     torch.testing.assert_close(actual, expected)
 
 
 @pytest.mark.parametrize(
     ("idx_sample", "expected"),
-    generate_expected_x_poissons_ratio(num_points_stress_bc),
+    generate_expected_x_poissons_ratio(num_points_stress_bcs),
 )
 def test_sample_stress_bc__x_poissons_ratio(
     sut: TrainingDataset2D, idx_sample: int, expected: Tensor
@@ -176,7 +211,19 @@ def test_sample_stress_bc__normal(sut: TrainingDataset2D, idx_sample: int) -> No
 
     actual = sample_stress_bc.normal
 
-    expected = normal_left.repeat((num_points_stress_bc, 1))
+    expected = torch.tensor(
+        [
+            [-1.0, 0.0],
+            [-1.0, 0.0],
+            [-1.0, 0.0],
+            [0.0, 1.0],
+            [0.0, 1.0],
+            [0.0, 1.0],
+            [1.0, 0.0],
+            [torch.sqrt(torch.tensor(0.5)), -torch.sqrt(torch.tensor(0.5))],
+            [0.0, -1.0],
+        ]
+    )
     torch.testing.assert_close(actual, expected)
 
 
@@ -186,7 +233,20 @@ def test_sample_stress_bc__y_true(sut: TrainingDataset2D, idx_sample: int) -> No
 
     actual = sample_stress_bc.y_true
 
-    expected = traction_left.repeat((num_points_stress_bc, 1))
+    expected = torch.stack(
+        (
+            traction_left,
+            traction_left,
+            traction_left,
+            traction_top,
+            traction_top,
+            traction_top,
+            traction_hole,
+            traction_hole,
+            traction_hole,
+        ),
+        dim=0,
+    )
     torch.testing.assert_close(actual, expected)
 
 
