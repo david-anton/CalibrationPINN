@@ -41,8 +41,6 @@ edge_length = 100.0
 radius = 10.0
 traction_left_x = -100.0
 traction_left_y = 0.0
-normal_left_x = -1.0
-normal_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
 min_youngs_modulus = 180000.0
@@ -54,9 +52,9 @@ layer_sizes = [4, 32, 32, 32, 32, 2]
 # Training
 num_samples_per_parameter = 128
 num_points_pde = 256
-num_points_stress_bc = 64
-batch_size_train = 512
-num_epochs = 500
+num_points_per_stress_bc = 64
+batch_size_train = 2048
+num_epochs = 1000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
 regenerate_valid_data = False
@@ -68,7 +66,9 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_pwh_pde_points_256_parameters_128_batchsize_512"
+output_subdir = (
+    f"{current_date}_parametric_pinn_pwh_pde_points_256_parameters_128_batchsize_2048"
+)
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -86,7 +86,6 @@ device = get_device()
 momentum_equation_func = momentum_equation_func_factory(model)
 traction_func = traction_func_factory(model)
 traction_left = torch.tensor([traction_left_x, traction_left_y])
-normal_left = torch.tensor([normal_left_x, normal_left_y])
 volume_force = torch.tensor([volume_force_x, volume_force_y])
 
 
@@ -232,14 +231,13 @@ if __name__ == "__main__":
         edge_length=edge_length,
         radius=radius,
         traction_left=traction_left,
-        normal_left=normal_left,
         volume_force=volume_force,
         min_youngs_modulus=min_youngs_modulus,
         max_youngs_modulus=max_youngs_modulus,
         min_poissons_ratio=min_poissons_ratio,
         max_poissons_ratio=max_poissons_ratio,
         num_points_pde=num_points_pde,
-        num_points_stress_bc=num_points_stress_bc,
+        num_points_per_stress_bc=num_points_per_stress_bc,
         num_samples_per_parameter=num_samples_per_parameter,
     )
     train_dataloader = DataLoader(
