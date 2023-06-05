@@ -10,6 +10,10 @@ from scipy.interpolate import griddata
 from parametricpinn.fem.platewithhole import run_simulation
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Module, NPArray, PLTAxes, PLTFigure
+from settings import get_device
+
+
+device = get_device()
 
 
 class DisplacementsPlotterConfigPWH:
@@ -93,7 +97,6 @@ def plot_displacements_pwh(
     mesh_resolution=0.5,
 ) -> None:
     ansatz.eval()
-    ansatz.cpu()
     for parameters in youngs_modulus_and_poissons_ratio:
         youngs_modulus = parameters[0]
         poissons_ratio = parameters[1]
@@ -212,10 +215,10 @@ def _run_prametric_pinn(
             torch.tensor(poissons_ratio).repeat(coordinates.size(dim=0), 1),
         ),
         dim=1,
-    )
+    ).to(device)
     with torch.no_grad():
         outputs = ansatz(inputs)
-    outputs = outputs.numpy()
+    outputs = outputs.detach().cpu().numpy()
     displacements_x = outputs[:, 0].reshape((-1, 1))
     displacements_y = outputs[:, 1].reshape((-1, 1))
     return displacements_x, displacements_y
