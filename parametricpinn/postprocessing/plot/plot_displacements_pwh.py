@@ -5,10 +5,11 @@ import numpy as np
 import torch
 from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
+from scipy.interpolate import griddata
 
 from parametricpinn.fem.platewithhole import run_simulation
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.types import Module, NPArray, Tensor
+from parametricpinn.types import Module, NPArray, PLTFigure
 
 
 class DisplacementsPlotterConfigPWH:
@@ -40,6 +41,9 @@ class DisplacementsPlotterConfigPWH:
         # legend
         self.ticks_max_number_of_intervals = 255
         self.num_cbar_ticks = 7
+
+        # resolution of results
+        num_points_per_edge = 128
 
         # save options
         self.dpi = 300
@@ -261,6 +265,41 @@ def _create_ticks(
     return ticks
 
 
+def _generate_coordinate_grid(
+    coordinates_x: NPArray,
+    coordinates_y: NPArray,
+    plot_comfig: DisplacementsPlotterConfigPWH,
+) -> list[NPArray]:
+    grid_coordinates_x = np.linspace(
+        np.amin(coordinates_x),
+        np.amax(coordinates_x),
+        num=plot_comfig.num_points_per_edge,
+    )
+    grid_coordinates_y = np.linspace(
+        np.amin(coordinates_y),
+        np.amax(coordinates_y),
+        num=plot_comfig.num_points_per_edge,
+    )
+    return np.meshgrid(grid_coordinates_x, grid_coordinates_y)
+
+
+def _interpolate_results_on_grid(
+    results: NPArray,
+    coordinates_x: NPArray,
+    coordinates_y: NPArray,
+    coordinates_grid_x: NPArray,
+    coordinates_grid_y: NPArray,
+) -> NPArray:
+    results = results.reshape((-1,))
+    coordinates = np.concatenate((coordinates_x, coordinates_y), axis=1)
+    return griddata(
+        coordinates,
+        results,
+        (coordinates_grid_x, coordinates_grid_y),
+        method="linear",
+    )
+
+
 def _plot_once(
     results: NPArray,
     coordinates_x: NPArray,
@@ -269,7 +308,7 @@ def _plot_once(
     normalizer: BoundaryNorm,
     cbar_ticks: list[float],
     plot_config: DisplacementsPlotterConfigPWH,
-) -> None:
+) -> PLTFigure:
     figure, axes = plt.subplots()
     ################################################################################
     axes.set_title(title, pad=plot_config.title_pad, **plot_config.font)
@@ -296,3 +335,20 @@ def _plot_once(
     axes.set_yticklabels(map(str, y_ticks))
     axes.tick_params(axis="both", which="major", pad=15)
     ################################################################################
+    results_cut = _cut_result_grid(results)
+    plot = axes.pcolormesh(
+        coordinates_x,
+        coordinates_y,
+        results_cut,
+        cmap=plt.get_cmap(plot_config.color_map),
+        norm=normalizer,
+    )
+    cbar = figure.colorbar(mappable=plot, ax=axes, ticks=cbar_ticks)
+    cbar.ax.set_yticklabels(map(str, cbar_ticks))
+    cbar.ax.minorticks_off()
+    figure.axes[1].tick_params(labelsize=plot_config.font_size)
+    return figure
+
+
+def _cut_result_grid(result_grid: NPArray) -> NPArray:
+    return result_grid[:-1, :-1]

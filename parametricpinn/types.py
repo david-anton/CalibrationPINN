@@ -6,6 +6,7 @@ import numpy.typing as npt
 import pandas as pd
 import torch
 import torch.nn as nn
+from matplotlib import figure
 
 # Pytorch
 Tensor: TypeAlias = torch.Tensor
@@ -23,6 +24,9 @@ NPArray: TypeAlias = Union[
 
 # Pandas
 PDDataFrame: TypeAlias = pd.DataFrame
+
+# Matplotlib
+PLTFigure: TypeAlias = figure.Figure
 
 
 # dataclass
