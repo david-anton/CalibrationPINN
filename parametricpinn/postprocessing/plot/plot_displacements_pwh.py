@@ -14,6 +14,8 @@ from parametricpinn.types import Module, NPArray, PLTAxes, PLTFigure
 
 class DisplacementsPlotterConfigPWH:
     def __init__(self) -> None:
+        # label size
+        self.label_size = 16
         # font size in legend
         self.font_size = 16
         self.font = {"size": self.label_size}
@@ -23,7 +25,7 @@ class DisplacementsPlotterConfigPWH:
         self.x_label = "x [mm]"
         self.y_label = "y [mm]"
         # major ticks
-        self.major_tick_label_size = 20
+        self.major_tick_label_size = 16
         self.major_ticks_size = self.font_size
         self.major_ticks_width = 2
         # minor ticks
@@ -38,7 +40,7 @@ class DisplacementsPlotterConfigPWH:
         self.ticks_max_number_of_intervals = 255
         self.num_cbar_ticks = 7
         # resolution of results
-        num_points_per_edge = 128
+        self.num_points_per_edge = 128
         # save options
         self.dpi = 300
         self.file_format = "pdf"
@@ -206,16 +208,16 @@ def _run_prametric_pinn(
     inputs = torch.concat(
         (
             coordinates,
-            youngs_modulus.repeat(coordinates.size(dim=0), 1),
-            poissons_ratio.repeat(coordinates.size(dim=0), 1),
+            torch.tensor(youngs_modulus).repeat(coordinates.size(dim=0), 1),
+            torch.tensor(poissons_ratio).repeat(coordinates.size(dim=0), 1),
         ),
         dim=1,
     )
     with torch.no_grad():
         outputs = ansatz(inputs)
     outputs = outputs.numpy()
-    displacements_x = outputs[:, 0]
-    displacements_y = outputs[:, 1]
+    displacements_x = outputs[:, 0].reshape((-1, 1))
+    displacements_y = outputs[:, 1].reshape((-1, 1))
     return displacements_x, displacements_y
 
 
@@ -240,7 +242,7 @@ def _plot_results(
         fem_displacements=simulation_results.fem_displacements_x,
         coordinates_x=simulation_results.coordinates_x,
         coordinates_y=simulation_results.coordinates_y,
-        title=r"$Displacements u_{x}$",
+        title=r"Displacements $u_{x}$",
         file_name_identifier="displacements_x",
         output_subdir=output_subdir,
         project_directory=project_directory,
@@ -252,7 +254,7 @@ def _plot_results(
         fem_displacements=simulation_results.fem_displacements_y,
         coordinates_x=simulation_results.coordinates_x,
         coordinates_y=simulation_results.coordinates_y,
-        title=r"$Displacements u_{y}$",
+        title=r"Displacements $u_{y}$",
         file_name_identifier="displacements_y",
         output_subdir=output_subdir,
         project_directory=project_directory,
@@ -263,7 +265,7 @@ def _plot_results(
         errors=simulation_results.re_displacements_x,
         coordinates_x=simulation_results.coordinates_x,
         coordinates_y=simulation_results.coordinates_y,
-        title=r"$Relative error u_{x}$",
+        title=r"Relative error $u_{x}$",
         file_name_identifier="relative_error_x",
         output_subdir=output_subdir,
         project_directory=project_directory,
@@ -274,7 +276,7 @@ def _plot_results(
         errors=simulation_results.re_displacements_y,
         coordinates_x=simulation_results.coordinates_x,
         coordinates_y=simulation_results.coordinates_y,
-        title=r"$Relative error u_{y}$",
+        title=r"Relative error $u_{y}$",
         file_name_identifier="relative_error_y",
         output_subdir=output_subdir,
         project_directory=project_directory,
@@ -295,11 +297,11 @@ def _plot_simulation_and_prediction(
     plot_config: DisplacementsPlotterConfigPWH,
     simulation_config: SimulationConfig,
 ) -> None:
-    composed_results = np.stack((pinn_displacements, fem_displacements))
+    composed_results = np.concatenate((pinn_displacements, fem_displacements), axis=0)
     normalizer = _create_normalizer(composed_results, plot_config)
     ticks = _create_ticks(composed_results, plot_config)
     coordinates_grid_x, coordinates_grid_y = _generate_coordinate_grid(
-        coordinates_x, coordinates_y, plot_config
+        simulation_config, plot_config
     )
     interpolated_pinn_displacements = _interpolate_results_on_grid(
         pinn_displacements,
@@ -323,6 +325,7 @@ def _plot_simulation_and_prediction(
         normalizer,
         ticks,
         plot_config,
+        simulation_config,
     )
     figure_fem = _plot_once(
         interpolated_fem_displacements,
@@ -332,15 +335,12 @@ def _plot_simulation_and_prediction(
         normalizer,
         ticks,
         plot_config,
+        simulation_config,
     )
     youngs_modulus = round(simulation_config.youngs_modulus, 2)
     poissons_ratio = round(simulation_config.poissons_ratio, 4)
-    file_name_pinn = (
-        f"plot_{file_name_identifier}_PINN_E_{youngs_modulus}_nu_{poissons_ratio}"
-    )
-    file_name_fem = (
-        f"plot_{file_name_identifier}_FEM_E_{youngs_modulus}_nu_{poissons_ratio}"
-    )
+    file_name_pinn = f"plot_{file_name_identifier}_PINN_E_{youngs_modulus}_nu_{poissons_ratio}.{plot_config.file_format}"
+    file_name_fem = f"plot_{file_name_identifier}_FEM_E_{youngs_modulus}_nu_{poissons_ratio}.{plot_config.file_format}"
     _save_plot(
         figure_pinn, file_name_pinn, output_subdir, project_directory, plot_config
     )
@@ -361,7 +361,7 @@ def _plot_errors(
     normalizer = _create_normalizer(errors, plot_config)
     ticks = _create_ticks(errors, plot_config)
     coordinates_grid_x, coordinates_grid_y = _generate_coordinate_grid(
-        coordinates_x, coordinates_y, plot_config
+        simulation_config, plot_config
     )
     interpolated_errors = _interpolate_results_on_grid(
         errors,
@@ -378,10 +378,11 @@ def _plot_errors(
         normalizer,
         ticks,
         plot_config,
+        simulation_config,
     )
     youngs_modulus = round(simulation_config.youngs_modulus, 2)
     poissons_ratio = round(simulation_config.poissons_ratio, 4)
-    file_name = f"plot_{file_name_identifier}_E_{youngs_modulus}_nu_{poissons_ratio}"
+    file_name = f"plot_{file_name_identifier}_E_{youngs_modulus}_nu_{poissons_ratio}.{plot_config.file_format}"
     _save_plot(figure, file_name, output_subdir, project_directory, plot_config)
 
 
@@ -412,18 +413,17 @@ def _create_ticks(
 
 
 def _generate_coordinate_grid(
-    coordinates_x: NPArray,
-    coordinates_y: NPArray,
+    simulation_config: SimulationConfig,
     plot_config: DisplacementsPlotterConfigPWH,
 ) -> list[NPArray]:
     grid_coordinates_x = np.linspace(
-        np.amin(coordinates_x),
-        np.amax(coordinates_x),
+        -simulation_config.edge_length,
+        0.0,
         num=plot_config.num_points_per_edge,
     )
     grid_coordinates_y = np.linspace(
-        np.amin(coordinates_y),
-        np.amax(coordinates_y),
+        0.0,
+        simulation_config.edge_length,
         num=plot_config.num_points_per_edge,
     )
     return np.meshgrid(grid_coordinates_x, grid_coordinates_y)
@@ -442,7 +442,7 @@ def _interpolate_results_on_grid(
         coordinates,
         results,
         (coordinates_grid_x, coordinates_grid_y),
-        method="linear",
+        method="cubic",
     )
 
 
@@ -454,6 +454,7 @@ def _plot_once(
     normalizer: BoundaryNorm,
     cbar_ticks: list[float],
     plot_config: DisplacementsPlotterConfigPWH,
+    simulation_config: SimulationConfig,
 ) -> PLTFigure:
     figure, axes = plt.subplots()
 
@@ -478,9 +479,9 @@ def _plot_once(
         axes.set_xlim(x_min, x_max)
         axes.set_ylim(y_min, y_max)
         axes.set_xticks(x_ticks)
-        axes.set_xticklabels(map(str, x_ticks))
+        axes.set_xticklabels(map(str, x_ticks.round(decimals=2)))
         axes.set_yticks(y_ticks)
-        axes.set_yticklabels(map(str, y_ticks))
+        axes.set_yticklabels(map(str, y_ticks.round(decimals=2)))
         axes.tick_params(axis="both", which="major", pad=15)
 
     def _configure_color_bar(figure: PLTFigure) -> None:
@@ -488,6 +489,14 @@ def _plot_once(
         cbar.ax.set_yticklabels(map(str, cbar_ticks))
         cbar.ax.minorticks_off()
         figure.axes[1].tick_params(labelsize=plot_config.font_size)
+
+    def _add_hole(axes: PLTAxes) -> None:
+        hole = plt.Circle(
+            (0.0, 0.0),
+            radius=simulation_config.radius,
+            color="white",
+        )
+        axes.add_patch(hole)
 
     _set_title_and_labels(axes)
     _configure_ticks(axes)
@@ -500,6 +509,7 @@ def _plot_once(
         norm=normalizer,
     )
     _configure_color_bar(figure)
+    _add_hole(axes)
     return figure
 
 
@@ -514,10 +524,10 @@ def _save_plot(
     project_directory: ProjectDirectory,
     plot_config: DisplacementsPlotterConfigPWH,
 ) -> None:
-    save_path = project_directory.get_output_file_path(file_name, output_subdir)
+    save_path = project_directory.create_output_file_path(file_name, output_subdir)
     figure.savefig(
         save_path,
-        format=plot_config.save_format,
+        format=plot_config.file_format,
         bbox_inches="tight",
         dpi=plot_config.dpi,
     )
