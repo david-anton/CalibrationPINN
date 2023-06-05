@@ -14,7 +14,7 @@ from parametricpinn.types import Module, NPArray, Tensor
 class DisplacementsPlotterConfigPWH:
     def __init__(self) -> None:
         # font sizes
-        #self.label_size = 20
+        # self.label_size = 20
         # font size in legend
         self.font_size = 16
         self.font = {"size": self.label_size}
@@ -234,7 +234,10 @@ def _plot_results(
 ) -> None:
     pass
 
-def _create_normalizer(results: NPArray, plot_config: DisplacementsPlotterConfigPWH) -> BoundaryNorm:
+
+def _create_normalizer(
+    results: NPArray, plot_config: DisplacementsPlotterConfigPWH
+) -> BoundaryNorm:
     min_value = np.nanmin(results)
     max_value = np.nanmax(results)
     tick_values = MaxNLocator(
@@ -244,13 +247,14 @@ def _create_normalizer(results: NPArray, plot_config: DisplacementsPlotterConfig
         tick_values, ncolors=plt.get_cmap(plot_config.color_map).N, clip=True
     )
 
-def _create_ticks(results: NPArray, plot_config: DisplacementsPlotterConfigPWH) -> list[float]:
+
+def _create_ticks(
+    results: NPArray, plot_config: DisplacementsPlotterConfigPWH
+) -> list[float]:
     min_value = np.nanmin(results)
     max_value = np.nanmax(results)
     ticks = (
-        np.linspace(
-            min_value, max_value, num=plot_config.num_cbar_ticks, endpoint=True
-        )
+        np.linspace(min_value, max_value, num=plot_config.num_cbar_ticks, endpoint=True)
         .round(decimals=4)
         .tolist()
     )
@@ -292,4 +296,3 @@ def _plot_once(
     axes.set_yticklabels(map(str, y_ticks))
     axes.tick_params(axis="both", which="major", pad=15)
     ################################################################################
-    
