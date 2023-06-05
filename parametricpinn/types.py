@@ -6,7 +6,7 @@ import numpy.typing as npt
 import pandas as pd
 import torch
 import torch.nn as nn
-from matplotlib import figure
+from matplotlib import axes, figure
 
 # Pytorch
 Tensor: TypeAlias = torch.Tensor
@@ -27,6 +27,7 @@ PDDataFrame: TypeAlias = pd.DataFrame
 
 # Matplotlib
 PLTFigure: TypeAlias = figure.Figure
+PLTAxes: TypeAlias = axes.Axes
 
 
 # dataclass
