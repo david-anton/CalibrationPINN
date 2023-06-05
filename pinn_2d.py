@@ -22,7 +22,9 @@ from parametricpinn.fem.platewithhole import run_simulation
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN, create_normalized_network
 from parametricpinn.postprocessing.plot import (
+    DisplacementsPlotterConfigPWH,
     HistoryPlotterConfig,
+    plot_displacements_pwh,
     plot_loss_history,
     plot_valid_history,
 )
@@ -57,7 +59,7 @@ batch_size_train = 1
 num_epochs = 1000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20230605_validation_data_E_210000_nu_03"
 num_samples_valid = 1
 valid_interval = 1
@@ -373,4 +375,22 @@ if __name__ == "__main__":
         output_subdir=output_subdir,
         project_directory=project_directory,
         config=history_plotter_config,
+    )
+
+    displacements_plotter_config = DisplacementsPlotterConfigPWH()
+
+    plot_displacements_pwh(
+        ansatz=ansatz,
+        youngs_modulus_and_poissons_ratio=[(210000, 0.3)],
+        model=model,
+        edge_length=edge_length,
+        radius=radius,
+        volume_force_x=volume_force_x,
+        volume_force_y=volume_force_y,
+        traction_left_x=traction_left_x,
+        traction_left_y=traction_left_y,
+        output_subdir=output_subdir,
+        project_directory=project_directory,
+        plot_config=displacements_plotter_config,
+        mesh_resolution=1,
     )
