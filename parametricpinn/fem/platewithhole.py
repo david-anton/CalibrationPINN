@@ -110,7 +110,7 @@ def run_simulation(
     element_family: str = "Lagrange",
     element_degree: int = 1,
     mesh_resolution: float = 1,
-) -> None:
+) -> SimulationResults:
     simulation_config = PWHSimulationConfig(
         model=model,
         youngs_modulus=youngs_modulus,

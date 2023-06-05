@@ -43,7 +43,7 @@ layer_sizes = [2, 16, 16, 1]
 num_samples_train = 128
 num_points_pde = 128
 batch_size_train = num_samples_train
-num_epochs = 120
+num_epochs = 100
 loss_metric = torch.nn.MSELoss()
 # Validation
 num_samples_valid = 128
@@ -278,7 +278,6 @@ if __name__ == "__main__":
         youngs_modulus=187634,
         traction=traction,
         volume_force=volume_force,
-        file_name="displacements_pinn_E_187634.png",
         output_subdir=output_subdir,
         project_directory=project_directory,
         config=displacements_plotter_config,
@@ -290,7 +289,6 @@ if __name__ == "__main__":
         youngs_modulus=238356,
         traction=traction,
         volume_force=volume_force,
-        file_name="displacements_pinn_E_238356.png",
         output_subdir=output_subdir,
         project_directory=project_directory,
         config=displacements_plotter_config,

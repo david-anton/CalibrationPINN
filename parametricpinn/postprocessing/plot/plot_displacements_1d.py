@@ -37,7 +37,6 @@ def plot_displacements_1D(
     youngs_modulus: float,
     traction: float,
     volume_force: float,
-    file_name: str,
     output_subdir: str,
     project_directory: ProjectDirectory,
     config: DisplacementsPlotterConfig1D,
@@ -67,6 +66,7 @@ def plot_displacements_1D(
     axes.tick_params(axis="both", which="minor", labelsize=config.minor_tick_label_size)
     axes.tick_params(axis="both", which="major", labelsize=config.major_tick_label_size)
     axes.legend(fontsize=config.font_size, loc="best")
+    file_name = f"displacements_pinn_E_{youngs_modulus}.png"
     output_path = project_directory.create_output_file_path(
         file_name=file_name, subdir_name=output_subdir
     )

@@ -66,9 +66,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = (
-    f"{current_date}_parametric_pinn_E_210000_nu_03"
-)
+output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
