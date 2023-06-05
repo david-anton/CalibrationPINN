@@ -11,6 +11,8 @@ class LinearHiddenLayer(nn.Module):
             out_features=size_output,
             bias=True,
         )
+        nn.init.xavier_uniform_(self._fc_layer.weight)
+        nn.init.zeros_(self._fc_layer.bias)
         self._activation = nn.Tanh()
 
     def forward(self, x: Tensor) -> Tensor:
@@ -25,6 +27,8 @@ class LinearOutputLayer(nn.Module):
             out_features=size_output,
             bias=True,
         )
+        nn.init.xavier_uniform_(self._fc_layer.weight)
+        nn.init.zeros_(self._fc_layer.bias)
 
     def forward(self, x: Tensor) -> Tensor:
         return self._fc_layer(x)
@@ -34,7 +38,10 @@ class FFNN(nn.Module):
     def __init__(self, layer_sizes: list[int]) -> None:
         super().__init__()
         self._layer_sizes = layer_sizes
+        layers = self._nest_layers()
+        self._output = nn.Sequential(*layers)
 
+    def _nest_layers(self) -> list[nn.Module]:
         layers: list[nn.Module] = [
             LinearHiddenLayer(
                 size_input=self._layer_sizes[i - 1],
@@ -48,8 +55,7 @@ class FFNN(nn.Module):
             size_output=self._layer_sizes[-1],
         )
         layers.append(layer_out)
-
-        self._output = nn.Sequential(*layers)
+        return layers
 
     def forward(self, x: Tensor) -> Tensor:
         return self._output(x)
