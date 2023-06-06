@@ -41,7 +41,7 @@ from parametricpinn.types import Module, Tensor
 model = "plane stress"
 edge_length = 100.0
 radius = 10.0
-traction_left_x = 100.0
+traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
