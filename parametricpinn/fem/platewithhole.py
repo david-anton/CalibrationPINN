@@ -306,6 +306,23 @@ def _load_mesh_from_gmsh_model(gmesh: GMesh) -> Mesh:
     return mesh
 
 
+class NeumannBC:
+    def __init__(
+        self, tag: int, value: BCValue, measure: UFLMeasure, test_func: DTestFunction
+    ) -> None:
+        self.bc = dot(value, test_func) * measure(tag)
+
+
+class DirichletBC:
+    def __init__(
+        self, dofs: DDofs, value: BCValue, dim: int, func_space: DFunctionSpace
+    ) -> None:
+        self.bc = dirichletbc(value, dofs, func_space.sub(dim))
+
+
+BoundaryConditions: TypeAlias = list[Union[DirichletBC, NeumannBC]]
+
+
 def _simulate_once(
     mesh: Mesh,
     config: Config,
