@@ -341,6 +341,8 @@ def _simulate_once(
 
     T_top = Constant(mesh, (ScalarType((traction_top_x, traction_top_y))))
     T_hole = Constant(mesh, (ScalarType((traction_hole_x, traction_hole_y))))
+    # The sign no longer refers to the coordinate system, but to the normal vector at the left edge.
+    # T_left = Constant(mesh, (ScalarType((-traction_left_x, traction_left_y))))
     T_left = Constant(mesh, (ScalarType((traction_left_x, traction_left_y))))
     u_x_right = ScalarType(0.0)
     u_y_bottom = ScalarType(0.0)
@@ -422,14 +424,14 @@ def _simulate_once(
             (tag_left, locate_left_facet),
         ]
 
-        facet_indices_list: list[npt.NDArray[np.int32]] = []
-        facet_tags_list: list[npt.NDArray[np.int32]] = []
+        facet_indices_list: list[npt.NDArray[np.int64]] = []
+        facet_tags_list: list[npt.NDArray[np.int64]] = []
         for tag, locator_func in boundaries:
             _facet_indices = locate_entities(mesh, bc_facets_dim, locator_func)
             facet_indices_list.append(_facet_indices)
             facet_tags_list.append(np.full_like(_facet_indices, tag))
-        facet_indices = np.hstack(facet_indices_list).astype(np.int32)
-        facet_tags = np.hstack(facet_tags_list).astype(np.int32)
+        facet_indices = np.hstack(facet_indices_list).astype(np.int64)
+        facet_tags = np.hstack(facet_tags_list).astype(np.int64)
         sorted_facet_indices = np.argsort(facet_indices)
         return meshtags(
             mesh,
@@ -457,15 +459,15 @@ def _simulate_once(
         ]
 
     def apply_boundary_conditions(
-        boundary_conditions: BoundaryConditions, F: UFLOperator
+        boundary_conditions: BoundaryConditions, L: UFLOperator
     ) -> tuple[list[DDirichletBC], UFLOperator]:
         dirichlet_bcs = []
         for condition in boundary_conditions:
             if isinstance(condition, DirichletBC):
                 dirichlet_bcs.append(condition.bc)
             else:
-                F += condition.bc
-        return dirichlet_bcs, F
+                L += condition.bc
+        return dirichlet_bcs, L
 
     def save_boundary_tags_as_xdmf(boundary_tags: DMeshTags) -> None:
         file_name = "boundary_tags.xdmf"
@@ -513,12 +515,15 @@ def _simulate_once(
     boundary_conditions = define_boundary_conditions(boundary_tags)
     sigma, epsilon = sigma_and_epsilon_factory()
 
-    F = inner(sigma(u), epsilon(w)) * dx - inner(w, f) * dx
+    # F = inner(sigma(u), epsilon(w)) * dx - inner(w, f) * dx
+    a = inner(sigma(u), epsilon(w)) * dx
+    L = inner(w, f) * dx
 
-    dirichlet_bcs, F = apply_boundary_conditions(boundary_conditions, F)
+    # dirichlet_bcs, F = apply_boundary_conditions(boundary_conditions, F)
+    dirichlet_bcs, L = apply_boundary_conditions(boundary_conditions, L)
 
-    a = lhs(F)
-    L = rhs(F)
+    # a = lhs(F)
+    # L = rhs(F)
     problem = LinearProblem(
         a, L, bcs=dirichlet_bcs, petsc_options={"ksp_type": "preonly", "pc_type": "lu"}
     )
