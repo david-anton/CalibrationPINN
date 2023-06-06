@@ -41,7 +41,7 @@ from parametricpinn.types import Module, Tensor
 model = "plane stress"
 edge_length = 100.0
 radius = 10.0
-traction_left_x = -100.0
+traction_left_x = 100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
@@ -59,8 +59,8 @@ batch_size_train = 1
 num_epochs = 1000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = "20230605_validation_data_E_210000_nu_03"
+regenerate_valid_data = True
+input_subdir_valid = "20230606_validation_data_E_210000_nu_03"
 num_samples_valid = 1
 valid_interval = 1
 num_points_valid = 1024
@@ -214,7 +214,6 @@ def determine_normalization_values() -> dict[str, Tensor]:
     max_displacement_y = 0.0
     min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
     max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
-
     return {
         "min_inputs": min_inputs.to(device),
         "max_inputs": max_inputs.to(device),
