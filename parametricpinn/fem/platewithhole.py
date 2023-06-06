@@ -10,11 +10,17 @@ import numpy.typing as npt
 import pandas as pd
 import petsc4py
 import ufl
-from dolfinx.fem import Constant, FunctionSpace, dirichletbc, locate_dofs_topological
+from dolfinx.fem import (
+    Constant,
+    Function,
+    FunctionSpace,
+    dirichletbc,
+    locate_dofs_topological,
+)
 from dolfinx.fem.petsc import LinearProblem
 from dolfinx.io import XDMFFile
 from dolfinx.io.gmshio import model_to_mesh
-from dolfinx.mesh import Mesh, locate_entities, meshtags
+from dolfinx.mesh import Mesh, locate_entities, locate_entities_boundary, meshtags
 from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
 from ufl import (
@@ -300,23 +306,6 @@ def _load_mesh_from_gmsh_model(gmesh: GMesh) -> Mesh:
     return mesh
 
 
-class NeumannBC:
-    def __init__(
-        self, tag: int, value: BCValue, measure: UFLMeasure, test_func: DTestFunction
-    ) -> None:
-        self.bc = inner(value, test_func) * measure(tag)
-
-
-class DirichletBC:
-    def __init__(
-        self, dofs: DDofs, value: BCValue, dim: int, func_space: DFunctionSpace
-    ) -> None:
-        self.bc = dirichletbc(value, dofs, func_space.sub(dim))
-
-
-BoundaryConditions: TypeAlias = list[Union[DirichletBC, NeumannBC]]
-
-
 def _simulate_once(
     mesh: Mesh,
     config: Config,
@@ -334,39 +323,51 @@ def _simulate_once(
     volume_force_y = config.volume_force_y
     traction_left_x = config.traction_left_x
     traction_left_y = config.traction_left_y
-    traction_top_x = traction_top_y = 0.0
-    traction_hole_x = traction_hole_y = 0.0
     element_family = config.element_family
     element_degree = config.element_degree
 
-    T_top = Constant(mesh, (ScalarType((traction_top_x, traction_top_y))))
-    T_hole = Constant(mesh, (ScalarType((traction_hole_x, traction_hole_y))))
-    # The sign no longer refers to the coordinate system, but to the normal vector at the left edge.
-    # T_left = Constant(mesh, (ScalarType((-traction_left_x, traction_left_y))))
     T_left = Constant(mesh, (ScalarType((traction_left_x, traction_left_y))))
     u_x_right = ScalarType(0.0)
     u_y_bottom = ScalarType(0.0)
     f = Constant(mesh, (ScalarType((volume_force_x, volume_force_y))))
     bc_facets_dim = mesh.topology.dim - 1
 
-    tag_top = 0
-    tag_right = 1
-    tag_hole = 2
-    tag_bottom = 3
-    tag_left = 4
-    locate_top_facet = lambda x: np.isclose(x[1], length)
-    locate_right_facet = lambda x: np.isclose(x[0], 0.0)
-    locate_hole_facet = lambda x: np.isclose(
-        np.sqrt(np.square(x[0]) + np.square(x[1])), radius
-    )
-    locate_bottom_facet = lambda x: np.isclose(x[1], 0.0)
-    locate_left_facet = lambda x: np.isclose(x[0], -length)
-
     element = VectorElement(element_family, mesh.ufl_cell(), element_degree)
     func_space = FunctionSpace(mesh, element)
-    x = SpatialCoordinate(mesh)
     u = TrialFunction(func_space)
     w = TestFunction(func_space)
+
+    tag_right = 0
+    tag_bottom = 1
+    tag_left = 2
+    locate_right_facet = lambda x: np.isclose(x[0], 0.0)
+    locate_bottom_facet = lambda x: np.isclose(x[1], 0.0)
+    locate_left_facet = lambda x: np.logical_and(np.isclose(x[0], -length), x[1] > 0.0)
+
+    def tag_boundaries() -> DMeshTags:
+        boundaries = [
+            (tag_right, locate_right_facet),
+            (tag_bottom, locate_bottom_facet),
+            (tag_left, locate_left_facet),
+        ]
+
+        facet_indices_list: list[npt.NDArray[np.int32]] = []
+        facet_tags_list: list[npt.NDArray[np.int32]] = []
+        for tag, locator_func in boundaries:
+            located_facet_indices = locate_entities_boundary(
+                mesh, bc_facets_dim, locator_func
+            )
+            facet_indices_list.append(located_facet_indices)
+            facet_tags_list.append(np.full_like(located_facet_indices, tag))
+        facet_indices = np.hstack(facet_indices_list).astype(np.int32)
+        facet_tags = np.hstack(facet_tags_list).astype(np.int32)
+        sorted_facet_indices = np.argsort(facet_indices)
+        return meshtags(
+            mesh,
+            bc_facets_dim,
+            facet_indices[sorted_facet_indices],
+            facet_tags[sorted_facet_indices],
+        )
 
     def sigma_and_epsilon_factory() -> tuple[UFLSigmaFunc, UFLEpsilonFunc]:
         compliance_matrix = None
@@ -415,66 +416,12 @@ def _simulate_once(
 
         return sigma, epsilon
 
-    def tag_boundaries() -> DMeshTags:
-        boundaries = [
-            (tag_top, locate_top_facet),
-            (tag_right, locate_right_facet),
-            (tag_hole, locate_hole_facet),
-            (tag_bottom, locate_bottom_facet),
-            (tag_left, locate_left_facet),
-        ]
-
-        facet_indices_list: list[npt.NDArray[np.int32]] = []
-        facet_tags_list: list[npt.NDArray[np.int32]] = []
-        for tag, locator_func in boundaries:
-            _facet_indices = locate_entities(mesh, bc_facets_dim, locator_func)
-            facet_indices_list.append(_facet_indices)
-            facet_tags_list.append(np.full_like(_facet_indices, tag))
-        facet_indices = np.hstack(facet_indices_list).astype(np.int32)
-        facet_tags = np.hstack(facet_tags_list).astype(np.int32)
-        sorted_facet_indices = np.argsort(facet_indices)
-        return meshtags(
-            mesh,
-            bc_facets_dim,
-            facet_indices[sorted_facet_indices],
-            facet_tags[sorted_facet_indices],
-        )
-
-    def define_boundary_conditions(
-        boundary_tags: DMeshTags,
-    ) -> BoundaryConditions:
-        facet_right = boundary_tags.find(tag_right)
-        dofs_right = locate_dofs_topological(func_space, bc_facets_dim, facet_right)
-        facet_bottom = boundary_tags.find(tag_bottom)
-        dofs_bottom = locate_dofs_topological(func_space, bc_facets_dim, facet_bottom)
-
-        return [
-            NeumannBC(tag=tag_top, value=T_top, measure=ds, test_func=w),
-            DirichletBC(dofs=dofs_right, value=u_x_right, dim=0, func_space=func_space),
-            NeumannBC(tag=tag_hole, value=T_hole, measure=ds, test_func=w),
-            DirichletBC(
-                dofs=dofs_bottom, value=u_y_bottom, dim=1, func_space=func_space
-            ),
-            NeumannBC(tag=tag_left, value=T_left, measure=ds, test_func=w),
-        ]
-
-    def apply_boundary_conditions(
-        boundary_conditions: BoundaryConditions, L: UFLOperator
-    ) -> tuple[list[DDirichletBC], UFLOperator]:
-        dirichlet_bcs = []
-        for condition in boundary_conditions:
-            if isinstance(condition, DirichletBC):
-                dirichlet_bcs.append(condition.bc)
-            else:
-                L += condition.bc
-        return dirichlet_bcs, L
-
     def save_boundary_tags_as_xdmf(boundary_tags: DMeshTags) -> None:
         file_name = "boundary_tags.xdmf"
         output_path = _join_output_path(
             project_directory, file_name, output_subdir, save_to_input_dir
         )
-        # mesh.topology.create_connectivity(mesh.topology.dim - 1, mesh.topology.dim)
+        mesh.topology.create_connectivity(mesh.topology.dim - 1, mesh.topology.dim)
         with XDMFFile(mesh.comm, output_path, "w") as xdmf:
             xdmf.write_mesh(mesh)
             xdmf.write_meshtags(boundary_tags)
@@ -507,23 +454,25 @@ def _simulate_once(
         )
 
         return simulation_results
+    
 
     boundary_tags = tag_boundaries()
-
     ds = Measure("ds", domain=mesh, subdomain_data=boundary_tags)
 
-    boundary_conditions = define_boundary_conditions(boundary_tags)
+    facet_right = boundary_tags.find(tag_right)
+    dofs_right = locate_dofs_topological(func_space, bc_facets_dim, facet_right)
+    facet_bottom = boundary_tags.find(tag_bottom)
+    dofs_bottom = locate_dofs_topological(func_space, bc_facets_dim, facet_bottom)
+    dirichlet_bcs = [
+        dirichletbc(u_x_right, dofs_right, func_space.sub(0)),
+        dirichletbc(u_y_bottom, dofs_bottom, func_space.sub(1)),
+    ]
+
     sigma, epsilon = sigma_and_epsilon_factory()
 
-    # F = inner(sigma(u), epsilon(w)) * dx - inner(w, f) * dx
     a = inner(sigma(u), epsilon(w)) * dx
-    L = inner(w, f) * dx
+    L = dot(f, w) * dx + dot(T_left, w) * ds(tag_left)
 
-    # dirichlet_bcs, F = apply_boundary_conditions(boundary_conditions, F)
-    dirichlet_bcs, L = apply_boundary_conditions(boundary_conditions, L)
-
-    # a = lhs(F)
-    # L = rhs(F)
     problem = LinearProblem(
         a, L, bcs=dirichlet_bcs, petsc_options={"ksp_type": "preonly", "pc_type": "lu"}
     )
