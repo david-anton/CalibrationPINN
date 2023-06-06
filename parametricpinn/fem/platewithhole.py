@@ -318,7 +318,6 @@ def _simulate_once(
     youngs_modulus = config.youngs_modulus
     poissons_ratio = config.poissons_ratio
     length = config.edge_length
-    radius = config.radius
     volume_force_x = config.volume_force_x
     volume_force_y = config.volume_force_y
     traction_left_x = config.traction_left_x
@@ -331,11 +330,6 @@ def _simulate_once(
     u_y_bottom = ScalarType(0.0)
     f = Constant(mesh, (ScalarType((volume_force_x, volume_force_y))))
     bc_facets_dim = mesh.topology.dim - 1
-
-    element = VectorElement(element_family, mesh.ufl_cell(), element_degree)
-    func_space = FunctionSpace(mesh, element)
-    u = TrialFunction(func_space)
-    w = TestFunction(func_space)
 
     tag_right = 0
     tag_bottom = 1
@@ -455,14 +449,18 @@ def _simulate_once(
 
         return simulation_results
     
+    element = VectorElement(element_family, mesh.ufl_cell(), element_degree)
+    func_space = FunctionSpace(mesh, element)
+    u = TrialFunction(func_space)
+    w = TestFunction(func_space)
 
     boundary_tags = tag_boundaries()
     ds = Measure("ds", domain=mesh, subdomain_data=boundary_tags)
 
     facet_right = boundary_tags.find(tag_right)
-    dofs_right = locate_dofs_topological(func_space, bc_facets_dim, facet_right)
+    dofs_right = locate_dofs_topological(func_space.sub(0), bc_facets_dim, facet_right)
     facet_bottom = boundary_tags.find(tag_bottom)
-    dofs_bottom = locate_dofs_topological(func_space, bc_facets_dim, facet_bottom)
+    dofs_bottom = locate_dofs_topological(func_space.sub(1), bc_facets_dim, facet_bottom)
     dirichlet_bcs = [
         dirichletbc(u_x_right, dofs_right, func_space.sub(0)),
         dirichletbc(u_y_bottom, dofs_bottom, func_space.sub(1)),
@@ -470,8 +468,8 @@ def _simulate_once(
 
     sigma, epsilon = sigma_and_epsilon_factory()
 
-    a = inner(sigma(u), epsilon(w)) * dx
-    L = dot(f, w) * dx + dot(T_left, w) * ds(tag_left)
+    a = inner(epsilon(w), sigma(u) ) * dx
+    L = dot(w, f) * dx + dot(w, T_left) * ds(tag_left)
 
     problem = LinearProblem(
         a, L, bcs=dirichlet_bcs, petsc_options={"ksp_type": "preonly", "pc_type": "lu"}
