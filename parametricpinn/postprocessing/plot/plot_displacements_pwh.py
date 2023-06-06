@@ -9,9 +9,8 @@ from scipy.interpolate import griddata
 
 from parametricpinn.fem.platewithhole import run_simulation
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.types import Module, NPArray, PLTAxes, PLTFigure
 from parametricpinn.settings import get_device
-
+from parametricpinn.types import Module, NPArray, PLTAxes, PLTFigure
 
 device = get_device()
 

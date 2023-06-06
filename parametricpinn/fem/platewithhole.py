@@ -315,8 +315,16 @@ class NeumannBC:
 
 class DirichletBC:
     def __init__(
-        self, dofs: DDofs, value: BCValue, dim: int, func_space: DFunctionSpace
+        self,
+        tag: int,
+        value: BCValue,
+        dim: int,
+        func_space: DFunctionSpace,
+        boundary_tags: DMeshTags,
+        bc_facets_dim: int,
     ) -> None:
+        facet = boundary_tags.find(tag)
+        dofs = locate_dofs_topological(func_space.sub(dim), bc_facets_dim, facet)
         self.bc = dirichletbc(value, dofs, func_space.sub(dim))
 
 
@@ -345,8 +353,8 @@ def _simulate_once(
     T_left = Constant(mesh, (ScalarType((traction_left_x, traction_left_y))))
     u_x_right = ScalarType(0.0)
     u_y_bottom = ScalarType(0.0)
-    f = Constant(mesh, (ScalarType((volume_force_x, volume_force_y))))
     bc_facets_dim = mesh.topology.dim - 1
+    f = Constant(mesh, (ScalarType((volume_force_x, volume_force_y))))
 
     tag_right = 0
     tag_bottom = 1
@@ -380,7 +388,46 @@ def _simulate_once(
             facet_tags[sorted_facet_indices],
         )
 
-    def sigma_and_epsilon_factory() -> tuple[UFLSigmaFunc, UFLEpsilonFunc]:
+    def define_boundary_conditions(
+        boundary_tags: DMeshTags,
+    ) -> BoundaryConditions:
+        facet_right = boundary_tags.find(tag_right)
+        dofs_right = locate_dofs_topological(func_space, bc_facets_dim, facet_right)
+        facet_bottom = boundary_tags.find(tag_bottom)
+        dofs_bottom = locate_dofs_topological(func_space, bc_facets_dim, facet_bottom)
+
+        return [
+            DirichletBC(
+                tag=tag_right,
+                value=u_x_right,
+                dim=0,
+                func_space=func_space,
+                boundary_tags=boundary_tags,
+                bc_facets_dim=bc_facets_dim,
+            ),
+            DirichletBC(
+                tag=tag_bottom,
+                value=u_y_bottom,
+                dim=1,
+                func_space=func_space,
+                boundary_tags=boundary_tags,
+                bc_facets_dim=bc_facets_dim,
+            ),
+            NeumannBC(tag=tag_left, value=T_left, measure=ds, test_func=w),
+        ]
+
+    def apply_boundary_conditions(
+        boundary_conditions: BoundaryConditions, L: UFLOperator
+    ) -> tuple[list[DDirichletBC], UFLOperator]:
+        dirichlet_bcs = []
+        for condition in boundary_conditions:
+            if isinstance(condition, DirichletBC):
+                dirichlet_bcs.append(condition.bc)
+            else:
+                L += condition.bc
+        return dirichlet_bcs, L
+
+    def sigma_and_epsilon_factory(model: str) -> tuple[UFLSigmaFunc, UFLEpsilonFunc]:
         compliance_matrix = None
         if model == "plane stress":
             compliance_matrix = (1 / youngs_modulus) * as_matrix(
@@ -465,7 +512,7 @@ def _simulate_once(
         )
 
         return simulation_results
-    
+
     element = VectorElement(element_family, mesh.ufl_cell(), element_degree)
     func_space = FunctionSpace(mesh, element)
     u = TrialFunction(func_space)
@@ -474,19 +521,13 @@ def _simulate_once(
     boundary_tags = tag_boundaries()
     ds = Measure("ds", domain=mesh, subdomain_data=boundary_tags)
 
-    facet_right = boundary_tags.find(tag_right)
-    dofs_right = locate_dofs_topological(func_space.sub(0), bc_facets_dim, facet_right)
-    facet_bottom = boundary_tags.find(tag_bottom)
-    dofs_bottom = locate_dofs_topological(func_space.sub(1), bc_facets_dim, facet_bottom)
-    dirichlet_bcs = [
-        dirichletbc(u_x_right, dofs_right, func_space.sub(0)),
-        dirichletbc(u_y_bottom, dofs_bottom, func_space.sub(1)),
-    ]
+    boundary_conditions = define_boundary_conditions(boundary_tags)
+    sigma, epsilon = sigma_and_epsilon_factory(model)
 
-    sigma, epsilon = sigma_and_epsilon_factory()
+    a = inner(epsilon(w), sigma(u)) * dx
+    L = dot(w, f) * dx
 
-    a = inner(epsilon(w), sigma(u) ) * dx
-    L = dot(w, f) * dx + dot(w, T_left) * ds(tag_left)
+    dirichlet_bcs, L = apply_boundary_conditions(boundary_conditions, L)
 
     problem = LinearProblem(
         a, L, bcs=dirichlet_bcs, petsc_options={"ksp_type": "preonly", "pc_type": "lu"}
