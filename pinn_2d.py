@@ -209,9 +209,9 @@ def determine_normalization_values() -> dict[str, Tensor]:
         mesh_resolution=fem_mesh_resolution,
     )
     min_displacement_x = float(np.amin(simulation_results.displacements_x))
-    max_displacement_x = 0.0
+    max_displacement_x = float(np.amax(simulation_results.displacements_x))
     min_displacement_y = float(np.amin(simulation_results.displacements_y))
-    max_displacement_y = 0.0
+    max_displacement_y = float(np.amax(simulation_results.displacements_y))
     min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
     max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
     return {
