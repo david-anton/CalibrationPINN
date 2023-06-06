@@ -424,14 +424,14 @@ def _simulate_once(
             (tag_left, locate_left_facet),
         ]
 
-        facet_indices_list: list[npt.NDArray[np.int64]] = []
-        facet_tags_list: list[npt.NDArray[np.int64]] = []
+        facet_indices_list: list[npt.NDArray[np.int32]] = []
+        facet_tags_list: list[npt.NDArray[np.int32]] = []
         for tag, locator_func in boundaries:
             _facet_indices = locate_entities(mesh, bc_facets_dim, locator_func)
             facet_indices_list.append(_facet_indices)
             facet_tags_list.append(np.full_like(_facet_indices, tag))
-        facet_indices = np.hstack(facet_indices_list).astype(np.int64)
-        facet_tags = np.hstack(facet_tags_list).astype(np.int64)
+        facet_indices = np.hstack(facet_indices_list).astype(np.int32)
+        facet_tags = np.hstack(facet_tags_list).astype(np.int32)
         sorted_facet_indices = np.argsort(facet_indices)
         return meshtags(
             mesh,
