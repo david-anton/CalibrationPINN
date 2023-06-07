@@ -16,7 +16,7 @@ from parametricpinn.types import Tensor
             torch.tensor([0.0, 0.0]),
             torch.tensor([10.0, 0.1]),
             torch.tensor([[0.0, 0.0], [5.0, 0.05], [10.0, 0.1]]),
-            torch.tensor([[0.0, 0.0], [0.5, 0.5], [1.0, 1.0]])
+            torch.tensor([[0.0, 0.0], [0.5, 0.5], [1.0, 1.0]]),
         ),
         (
             torch.tensor([-10.0, -0.1]),
@@ -40,7 +40,6 @@ def test_hbc_ansatz_normalizer(
     actual = sut(values)
 
     torch.testing.assert_close(actual, expected)
-
 
 
 # Test HBCAnsatzRenormalizer

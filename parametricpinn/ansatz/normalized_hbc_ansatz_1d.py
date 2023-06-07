@@ -10,7 +10,7 @@ from parametricpinn.ansatz.hbc_ansatz_normalizers import (
 from parametricpinn.network.normalizednetwork import InputNormalizer
 from parametricpinn.types import Module, Tensor
 
-NetworkInputNormalizer :TypeAlias = InputNormalizer
+NetworkInputNormalizer: TypeAlias = InputNormalizer
 
 
 class NormalizedHBCAnsatz1D(nn.Module):

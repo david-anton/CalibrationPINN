@@ -5,4 +5,9 @@ from .normalized_hbc_ansatz_1d import (
     create_normalized_hbc_ansatz_1D,
 )
 
-__all__ = ["HBCAnsatz1D", "HBCAnsatz2D", "NormalizedHBCAnsatz1D", "create_normalized_hbc_ansatz_1D"]
+__all__ = [
+    "HBCAnsatz1D",
+    "HBCAnsatz2D",
+    "NormalizedHBCAnsatz1D",
+    "create_normalized_hbc_ansatz_1D",
+]
