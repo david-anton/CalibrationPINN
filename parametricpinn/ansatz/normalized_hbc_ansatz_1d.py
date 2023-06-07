@@ -4,9 +4,8 @@ import torch
 import torch.nn as nn
 
 from parametricpinn.ansatz.hbc_ansatz_normalizers import (
-    HBCAnsatzCoordinatesNormalizer,
-    HBCAnsatzOutputNormalizer,
-    HBCAnsatzOutputRenormalizer,
+    HBCAnsatzNormalizer,
+    HBCAnsatzRenormalizer,
 )
 from parametricpinn.network.normalizednetwork import InputNormalizer
 from parametricpinn.types import Module, Tensor
@@ -20,9 +19,9 @@ class NormalizedHBCAnsatz1D(nn.Module):
         displacement_left: Tensor,
         network: Module,
         network_input_normalizer: NetworkInputNormalizer,
-        hbc_ansatz_coordinate_normalizer: HBCAnsatzCoordinatesNormalizer,
-        hbc_ansatz_output_normalizer: HBCAnsatzOutputNormalizer,
-        hbc_ansatz_output_renormalizer: HBCAnsatzOutputRenormalizer,
+        hbc_ansatz_coordinate_normalizer: HBCAnsatzNormalizer,
+        hbc_ansatz_output_normalizer: HBCAnsatzNormalizer,
+        hbc_ansatz_output_renormalizer: HBCAnsatzRenormalizer,
     ) -> None:
         super().__init__()
         self._displacement_left = displacement_left
@@ -65,15 +64,15 @@ def create_normalized_hbc_ansatz_1D(
         min_inputs=min_inputs, max_inputs=max_inputs
     )
     idx_coordinate = 0
-    hbc_ansatz_coordinate_normalizer = HBCAnsatzCoordinatesNormalizer(
-        min_coordinates=min_inputs[idx_coordinate],
-        max_coordinates=max_inputs[idx_coordinate],
+    hbc_ansatz_coordinate_normalizer = HBCAnsatzNormalizer(
+        min_values=min_inputs[idx_coordinate],
+        max_values=max_inputs[idx_coordinate],
     )
-    hbc_ansatz_output_normalizer = HBCAnsatzOutputNormalizer(
-        min_outputs=min_outputs, max_outputs=max_outputs
+    hbc_ansatz_output_normalizer = HBCAnsatzNormalizer(
+        min_values=min_outputs, max_values=max_outputs
     )
-    hbc_ansatz_output_renormalizer = HBCAnsatzOutputRenormalizer(
-        min_outputs=min_outputs, max_outputs=max_outputs
+    hbc_ansatz_output_renormalizer = HBCAnsatzRenormalizer(
+        min_values=min_outputs, max_values=max_outputs
     )
     return NormalizedHBCAnsatz1D(
         displacement_left=displacement_left,
