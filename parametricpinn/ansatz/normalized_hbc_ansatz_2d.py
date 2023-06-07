@@ -27,7 +27,7 @@ class NormalizedHBCAnsatz2D(nn.Module):
         super().__init__()
         self._boundary_data = torch.tensor(
             [displacement_x_right, displacement_y_bottom]
-        )
+        ).to(displacement_x_right.device)
         self._network = network
         self._network_input_normalizer = network_input_normalizer
         self._hbc_ansatz_coordinate_normalizer = hbc_ansatz_coordinate_normalizer
