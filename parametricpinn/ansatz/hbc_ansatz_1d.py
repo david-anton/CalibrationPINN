@@ -13,10 +13,10 @@ class HBCAnsatz1D(nn.Module):
         self._range_coordinate = range_coordinate
         self._network = network
 
-    def _boundary_data(self) -> float:
+    def _boundary_data_func(self) -> float:
         return self._displacement_left
 
-    def _distance_function(self, x_coor: Tensor) -> Tensor:
+    def _distance_func(self, x_coor: Tensor) -> Tensor:
         return x_coor / self._range_coordinate
 
     def _extract_coordinates(self, x: Tensor) -> Tensor:
@@ -26,6 +26,6 @@ class HBCAnsatz1D(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         x_coor = self._extract_coordinates(x)
-        return self._boundary_data() + (
-            self._distance_function(x_coor) * self._network(x)
+        return self._boundary_data_func() + (
+            self._distance_func(x_coor) * self._network(x)
         )
