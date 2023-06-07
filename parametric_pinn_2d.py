@@ -59,7 +59,7 @@ batch_size_train = 512
 num_epochs = 1000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20230606_validation_data_pwh"
 num_samples_valid = 32
 valid_interval = 1
