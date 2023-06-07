@@ -1,52 +1,17 @@
+from typing import TypeAlias
+
 import torch
 import torch.nn as nn
 
+from parametricpinn.ansatz.hbc_ansatz_normalizers import (
+    HBCAnsatzCoordinatesNormalizer,
+    HBCAnsatzOutputNormalizer,
+    HBCAnsatzOutputRenormalizer,
+)
+from parametricpinn.network.normalizednetwork import InputNormalizer
 from parametricpinn.types import Module, Tensor
 
-
-class NetworkInputNormalizer(nn.Module):
-    def __init__(self, min_inputs: Tensor, max_inputs: Tensor) -> None:
-        super().__init__()
-        self._min_inputs = min_inputs
-        self._max_inputs = max_inputs
-        self._input_ranges = max_inputs - min_inputs
-        self._atol = torch.tensor([1e-7]).to(self._input_ranges.device)
-
-    def forward(self, x: Tensor) -> Tensor:
-        return (
-            (
-                ((x - self._min_inputs) + self._atol)
-                / (self._input_ranges + 2 * self._atol)
-            )
-            * 2.0
-        ) - 1.0
-
-
-class HBCAnsatzCoordinateNormalizer(nn.Module):
-    def __init__(self, min_coordinate: Tensor, max_coordinate: Tensor) -> None:
-        super().__init__()
-        self._coordinate_range = max_coordinate - min_coordinate
-
-    def forward(self, x: Tensor) -> Tensor:
-        return x / self._coordinate_range
-
-
-class HBCAnsatzOutputNormalizer(nn.Module):
-    def __init__(self, min_outputs: Tensor, max_outputs: Tensor) -> None:
-        super().__init__()
-        self._output_ranges = max_outputs - min_outputs
-
-    def forward(self, x: Tensor) -> Tensor:
-        return x / self._output_ranges
-
-
-class HBCAnsatzOutputRenormalizer(nn.Module):
-    def __init__(self, min_outputs: Tensor, max_outputs: Tensor) -> None:
-        super().__init__()
-        self._output_ranges = max_outputs - min_outputs
-
-    def forward(self, x: Tensor) -> Tensor:
-        return x * self._output_ranges
+NetworkInputNormalizer :TypeAlias = InputNormalizer
 
 
 class NormalizedHBCAnsatz1D(nn.Module):
@@ -55,7 +20,7 @@ class NormalizedHBCAnsatz1D(nn.Module):
         displacement_left: Tensor,
         network: Module,
         network_input_normalizer: NetworkInputNormalizer,
-        hbc_ansatz_coordinate_normalizer: HBCAnsatzCoordinateNormalizer,
+        hbc_ansatz_coordinate_normalizer: HBCAnsatzCoordinatesNormalizer,
         hbc_ansatz_output_normalizer: HBCAnsatzOutputNormalizer,
         hbc_ansatz_output_renormalizer: HBCAnsatzOutputRenormalizer,
     ) -> None:
@@ -100,9 +65,9 @@ def create_normalized_hbc_ansatz_1D(
         min_inputs=min_inputs, max_inputs=max_inputs
     )
     idx_coordinate = 0
-    hbc_ansatz_coordinate_normalizer = HBCAnsatzCoordinateNormalizer(
-        min_coordinate=min_inputs[idx_coordinate],
-        max_coordinate=max_inputs[idx_coordinate],
+    hbc_ansatz_coordinate_normalizer = HBCAnsatzCoordinatesNormalizer(
+        min_coordinates=min_inputs[idx_coordinate],
+        max_coordinates=max_inputs[idx_coordinate],
     )
     hbc_ansatz_output_normalizer = HBCAnsatzOutputNormalizer(
         min_outputs=min_outputs, max_outputs=max_outputs
