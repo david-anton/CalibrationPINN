@@ -1,8 +1,36 @@
+import torch
 import torch.nn as nn
 
-from parametricpinn.network.normalization.inputnormlizer import InputNormalizer
-from parametricpinn.network.normalization.outputrenormalizer import OutputRenormalizer
 from parametricpinn.types import Module, Tensor
+
+
+class InputNormalizer(nn.Module):
+    def __init__(self, min_inputs: Tensor, max_inputs: Tensor) -> None:
+        super().__init__()
+        self._min_inputs = min_inputs
+        self._max_inputs = max_inputs
+        self._input_ranges = max_inputs - min_inputs
+        self._atol = torch.tensor([1e-7]).to(self._input_ranges.device)
+
+    def forward(self, x: Tensor) -> Tensor:
+        return (
+            (
+                ((x - self._min_inputs) + self._atol)
+                / (self._input_ranges + 2 * self._atol)
+            )
+            * 2.0
+        ) - 1.0
+
+
+class OutputRenormalizer(nn.Module):
+    def __init__(self, min_outputs: Tensor, max_outputs: Tensor) -> None:
+        super().__init__()
+        self._min_outputs = min_outputs
+        self._max_outputs = max_outputs
+        self._output_ranges = max_outputs - min_outputs
+
+    def forward(self, x: Tensor) -> Tensor:
+        return (((x + 1) / 2) * self._output_ranges) + self._min_outputs
 
 
 class NormalizedNetwork(nn.Module):
