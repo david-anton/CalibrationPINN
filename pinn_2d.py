@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from parametricpinn.ansatz import HBCAnsatz2D
+from parametricpinn.ansatz import create_normalized_hbc_ansatz_2D
 from parametricpinn.data import (
     TrainingData2DPDE,
     TrainingData2DStressBC,
@@ -20,7 +20,7 @@ from parametricpinn.fem.platewithhole import (
 )
 from parametricpinn.fem.platewithhole import run_simulation
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.network import FFNN, create_normalized_network
+from parametricpinn.network import FFNN
 from parametricpinn.postprocessing.plot import (
     DisplacementsPlotterConfigPWH,
     HistoryPlotterConfig,
@@ -181,7 +181,6 @@ def determine_normalization_values() -> dict[str, Tensor]:
     max_coordinate_y = edge_length
     min_coordinates = torch.tensor([min_coordinate_x, min_coordinate_y])
     max_coordinates = torch.tensor([max_coordinate_x, max_coordinate_y])
-    range_coordinates = max_coordinates - min_coordinates
 
     min_parameters = torch.tensor([min_youngs_modulus, min_poissons_ratio])
     max_parameters = torch.tensor([max_youngs_modulus, max_poissons_ratio])
@@ -219,7 +218,6 @@ def determine_normalization_values() -> dict[str, Tensor]:
         "max_inputs": max_inputs.to(device),
         "min_outputs": min_outputs.to(device),
         "max_outputs": max_outputs.to(device),
-        "range_coordinates": range_coordinates.to(device),
     }
 
 
@@ -270,18 +268,14 @@ if __name__ == "__main__":
     normalization_values = determine_normalization_values()
 
     network = FFNN(layer_sizes=layer_sizes)
-    normalized_network = create_normalized_network(
+    ansatz = create_normalized_hbc_ansatz_2D(
+        displacement_x_right=torch.tensor(0.0),
+        displacement_y_bottom=torch.tensor(0.0),
         network=network,
         min_inputs=normalization_values["min_inputs"],
         max_inputs=normalization_values["max_inputs"],
         min_outputs=normalization_values["min_outputs"],
         max_outputs=normalization_values["max_outputs"],
-    )
-    ansatz = HBCAnsatz2D(
-        network=normalized_network,
-        displacement_x_right=0.0,
-        displacement_y_bottom=0.0,
-        range_coordinates=normalization_values["range_coordinates"],
     ).to(device)
 
     optimizer = torch.optim.LBFGS(

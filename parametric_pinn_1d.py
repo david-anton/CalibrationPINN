@@ -162,7 +162,6 @@ if __name__ == "__main__":
         traction=traction,
         volume_force=volume_force,
     )
-    displacement_left = torch.tensor([displacement_left]).to(device)
     min_inputs = torch.tensor([min_coordinate, min_youngs_modulus]).to(device)
     max_inputs = torch.tensor([max_coordinate, max_youngs_modulus]).to(device)
     min_output = torch.tensor([min_displacement]).to(device)
@@ -170,7 +169,7 @@ if __name__ == "__main__":
 
     network = FFNN(layer_sizes=layer_sizes)
     ansatz = create_normalized_hbc_ansatz_1D(
-        displacement_left=displacement_left,
+        displacement_left=torch.tensor([displacement_left]).to(device),
         network=network,
         min_inputs=min_inputs,
         max_inputs=max_inputs,
