@@ -4,7 +4,7 @@ from datetime import date
 import torch
 from torch.utils.data import DataLoader
 
-from parametricpinn.ansatz import HBCAnsatz1D
+from parametricpinn.ansatz import create_normalized_hbc_ansatz_1D
 from parametricpinn.calibration import calibrate_model
 from parametricpinn.data import (
     TrainingData1DPDE,
@@ -16,7 +16,7 @@ from parametricpinn.data import (
     create_validation_dataset_1D,
 )
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.network import FFNN, create_normalized_network
+from parametricpinn.network import FFNN
 from parametricpinn.postprocessing.plot import (
     DisplacementsPlotterConfig1D,
     HistoryPlotterConfig,
@@ -43,7 +43,7 @@ layer_sizes = [2, 16, 16, 1]
 num_samples_train = 128
 num_points_pde = 128
 batch_size_train = num_samples_train
-num_epochs = 100
+num_epochs = 200
 loss_metric = torch.nn.MSELoss()
 # Validation
 num_samples_valid = 128
@@ -162,24 +162,20 @@ if __name__ == "__main__":
         traction=traction,
         volume_force=volume_force,
     )
-    min_inputs = torch.tensor([min_coordinate, min_youngs_modulus])
-    max_inputs = torch.tensor([max_coordinate, max_youngs_modulus])
-    min_output = torch.tensor([min_displacement])
-    max_output = torch.tensor([max_displacement])
-    range_coordinate = max_coordinate - min_coordinate
+    displacement_left = torch.tensor([displacement_left]).to(device)
+    min_inputs = torch.tensor([min_coordinate, min_youngs_modulus]).to(device)
+    max_inputs = torch.tensor([max_coordinate, max_youngs_modulus]).to(device)
+    min_output = torch.tensor([min_displacement]).to(device)
+    max_output = torch.tensor([max_displacement]).to(device)
 
     network = FFNN(layer_sizes=layer_sizes)
-    normalized_network = create_normalized_network(
+    ansatz = create_normalized_hbc_ansatz_1D(
+        displacement_left=displacement_left,
         network=network,
         min_inputs=min_inputs,
         max_inputs=max_inputs,
         min_outputs=min_output,
         max_outputs=max_output,
-    )
-    ansatz = HBCAnsatz1D(
-        displacement_left=displacement_left,
-        range_coordinate=range_coordinate,
-        network=normalized_network,
     ).to(device)
 
     optimizer = torch.optim.LBFGS(
