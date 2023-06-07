@@ -41,10 +41,10 @@ from parametricpinn.types import Module, Tensor
 model = "plane stress"
 edge_length = 100.0
 radius = 10.0
-traction_left_x = 0.0
+traction_left_x = -100.0
 traction_left_y = 0.0
-volume_force_x = 10.0
-volume_force_y = 10.0
+volume_force_x = 0.0
+volume_force_y = 0.0
 min_youngs_modulus = 210000.0
 max_youngs_modulus = 210000.0
 min_poissons_ratio = 0.3
@@ -60,7 +60,7 @@ num_epochs = 2000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20230607_validation_data_E_210000_nu_03_plane_stress_vf"
+input_subdir_valid = "20230607_validation_data_E_210000_nu_03"
 num_samples_valid = 1
 valid_interval = 1
 num_points_valid = 1024
@@ -68,7 +68,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_plane_stress_vf"
+output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
