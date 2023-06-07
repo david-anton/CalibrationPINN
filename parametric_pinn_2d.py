@@ -272,8 +272,8 @@ if __name__ == "__main__":
 
     network = FFNN(layer_sizes=layer_sizes)
     ansatz = create_normalized_hbc_ansatz_2D(
-        displacement_x_right=torch.tensor(0.0),
-        displacement_y_bottom=torch.tensor(0.0),
+        displacement_x_right=torch.tensor(0.0).to(device),
+        displacement_y_bottom=torch.tensor(0.0).to(device),
         network=network,
         min_inputs=normalization_values["min_inputs"],
         max_inputs=normalization_values["max_inputs"],
