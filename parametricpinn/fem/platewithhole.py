@@ -391,11 +391,6 @@ def _simulate_once(
     def define_boundary_conditions(
         boundary_tags: DMeshTags,
     ) -> BoundaryConditions:
-        facet_right = boundary_tags.find(tag_right)
-        dofs_right = locate_dofs_topological(func_space, bc_facets_dim, facet_right)
-        facet_bottom = boundary_tags.find(tag_bottom)
-        dofs_bottom = locate_dofs_topological(func_space, bc_facets_dim, facet_bottom)
-
         return [
             DirichletBC(
                 tag=tag_right,

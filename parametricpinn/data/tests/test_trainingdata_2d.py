@@ -33,7 +33,7 @@ num_points_per_stress_bc = 3
 num_points_stress_bcs = 3 * num_points_per_stress_bc
 
 
-### Test TrainingDataset1D
+### Test TrainingDataset2D
 def _create_plate_with_hole_shape() -> Polygon:
     plate = box(x_min, x_max, y_min, y_max)
     hole = Point(0, 0).buffer(radius)
@@ -161,18 +161,24 @@ def test_sample_stress_bc__x_coordinates(
 
     expected = torch.tensor(
         [
-            [-edge_length, 0.0],
-            [-edge_length, edge_length / 2],
+            [-edge_length, 1/3 * edge_length],
+            [-edge_length, 2/3 * edge_length],
             [-edge_length, edge_length],
-            [-edge_length, edge_length],
-            [-edge_length / 2, edge_length],
-            [0.0, edge_length],
-            [-radius, 0.0],
+            [-3/4 * edge_length, edge_length],
+            [-2/4 * edge_length, edge_length],
+            [-1/4 * edge_length, edge_length],
             [
-                -torch.cos(torch.deg2rad(torch.tensor(45))) * radius,
-                torch.sin(torch.deg2rad(torch.tensor(45))) * radius,
+                -torch.cos(torch.deg2rad(torch.tensor(1/4 * 90))) * radius,
+                torch.sin(torch.deg2rad(torch.tensor(1/4 * 90))) * radius,
             ],
-            [0.0, radius],
+            [
+                -torch.cos(torch.deg2rad(torch.tensor(2/4 * 90))) * radius,
+                torch.sin(torch.deg2rad(torch.tensor(2/4 * 90))) * radius,
+            ],
+            [
+                -torch.cos(torch.deg2rad(torch.tensor(3/4 * 90))) * radius,
+                torch.sin(torch.deg2rad(torch.tensor(3/4 * 90))) * radius,
+            ],
         ]
     )
     torch.testing.assert_close(actual, expected)
@@ -219,9 +225,18 @@ def test_sample_stress_bc__normal(sut: TrainingDataset2D, idx_sample: int) -> No
             [0.0, 1.0],
             [0.0, 1.0],
             [0.0, 1.0],
-            [1.0, 0.0],
-            [torch.sqrt(torch.tensor(0.5)), -torch.sqrt(torch.tensor(0.5))],
-            [0.0, -1.0],
+            [
+                torch.cos(torch.deg2rad(torch.tensor(1/4 * 90))),
+                -torch.sin(torch.deg2rad(torch.tensor(1/4 * 90))),
+            ],
+            [
+                torch.cos(torch.deg2rad(torch.tensor(2/4 * 90))),
+                -torch.sin(torch.deg2rad(torch.tensor(2/4 * 90))),
+            ],
+            [
+                torch.cos(torch.deg2rad(torch.tensor(3/4 * 90))),
+                -torch.sin(torch.deg2rad(torch.tensor(3/4 * 90))),
+            ],
         ]
     )
     torch.testing.assert_close(actual, expected)
