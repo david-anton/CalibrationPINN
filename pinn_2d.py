@@ -53,13 +53,13 @@ max_poissons_ratio = 0.3
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Training
 num_samples_per_parameter = 1
-num_points_pde = 16384
+num_points_pde = 8192
 num_points_per_stress_bc = 64
 batch_size_train = 1
 num_epochs = 2000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20230607_validation_data_E_210000_nu_03"
 num_samples_valid = 1
 valid_interval = 1
