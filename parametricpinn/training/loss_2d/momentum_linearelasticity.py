@@ -4,8 +4,10 @@ import torch
 
 from parametricpinn.training.loss_2d.momentumbase import (
     MomentumFunc,
+    StrainEnergyFunc,
     StressFunc,
     TModule,
+    TractionEnergyFunc,
     TractionFunc,
     _strain_func,
     momentum_equation_func,
@@ -28,12 +30,12 @@ def traction_func_factory(model: str) -> TractionFunc:
     return traction_func(stress_func)
 
 
-def strain_energy_func_factory(model: str) -> TractionFunc:
+def strain_energy_func_factory(model: str) -> StrainEnergyFunc:
     stress_func = _get_stress_func(model)
     return strain_energy_func(stress_func)
 
 
-def traction_energy_func_factory(model: str) -> TractionFunc:
+def traction_energy_func_factory(model: str) -> TractionEnergyFunc:
     stress_func = _get_stress_func(model)
     return traction_energy_func(stress_func)
 
