@@ -31,6 +31,8 @@ from parametricpinn.postprocessing.plot import (
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
 from parametricpinn.training.loss_2d import (
     momentum_equation_func_factory,
+    strain_energy_func_factory,
+    traction_energy_func_factory,
     traction_func_factory,
 )
 from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm
@@ -54,13 +56,13 @@ layer_sizes = [4, 32, 32, 32, 32, 2]
 # Training
 num_samples_per_parameter = 1
 num_points_pde = 8192
-num_points_per_stress_bc = 64
+num_points_per_stress_bc = 1024
 batch_size_train = 1
 num_epochs = 2000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20230608_validation_data_E_210000_nu_03"
+input_subdir_valid = "20230613_validation_data_E_210000_nu_03_with_energy_loss"
 num_samples_valid = 1
 valid_interval = 1
 num_points_valid = 1024
@@ -68,7 +70,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03"
+output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_with_energy_loss"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -85,6 +87,8 @@ device = get_device()
 ### Loss function
 momentum_equation_func = momentum_equation_func_factory(model)
 traction_func = traction_func_factory(model)
+strain_energy_func = strain_energy_func_factory(model)
+traction_energy_func = traction_energy_func_factory(model)
 traction_left = torch.tensor([traction_left_x, traction_left_y])
 volume_force = torch.tensor([volume_force_x, volume_force_y])
 
@@ -93,7 +97,7 @@ def loss_func(
     ansatz: Module,
     pde_data: TrainingData2DPDE,
     stress_bc_data: TrainingData2DStressBC,
-) -> tuple[Tensor, Tensor]:
+) -> tuple[Tensor, Tensor, Tensor]:
     def loss_func_pde(ansatz: Module, pde_data: TrainingData2DPDE) -> Tensor:
         x_coor = pde_data.x_coor.to(device)
         x_E = pde_data.x_E
@@ -116,9 +120,44 @@ def loss_func(
         y = traction_func(ansatz, x_coor, x_param, normal)
         return loss_metric(y_true, y)
 
+    def loss_func_energy(ansatz: Module, pde_data: TrainingData2DPDE) -> Tensor:
+        x_coor_int = pde_data.x_coor.to(device)
+        x_E_int = pde_data.x_E
+        x_nu_int = pde_data.x_nu
+        x_param_int = torch.concat((x_E_int, x_nu_int), dim=1).to(device)
+        strain_energy = strain_energy_func(ansatz, x_coor_int, x_param_int)
+
+        coordinates_x_ext = torch.full(
+            (num_points_per_stress_bc, 1), -edge_length, requires_grad=True
+        )
+        coordinates_y_ext = torch.linspace(
+            0.0, edge_length, steps=num_points_per_stress_bc, requires_grad=True
+        ).view(num_points_per_stress_bc, 1)
+        x_coor_ext = torch.concat((coordinates_x_ext, coordinates_y_ext), dim=1).to(device)
+        x_E_ext = torch.full(
+            (num_points_per_stress_bc, 1), max_youngs_modulus, requires_grad=True
+        )
+        x_nu_ext = torch.full(
+            (num_points_per_stress_bc, 1), max_poissons_ratio, requires_grad=True
+        )
+        x_param_ext = torch.concat((x_E_ext, x_nu_ext), dim=1).to(device)
+        normal_ext = torch.tensor([-1.0, 0.0], requires_grad=True).repeat(
+            num_points_per_stress_bc, 1
+        ).to(device)
+        area_ext = torch.tensor(
+            [edge_length / num_points_per_stress_bc], requires_grad=True
+        ).repeat(num_points_per_stress_bc, 1).to(device)
+        traction_energy = traction_energy_func(ansatz, x_coor_ext, x_param_ext, normal_ext, area_ext)
+
+        y = strain_energy - traction_energy
+        y_true = torch.tensor(0.0).to(device)
+
+        return loss_metric(y_true, y)
+
     loss_pde = loss_func_pde(ansatz, pde_data)
     loss_stress_bc = loss_func_stress_bc(ansatz, stress_bc_data)
-    return loss_pde, loss_stress_bc
+    loss_energy = loss_func_energy(ansatz, pde_data)
+    return loss_pde, loss_stress_bc, loss_energy
 
 
 ### Validation
@@ -298,8 +337,8 @@ if __name__ == "__main__":
     # Closure for LBFGS
     def loss_func_closure() -> float:
         optimizer.zero_grad()
-        loss_pde, loss_stress_bc = loss_func(ansatz, batch_pde, batch_stress_bc)
-        loss = loss_pde + loss_stress_bc
+        loss_pde, loss_stress_bc, loss_energy = loss_func(ansatz, batch_pde, batch_stress_bc)
+        loss = loss_pde + loss_stress_bc + loss_energy
         loss.backward(retain_graph=True)
         return loss.item()
 
@@ -313,8 +352,8 @@ if __name__ == "__main__":
             ansatz.train()
 
             # Forward pass
-            loss_pde, loss_stress_bc = loss_func(ansatz, batch_pde, batch_stress_bc)
-            loss = loss_pde + loss_stress_bc
+            loss_pde, loss_stress_bc, loss_energy = loss_func(ansatz, batch_pde, batch_stress_bc)
+            loss = loss_pde + loss_stress_bc + loss_energy
 
             # Update parameters
             optimizer.step(loss_func_closure)
