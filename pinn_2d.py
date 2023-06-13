@@ -58,14 +58,14 @@ num_samples_per_parameter = 1
 num_points_pde = 8192
 num_points_per_stress_bc = 1024
 batch_size_train = 1
-num_epochs = 2000
+num_epochs = 20000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 10e4
 weight_energy_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20230613_validation_data_E_210000_nu_03_energy_loss_bc_loss_weight"
+input_subdir_valid = "20230613_validation_data_E_210000_nu_03_energy_loss_bc_loss_weight_20k_epochs"
 num_samples_valid = 1
 valid_interval = 1
 num_points_valid = 1024
@@ -73,7 +73,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_energy_loss_bc_loss_weight"
+output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_energy_loss_bc_loss_weight_20k_epochs"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
