@@ -60,6 +60,9 @@ num_points_per_stress_bc = 1024
 batch_size_train = 1
 num_epochs = 2000
 loss_metric = torch.nn.MSELoss(reduction="mean")
+weight_pde_loss = 1.0
+weight_stress_bc_loss = 10e4
+weight_energy_loss = 1.0
 # Validation
 regenerate_valid_data = True
 input_subdir_valid = "20230613_validation_data_E_210000_nu_03_energy_loss_bc_loss_weight"
@@ -92,6 +95,9 @@ traction_energy_func = traction_energy_func_factory(model)
 traction_left = torch.tensor([traction_left_x, traction_left_y])
 volume_force = torch.tensor([volume_force_x, volume_force_y])
 
+weight_pde_loss = torch.tensor(weight_pde_loss, requires_grad=True).to(device)
+weight_stress_bc_loss = torch.tensor(weight_stress_bc_loss, requires_grad=True).to(device)
+weight_energy_loss = torch.tensor(weight_energy_loss, requires_grad=True).to(device)
 
 def loss_func(
     ansatz: Module,
@@ -154,9 +160,9 @@ def loss_func(
 
         return loss_metric(y_true, y)
 
-    loss_pde = loss_func_pde(ansatz, pde_data)
-    loss_stress_bc = 10e4 * loss_func_stress_bc(ansatz, stress_bc_data)
-    loss_energy = loss_func_energy(ansatz, pde_data)
+    loss_pde = weight_pde_loss * loss_func_pde(ansatz, pde_data)
+    loss_stress_bc = weight_stress_bc_loss * loss_func_stress_bc(ansatz, stress_bc_data)
+    loss_energy = weight_energy_loss * loss_func_energy(ansatz, pde_data)
     return loss_pde, loss_stress_bc, loss_energy
 
 
