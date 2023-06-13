@@ -10,6 +10,8 @@ MomentumFunc: TypeAlias = Callable[[Module, Tensor, Tensor, Tensor], Tensor]
 StressFunc: TypeAlias = Callable[[TModule, Tensor, Tensor], Tensor]
 StrainFunc: TypeAlias = Callable[[TModule, Tensor, Tensor], Tensor]
 TractionFunc: TypeAlias = Callable[[Module, Tensor, Tensor, Tensor], Tensor]
+StrainEnergyFunc: TypeAlias = Callable[[TModule, Tensor, Tensor], Tensor]
+TractionEnergyFunc: TypeAlias = Callable[[TModule, Tensor, Tensor, Tensor], Tensor]
 
 
 def momentum_equation_func(stress_func: StressFunc) -> MomentumFunc:
@@ -38,6 +40,30 @@ def traction_func(stress_func: StressFunc) -> TractionFunc:
     return _func
 
 
+def strain_energy_func(stress_func: StressFunc) -> StrainEnergyFunc:
+    def _func(ansatz: Module, x_coors: Tensor, x_params: Tensor) -> Tensor:
+        _ansatz = _transform_ansatz(ansatz)
+        vmap_func = lambda _x_coor, _x_param: _strain_energy_func(
+            _ansatz, _x_coor, _x_param, stress_func
+        )
+        return vmap(vmap_func)(x_coors, x_params)
+
+    return _func
+
+
+def traction_energy_func(stress_func: StressFunc) -> TractionEnergyFunc:
+    def _func(
+        ansatz: Module, x_coors: Tensor, x_params: Tensor, normal: Tensor
+    ) -> Tensor:
+        _ansatz = _transform_ansatz(ansatz)
+        vmap_func = lambda _x_coor, _x_param, _normal: _traction_energy_func(
+            _ansatz, _x_coor, _x_param, _normal, stress_func
+        )
+        return vmap(vmap_func)(x_coors, x_params, normal)
+
+    return _func
+
+
 def _momentum_equation_func(
     ansatz: TModule,
     x_coor: Tensor,
@@ -57,6 +83,29 @@ def _traction_func(
 ) -> Tensor:
     stress = stress_func(ansatz, x_coor, x_param)
     return torch.matmul(stress, normal)
+
+
+def _strain_energy_func(
+    ansatz: TModule,
+    x_coor: Tensor,
+    x_param: Tensor,
+    stress_func: StressFunc,
+) -> Tensor:
+    stress = stress_func(ansatz, x_coor, x_param)
+    strain = _strain_func(ansatz, x_coor, x_param)
+    return (1 / 2) * torch.einsum("ij,ij", stress, strain)
+
+
+def _traction_energy_func(
+    ansatz: TModule,
+    x_coor: Tensor,
+    x_param: Tensor,
+    normal: Tensor,
+    stress_func: StressFunc,
+) -> Tensor:
+    traction = _traction_func(ansatz, x_coor, x_param, normal, stress_func)
+    displacements = ansatz(x_coor, x_param)
+    return (1 / 2) * torch.einsum("i,i", traction, displacements)
 
 
 def _divergence_stress_func(

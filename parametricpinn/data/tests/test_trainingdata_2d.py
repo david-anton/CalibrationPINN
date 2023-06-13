@@ -161,23 +161,23 @@ def test_sample_stress_bc__x_coordinates(
 
     expected = torch.tensor(
         [
-            [-edge_length, 1/3 * edge_length],
-            [-edge_length, 2/3 * edge_length],
+            [-edge_length, 1 / 3 * edge_length],
+            [-edge_length, 2 / 3 * edge_length],
             [-edge_length, edge_length],
-            [-3/4 * edge_length, edge_length],
-            [-2/4 * edge_length, edge_length],
-            [-1/4 * edge_length, edge_length],
+            [-3 / 4 * edge_length, edge_length],
+            [-2 / 4 * edge_length, edge_length],
+            [-1 / 4 * edge_length, edge_length],
             [
-                -torch.cos(torch.deg2rad(torch.tensor(1/4 * 90))) * radius,
-                torch.sin(torch.deg2rad(torch.tensor(1/4 * 90))) * radius,
+                -torch.cos(torch.deg2rad(torch.tensor(1 / 4 * 90))) * radius,
+                torch.sin(torch.deg2rad(torch.tensor(1 / 4 * 90))) * radius,
             ],
             [
-                -torch.cos(torch.deg2rad(torch.tensor(2/4 * 90))) * radius,
-                torch.sin(torch.deg2rad(torch.tensor(2/4 * 90))) * radius,
+                -torch.cos(torch.deg2rad(torch.tensor(2 / 4 * 90))) * radius,
+                torch.sin(torch.deg2rad(torch.tensor(2 / 4 * 90))) * radius,
             ],
             [
-                -torch.cos(torch.deg2rad(torch.tensor(3/4 * 90))) * radius,
-                torch.sin(torch.deg2rad(torch.tensor(3/4 * 90))) * radius,
+                -torch.cos(torch.deg2rad(torch.tensor(3 / 4 * 90))) * radius,
+                torch.sin(torch.deg2rad(torch.tensor(3 / 4 * 90))) * radius,
             ],
         ]
     )
@@ -226,16 +226,16 @@ def test_sample_stress_bc__normal(sut: TrainingDataset2D, idx_sample: int) -> No
             [0.0, 1.0],
             [0.0, 1.0],
             [
-                torch.cos(torch.deg2rad(torch.tensor(1/4 * 90))),
-                -torch.sin(torch.deg2rad(torch.tensor(1/4 * 90))),
+                torch.cos(torch.deg2rad(torch.tensor(1 / 4 * 90))),
+                -torch.sin(torch.deg2rad(torch.tensor(1 / 4 * 90))),
             ],
             [
-                torch.cos(torch.deg2rad(torch.tensor(2/4 * 90))),
-                -torch.sin(torch.deg2rad(torch.tensor(2/4 * 90))),
+                torch.cos(torch.deg2rad(torch.tensor(2 / 4 * 90))),
+                -torch.sin(torch.deg2rad(torch.tensor(2 / 4 * 90))),
             ],
             [
-                torch.cos(torch.deg2rad(torch.tensor(3/4 * 90))),
-                -torch.sin(torch.deg2rad(torch.tensor(3/4 * 90))),
+                torch.cos(torch.deg2rad(torch.tensor(3 / 4 * 90))),
+                -torch.sin(torch.deg2rad(torch.tensor(3 / 4 * 90))),
             ],
         ]
     )

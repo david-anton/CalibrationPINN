@@ -9,6 +9,8 @@ from parametricpinn.training.loss_2d.momentumbase import (
     TractionFunc,
     _strain_func,
     momentum_equation_func,
+    strain_energy_func,
+    traction_energy_func,
     traction_func,
 )
 from parametricpinn.types import Tensor
@@ -17,19 +19,31 @@ VoigtMaterialTensorFunc: TypeAlias = Callable[[Tensor], Tensor]
 
 
 def momentum_equation_func_factory(model: str) -> MomentumFunc:
-    if model == "plane strain":
-        stress_func = _stress_func(_voigt_material_tensor_func_plane_strain)
-    elif model == "plane stress":
-        stress_func = _stress_func(_voigt_material_tensor_func_plane_stress)
+    stress_func = _get_stress_func(model)
     return momentum_equation_func(stress_func)
 
 
 def traction_func_factory(model: str) -> TractionFunc:
+    stress_func = _get_stress_func(model)
+    return traction_func(stress_func)
+
+
+def strain_energy_func_factory(model: str) -> TractionFunc:
+    stress_func = _get_stress_func(model)
+    return strain_energy_func(stress_func)
+
+
+def traction_energy_func_factory(model: str) -> TractionFunc:
+    stress_func = _get_stress_func(model)
+    return traction_energy_func(stress_func)
+
+
+def _get_stress_func(model: str) -> StressFunc:
     if model == "plane strain":
         stress_func = _stress_func(_voigt_material_tensor_func_plane_strain)
     elif model == "plane stress":
         stress_func = _stress_func(_voigt_material_tensor_func_plane_stress)
-    return traction_func(stress_func)
+    return stress_func
 
 
 def _voigt_material_tensor_func_plane_strain(x_param: Tensor) -> Tensor:
