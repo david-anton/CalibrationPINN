@@ -42,7 +42,7 @@ from parametricpinn.types import Module, Tensor
 # Set up
 model = "plane stress"
 edge_length = 100.0
-radius = 10.0
+radius = 30.0
 traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
@@ -65,7 +65,7 @@ weight_stress_bc_loss = 1.0
 weight_energy_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20230614_validation_data_E_210000_nu_03_without_energy_loss_radius_10"
+input_subdir_valid = "20230614_validation_data_E_210000_nu_03_without_energy_loss_radius_30"
 num_samples_valid = 1
 valid_interval = 1
 num_points_valid = 1024
@@ -73,7 +73,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_without_energy_loss_radius_10"
+output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_without_energy_loss_radius_30"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
