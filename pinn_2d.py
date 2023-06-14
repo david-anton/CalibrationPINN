@@ -42,7 +42,7 @@ from parametricpinn.types import Module, Tensor
 # Set up
 model = "plane stress"
 edge_length = 100.0
-radius = 30.0
+radius = 10.0
 traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
@@ -65,7 +65,7 @@ weight_stress_bc_loss = 1.0
 weight_energy_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20230614_validation_data_E_210000_nu_03_without_energy_loss_radius_30"
+input_subdir_valid = "20230614_validation_data_E_210000_nu_03_with_energy_loss_radius_10"
 num_samples_valid = 1
 valid_interval = 1
 num_points_valid = 1024
@@ -73,7 +73,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_without_energy_loss_radius_30"
+output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_with_energy_loss_radius_10"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -345,7 +345,7 @@ if __name__ == "__main__":
     def loss_func_closure() -> float:
         optimizer.zero_grad()
         loss_pde, loss_stress_bc, loss_energy = loss_func(ansatz, batch_pde, batch_stress_bc)
-        loss = loss_pde + loss_stress_bc
+        loss = loss_pde + loss_stress_bc + loss_energy
         loss.backward(retain_graph=True)
         return loss.item()
 
