@@ -62,11 +62,11 @@ batch_size_train = 1
 num_epochs = 10000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 weight_pde_loss = 1.0
-weight_stress_bc_loss = 1.0
+weight_stress_bc_loss = 1e6
 weight_energy_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20230614_validation_data_E_210000_nu_03_without_energy_loss_radius_10"
+input_subdir_valid = "20230614_validation_data_E_210000_nu_03_with_energy_loss_radius_10_bc_oss_weight_1e6"
 num_samples_valid = 1
 valid_interval = 1
 num_points_valid = 1024
@@ -74,7 +74,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_without_energy_loss_radius_10"
+output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_with_energy_loss_radius_10_bc_oss_weight_1e6"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -347,7 +347,7 @@ if __name__ == "__main__":
     def loss_func_closure() -> float:
         optimizer.zero_grad()
         loss_pde, loss_stress_bc, loss_energy = loss_func(ansatz, batch_pde, batch_stress_bc)
-        loss = loss_pde + loss_stress_bc #+ loss_energy
+        loss = loss_pde + loss_stress_bc + loss_energy
         loss.backward(retain_graph=True)
         return loss.item()
 
