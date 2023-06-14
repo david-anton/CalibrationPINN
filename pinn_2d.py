@@ -58,14 +58,14 @@ num_samples_per_parameter = 1
 num_points_pde = 8192
 num_points_per_stress_bc = 1024
 batch_size_train = 1
-num_epochs = 20000
+num_epochs = 10000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 weight_pde_loss = 1.0
-weight_stress_bc_loss = 10e4
+weight_stress_bc_loss = 1.0
 weight_energy_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20230613_validation_data_E_210000_nu_03_energy_loss_bc_loss_weight_20k_epochs"
+input_subdir_valid = "20230614_validation_data_E_210000_nu_03_without_energy_loss_radius_10"
 num_samples_valid = 1
 valid_interval = 1
 num_points_valid = 1024
@@ -73,7 +73,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_energy_loss_bc_loss_weight_20k_epochs"
+output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_without_energy_loss_radius_10"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -336,6 +336,7 @@ if __name__ == "__main__":
 
     loss_hist_pde = []
     loss_hist_stress_bc = []
+    loss_hist_energy = []
     valid_hist_mae = []
     valid_hist_rl2 = []
     valid_epochs = []
@@ -344,7 +345,7 @@ if __name__ == "__main__":
     def loss_func_closure() -> float:
         optimizer.zero_grad()
         loss_pde, loss_stress_bc, loss_energy = loss_func(ansatz, batch_pde, batch_stress_bc)
-        loss = loss_pde + loss_stress_bc + loss_energy
+        loss = loss_pde + loss_stress_bc
         loss.backward(retain_graph=True)
         return loss.item()
 
@@ -353,27 +354,30 @@ if __name__ == "__main__":
         train_batches = iter(train_dataloader)
         loss_hist_pde_batches = []
         loss_hist_stress_bc_batches = []
+        loss_hist_energy_batches = []
 
         for batch_pde, batch_stress_bc in train_batches:
             ansatz.train()
 
             # Forward pass
             loss_pde, loss_stress_bc, loss_energy = loss_func(ansatz, batch_pde, batch_stress_bc)
-            loss = loss_pde + loss_stress_bc + loss_energy
 
             # Update parameters
             optimizer.step(loss_func_closure)
 
             loss_hist_pde_batches.append(loss_pde.detach().cpu().item())
             loss_hist_stress_bc_batches.append(loss_stress_bc.detach().cpu().item())
+            loss_hist_energy_batches.append(loss_energy.detach().cpu().item())
 
         mean_loss_pde = statistics.mean(loss_hist_pde_batches)
         mean_loss_stress_bc = statistics.mean(loss_hist_stress_bc_batches)
+        mean_loss_energy = statistics.mean(loss_hist_energy_batches)
         loss_hist_pde.append(mean_loss_pde)
         loss_hist_stress_bc.append(mean_loss_stress_bc)
+        loss_hist_energy.append(mean_loss_energy)
 
         print(
-            f"Epoch {epoch} / {num_epochs}, PDE: {mean_loss_pde}, BC: {mean_loss_stress_bc}"
+            f"Epoch {epoch} / {num_epochs}, PDE: {mean_loss_pde}, BC: {mean_loss_stress_bc}, ENERGY: {mean_loss_energy}"
         )
         if epoch % valid_interval == 0 or epoch == num_epochs:
             mae, rl2 = validate_model(ansatz, valid_dataloader)
@@ -387,8 +391,8 @@ if __name__ == "__main__":
     history_plotter_config = HistoryPlotterConfig()
 
     plot_loss_history(
-        loss_hist_pde=loss_hist_pde,
-        loss_hist_stress_bc=loss_hist_stress_bc,
+        loss_hists=[loss_hist_pde, loss_hist_stress_bc, loss_hist_energy],
+        loss_hist_names=["PDE", "Stress BC", "Energy"],
         file_name="loss_pinn.png",
         output_subdir=output_subdir,
         project_directory=project_directory,
