@@ -10,7 +10,7 @@ MomentumFunc: TypeAlias = Callable[[Module, Tensor, Tensor, Tensor], Tensor]
 StressFunc: TypeAlias = Callable[[TModule, Tensor, Tensor], Tensor]
 StrainFunc: TypeAlias = Callable[[TModule, Tensor, Tensor], Tensor]
 TractionFunc: TypeAlias = Callable[[Module, Tensor, Tensor, Tensor], Tensor]
-StrainEnergyFunc: TypeAlias = Callable[[Module, Tensor, Tensor], Tensor]
+StrainEnergyFunc: TypeAlias = Callable[[Module, Tensor, Tensor, Tensor], Tensor]
 TractionEnergyFunc: TypeAlias = Callable[
     [Module, Tensor, Tensor, Tensor, Tensor], Tensor
 ]
@@ -43,14 +43,14 @@ def traction_func(stress_func: StressFunc) -> TractionFunc:
 
 
 def strain_energy_func(stress_func: StressFunc) -> StrainEnergyFunc:
-    def _func(ansatz: Module, x_coors: Tensor, x_params: Tensor) -> Tensor:
+    def _func(ansatz: Module, x_coors: Tensor, x_params: Tensor, area: Tensor) -> Tensor:
         _ansatz = _transform_ansatz(ansatz)
         vmap_func = lambda _x_coor, _x_param: _strain_energy_func(
             _ansatz, _x_coor, _x_param, stress_func
         )
         strain_energies = vmap(vmap_func)(x_coors, x_params)
         num_collocation_points = x_coors.size(dim=0)
-        return 1 / num_collocation_points * torch.sum(strain_energies)
+        return (area / num_collocation_points) * torch.sum(strain_energies)
 
     return _func
 

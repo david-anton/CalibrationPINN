@@ -49,7 +49,7 @@ def calculate_traction(
     )
 
 
-def calculate_strain_energy(x_coordinates: Tensor, x_parameters: Tensor) -> Tensor:
+def calculate_strain_energy(x_coordinates: Tensor, x_parameters: Tensor, area: Tensor) -> Tensor:
     strain_energies = torch.stack(
         [
             _calculate_single_strain_energy(x_coordinate, x_parameter)
@@ -60,7 +60,7 @@ def calculate_strain_energy(x_coordinates: Tensor, x_parameters: Tensor) -> Tens
         ]
     )
     num_collocation_points = x_coordinates.size(dim=0)
-    return 1 / num_collocation_points * torch.sum(strain_energies)
+    return (area / num_collocation_points) * torch.sum(strain_energies)
 
 
 def calculate_traction_energy(
@@ -234,11 +234,12 @@ def test_strain_energy_func(fake_ansatz: Module):
     x_parameters = torch.tensor(
         [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
     )
+    area = torch.tensor(16.0)
     sut = strain_energy_func_factory(model=model)
 
-    actual = sut(fake_ansatz, x_coordinates, x_parameters)
+    actual = sut(fake_ansatz, x_coordinates, x_parameters, area)
 
-    expected = calculate_strain_energy(x_coordinates, x_parameters)
+    expected = calculate_strain_energy(x_coordinates, x_parameters, area)
     torch.testing.assert_close(actual, expected)
 
 
