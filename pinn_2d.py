@@ -61,20 +61,22 @@ num_points_per_stress_bc = 1024
 batch_size_train = 1
 num_epochs = 10000
 loss_metric = torch.nn.MSELoss(reduction="mean")
-weight_pde_loss = 1e6
-weight_stress_bc_loss = 1e6
+weight_pde_loss = 1.0
+weight_stress_bc_loss = 1.0
 weight_energy_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20230614_validation_data_E_210000_nu_03_with_energy_loss_radius_10_bc_1e6_pde_1e6"
+input_subdir_valid = (
+    "20230614_validation_data_E_210000_nu_03_radius_10"
+)
 num_samples_valid = 1
 valid_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
-fem_mesh_resolution = 0.1
+fem_mesh_resolution = 1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_with_energy_loss_radius_10_bc_1e6_pde_1e6"
+output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_with_energy_loss_radius_10"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -97,9 +99,12 @@ traction_left = torch.tensor([traction_left_x, traction_left_y])
 volume_force = torch.tensor([volume_force_x, volume_force_y])
 
 weight_pde_loss = torch.tensor(weight_pde_loss, requires_grad=True).to(device)
-weight_stress_bc_loss = torch.tensor(weight_stress_bc_loss, requires_grad=True).to(device)
+weight_stress_bc_loss = torch.tensor(weight_stress_bc_loss, requires_grad=True).to(
+    device
+)
 weight_energy_loss = torch.tensor(weight_energy_loss, requires_grad=True).to(device)
-area_pwh = torch.tensor(edge_length**2 - 1/4 * math.pi * radius**2).to(device)
+area_pwh = torch.tensor(edge_length**2 - 1 / 4 * math.pi * radius**2).to(device)
+
 
 def loss_func(
     ansatz: Module,
@@ -141,7 +146,9 @@ def loss_func(
         coordinates_y_ext = torch.linspace(
             0.0, edge_length, steps=num_points_per_stress_bc, requires_grad=True
         ).view(num_points_per_stress_bc, 1)
-        x_coor_ext = torch.concat((coordinates_x_ext, coordinates_y_ext), dim=1).to(device)
+        x_coor_ext = torch.concat((coordinates_x_ext, coordinates_y_ext), dim=1).to(
+            device
+        )
         x_E_ext = torch.full(
             (num_points_per_stress_bc, 1), max_youngs_modulus, requires_grad=True
         )
@@ -149,13 +156,19 @@ def loss_func(
             (num_points_per_stress_bc, 1), max_poissons_ratio, requires_grad=True
         )
         x_param_ext = torch.concat((x_E_ext, x_nu_ext), dim=1).to(device)
-        normal_ext = torch.tensor([-1.0, 0.0], requires_grad=True).repeat(
-            num_points_per_stress_bc, 1
-        ).to(device)
-        area_ext = torch.tensor(
-            [edge_length / num_points_per_stress_bc], requires_grad=True
-        ).repeat(num_points_per_stress_bc, 1).to(device)
-        traction_energy = traction_energy_func(ansatz, x_coor_ext, x_param_ext, normal_ext, area_ext)
+        normal_ext = (
+            torch.tensor([-1.0, 0.0], requires_grad=True)
+            .repeat(num_points_per_stress_bc, 1)
+            .to(device)
+        )
+        area_ext = (
+            torch.tensor([edge_length / num_points_per_stress_bc], requires_grad=True)
+            .repeat(num_points_per_stress_bc, 1)
+            .to(device)
+        )
+        traction_energy = traction_energy_func(
+            ansatz, x_coor_ext, x_param_ext, normal_ext, area_ext
+        )
 
         y = strain_energy - traction_energy
         y_true = torch.tensor(0.0).to(device)
@@ -346,7 +359,9 @@ if __name__ == "__main__":
     # Closure for LBFGS
     def loss_func_closure() -> float:
         optimizer.zero_grad()
-        loss_pde, loss_stress_bc, loss_energy = loss_func(ansatz, batch_pde, batch_stress_bc)
+        loss_pde, loss_stress_bc, loss_energy = loss_func(
+            ansatz, batch_pde, batch_stress_bc
+        )
         loss = loss_pde + loss_stress_bc + loss_energy
         loss.backward(retain_graph=True)
         return loss.item()
@@ -362,7 +377,9 @@ if __name__ == "__main__":
             ansatz.train()
 
             # Forward pass
-            loss_pde, loss_stress_bc, loss_energy = loss_func(ansatz, batch_pde, batch_stress_bc)
+            loss_pde, loss_stress_bc, loss_energy = loss_func(
+                ansatz, batch_pde, batch_stress_bc
+            )
 
             # Update parameters
             optimizer.step(loss_func_closure)
