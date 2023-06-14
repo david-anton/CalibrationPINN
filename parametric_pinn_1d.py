@@ -237,8 +237,8 @@ if __name__ == "__main__":
     history_plotter_config = HistoryPlotterConfig()
 
     plot_loss_history(
-        loss_hist_pde=loss_hist_pde,
-        loss_hist_stress_bc=loss_hist_stress_bc,
+        loss_hists=[loss_hist_pde, loss_hist_stress_bc],
+        loss_hist_names=["PDE", "Stress BC"],
         file_name="loss_pinn.png",
         output_subdir=output_subdir,
         project_directory=project_directory,

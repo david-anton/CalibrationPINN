@@ -32,8 +32,8 @@ class HistoryPlotterConfig:
 
 
 def plot_loss_history(
-    loss_hist_pde: list[float],
-    loss_hist_stress_bc: list[float],
+    loss_hists: list[list[float]],
+    loss_hist_names: list[str],
     file_name: str,
     output_subdir: str,
     project_directory: ProjectDirectory,
@@ -41,8 +41,8 @@ def plot_loss_history(
 ) -> None:
     figure, axes = plt.subplots()
     axes.set_title("Loss history", **config.font)
-    axes.plot(loss_hist_pde, label="loss PDE")
-    axes.plot(loss_hist_stress_bc, label="loss stress BC")
+    for loss_hist, loss_hist_name in zip(loss_hists, loss_hist_names):
+        axes.plot(loss_hist, label=loss_hist_name)
     axes.set_yscale("log")
     axes.set_ylabel("MSE", **config.font)
     axes.set_xlabel("epoch", **config.font)
