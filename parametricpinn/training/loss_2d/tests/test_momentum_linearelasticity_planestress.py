@@ -49,7 +49,9 @@ def calculate_traction(
     )
 
 
-def calculate_strain_energy(x_coordinates: Tensor, x_parameters: Tensor, area: Tensor) -> Tensor:
+def calculate_strain_energy(
+    x_coordinates: Tensor, x_parameters: Tensor, area: Tensor
+) -> Tensor:
     strain_energies = torch.stack(
         [
             _calculate_single_strain_energy(x_coordinate, x_parameter)
@@ -60,7 +62,7 @@ def calculate_strain_energy(x_coordinates: Tensor, x_parameters: Tensor, area: T
         ]
     )
     num_collocation_points = x_coordinates.size(dim=0)
-    return (area / num_collocation_points) * torch.sum(strain_energies)
+    return 1 / 2 * (area / num_collocation_points) * torch.sum(strain_energies)
 
 
 def calculate_traction_energy(
@@ -80,7 +82,7 @@ def calculate_traction_energy(
         ]
     )
     traction_energy_fraction = traction_energies * area_fractions
-    return torch.sum(traction_energy_fraction)
+    return 1 / 2 * torch.sum(traction_energy_fraction)
 
 
 def _calculate_single_traction(
@@ -95,7 +97,7 @@ def _calculate_single_strain_energy(
 ) -> Tensor:
     stress = _calculate_single_stress_tensor(x_coordinate, x_parameter)
     strain = _calculate_single_strain_tensor(x_coordinate)
-    return (1 / 2) * torch.einsum("ij,ij", stress, strain)
+    return torch.unsqueeze(torch.einsum("ij,ij", stress, strain), dim=0)
 
 
 def _calculate_single_traction_energy(
@@ -106,9 +108,12 @@ def _calculate_single_traction_energy(
         [constant_displacement_x, constant_displacement_y]
     )
     displacement = constants_dislpacement * torch.tensor(
-        [(x_coordinate[0] ** 2) * x_coordinate[1], x_coordinate[0] * (x_coordinate[1] ** 2)]
+        [
+            (x_coordinate[0] ** 2) * x_coordinate[1],
+            x_coordinate[0] * (x_coordinate[1] ** 2),
+        ]
     )
-    return (1 / 2) * torch.einsum("i,i", traction, displacement)
+    return torch.unsqueeze(torch.einsum("i,i", traction, displacement), dim=0)
 
 
 def _calculate_single_stress_tensor(
@@ -147,7 +152,6 @@ def _calculate_single_strain_tensor(x_coordinate: Tensor) -> Tensor:
         1 / 2 * (2 * (constant_displacement_y * x_coordinate[0] * 2 * x_coordinate[1]))
     )
     return torch.tensor([[strain_xx, strain_xy], [strain_xy, strain_yy]])
-
 
 
 @pytest.mark.parametrize(
@@ -231,9 +235,15 @@ def test_traction_func(
 
 
 def test_strain_energy_func(fake_ansatz: Module):
-    x_coordinates = torch.tensor([[-2.0, -2.0], [0.0, 0.0], [2.0, 2.0]], requires_grad=True)
+    x_coordinates = torch.tensor(
+        [[-2.0, -2.0], [0.0, 0.0], [2.0, 2.0]], requires_grad=True
+    )
     x_parameters = torch.tensor(
-        [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
+        [
+            [youngs_modulus, poissons_ratio],
+            [youngs_modulus, poissons_ratio],
+            [youngs_modulus, poissons_ratio],
+        ]
     )
     area = torch.tensor(16.0)
     sut = strain_energy_func_factory(model=model)
@@ -245,15 +255,25 @@ def test_strain_energy_func(fake_ansatz: Module):
 
 
 def test_traction_energy_func(fake_ansatz: Module):
-    x_coordinates = torch.tensor([[-2.0, -2.0], [-2.0, 0.0], [-2.0, 2.0]], requires_grad=True)
+    x_coordinates = torch.tensor(
+        [[-2.0, -2.0], [-2.0, 0.0], [-2.0, 2.0]], requires_grad=True
+    )
     x_parameters = torch.tensor(
-        [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
+        [
+            [youngs_modulus, poissons_ratio],
+            [youngs_modulus, poissons_ratio],
+            [youngs_modulus, poissons_ratio],
+        ]
     )
     normal_vectors = torch.tensor([[-1.0, 0.0], [-1.0, 0.0], [-1.0, 0.0]])
-    area_fractions = torch.tensor([[1/3 * 4], [1/3 * 4], [1/3 * 4]])
+    area_fractions = torch.tensor([[1 / 3 * 4], [1 / 3 * 4], [1 / 3 * 4]])
     sut = traction_energy_func_factory(model=model)
 
-    actual = sut(fake_ansatz, x_coordinates, x_parameters, normal_vectors, area_fractions)
+    actual = sut(
+        fake_ansatz, x_coordinates, x_parameters, normal_vectors, area_fractions
+    )
 
-    expected = calculate_traction_energy(x_coordinates, x_parameters, normal_vectors, area_fractions)
+    expected = calculate_traction_energy(
+        x_coordinates, x_parameters, normal_vectors, area_fractions
+    )
     torch.testing.assert_close(actual, expected)

@@ -43,14 +43,16 @@ def traction_func(stress_func: StressFunc) -> TractionFunc:
 
 
 def strain_energy_func(stress_func: StressFunc) -> StrainEnergyFunc:
-    def _func(ansatz: Module, x_coors: Tensor, x_params: Tensor, area: Tensor) -> Tensor:
+    def _func(
+        ansatz: Module, x_coors: Tensor, x_params: Tensor, area: Tensor
+    ) -> Tensor:
         _ansatz = _transform_ansatz(ansatz)
         vmap_func = lambda _x_coor, _x_param: _strain_energy_func(
             _ansatz, _x_coor, _x_param, stress_func
         )
         strain_energies = vmap(vmap_func)(x_coors, x_params)
         num_collocation_points = x_coors.size(dim=0)
-        return (area / num_collocation_points) * torch.sum(strain_energies)
+        return 1 / 2 * (area / num_collocation_points) * torch.sum(strain_energies)
 
     return _func
 
@@ -69,7 +71,7 @@ def traction_energy_func(stress_func: StressFunc) -> TractionEnergyFunc:
         )
         traction_energies = vmap(vmap_func)(x_coors, x_params, normals)
         traction_energy_fractions = traction_energies * area_fractions
-        return torch.sum(traction_energy_fractions)
+        return 1 / 2 * torch.sum(traction_energy_fractions)
 
     return _func
 
@@ -103,7 +105,7 @@ def _strain_energy_func(
 ) -> Tensor:
     stress = stress_func(ansatz, x_coor, x_param)
     strain = _strain_func(ansatz, x_coor, x_param)
-    return (1 / 2) * torch.einsum("ij,ij", stress, strain)
+    return torch.unsqueeze(torch.einsum("ij,ij", stress, strain), dim=0)
 
 
 def _traction_energy_func(
@@ -114,8 +116,8 @@ def _traction_energy_func(
     stress_func: StressFunc,
 ) -> Tensor:
     traction = _traction_func(ansatz, x_coor, x_param, normal, stress_func)
-    displacements = ansatz(x_coor, x_param)
-    return (1 / 2) * torch.einsum("i,i", traction, displacements)
+    displacements = _displacement_func(ansatz, x_coor, x_param)
+    return torch.unsqueeze(torch.einsum("i,i", traction, displacements), dim=0)
 
 
 def _divergence_stress_func(
