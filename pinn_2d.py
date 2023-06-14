@@ -1,3 +1,4 @@
+import math
 import os
 import statistics
 from datetime import date
@@ -42,7 +43,7 @@ from parametricpinn.types import Module, Tensor
 # Set up
 model = "plane stress"
 edge_length = 100.0
-radius = 30.0
+radius = 10.0
 traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
@@ -65,7 +66,7 @@ weight_stress_bc_loss = 1.0
 weight_energy_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20230614_validation_data_E_210000_nu_03_with_energy_loss_radius_30"
+input_subdir_valid = "20230614_validation_data_E_210000_nu_03_with_energy_loss_radius_10"
 num_samples_valid = 1
 valid_interval = 1
 num_points_valid = 1024
@@ -73,7 +74,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_with_energy_loss_radius_30"
+output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_with_energy_loss_radius_10"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -98,6 +99,7 @@ volume_force = torch.tensor([volume_force_x, volume_force_y])
 weight_pde_loss = torch.tensor(weight_pde_loss, requires_grad=True).to(device)
 weight_stress_bc_loss = torch.tensor(weight_stress_bc_loss, requires_grad=True).to(device)
 weight_energy_loss = torch.tensor(weight_energy_loss, requires_grad=True).to(device)
+area_pwh = torch.tensor(edge_length**2 - 1/4 * math.pi * radius**2).to(device)
 
 def loss_func(
     ansatz: Module,
@@ -131,7 +133,7 @@ def loss_func(
         x_E_int = pde_data.x_E
         x_nu_int = pde_data.x_nu
         x_param_int = torch.concat((x_E_int, x_nu_int), dim=1).to(device)
-        strain_energy = strain_energy_func(ansatz, x_coor_int, x_param_int)
+        strain_energy = strain_energy_func(ansatz, x_coor_int, x_param_int, area_pwh)
 
         coordinates_x_ext = torch.full(
             (num_points_per_stress_bc, 1), -edge_length, requires_grad=True
