@@ -53,7 +53,7 @@ max_youngs_modulus = 210000.0
 min_poissons_ratio = 0.3
 max_poissons_ratio = 0.3
 # Network
-layer_sizes = [4, 8, 8, 8, 8, 8, 8, 2]
+layer_sizes = [4, 8, 8, 8, 8, 2]
 # Training
 num_samples_per_parameter = 1
 num_points_pde = 8192
@@ -65,10 +65,8 @@ weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_energy_loss = 1.0
 # Validation
-regenerate_valid_data = True
-input_subdir_valid = (
-    "20230614_validation_data_E_210000_nu_03_radius_30"
-)
+regenerate_valid_data = False
+input_subdir_valid = "20230614_validation_data_E_210000_nu_03_radius_30"
 num_samples_valid = 1
 valid_interval = 1
 num_points_valid = 1024
@@ -362,7 +360,7 @@ if __name__ == "__main__":
         loss_pde, loss_stress_bc, loss_energy = loss_func(
             ansatz, batch_pde, batch_stress_bc
         )
-        loss = loss_pde + loss_stress_bc #+ loss_energy
+        loss = loss_pde + loss_stress_bc  # + loss_energy
         loss.backward(retain_graph=True)
         return loss.item()
 
