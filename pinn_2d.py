@@ -33,6 +33,7 @@ from parametricpinn.settings import Settings, get_device, set_default_dtype, set
 from parametricpinn.training.loss_2d import (
     momentum_equation_func_factory,
     strain_energy_func_factory,
+    stress_func_factory,
     traction_energy_func_factory,
     traction_func_factory,
 )
@@ -43,7 +44,7 @@ from parametricpinn.types import Module, Tensor
 # Set up
 model = "plane stress"
 edge_length = 100.0
-radius = 30.0
+radius = 10.0
 traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
@@ -53,20 +54,21 @@ max_youngs_modulus = 210000.0
 min_poissons_ratio = 0.3
 max_poissons_ratio = 0.3
 # Network
-layer_sizes = [4, 8, 8, 8, 8, 2]
+layer_sizes = [4, 16, 16, 16, 16, 2]
 # Training
 num_samples_per_parameter = 1
 num_points_pde = 8192
-num_points_per_stress_bc = 1024
+num_points_per_bc = 1024
 batch_size_train = 1
 num_epochs = 10000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 weight_pde_loss = 1.0
-weight_stress_bc_loss = 1.0
-weight_energy_loss = 1.0
+weight_symmetry_bc_loss = 1.0
+weight_traction_bc_loss = 1.0
+weight_energy_loss = 0.0
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = "20230614_validation_data_E_210000_nu_03_radius_30"
+regenerate_valid_data = True
+input_subdir_valid = "20230616_validation_data_E_210000_nu_03_radius_10"
 num_samples_valid = 1
 valid_interval = 1
 num_points_valid = 1024
@@ -74,7 +76,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_6_layers_8_neurons"
+output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_with_symmetry_BC"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -90,17 +92,21 @@ device = get_device()
 
 ### Loss function
 momentum_equation_func = momentum_equation_func_factory(model)
+stress_func = stress_func_factory(model)
 traction_func = traction_func_factory(model)
 strain_energy_func = strain_energy_func_factory(model)
 traction_energy_func = traction_energy_func_factory(model)
 traction_left = torch.tensor([traction_left_x, traction_left_y])
 volume_force = torch.tensor([volume_force_x, volume_force_y])
 
-weight_pde_loss = torch.tensor(weight_pde_loss, requires_grad=True).to(device)
-weight_stress_bc_loss = torch.tensor(weight_stress_bc_loss, requires_grad=True).to(
+lambda_pde_loss = torch.tensor(weight_pde_loss, requires_grad=True).to(device)
+lambda_symmetry_bc_loss = torch.tensor(weight_symmetry_bc_loss, requires_grad=True).to(
     device
 )
-weight_energy_loss = torch.tensor(weight_energy_loss, requires_grad=True).to(device)
+lambda_traction_bc_loss = torch.tensor(weight_traction_bc_loss, requires_grad=True).to(
+    device
+)
+lambda_energy_loss = torch.tensor(weight_energy_loss, requires_grad=True).to(device)
 area_pwh = torch.tensor(edge_length**2 - 1 / 4 * math.pi * radius**2).to(device)
 
 
@@ -108,7 +114,7 @@ def loss_func(
     ansatz: Module,
     pde_data: TrainingData2DPDE,
     stress_bc_data: TrainingData2DStressBC,
-) -> tuple[Tensor, Tensor, Tensor]:
+) -> tuple[Tensor, Tensor, Tensor, Tensor]:
     def loss_func_pde(ansatz: Module, pde_data: TrainingData2DPDE) -> Tensor:
         x_coor = pde_data.x_coor.to(device)
         x_E = pde_data.x_E
@@ -119,7 +125,44 @@ def loss_func(
         y = momentum_equation_func(ansatz, x_coor, x_param, volume_force)
         return loss_metric(y_true, y)
 
-    def loss_func_stress_bc(
+    def loss_func_symmetry_bc(ansatz: Module) -> Tensor:
+        coordinates_x_right = torch.full(
+            (num_points_per_bc, 1), 0.0, requires_grad=True
+        )
+        coordinates_y_right = torch.linspace(
+            radius, edge_length, steps=num_points_per_bc, requires_grad=True
+        ).view(num_points_per_bc, 1)
+        x_coor_right = torch.concat((coordinates_x_right, coordinates_y_right), dim=1)
+        coordinates_x_bottom = torch.linspace(
+            -edge_length, -radius, steps=num_points_per_bc, requires_grad=True
+        ).view(num_points_per_bc, 1)
+        coordinates_y_bottom = torch.full(
+            (num_points_per_bc, 1), 0.0, requires_grad=True
+        )
+        x_coor_bottom = torch.concat(
+            (coordinates_x_bottom, coordinates_y_bottom), dim=1
+        )
+        x_coor = torch.concat((x_coor_right, x_coor_bottom), dim=0).to(device)
+        x_param = (
+            torch.tensor([max_youngs_modulus, max_poissons_ratio], requires_grad=True)
+            .repeat(2 * num_points_per_bc, 1)
+            .to(device)
+        )
+        shear_stress_filter = (
+            torch.tensor([[0.0, 1.0], [1.0, 0.0]])
+            .repeat(2 * num_points_per_bc, 1)
+            .to(device)
+        )
+        stress_tensors = stress_func(ansatz, x_coor, x_param)
+        shear_stresses = shear_stress_filter * stress_tensors
+
+        y = torch.sum(shear_stresses)
+        y_true = torch.tensor(0.0).to(device)
+
+        return loss_metric(y_true, y)
+
+
+    def loss_func_traction_bc(
         ansatz: Module, stress_bc_data: TrainingData2DStressBC
     ) -> Tensor:
         x_coor = stress_bc_data.x_coor.to(device)
@@ -139,29 +182,29 @@ def loss_func(
         strain_energy = strain_energy_func(ansatz, x_coor_int, x_param_int, area_pwh)
 
         coordinates_x_ext = torch.full(
-            (num_points_per_stress_bc, 1), -edge_length, requires_grad=True
+            (num_points_per_bc, 1), -edge_length, requires_grad=True
         )
         coordinates_y_ext = torch.linspace(
-            0.0, edge_length, steps=num_points_per_stress_bc, requires_grad=True
-        ).view(num_points_per_stress_bc, 1)
+            0.0, edge_length, steps=num_points_per_bc, requires_grad=True
+        ).view(num_points_per_bc, 1)
         x_coor_ext = torch.concat((coordinates_x_ext, coordinates_y_ext), dim=1).to(
             device
         )
         x_E_ext = torch.full(
-            (num_points_per_stress_bc, 1), max_youngs_modulus, requires_grad=True
+            (num_points_per_bc, 1), max_youngs_modulus, requires_grad=True
         )
         x_nu_ext = torch.full(
-            (num_points_per_stress_bc, 1), max_poissons_ratio, requires_grad=True
+            (num_points_per_bc, 1), max_poissons_ratio, requires_grad=True
         )
         x_param_ext = torch.concat((x_E_ext, x_nu_ext), dim=1).to(device)
         normal_ext = (
             torch.tensor([-1.0, 0.0], requires_grad=True)
-            .repeat(num_points_per_stress_bc, 1)
+            .repeat(num_points_per_bc, 1)
             .to(device)
         )
         area_ext = (
-            torch.tensor([edge_length / num_points_per_stress_bc], requires_grad=True)
-            .repeat(num_points_per_stress_bc, 1)
+            torch.tensor([edge_length / num_points_per_bc], requires_grad=True)
+            .repeat(num_points_per_bc, 1)
             .to(device)
         )
         traction_energy = traction_energy_func(
@@ -173,10 +216,13 @@ def loss_func(
 
         return loss_metric(y_true, y)
 
-    loss_pde = weight_pde_loss * loss_func_pde(ansatz, pde_data)
-    loss_stress_bc = weight_stress_bc_loss * loss_func_stress_bc(ansatz, stress_bc_data)
-    loss_energy = weight_energy_loss * loss_func_energy(ansatz, pde_data)
-    return loss_pde, loss_stress_bc, loss_energy
+    loss_pde = lambda_pde_loss * loss_func_pde(ansatz, pde_data)
+    loss_symmetry_bc = lambda_symmetry_bc_loss * loss_func_symmetry_bc(ansatz)
+    loss_traction_bc = lambda_traction_bc_loss * loss_func_traction_bc(
+        ansatz, stress_bc_data
+    )
+    loss_energy = lambda_energy_loss * loss_func_energy(ansatz, pde_data)
+    return loss_pde, loss_symmetry_bc, loss_traction_bc, loss_energy
 
 
 ### Validation
@@ -292,7 +338,7 @@ if __name__ == "__main__":
         min_poissons_ratio=min_poissons_ratio,
         max_poissons_ratio=max_poissons_ratio,
         num_points_pde=num_points_pde,
-        num_points_per_stress_bc=num_points_per_stress_bc,
+        num_points_per_stress_bc=num_points_per_bc,
         num_samples_per_parameter=num_samples_per_parameter,
     )
     train_dataloader = DataLoader(
@@ -348,7 +394,8 @@ if __name__ == "__main__":
     )
 
     loss_hist_pde = []
-    loss_hist_stress_bc = []
+    loss_hist_symmetry_bc = []
+    loss_hist_traction_bc = []
     loss_hist_energy = []
     valid_hist_mae = []
     valid_hist_rl2 = []
@@ -357,10 +404,10 @@ if __name__ == "__main__":
     # Closure for LBFGS
     def loss_func_closure() -> float:
         optimizer.zero_grad()
-        loss_pde, loss_stress_bc, loss_energy = loss_func(
+        loss_pde, loss_symmetry_bc, loss_traction_bc, loss_energy = loss_func(
             ansatz, batch_pde, batch_stress_bc
         )
-        loss = loss_pde + loss_stress_bc  # + loss_energy
+        loss = loss_pde + loss_symmetry_bc + loss_traction_bc + loss_energy
         loss.backward(retain_graph=True)
         return loss.item()
 
@@ -368,14 +415,15 @@ if __name__ == "__main__":
     for epoch in range(num_epochs):
         train_batches = iter(train_dataloader)
         loss_hist_pde_batches = []
-        loss_hist_stress_bc_batches = []
+        loss_hist_symmetry_bc_batches = []
+        loss_hist_traction_bc_batches = []
         loss_hist_energy_batches = []
 
         for batch_pde, batch_stress_bc in train_batches:
             ansatz.train()
 
             # Forward pass
-            loss_pde, loss_stress_bc, loss_energy = loss_func(
+            loss_pde, loss_symmetry_bc, loss_traction_bc, loss_energy = loss_func(
                 ansatz, batch_pde, batch_stress_bc
             )
 
@@ -383,19 +431,26 @@ if __name__ == "__main__":
             optimizer.step(loss_func_closure)
 
             loss_hist_pde_batches.append(loss_pde.detach().cpu().item())
-            loss_hist_stress_bc_batches.append(loss_stress_bc.detach().cpu().item())
+            loss_hist_symmetry_bc_batches.append(loss_symmetry_bc.detach().cpu().item())
+            loss_hist_traction_bc_batches.append(loss_traction_bc.detach().cpu().item())
             loss_hist_energy_batches.append(loss_energy.detach().cpu().item())
 
         mean_loss_pde = statistics.mean(loss_hist_pde_batches)
-        mean_loss_stress_bc = statistics.mean(loss_hist_stress_bc_batches)
+        mean_loss_symmetry_bc = statistics.mean(loss_hist_symmetry_bc_batches)
+        mean_loss_traction_bc = statistics.mean(loss_hist_traction_bc_batches)
         mean_loss_energy = statistics.mean(loss_hist_energy_batches)
         loss_hist_pde.append(mean_loss_pde)
-        loss_hist_stress_bc.append(mean_loss_stress_bc)
+        loss_hist_symmetry_bc.append(mean_loss_symmetry_bc)
+        loss_hist_traction_bc.append(mean_loss_traction_bc)
         loss_hist_energy.append(mean_loss_energy)
 
-        print(
-            f"Epoch {epoch} / {num_epochs}, PDE: {mean_loss_pde}, BC: {mean_loss_stress_bc}, ENERGY: {mean_loss_energy}"
-        )
+        print("##################################################")
+        print(f"Epoch {epoch} / {num_epochs}")
+        print(f"PDE: \t\t {mean_loss_pde}")
+        print(f"SYMMETRY_BC: \t\t {mean_loss_symmetry_bc}")
+        print(f"TRACTION_BC: \t\t {mean_loss_traction_bc}")
+        print(f"ENERGY: \t\t {mean_loss_energy}")
+        print("##################################################")
         if epoch % valid_interval == 0 or epoch == num_epochs:
             mae, rl2 = validate_model(ansatz, valid_dataloader)
             valid_hist_mae.append(mae)
@@ -408,8 +463,8 @@ if __name__ == "__main__":
     history_plotter_config = HistoryPlotterConfig()
 
     plot_loss_history(
-        loss_hists=[loss_hist_pde, loss_hist_stress_bc, loss_hist_energy],
-        loss_hist_names=["PDE", "Stress BC", "Energy"],
+        loss_hists=[loss_hist_pde, loss_hist_symmetry_bc, loss_hist_traction_bc, loss_hist_energy],
+        loss_hist_names=["PDE", "Symmetry BC", "Traction BC", "Energy"],
         file_name="loss_pinn.png",
         output_subdir=output_subdir,
         project_directory=project_directory,
