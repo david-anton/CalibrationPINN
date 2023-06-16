@@ -150,7 +150,7 @@ def loss_func(
         )
         shear_stress_filter = (
             torch.tensor([[0.0, 1.0], [1.0, 0.0]])
-            .repeat(2 * num_points_per_bc, 1)
+            .repeat(2 * num_points_per_bc, 1, 1)
             .to(device)
         )
         stress_tensors = stress_func(ansatz, x_coor, x_param)
