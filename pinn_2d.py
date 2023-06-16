@@ -61,7 +61,7 @@ num_samples_per_parameter = 1
 num_collocation_points = 8192
 num_points_per_bc = 1024
 batch_size_train = 1
-num_epochs = 10000
+num_epochs = 6000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 weight_pde_loss = 1.0
 weight_symmetry_bc_loss = 1.0
