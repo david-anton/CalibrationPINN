@@ -65,9 +65,9 @@ loss_metric = torch.nn.MSELoss(reduction="mean")
 weight_pde_loss = 1.0
 weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
-weight_energy_loss = 0.0
+weight_energy_loss = 1.0
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20230616_validation_data_E_210000_nu_03_radius_10"
 num_samples_valid = 1
 valid_interval = 1
@@ -76,7 +76,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_with_symmetry_BC"
+output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_with_symmetry_BC_energy"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -447,9 +447,9 @@ if __name__ == "__main__":
         print("##################################################")
         print(f"Epoch {epoch} / {num_epochs}")
         print(f"PDE: \t\t {mean_loss_pde}")
-        print(f"SYMMETRY_BC: \t\t {mean_loss_symmetry_bc}")
-        print(f"TRACTION_BC: \t\t {mean_loss_traction_bc}")
-        print(f"ENERGY: \t\t {mean_loss_energy}")
+        print(f"SYMMETRY_BC: \t {mean_loss_symmetry_bc}")
+        print(f"TRACTION_BC: \t {mean_loss_traction_bc}")
+        print(f"ENERGY: \t {mean_loss_energy}")
         print("##################################################")
         if epoch % valid_interval == 0 or epoch == num_epochs:
             mae, rl2 = validate_model(ansatz, valid_dataloader)
