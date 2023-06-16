@@ -6,12 +6,14 @@ from parametricpinn.training.loss_2d.momentumbase import (
     MomentumFunc,
     StrainEnergyFunc,
     StressFunc,
+    StressFuncSingle,
     TModule,
     TractionEnergyFunc,
     TractionFunc,
     _strain_func,
     momentum_equation_func,
     strain_energy_func,
+    stress_func,
     traction_energy_func,
     traction_func,
 )
@@ -21,26 +23,31 @@ VoigtMaterialTensorFunc: TypeAlias = Callable[[Tensor], Tensor]
 
 
 def momentum_equation_func_factory(model: str) -> MomentumFunc:
-    stress_func = _get_stress_func(model)
-    return momentum_equation_func(stress_func)
+    stress_func_single_input = _get_stress_func(model)
+    return momentum_equation_func(stress_func_single_input)
+
+
+def stress_func_factory(model: str) -> StressFunc:
+    stress_func_single_input = _get_stress_func(model)
+    return stress_func(stress_func_single_input)
 
 
 def traction_func_factory(model: str) -> TractionFunc:
-    stress_func = _get_stress_func(model)
-    return traction_func(stress_func)
+    stress_func_single_input = _get_stress_func(model)
+    return traction_func(stress_func_single_input)
 
 
 def strain_energy_func_factory(model: str) -> StrainEnergyFunc:
-    stress_func = _get_stress_func(model)
-    return strain_energy_func(stress_func)
+    stress_func_single_input = _get_stress_func(model)
+    return strain_energy_func(stress_func_single_input)
 
 
 def traction_energy_func_factory(model: str) -> TractionEnergyFunc:
-    stress_func = _get_stress_func(model)
-    return traction_energy_func(stress_func)
+    stress_func_single_input = _get_stress_func(model)
+    return traction_energy_func(stress_func_single_input)
 
 
-def _get_stress_func(model: str) -> StressFunc:
+def _get_stress_func(model: str) -> StressFuncSingle:
     if model == "plane strain":
         stress_func = _stress_func(_voigt_material_tensor_func_plane_strain)
     elif model == "plane stress":
@@ -102,7 +109,9 @@ def _voigt_material_tensor_func_plane_stress(x_param: Tensor) -> Tensor:
     )
 
 
-def _stress_func(voigt_material_tensor_func: VoigtMaterialTensorFunc) -> StressFunc:
+def _stress_func(
+    voigt_material_tensor_func: VoigtMaterialTensorFunc,
+) -> StressFuncSingle:
     voigt_stress_func = _voigt_stress_func(voigt_material_tensor_func)
 
     def _func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
@@ -123,7 +132,7 @@ def _stress_func(voigt_material_tensor_func: VoigtMaterialTensorFunc) -> StressF
 
 def _voigt_stress_func(
     voigt_material_tensor_func: VoigtMaterialTensorFunc,
-) -> StressFunc:
+) -> StressFuncSingle:
     def _func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
         voigt_material_tensor = voigt_material_tensor_func(x_param)
         voigt_strain = _voigt_strain_func(ansatz, x_coor, x_param)

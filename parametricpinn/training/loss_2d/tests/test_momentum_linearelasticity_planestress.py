@@ -5,6 +5,7 @@ import torch.nn as nn
 from parametricpinn.training.loss_2d import (
     momentum_equation_func_factory,
     strain_energy_func_factory,
+    stress_func_factory,
     traction_energy_func_factory,
     traction_func_factory,
 )
@@ -31,6 +32,18 @@ def generate_volume_force(x_coordinates: Tensor) -> Tensor:
             2 * factor_volume_force * torch.unsqueeze(x_coordinates[:, 0], dim=1),
         ),
         dim=1,
+    )
+
+
+def calculate_stress(x_coordinates: Tensor, x_parameters: Tensor) -> Tensor:
+    return torch.stack(
+        [
+            _calculate_single_stress_tensor(x_coordinate, x_parameter)
+            for (x_coordinate, x_parameter) in zip(
+                torch.unbind(x_coordinates),
+                torch.unbind(x_parameters),
+            )
+        ]
     )
 
 
@@ -191,6 +204,42 @@ def test_momentum_equation_func(
 
     actual = sut(fake_ansatz, x_coordinates, x_parameters, volume_forces)
 
+    torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize(
+    ("x_coordinates", "x_parameters"),
+    [
+        (
+            torch.tensor([[2.0, 2.0], [2.0, 2.0]], requires_grad=True),
+            torch.tensor(
+                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
+            ),
+        ),
+        (
+            torch.tensor([[-2.0, -2.0], [-2.0, -2.0]], requires_grad=True),
+            torch.tensor(
+                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
+            ),
+        ),
+        (
+            torch.tensor([[0.0, 0.0], [0.0, 0.0]], requires_grad=True),
+            torch.tensor(
+                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
+            ),
+        ),
+    ],
+)
+def test_stress_func(
+    fake_ansatz: Module,
+    x_coordinates: Tensor,
+    x_parameters: Tensor,
+):
+    sut = stress_func_factory(model=model)
+
+    actual = sut(fake_ansatz, x_coordinates, x_parameters)
+
+    expected = calculate_stress(x_coordinates, x_parameters)
     torch.testing.assert_close(actual, expected)
 
 

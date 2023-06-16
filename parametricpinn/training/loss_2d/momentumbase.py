@@ -6,9 +6,10 @@ from torch.func import grad, jacrev, vmap
 from parametricpinn.types import Module, Tensor
 
 TModule: TypeAlias = Callable[[Tensor, Tensor], Tensor]
-MomentumFunc: TypeAlias = Callable[[Module, Tensor, Tensor, Tensor], Tensor]
-StressFunc: TypeAlias = Callable[[TModule, Tensor, Tensor], Tensor]
+StressFuncSingle: TypeAlias = Callable[[TModule, Tensor, Tensor], Tensor]
 StrainFunc: TypeAlias = Callable[[TModule, Tensor, Tensor], Tensor]
+MomentumFunc: TypeAlias = Callable[[Module, Tensor, Tensor, Tensor], Tensor]
+StressFunc: TypeAlias = Callable[[Module, Tensor, Tensor], Tensor]
 TractionFunc: TypeAlias = Callable[[Module, Tensor, Tensor, Tensor], Tensor]
 StrainEnergyFunc: TypeAlias = Callable[[Module, Tensor, Tensor, Tensor], Tensor]
 TractionEnergyFunc: TypeAlias = Callable[
@@ -16,7 +17,7 @@ TractionEnergyFunc: TypeAlias = Callable[
 ]
 
 
-def momentum_equation_func(stress_func: StressFunc) -> MomentumFunc:
+def momentum_equation_func(stress_func: StressFuncSingle) -> MomentumFunc:
     def _func(
         ansatz: Module, x_coors: Tensor, x_params: Tensor, volume_forces: Tensor
     ) -> Tensor:
@@ -29,7 +30,16 @@ def momentum_equation_func(stress_func: StressFunc) -> MomentumFunc:
     return _func
 
 
-def traction_func(stress_func: StressFunc) -> TractionFunc:
+def stress_func(stress_func: StressFuncSingle) -> StressFunc:
+    def _func(ansatz: Module, x_coors: Tensor, x_params: Tensor) -> Tensor:
+        _ansatz = _transform_ansatz(ansatz)
+        vmap_func = lambda _x_coor, _x_param: stress_func(_ansatz, _x_coor, _x_param)
+        return vmap(vmap_func)(x_coors, x_params)
+
+    return _func
+
+
+def traction_func(stress_func: StressFuncSingle) -> TractionFunc:
     def _func(
         ansatz: Module, x_coors: Tensor, x_params: Tensor, normals: Tensor
     ) -> Tensor:
@@ -42,7 +52,7 @@ def traction_func(stress_func: StressFunc) -> TractionFunc:
     return _func
 
 
-def strain_energy_func(stress_func: StressFunc) -> StrainEnergyFunc:
+def strain_energy_func(stress_func: StressFuncSingle) -> StrainEnergyFunc:
     def _func(
         ansatz: Module, x_coors: Tensor, x_params: Tensor, area: Tensor
     ) -> Tensor:
@@ -57,7 +67,7 @@ def strain_energy_func(stress_func: StressFunc) -> StrainEnergyFunc:
     return _func
 
 
-def traction_energy_func(stress_func: StressFunc) -> TractionEnergyFunc:
+def traction_energy_func(stress_func: StressFuncSingle) -> TractionEnergyFunc:
     def _func(
         ansatz: Module,
         x_coors: Tensor,
@@ -81,7 +91,7 @@ def _momentum_equation_func(
     x_coor: Tensor,
     x_param: Tensor,
     volume_force: Tensor,
-    stress_func: StressFunc,
+    stress_func: StressFuncSingle,
 ) -> Tensor:
     return _divergence_stress_func(ansatz, x_coor, x_param, stress_func) + volume_force
 
@@ -91,7 +101,7 @@ def _traction_func(
     x_coor: Tensor,
     x_param: Tensor,
     normal: Tensor,
-    stress_func: StressFunc,
+    stress_func: StressFuncSingle,
 ) -> Tensor:
     stress = stress_func(ansatz, x_coor, x_param)
     return torch.matmul(stress, normal)
@@ -101,7 +111,7 @@ def _strain_energy_func(
     ansatz: TModule,
     x_coor: Tensor,
     x_param: Tensor,
-    stress_func: StressFunc,
+    stress_func: StressFuncSingle,
 ) -> Tensor:
     stress = stress_func(ansatz, x_coor, x_param)
     strain = _strain_func(ansatz, x_coor, x_param)
@@ -113,7 +123,7 @@ def _traction_energy_func(
     x_coor: Tensor,
     x_param: Tensor,
     normal: Tensor,
-    stress_func: StressFunc,
+    stress_func: StressFuncSingle,
 ) -> Tensor:
     traction = _traction_func(ansatz, x_coor, x_param, normal, stress_func)
     displacements = _displacement_func(ansatz, x_coor, x_param)
@@ -121,7 +131,7 @@ def _traction_energy_func(
 
 
 def _divergence_stress_func(
-    ansatz: TModule, x_coor: Tensor, x_param: Tensor, stress_func: StressFunc
+    ansatz: TModule, x_coor: Tensor, x_param: Tensor, stress_func: StressFuncSingle
 ) -> Tensor:
     def _stress_func(x: Tensor, y: Tensor, idx_i: int, idx_j: int):
         return stress_func(
@@ -143,19 +153,6 @@ def _divergence_stress_func(
         grad(_stress_func, argnums=1)(x_coor[0], x_coor[1], 1, 1), dim=0
     )
     return torch.concat((stress_xx_x + stress_xy_y, stress_xy_x + stress_yy_y), dim=0)
-    # def _stress_to_voigt(stress: Tensor) -> Tensor:
-    #     stress_xx = torch.unsqueeze(stress[0, 0], dim=0)
-    #     stress_yy = torch.unsqueeze(stress[1, 1], dim=0)
-    #     stress_xy = torch.unsqueeze(stress[0, 1], dim=0)
-    #     return torch.concat((stress_xx, stress_yy, stress_xy), dim=0)
-
-    # _stress_func = lambda _x_coor: _stress_to_voigt(stress_func(ansatz, _x_coor, x_param))
-    # jac_stress = jacrev(_stress_func, argnums=0)(x_coor)
-    # stress_xx_x = torch.unsqueeze(jac_stress[0, 0], dim=0)
-    # stress_xy_y = torch.unsqueeze(jac_stress[2, 1], dim=0)
-    # stress_yx_x = torch.unsqueeze(jac_stress[2, 0], dim=0)
-    # stress_yy_y = torch.unsqueeze(jac_stress[1, 1], dim=0)
-    # return torch.concat((stress_xx_x + stress_xy_y, stress_yx_x + stress_yy_y), dim=0)
 
 
 def _strain_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
