@@ -76,7 +76,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_with_symmetry_BC_energy"
+output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_with_symmetry_BC"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -154,11 +154,12 @@ def loss_func(
             .to(device)
         )
         stress_tensors = stress_func(ansatz, x_coor, x_param)
-        shear_stresses = shear_stress_filter * stress_tensors
-
-        y = torch.sum(shear_stresses)
-        y_true = torch.tensor(0.0).to(device)
-
+        y = shear_stress_filter * stress_tensors
+        y_true = (
+            torch.tensor([[0.0, 0.0], [0.0, 0.0]])
+            .repeat(2 * num_points_per_bc, 1, 1)
+            .to(device)
+        )
         return loss_metric(y_true, y)
 
 
@@ -210,10 +211,8 @@ def loss_func(
         traction_energy = traction_energy_func(
             ansatz, x_coor_ext, x_param_ext, normal_ext, area_ext
         )
-
         y = strain_energy - traction_energy
         y_true = torch.tensor(0.0).to(device)
-
         return loss_metric(y_true, y)
 
     loss_pde = lambda_pde_loss * loss_func_pde(ansatz, pde_data)
@@ -407,7 +406,7 @@ if __name__ == "__main__":
         loss_pde, loss_symmetry_bc, loss_traction_bc, loss_energy = loss_func(
             ansatz, batch_pde, batch_stress_bc
         )
-        loss = loss_pde + loss_symmetry_bc + loss_traction_bc + loss_energy
+        loss = loss_pde + loss_symmetry_bc + loss_traction_bc #+ loss_energy
         loss.backward(retain_graph=True)
         return loss.item()
 
