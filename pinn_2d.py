@@ -9,8 +9,9 @@ from torch.utils.data import DataLoader
 
 from parametricpinn.ansatz import create_normalized_hbc_ansatz_2D
 from parametricpinn.data import (
-    TrainingData2DPDE,
-    TrainingData2DStressBC,
+    TrainingData2DCollocation,
+    TrainingData2DSymmetryBC,
+    TrainingData2DTractionBC,
     collate_training_data_2D,
     collate_validation_data_2D,
     create_training_dataset_2D,
@@ -57,7 +58,7 @@ max_poissons_ratio = 0.3
 layer_sizes = [4, 16, 16, 16, 16, 2]
 # Training
 num_samples_per_parameter = 1
-num_points_pde = 8192
+num_collocation_points = 8192
 num_points_per_bc = 1024
 batch_size_train = 1
 num_epochs = 10000
@@ -67,7 +68,7 @@ weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_energy_loss = 1.0
 # Validation
-regenerate_valid_data = False
+regenerate_valid_data = True
 input_subdir_valid = "20230616_validation_data_E_210000_nu_03_radius_10"
 num_samples_valid = 1
 valid_interval = 1
@@ -76,7 +77,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_with_symmetry_BC_energy"
+output_subdir = f"{current_date}_pinn_E_210000_nu_03_test_refactoring"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -112,42 +113,29 @@ area_pwh = torch.tensor(edge_length**2 - 1 / 4 * math.pi * radius**2).to(device)
 
 def loss_func(
     ansatz: Module,
-    pde_data: TrainingData2DPDE,
-    stress_bc_data: TrainingData2DStressBC,
+    collocation_data: TrainingData2DCollocation,
+    symmetry_bc_data: TrainingData2DSymmetryBC,
+    traction_bc_data: TrainingData2DTractionBC,
 ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
-    def loss_func_pde(ansatz: Module, pde_data: TrainingData2DPDE) -> Tensor:
-        x_coor = pde_data.x_coor.to(device)
-        x_E = pde_data.x_E
-        x_nu = pde_data.x_nu
+    def loss_func_pde(
+        ansatz: Module, collocation_data: TrainingData2DCollocation
+    ) -> Tensor:
+        x_coor = collocation_data.x_coor.to(device)
+        x_E = collocation_data.x_E
+        x_nu = collocation_data.x_nu
         x_param = torch.concat((x_E, x_nu), dim=1).to(device)
-        volume_force = pde_data.f.to(device)
-        y_true = pde_data.y_true.to(device)
+        volume_force = collocation_data.f.to(device)
+        y_true = torch.zeros_like(x_coor).to(device)
         y = momentum_equation_func(ansatz, x_coor, x_param, volume_force)
         return loss_metric(y_true, y)
 
-    def loss_func_symmetry_bc(ansatz: Module) -> Tensor:
-        coordinates_x_right = torch.full(
-            (num_points_per_bc, 1), 0.0, requires_grad=True
-        )
-        coordinates_y_right = torch.linspace(
-            radius, edge_length, steps=num_points_per_bc, requires_grad=True
-        ).view(num_points_per_bc, 1)
-        x_coor_right = torch.concat((coordinates_x_right, coordinates_y_right), dim=1)
-        coordinates_x_bottom = torch.linspace(
-            -edge_length, -radius, steps=num_points_per_bc, requires_grad=True
-        ).view(num_points_per_bc, 1)
-        coordinates_y_bottom = torch.full(
-            (num_points_per_bc, 1), 0.0, requires_grad=True
-        )
-        x_coor_bottom = torch.concat(
-            (coordinates_x_bottom, coordinates_y_bottom), dim=1
-        )
-        x_coor = torch.concat((x_coor_right, x_coor_bottom), dim=0).to(device)
-        x_param = (
-            torch.tensor([max_youngs_modulus, max_poissons_ratio], requires_grad=True)
-            .repeat(2 * num_points_per_bc, 1)
-            .to(device)
-        )
+    def loss_func_symmetry_bc(
+        ansatz: Module, symmetry_bc_data: TrainingData2DSymmetryBC
+    ) -> Tensor:
+        x_coor = symmetry_bc_data.x_coor.to(device)
+        x_E = symmetry_bc_data.x_E
+        x_nu = symmetry_bc_data.x_nu
+        x_param = torch.concat((x_E, x_nu), dim=1).to(device)
         shear_stress_filter = (
             torch.tensor([[0.0, 1.0], [1.0, 0.0]])
             .repeat(2 * num_points_per_bc, 1, 1)
@@ -162,65 +150,52 @@ def loss_func(
         )
         return loss_metric(y_true, y)
 
-
     def loss_func_traction_bc(
-        ansatz: Module, stress_bc_data: TrainingData2DStressBC
+        ansatz: Module, traction_bc_data: TrainingData2DTractionBC
     ) -> Tensor:
-        x_coor = stress_bc_data.x_coor.to(device)
-        x_E = stress_bc_data.x_E
-        x_nu = stress_bc_data.x_nu
+        x_coor = traction_bc_data.x_coor.to(device)
+        x_E = traction_bc_data.x_E
+        x_nu = traction_bc_data.x_nu
         x_param = torch.concat((x_E, x_nu), dim=1).to(device)
-        normal = stress_bc_data.normal.to(device)
-        y_true = stress_bc_data.y_true.to(device)
+        normal = traction_bc_data.normal.to(device)
+        y_true = traction_bc_data.y_true.to(device)
         y = traction_func(ansatz, x_coor, x_param, normal)
         return loss_metric(y_true, y)
 
-    def loss_func_energy(ansatz: Module, pde_data: TrainingData2DPDE) -> Tensor:
-        x_coor_int = pde_data.x_coor.to(device)
-        x_E_int = pde_data.x_E
-        x_nu_int = pde_data.x_nu
+    def loss_func_energy(
+        ansatz: Module,
+        collocation_data: TrainingData2DCollocation,
+        traction_bc_data: TrainingData2DTractionBC,
+    ) -> Tensor:
+        x_coor_int = collocation_data.x_coor.to(device)
+        x_E_int = collocation_data.x_E
+        x_nu_int = collocation_data.x_nu
         x_param_int = torch.concat((x_E_int, x_nu_int), dim=1).to(device)
         strain_energy = strain_energy_func(ansatz, x_coor_int, x_param_int, area_pwh)
 
-        coordinates_x_ext = torch.full(
-            (num_points_per_bc, 1), -edge_length, requires_grad=True
-        )
-        coordinates_y_ext = torch.linspace(
-            0.0, edge_length, steps=num_points_per_bc, requires_grad=True
-        ).view(num_points_per_bc, 1)
-        x_coor_ext = torch.concat((coordinates_x_ext, coordinates_y_ext), dim=1).to(
-            device
-        )
-        x_E_ext = torch.full(
-            (num_points_per_bc, 1), max_youngs_modulus, requires_grad=True
-        )
-        x_nu_ext = torch.full(
-            (num_points_per_bc, 1), max_poissons_ratio, requires_grad=True
-        )
+        x_coor_ext = traction_bc_data.x_coor.to(device)
+        x_E_ext = traction_bc_data.x_E
+        x_nu_ext = traction_bc_data.x_nu
         x_param_ext = torch.concat((x_E_ext, x_nu_ext), dim=1).to(device)
-        normal_ext = (
-            torch.tensor([-1.0, 0.0], requires_grad=True)
-            .repeat(num_points_per_bc, 1)
-            .to(device)
-        )
-        area_ext = (
-            torch.tensor([edge_length / num_points_per_bc], requires_grad=True)
-            .repeat(num_points_per_bc, 1)
-            .to(device)
-        )
+        normal_ext = traction_bc_data.normal.to(device)
+        area_frac_ext = traction_bc_data.area_frac.to(device)
         traction_energy = traction_energy_func(
-            ansatz, x_coor_ext, x_param_ext, normal_ext, area_ext
+            ansatz, x_coor_ext, x_param_ext, normal_ext, area_frac_ext
         )
         y = strain_energy - traction_energy
         y_true = torch.tensor(0.0).to(device)
         return loss_metric(y_true, y)
 
-    loss_pde = lambda_pde_loss * loss_func_pde(ansatz, pde_data)
-    loss_symmetry_bc = lambda_symmetry_bc_loss * loss_func_symmetry_bc(ansatz)
-    loss_traction_bc = lambda_traction_bc_loss * loss_func_traction_bc(
-        ansatz, stress_bc_data
+    loss_pde = lambda_pde_loss * loss_func_pde(ansatz, collocation_data)
+    loss_symmetry_bc = lambda_symmetry_bc_loss * loss_func_symmetry_bc(
+        ansatz, symmetry_bc_data
     )
-    loss_energy = lambda_energy_loss * loss_func_energy(ansatz, pde_data)
+    loss_traction_bc = lambda_traction_bc_loss * loss_func_traction_bc(
+        ansatz, traction_bc_data
+    )
+    loss_energy = lambda_energy_loss * loss_func_energy(
+        ansatz, collocation_data, traction_bc_data
+    )
     return loss_pde, loss_symmetry_bc, loss_traction_bc, loss_energy
 
 
@@ -336,8 +311,8 @@ if __name__ == "__main__":
         max_youngs_modulus=max_youngs_modulus,
         min_poissons_ratio=min_poissons_ratio,
         max_poissons_ratio=max_poissons_ratio,
-        num_points_pde=num_points_pde,
-        num_points_per_stress_bc=num_points_per_bc,
+        num_collocation_points=num_collocation_points,
+        num_points_per_bc=num_points_per_bc,
         num_samples_per_parameter=num_samples_per_parameter,
     )
     train_dataloader = DataLoader(
@@ -403,10 +378,10 @@ if __name__ == "__main__":
     # Closure for LBFGS
     def loss_func_closure() -> float:
         optimizer.zero_grad()
-        loss_pde, loss_symmetry_bc, loss_traction_bc, loss_energy = loss_func(
-            ansatz, batch_pde, batch_stress_bc
+        loss_collocation, loss_symmetry_bc, loss_traction_bc, loss_energy = loss_func(
+            ansatz, batch_collocation, batch_symmetry_bc, batch_traction_bc
         )
-        loss = loss_pde + loss_symmetry_bc + loss_traction_bc + loss_energy
+        loss = loss_collocation + loss_symmetry_bc + loss_traction_bc + loss_energy
         loss.backward(retain_graph=True)
         return loss.item()
 
@@ -418,12 +393,12 @@ if __name__ == "__main__":
         loss_hist_traction_bc_batches = []
         loss_hist_energy_batches = []
 
-        for batch_pde, batch_stress_bc in train_batches:
+        for batch_collocation, batch_symmetry_bc, batch_traction_bc in train_batches:
             ansatz.train()
 
             # Forward pass
             loss_pde, loss_symmetry_bc, loss_traction_bc, loss_energy = loss_func(
-                ansatz, batch_pde, batch_stress_bc
+                ansatz, batch_collocation, batch_symmetry_bc, batch_traction_bc
             )
 
             # Update parameters
@@ -462,7 +437,12 @@ if __name__ == "__main__":
     history_plotter_config = HistoryPlotterConfig()
 
     plot_loss_history(
-        loss_hists=[loss_hist_pde, loss_hist_symmetry_bc, loss_hist_traction_bc, loss_hist_energy],
+        loss_hists=[
+            loss_hist_pde,
+            loss_hist_symmetry_bc,
+            loss_hist_traction_bc,
+            loss_hist_energy,
+        ],
         loss_hist_names=["PDE", "Symmetry BC", "Traction BC", "Energy"],
         file_name="loss_pinn.png",
         output_subdir=output_subdir,
