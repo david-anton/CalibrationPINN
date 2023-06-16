@@ -76,7 +76,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_with_symmetry_BC"
+output_subdir = f"{current_date}_parametric_pinn_E_210000_nu_03_with_symmetry_BC_energy"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -406,7 +406,7 @@ if __name__ == "__main__":
         loss_pde, loss_symmetry_bc, loss_traction_bc, loss_energy = loss_func(
             ansatz, batch_pde, batch_stress_bc
         )
-        loss = loss_pde + loss_symmetry_bc + loss_traction_bc #+ loss_energy
+        loss = loss_pde + loss_symmetry_bc + loss_traction_bc + loss_energy
         loss.backward(retain_graph=True)
         return loss.item()
 
