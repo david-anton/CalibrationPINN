@@ -58,10 +58,10 @@ max_poissons_ratio = 0.4
 layer_sizes = [4, 16, 16, 16, 16, 2]
 # Training
 num_samples_per_parameter = 64
-num_collocation_points = 4096
-num_points_per_bc = 256
+num_collocation_points = 256
+num_points_per_bc = 64
 batch_size_train = 128
-num_epochs = 40000
+num_epochs = 100000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 weight_pde_loss = 1.0
 weight_symmetry_bc_loss = 1.0
