@@ -68,7 +68,7 @@ weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_energy_loss = 1.0
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20230616_validation_data_E_180k_240k_nu_02_04_radius_10"
 num_samples_valid = 32
 valid_interval = 1
@@ -138,14 +138,14 @@ def loss_func(
         x_param = torch.concat((x_E, x_nu), dim=1).to(device)
         shear_stress_filter = (
             torch.tensor([[0.0, 1.0], [1.0, 0.0]])
-            .repeat(2 * num_points_per_bc, 1, 1)
+            .repeat(batch_size_train * 2 * num_points_per_bc, 1, 1)
             .to(device)
         )
         stress_tensors = stress_func(ansatz, x_coor, x_param)
         y = shear_stress_filter * stress_tensors
         y_true = (
             torch.tensor([[0.0, 0.0], [0.0, 0.0]])
-            .repeat(2 * num_points_per_bc, 1, 1)
+            .repeat(batch_size_train * 2 * num_points_per_bc, 1, 1)
             .to(device)
         )
         return loss_metric(y_true, y)
