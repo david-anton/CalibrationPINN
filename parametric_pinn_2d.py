@@ -58,8 +58,8 @@ max_poissons_ratio = 0.4
 layer_sizes = [4, 16, 16, 16, 16, 2]
 # Training
 num_samples_per_parameter = 64
-num_collocation_points = 256
-num_points_per_bc = 64
+num_collocation_points = 64
+num_points_per_bc = 16
 batch_size_train = 128
 num_epochs = 100000
 loss_metric = torch.nn.MSELoss(reduction="mean")
@@ -77,7 +77,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_180k_240k_nu_02_04_radius_10"
+output_subdir = f"{current_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_64_col_64_bc_16"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
