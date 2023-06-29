@@ -58,7 +58,7 @@ max_poissons_ratio = 0.4
 layer_sizes = [4, 16, 16, 16, 16, 2]
 # Training
 num_samples_per_parameter = 64
-num_collocation_points = 64
+num_collocation_points = 128
 num_points_per_bc = 32
 batch_size_train = num_samples_per_parameter**2
 num_epochs = 40000
@@ -77,7 +77,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_64_col_64_bc_32_full_batch"
+output_subdir = f"{current_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_64_col_128_bc_32_full_batch"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
