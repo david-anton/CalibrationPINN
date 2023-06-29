@@ -77,7 +77,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_32_col_64_bc_16_full_batch"
+output_subdir = f"{current_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_32_col_64_bc_16_full_batch_pde"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -193,10 +193,10 @@ def loss_func(
     loss_traction_bc = lambda_traction_bc_loss * loss_func_traction_bc(
         ansatz, traction_bc_data
     )
-    loss_energy = lambda_energy_loss * loss_func_energy(
-        ansatz, collocation_data, traction_bc_data
-    )
-    return loss_pde, loss_symmetry_bc, loss_traction_bc, loss_energy
+    # loss_energy = lambda_energy_loss * loss_func_energy(
+    #     ansatz, collocation_data, traction_bc_data
+    # )
+    return loss_pde, loss_symmetry_bc, loss_traction_bc#, loss_energy
 
 
 ### Validation
@@ -378,10 +378,10 @@ if __name__ == "__main__":
     # Closure for LBFGS
     def loss_func_closure() -> float:
         optimizer.zero_grad()
-        loss_collocation, loss_symmetry_bc, loss_traction_bc, loss_energy = loss_func(
+        loss_collocation, loss_symmetry_bc, loss_traction_bc = loss_func(
             ansatz, batch_collocation, batch_symmetry_bc, batch_traction_bc
         )
-        loss = loss_collocation + loss_symmetry_bc + loss_traction_bc + loss_energy
+        loss = loss_collocation + loss_symmetry_bc + loss_traction_bc #+ loss_energy
         loss.backward(retain_graph=True)
         return loss.item()
 
@@ -397,7 +397,7 @@ if __name__ == "__main__":
             ansatz.train()
 
             # Forward pass
-            loss_pde, loss_symmetry_bc, loss_traction_bc, loss_energy = loss_func(
+            loss_pde, loss_symmetry_bc, loss_traction_bc = loss_func(
                 ansatz, batch_collocation, batch_symmetry_bc, batch_traction_bc
             )
 
@@ -407,23 +407,23 @@ if __name__ == "__main__":
             loss_hist_pde_batches.append(loss_pde.detach().cpu().item())
             loss_hist_symmetry_bc_batches.append(loss_symmetry_bc.detach().cpu().item())
             loss_hist_traction_bc_batches.append(loss_traction_bc.detach().cpu().item())
-            loss_hist_energy_batches.append(loss_energy.detach().cpu().item())
+            #loss_hist_energy_batches.append(loss_energy.detach().cpu().item())
 
         mean_loss_pde = statistics.mean(loss_hist_pde_batches)
         mean_loss_symmetry_bc = statistics.mean(loss_hist_symmetry_bc_batches)
         mean_loss_traction_bc = statistics.mean(loss_hist_traction_bc_batches)
-        mean_loss_energy = statistics.mean(loss_hist_energy_batches)
+        #mean_loss_energy = statistics.mean(loss_hist_energy_batches)
         loss_hist_pde.append(mean_loss_pde)
         loss_hist_symmetry_bc.append(mean_loss_symmetry_bc)
         loss_hist_traction_bc.append(mean_loss_traction_bc)
-        loss_hist_energy.append(mean_loss_energy)
+        #loss_hist_energy.append(mean_loss_energy)
 
         print("##################################################")
         print(f"Epoch {epoch} / {num_epochs}")
         print(f"PDE: \t\t {mean_loss_pde}")
         print(f"SYMMETRY_BC: \t {mean_loss_symmetry_bc}")
         print(f"TRACTION_BC: \t {mean_loss_traction_bc}")
-        print(f"ENERGY: \t {mean_loss_energy}")
+        #print(f"ENERGY: \t {mean_loss_energy}")
         print("##################################################")
         if epoch % valid_interval == 0 or epoch == num_epochs:
             mae, rl2 = validate_model(ansatz, valid_dataloader)
@@ -441,9 +441,9 @@ if __name__ == "__main__":
             loss_hist_pde,
             loss_hist_symmetry_bc,
             loss_hist_traction_bc,
-            loss_hist_energy,
+            #loss_hist_energy,
         ],
-        loss_hist_names=["PDE", "Symmetry BC", "Traction BC", "Energy"],
+        loss_hist_names=["PDE", "Symmetry BC", "Traction BC"],
         file_name="loss_pinn.png",
         output_subdir=output_subdir,
         project_directory=project_directory,
