@@ -55,13 +55,13 @@ max_youngs_modulus = 240000.0
 min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
 # Network
-layer_sizes = [4, 16, 16, 16, 16, 2]
+layer_sizes = [4, 32, 32, 32, 32, 2]
 # Training
 num_samples_per_parameter = 64
 num_collocation_points = 128
 num_points_per_bc = 64
 batch_size_train = num_samples_per_parameter**2
-num_epochs = 20000
+num_epochs = 40000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 weight_pde_loss = 1.0
 weight_symmetry_bc_loss = 1.0
@@ -77,7 +77,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_64_col_128_bc_64_full_batch"
+output_subdir = f"{current_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_64_col_128_bc_64_full_batch_neurons_4_32"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
