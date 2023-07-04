@@ -60,7 +60,7 @@ layer_sizes = [4, 32, 32, 32, 32, 32, 32, 2]
 num_samples_per_parameter = 64
 num_collocation_points = 128
 num_points_per_bc = 64
-batch_size_train = num_samples_per_parameter**2 / 4
+batch_size_train = 1024
 num_epochs = 40000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 weight_pde_loss = 1.0
