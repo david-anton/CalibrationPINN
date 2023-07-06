@@ -64,11 +64,11 @@ batch_size_train = 1
 num_epochs = 40000
 loss_metric = torch.nn.MSELoss(reduction="mean")
 weight_pde_loss = 1.0
-weight_symmetry_bc_loss = 1.0
+weight_symmetry_bc_loss = 0.0
 weight_traction_bc_loss = 1.0
 # weight_energy_loss = 1.0
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20230706_validation_data_E_210k_nu_03_radius_10"
 num_samples_valid = 1
 valid_interval = 1
@@ -77,7 +77,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdir = f"{current_date}_pinn_E_210k_nu_03_col_16384_bc_2048_neurons_4_32_with_symmetry_bc"
+output_subdir = f"{current_date}_pinn_E_210k_nu_03_col_16384_bc_2048_neurons_4_32_without_symmetry_bc"
 output_subdir_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
