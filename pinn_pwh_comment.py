@@ -196,7 +196,7 @@ def loss_func(
     # loss_energy = lambda_energy_loss * loss_func_energy(
     #     ansatz, collocation_data, traction_bc_data
     # )
-    return loss_pde, loss_symmetry_bc, loss_traction_bc #, loss_energy
+    return loss_pde, loss_symmetry_bc, loss_traction_bc  # , loss_energy
 
 
 ### Validation
@@ -384,7 +384,7 @@ if __name__ == "__main__":
         loss_collocation, loss_symmetry_bc, loss_traction_bc = loss_func(
             ansatz, batch_collocation, batch_symmetry_bc, batch_traction_bc
         )
-        loss = loss_collocation + loss_symmetry_bc + loss_traction_bc #+ loss_energy
+        loss = loss_collocation + loss_symmetry_bc + loss_traction_bc  # + loss_energy
         loss.backward(retain_graph=True)
         return loss.item()
 
