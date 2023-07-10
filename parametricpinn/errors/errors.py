@@ -25,3 +25,8 @@ class FEMConfigurationError(Error):
 class TestConfigurationError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
+
+
+class InputDataDoesNotMatchError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)

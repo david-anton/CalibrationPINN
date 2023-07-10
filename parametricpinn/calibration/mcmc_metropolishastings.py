@@ -1,54 +1,56 @@
-from typing import Callable, TypeAlias
+from typing import TypeAlias
 
 import numpy as np
 import scipy.stats
-import torch
-from scipy.stats._continuous_distns import norm_gen
 
-from parametricpinn.types import Device, Module, NPArray, Tensor
+from parametricpinn.calibration.likelihood import LikelihoodFunc
+from parametricpinn.calibration.plot import plot_multivariate_normal_distribution
+from parametricpinn.calibration.utility import (
+    _determine_moments_of_multivariate_normal_distribution,
+)
+from parametricpinn.io import ProjectDirectory
+from parametricpinn.types import MultiNormalDist, NPArray
 
-NormalRV: TypeAlias = norm_gen
-LikelihoodFunc: TypeAlias = Callable[[NPArray], float]
+Samples: TypeAlias = list[NPArray]
 
 
-def mcmc_metropolishastings(likelihood: NormalRV, prior: NormalRV) -> NormalRV:
-    unnormalized_posterior = None
+def mcmc_metropolishastings(
+    parameter_names: tuple[str, ...],
+    likelihood: LikelihoodFunc,
+    prior: MultiNormalDist,
+    initial_parameters: NPArray,
+    std_proposal_density: NPArray,
+    num_iterations: int,
+    output_subdir: str,
+    project_directory: ProjectDirectory,
+) -> tuple[MultiNormalDist, NPArray]:
+    unnormalized_posterior = lambda parameters: likelihood(parameters) * prior.pdf(
+        parameters
+    )
+    proposal_density = scipy.stats.multivariate_normal(
+        np.zeros_like(initial_parameters), std_proposal_density
+    )
 
+    samples_list: Samples = []
 
-def compile_likelihood_func(
-    model: Module,
-    coordinates: NPArray,
-    data: NPArray,
-    covariance_error: NPArray,
-    device: Device,
-) -> LikelihoodFunc:
-    model.to(device)
-    dim_data = data.shape[0]
-    inverse_covariance_error = np.linalg.inv(covariance_error)
-
-    def likelihood_func(parameters: NPArray) -> float:
-        model_input = torch.concat(
-            (torch.from_numpy(coordinates), torch.from_numpy(parameters)), dim=0
-        ).to(device)
-        prediction = model(model_input)
-        return (
-            1
-            / (
-                np.power(2 * np.pi, dim_data / 2)
-                * np.power(np.linalg.det(covariance_error), 1 / 2)
-            )
-        ) * (
-            np.exp(
-                -1
-                / 2
-                * (prediction - data)
-                * inverse_covariance_error
-                * (prediction - data)
-            ).detach().cpu()[0]
+    def one_iteration(parameters: NPArray) -> NPArray:
+        next_parameters = parameters + proposal_density.rvs()
+        acceptance_ratio = unnormalized_posterior(parameters) / unnormalized_posterior(
+            next_parameters
         )
+        rand_uniform_number = scipy.stats.uniform.rvs(size=1)
+        if rand_uniform_number > acceptance_ratio:
+            next_parameters = parameters
+        samples_list.append(next_parameters)
+        return next_parameters
 
-    return likelihood_func
+    parameters = initial_parameters
+    for _ in range(num_iterations):
+        parameters = one_iteration(parameters)
 
-
-def plot_normal_random_variable(normal_rv: NormalRV):
-    pass
+    samples = np.array(samples_list)
+    posterior_moments = _determine_moments_of_multivariate_normal_distribution(samples)
+    plot_multivariate_normal_distribution(
+        parameter_names, posterior_moments, samples, output_subdir, project_directory
+    )
+    return posterior_moments, samples

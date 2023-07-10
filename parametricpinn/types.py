@@ -7,6 +7,8 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from matplotlib import axes, figure
+from scipy.stats._continuous_distns import norm_gen
+from scipy.stats._multivariate import multivariate_normal_gen
 
 # Pytorch
 Tensor: TypeAlias = torch.Tensor
@@ -21,6 +23,10 @@ NPArray: TypeAlias = Union[
     npt.NDArray[np.float32],
     npt.NDArray[np.float64],
 ]
+
+# Scipy statistics
+UniNormalDist: TypeAlias = norm_gen
+MultiNormalDist: TypeAlias = multivariate_normal_gen
 
 # Pandas
 PDDataFrame: TypeAlias = pd.DataFrame

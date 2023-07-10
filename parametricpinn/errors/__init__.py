@@ -2,6 +2,7 @@ from .errors import (
     DirectoryNotFoundError,
     FEMConfigurationError,
     FileNotFoundError,
+    InputDataDoesNotMatchError,
     TestConfigurationError,
 )
 
@@ -10,4 +11,5 @@ __all__ = [
     "FileNotFoundError",
     "FEMConfigurationError",
     "TestConfigurationError",
+    "InputDataDoesNotMatchError",
 ]
