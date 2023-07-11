@@ -27,4 +27,6 @@ def _determine_moments_of_multivariate_normal_distribution(
 ) -> MomentsMultivariateNormal:
     mean = np.mean(samples, axis=0)
     covariance = np.cov(samples, rowvar=False)
+    if covariance.shape == ():
+        covariance = np.array([covariance])
     return MomentsMultivariateNormal(mean=mean, covariance=covariance)

@@ -1,11 +1,14 @@
 import statistics
 from datetime import date
 
+import numpy as np
+import scipy.stats
 import torch
 from torch.utils.data import DataLoader
 
 from parametricpinn.ansatz import create_normalized_hbc_ansatz_1D
-from parametricpinn.calibration import calibrate_model
+from parametricpinn.calibration.likelihood import compile_likelihood
+from parametricpinn.calibration.mcmc_metropolishastings import mcmc_metropolishastings
 from parametricpinn.data import (
     TrainingData1DPDE,
     TrainingData1DStressBC,
@@ -289,23 +292,45 @@ if __name__ == "__main__":
         config=displacements_plotter_config,
     )
 
-    # ## Calibration
-    # num_data_points = 100
-    # E_true = 200000.0
-    # coordinates = torch.linspace(
-    #     0.0, length, num_data_points, requires_grad=False
-    # ).view([num_data_points, 1])
-    # data = calculate_displacements_solution_1D(
-    #     coordinates, length, E_true, traction, volume_force
-    # )
-    # coordinates = coordinates.to(device)
-    # data = data.to(device)
+    ## Calibration
+    exact_youngs_modulus = 200000
+    std_noise = 5 * 1e-4
+    coordinates = np.linspace(start=0.0, stop=length, num=128, endpoint=True).reshape(
+        (-1, 1)
+    )
+    clean_data = calculate_displacements_solution_1D(
+        coordinates=coordinates,
+        length=length,
+        youngs_modulus=exact_youngs_modulus,
+        traction=traction,
+        volume_force=volume_force,
+    )
+    noisy_data = clean_data + np.random.normal(
+        loc=0.0, scale=std_noise, size=clean_data.shape
+    )
 
-    # E_estimated, loss_hist_cal = calibrate_model(ansatz, coordinates, data)
-
-    # rel_error_E = (E_estimated - E_true) / E_true
-
-    # print("Calibration results:")
-    # print(f"True E: {E_true}")
-    # print(f"Estimated E: {E_estimated}")
-    # print(f"Relative error E: {rel_error_E}")
+    mean_youngs_modulus = 210000
+    std_youngs_modulus = 15000
+    prior = scipy.stats.multivariate_normal(
+        mean=np.array([mean_youngs_modulus]), cov=np.array([std_youngs_modulus])
+    )
+    covariance_error = np.array([std_noise])
+    likelihood = compile_likelihood(
+        model=ansatz,
+        coordinates=coordinates,
+        data=noisy_data,
+        covariance_error=covariance_error,
+        device=device,
+    )
+    std_proposal_density = 1000
+    posterior_moments, samples = mcmc_metropolishastings(
+        parameter_names=("Youngs modulus",),
+        likelihood=likelihood,
+        prior=prior,
+        initial_parameters=np.array([mean_youngs_modulus]),
+        std_proposal_density=np.array([std_proposal_density]),
+        num_iterations=int(1e6),
+        output_subdir=output_subdir,
+        project_directory=project_directory,
+    )
+    print(posterior_moments)

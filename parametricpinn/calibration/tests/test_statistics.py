@@ -7,6 +7,7 @@ from parametricpinn.calibration.statistics import (
     _determine_moments_of_multivariate_normal_distribution,
     _determine_moments_of_univariate_normal_distribution,
 )
+from parametricpinn.tests.asserts import assert_numpy_arrays_equal
 
 
 def test_determine_moments_of_univariate_normal_distribution_for_1D_samples():
@@ -57,7 +58,7 @@ def test_determine_moments_of_multivariate_normal_distribution_mean():
     mean_a = (-scale_a + center_a + scale_a) / num_samples
     mean_b = (-scale_b + center_b + scale_b) / num_samples
     expected = np.array([mean_a, mean_b])
-    np.testing.assert_allclose(actual, expected)
+    assert_numpy_arrays_equal(actual, expected)
 
 
 def test_determine_moments_of_multivariate_normal_distribution_covariance():
@@ -85,4 +86,39 @@ def test_determine_moments_of_multivariate_normal_distribution_covariance():
         + (scale_a - mean_a) * (scale_b - mean_b)
     ) / (num_samples - 1)
     expected = np.array([[variance_a, covariance_ab], [covariance_ab, variance_b]])
-    np.testing.assert_allclose(actual, expected)
+    assert_numpy_arrays_equal(actual, expected)
+
+
+
+def test_determine_moments_of_multivariate_normal_distribution_for_univariate_distribution_mean():
+    scale = 1.0
+    center = 0.0
+    samples = np.array([[-scale], [center], [scale]])
+    num_samples = samples.shape[0]
+
+    moments = _determine_moments_of_multivariate_normal_distribution(samples)
+    actual = moments.mean
+
+    mean = (-scale + center + scale) / num_samples
+    expected = np.array([mean])
+    assert_numpy_arrays_equal(actual, expected)
+
+
+def test_determine_moments_of_multivariate_normal_distribution_for_univariate_distribution_covariance():
+    scale = 1.0
+    center = 0.0
+    samples = np.array([[-scale], [center], [scale]])
+    num_samples = samples.shape[0]
+
+    moments = _determine_moments_of_multivariate_normal_distribution(samples)
+    actual = moments.covariance
+
+    mean = (-scale + center + scale) / num_samples
+
+    variance = (
+        (-scale - mean) ** 2 + (center - mean) ** 2 + (scale - mean) ** 2
+    ) / (num_samples - 1)
+    expected = np.array([variance])
+    print(actual)
+    np.testing.assert_array_almost_equal(actual, expected)
+    assert_numpy_arrays_equal(actual, expected)

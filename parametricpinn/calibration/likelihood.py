@@ -10,7 +10,7 @@ from parametricpinn.types import Device, Module, NPArray
 LikelihoodFunc: TypeAlias = Callable[[NPArray], float]
 
 
-def compile_likelihood_func(
+def compile_likelihood(
     model: Module,
     coordinates: NPArray,
     data: NPArray,
@@ -24,7 +24,13 @@ def compile_likelihood_func(
             "Shape of coordinates and data for calibration does not match!"
         )
     dim_data = data.shape[0]
-    inverse_covariance_error = np.linalg.inv(covariance_error)
+    if covariance_error.shape == (1,):
+        covariance_error_2D = np.array([covariance_error])
+        inverse_covariance_error = np.linalg.inv(covariance_error_2D)[0]
+        determinant_covariance_error = np.linalg.det(covariance_error_2D)
+    else:
+        inverse_covariance_error = np.linalg.inv(covariance_error)
+        determinant_covariance_error = np.linalg.det(covariance_error)
 
     def likelihood_func(parameters: NPArray) -> float:
         model_input = torch.concat(
@@ -34,18 +40,16 @@ def compile_likelihood_func(
             ),
             dim=1,
         ).to(device)
-        prediction = model(model_input)
+        prediction = model(model_input).detach().cpu().numpy()
         residual = (prediction - data).ravel()
         return (
             1
             / (
                 np.power(2 * np.pi, dim_data / 2)
-                * np.power(np.linalg.det(covariance_error), 1 / 2)
+                * np.power(determinant_covariance_error, 1 / 2)
             )
         ) * (
             np.exp(-1 / 2 * residual.T * inverse_covariance_error * residual)
-            .detach()
-            .cpu()[0]
-        )
+        )[0]
 
     return likelihood_func

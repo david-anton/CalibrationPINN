@@ -4,8 +4,8 @@ import numpy as np
 import scipy.stats
 
 from parametricpinn.calibration.likelihood import LikelihoodFunc
-from parametricpinn.calibration.plot import plot_multivariate_normal_distribution
-from parametricpinn.calibration.utility import (
+from parametricpinn.calibration.plot import plot_posterior_normal_distributions
+from parametricpinn.calibration.statistics import (
     _determine_moments_of_multivariate_normal_distribution,
 )
 from parametricpinn.io import ProjectDirectory
@@ -35,8 +35,8 @@ def mcmc_metropolishastings(
 
     def one_iteration(parameters: NPArray) -> NPArray:
         next_parameters = parameters + proposal_density.rvs()
-        acceptance_ratio = unnormalized_posterior(parameters) / unnormalized_posterior(
-            next_parameters
+        acceptance_ratio = unnormalized_posterior(next_parameters) / unnormalized_posterior(
+            parameters
         )
         rand_uniform_number = scipy.stats.uniform.rvs(size=1)
         if rand_uniform_number > acceptance_ratio:
@@ -50,7 +50,7 @@ def mcmc_metropolishastings(
 
     samples = np.array(samples_list)
     posterior_moments = _determine_moments_of_multivariate_normal_distribution(samples)
-    plot_multivariate_normal_distribution(
+    plot_posterior_normal_distributions(
         parameter_names, posterior_moments, samples, output_subdir, project_directory
     )
     return posterior_moments, samples
