@@ -89,7 +89,6 @@ def test_determine_moments_of_multivariate_normal_distribution_covariance():
     assert_numpy_arrays_equal(actual, expected)
 
 
-
 def test_determine_moments_of_multivariate_normal_distribution_for_univariate_distribution_mean():
     scale = 1.0
     center = 0.0
@@ -115,9 +114,9 @@ def test_determine_moments_of_multivariate_normal_distribution_for_univariate_di
 
     mean = (-scale + center + scale) / num_samples
 
-    variance = (
-        (-scale - mean) ** 2 + (center - mean) ** 2 + (scale - mean) ** 2
-    ) / (num_samples - 1)
+    variance = ((-scale - mean) ** 2 + (center - mean) ** 2 + (scale - mean) ** 2) / (
+        num_samples - 1
+    )
     expected = np.array([variance])
     print(actual)
     np.testing.assert_array_almost_equal(actual, expected)

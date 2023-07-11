@@ -23,7 +23,7 @@ class UnivariateNormalPlotterConfig:
         self.range_in_std = 5
 
         # major ticks
-        self.major_tick_label_size = 20
+        self.major_tick_label_size = 12
         self.major_ticks_size = self.font_size
         self.major_ticks_width = 2
 
@@ -82,7 +82,6 @@ def plot_multivariate_normal_distribution(
     means = moments.mean
     covariance = moments.covariance
 
-
     for parameter_idx in range(num_parameters):
         parameter_name = parameter_names[parameter_idx]
         mean_univariate = means[parameter_idx]
@@ -115,13 +114,23 @@ def plot_univariate_univariate_normal_distribution(
     figure, axes = plt.subplots()
     # Histogram
     range_hist = config.range_in_std * standard_deviation
-    axes.hist(samples, bins=config.bins, range=(mean - range_hist, mean + range_hist))
+    axes.hist(
+        samples,
+        bins=config.bins,
+        range=(mean - range_hist, mean + range_hist),
+        density=True,
+        label="samples",
+    )
     # PDF
     x = np.linspace(
         start=mean - range_hist, stop=mean + range_hist, num=10000, endpoint=True
     )
     y = scipy.stats.norm.pdf(x, loc=mean, scale=standard_deviation)
-    axes.plot(x, y, "r-", label="PDF")
+    axes.plot(x, y, "r-", label="pdf")
+    x_ticks = [mean - (3 * standard_deviation), mean, mean + (3 * standard_deviation)]
+    x_tick_labels = [str(int(tick)) for tick in x_ticks]
+    axes.set_xticks(x_ticks)
+    axes.set_xticklabels(x_tick_labels)
     axes.legend(fontsize=config.font_size, loc="best")
     axes.set_xlabel(parameter_name, **config.font)
     axes.set_ylabel("probability density", **config.font)

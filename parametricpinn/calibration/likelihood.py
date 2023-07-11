@@ -48,8 +48,6 @@ def compile_likelihood(
                 np.power(2 * np.pi, dim_data / 2)
                 * np.power(determinant_covariance_error, 1 / 2)
             )
-        ) * (
-            np.exp(-1 / 2 * residual.T * inverse_covariance_error * residual)
-        )[0]
+        ) * (np.exp(-1 / 2 * residual.T * inverse_covariance_error * residual))[0]
 
     return likelihood_func

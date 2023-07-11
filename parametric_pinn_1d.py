@@ -36,7 +36,7 @@ from parametricpinn.types import Module, Tensor
 # Set up
 length = 100.0
 traction = 10.0
-volume_force = 5.0
+volume_force = 1.0
 min_youngs_modulus = 180000.0
 max_youngs_modulus = 240000.0
 displacement_left = 0.0
@@ -46,7 +46,7 @@ layer_sizes = [2, 16, 16, 1]
 num_samples_train = 128
 num_points_pde = 128
 batch_size_train = num_samples_train
-num_epochs = 200
+num_epochs = 400
 loss_metric = torch.nn.MSELoss()
 # Validation
 num_samples_valid = 128
@@ -185,8 +185,8 @@ if __name__ == "__main__":
         lr=1.0,
         max_iter=20,
         max_eval=25,
-        tolerance_grad=1e-7,
-        tolerance_change=1e-9,
+        tolerance_grad=1e-9,
+        tolerance_change=1e-12,
         history_size=100,
         line_search_fn="strong_wolfe",
     )
@@ -309,12 +309,13 @@ if __name__ == "__main__":
         loc=0.0, scale=std_noise, size=clean_data.shape
     )
 
-    mean_youngs_modulus = 210000
-    std_youngs_modulus = 15000
+    prior_mean_youngs_modulus = 210000
+    prior_std_youngs_modulus = 10000
     prior = scipy.stats.multivariate_normal(
-        mean=np.array([mean_youngs_modulus]), cov=np.array([std_youngs_modulus])
+        mean=np.array([prior_mean_youngs_modulus]),
+        cov=np.array([prior_std_youngs_modulus**2]),
     )
-    covariance_error = np.array([std_noise])
+    covariance_error = np.array([std_noise**2])
     likelihood = compile_likelihood(
         model=ansatz,
         coordinates=coordinates,
@@ -322,14 +323,14 @@ if __name__ == "__main__":
         covariance_error=covariance_error,
         device=device,
     )
-    std_proposal_density = 1000
+    std_proposal_density = 10
     posterior_moments, samples = mcmc_metropolishastings(
         parameter_names=("Youngs modulus",),
         likelihood=likelihood,
         prior=prior,
-        initial_parameters=np.array([mean_youngs_modulus]),
+        initial_parameters=np.array([prior_mean_youngs_modulus]),
         std_proposal_density=np.array([std_proposal_density]),
-        num_iterations=int(1e6),
+        num_iterations=int(1e5),
         output_subdir=output_subdir,
         project_directory=project_directory,
     )

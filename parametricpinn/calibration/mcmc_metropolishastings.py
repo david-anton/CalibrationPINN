@@ -35,8 +35,10 @@ def mcmc_metropolishastings(
 
     def one_iteration(parameters: NPArray) -> NPArray:
         next_parameters = parameters + proposal_density.rvs()
-        acceptance_ratio = unnormalized_posterior(next_parameters) / unnormalized_posterior(
-            parameters
+        acceptance_ratio = np.minimum(
+            1.0,
+            unnormalized_posterior(next_parameters)
+            / unnormalized_posterior(parameters),
         )
         rand_uniform_number = scipy.stats.uniform.rvs(size=1)
         if rand_uniform_number > acceptance_ratio:
