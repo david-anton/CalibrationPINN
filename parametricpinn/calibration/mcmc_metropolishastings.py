@@ -19,7 +19,7 @@ def mcmc_metropolishastings(
     likelihood: LikelihoodFunc,
     prior: MultiNormalDist,
     initial_parameters: NPArray,
-    std_proposal_density: NPArray,
+    cov_proposal_density: NPArray,
     num_iterations: int,
     output_subdir: str,
     project_directory: ProjectDirectory,
@@ -28,7 +28,7 @@ def mcmc_metropolishastings(
         parameters
     )
     proposal_density = scipy.stats.multivariate_normal(
-        np.zeros_like(initial_parameters), std_proposal_density
+        np.zeros_like(initial_parameters), cov_proposal_density
     )
 
     samples_list: Samples = []

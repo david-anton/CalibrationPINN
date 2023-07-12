@@ -13,14 +13,23 @@ from parametricpinn.types import NPArray
 class UnivariateNormalPlotterConfig:
     def __init__(self) -> None:
         # font sizes
-        self.label_size = 20
+        self.label_size = 16
         # font size in legend
-        self.font_size = 16
+        self.font_size = 14
         self.font = {"size": self.label_size}
 
         # histogram
-        self.bins = 30
-        self.range_in_std = 5
+        self.hist_bins = 128
+        self.hist_range_in_std = 5
+        self.hist_color = "tab:cyan"
+
+        # pdf
+        self.pdf_color = "tab:blue"
+        self.pdf_linestyle = "solid"
+        self.pdf_mean_color = "tab:red"
+        self.pdf_mean_linestyle = "solid"
+        self.pdf_interval_color = "tab:red"
+        self.pdf_interval_linestyle = "dashed"
 
         # major ticks
         self.major_tick_label_size = 12
@@ -28,7 +37,7 @@ class UnivariateNormalPlotterConfig:
         self.major_ticks_width = 2
 
         # minor ticks
-        self.minor_tick_label_size = 14
+        self.minor_tick_label_size = 12
         self.minor_ticks_size = 12
         self.minor_ticks_width = 1
 
@@ -113,12 +122,13 @@ def plot_univariate_univariate_normal_distribution(
     standard_deviation = moments.standard_deviation
     figure, axes = plt.subplots()
     # Histogram
-    range_hist = config.range_in_std * standard_deviation
+    range_hist = config.hist_range_in_std * standard_deviation
     axes.hist(
         samples,
-        bins=config.bins,
+        bins=config.hist_bins,
         range=(mean - range_hist, mean + range_hist),
         density=True,
+        color=config.hist_color,
         label="samples",
     )
     # PDF
@@ -126,9 +136,23 @@ def plot_univariate_univariate_normal_distribution(
         start=mean - range_hist, stop=mean + range_hist, num=10000, endpoint=True
     )
     y = scipy.stats.norm.pdf(x, loc=mean, scale=standard_deviation)
-    axes.plot(x, y, "r-", label="pdf")
+    axes.plot(x, y, color=config.pdf_color, linestyle=config.pdf_linestyle, label="pdf")
     x_ticks = [mean - (3 * standard_deviation), mean, mean + (3 * standard_deviation)]
     x_tick_labels = [str(int(tick)) for tick in x_ticks]
+    axes.axvline(
+        x=mean, color=config.pdf_mean_color, linestyle=config.pdf_mean_linestyle, label=r'$\mu$'
+    )
+    axes.axvline(
+        x=mean - 3 * standard_deviation,
+        color=config.pdf_interval_color,
+        linestyle=config.pdf_interval_linestyle,
+        label = r'$3\sigma$'
+    )
+    axes.axvline(
+        x=mean + 3 * standard_deviation,
+        color=config.pdf_interval_color,
+        linestyle=config.pdf_interval_linestyle,
+    )
     axes.set_xticks(x_ticks)
     axes.set_xticklabels(x_tick_labels)
     axes.legend(fontsize=config.font_size, loc="best")

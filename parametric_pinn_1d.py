@@ -35,10 +35,10 @@ from parametricpinn.types import Module, Tensor
 ### Configuration
 # Set up
 length = 100.0
-traction = 10.0
+traction = 1.0
 volume_force = 1.0
-min_youngs_modulus = 180000.0
-max_youngs_modulus = 240000.0
+min_youngs_modulus = 165000.0
+max_youngs_modulus = 255000.0
 displacement_left = 0.0
 # Network
 layer_sizes = [2, 16, 16, 1]
@@ -293,11 +293,12 @@ if __name__ == "__main__":
     )
 
     ## Calibration
-    exact_youngs_modulus = 200000
+    exact_youngs_modulus = 195000
+    num_data_points = 32
     std_noise = 5 * 1e-4
-    coordinates = np.linspace(start=0.0, stop=length, num=128, endpoint=True).reshape(
-        (-1, 1)
-    )
+    coordinates = np.linspace(
+        start=0.0, stop=length, num=num_data_points, endpoint=True
+    ).reshape((-1, 1))
     clean_data = calculate_displacements_solution_1D(
         coordinates=coordinates,
         length=length,
@@ -310,12 +311,12 @@ if __name__ == "__main__":
     )
 
     prior_mean_youngs_modulus = 210000
-    prior_std_youngs_modulus = 10000
+    prior_std_youngs_modulus = 15000
     prior = scipy.stats.multivariate_normal(
         mean=np.array([prior_mean_youngs_modulus]),
         cov=np.array([prior_std_youngs_modulus**2]),
     )
-    covariance_error = np.array([std_noise**2])
+    covariance_error = np.diag(np.full(num_data_points, std_noise**2))
     likelihood = compile_likelihood(
         model=ansatz,
         coordinates=coordinates,
@@ -323,13 +324,13 @@ if __name__ == "__main__":
         covariance_error=covariance_error,
         device=device,
     )
-    std_proposal_density = 10
+    std_proposal_density = 1000
     posterior_moments, samples = mcmc_metropolishastings(
         parameter_names=("Youngs modulus",),
         likelihood=likelihood,
         prior=prior,
         initial_parameters=np.array([prior_mean_youngs_modulus]),
-        std_proposal_density=np.array([std_proposal_density]),
+        cov_proposal_density=np.array([std_proposal_density**2]),
         num_iterations=int(1e5),
         output_subdir=output_subdir,
         project_directory=project_directory,
