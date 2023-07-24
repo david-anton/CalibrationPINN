@@ -27,7 +27,7 @@ class TestConfigurationError(Error):
         super().__init__(message)
 
 
-class InputDataDoesNotMatchError(Error):
+class CalibrationDataDoesNotMatchError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
 
