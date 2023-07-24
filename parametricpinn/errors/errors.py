@@ -30,3 +30,8 @@ class TestConfigurationError(Error):
 class InputDataDoesNotMatchError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
+
+
+class MCMCConfigError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)

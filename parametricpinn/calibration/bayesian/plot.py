@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
 
-from parametricpinn.calibration.statistics import (
+from parametricpinn.calibration.bayesian.statistics import (
     MomentsMultivariateNormal,
     MomentsUnivariateNormal,
 )
@@ -140,13 +140,16 @@ def plot_univariate_univariate_normal_distribution(
     x_ticks = [mean - (3 * standard_deviation), mean, mean + (3 * standard_deviation)]
     x_tick_labels = [str(int(tick)) for tick in x_ticks]
     axes.axvline(
-        x=mean, color=config.pdf_mean_color, linestyle=config.pdf_mean_linestyle, label=r'$\mu$'
+        x=mean,
+        color=config.pdf_mean_color,
+        linestyle=config.pdf_mean_linestyle,
+        label=r"$\mu$",
     )
     axes.axvline(
         x=mean - 3 * standard_deviation,
         color=config.pdf_interval_color,
         linestyle=config.pdf_interval_linestyle,
-        label = r'$3\sigma$'
+        label=r"$3\sigma$",
     )
     axes.axvline(
         x=mean + 3 * standard_deviation,

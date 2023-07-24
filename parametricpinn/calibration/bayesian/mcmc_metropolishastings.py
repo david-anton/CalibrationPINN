@@ -1,17 +1,31 @@
-from typing import TypeAlias
+from typing import Callable, TypeAlias
 
 import numpy as np
 import scipy.stats
 
-from parametricpinn.calibration.likelihood import LikelihoodFunc
-from parametricpinn.calibration.plot import plot_posterior_normal_distributions
-from parametricpinn.calibration.statistics import (
+from parametricpinn.calibration.bayesian.likelihood import LikelihoodFunc
+from parametricpinn.calibration.bayesian.plot import plot_posterior_normal_distributions
+from parametricpinn.calibration.bayesian.statistics import (
+    MomentsMultivariateNormal,
     _determine_moments_of_multivariate_normal_distribution,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import MultiNormalDist, NPArray
 
 Samples: TypeAlias = list[NPArray]
+MCMC_MetropolisHastings: TypeAlias = Callable[
+    [
+        tuple[str, ...],
+        LikelihoodFunc,
+        MultiNormalDist,
+        NPArray,
+        NPArray,
+        int,
+        str,
+        ProjectDirectory,
+    ],
+    tuple[MomentsMultivariateNormal, NPArray],
+]
 
 
 def mcmc_metropolishastings(
@@ -23,7 +37,7 @@ def mcmc_metropolishastings(
     num_iterations: int,
     output_subdir: str,
     project_directory: ProjectDirectory,
-) -> tuple[MultiNormalDist, NPArray]:
+) -> tuple[MomentsMultivariateNormal, NPArray]:
     unnormalized_posterior = lambda parameters: likelihood(parameters) * prior.pdf(
         parameters
     )

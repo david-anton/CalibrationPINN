@@ -21,7 +21,8 @@ class PytorchModelLoader:
         input_file_path = self._join_input_file_path(
             file_name, subdir_name, load_from_output_dir
         )
-        return model.load_state_dict(torch.load(input_file_path))
+        model.load_state_dict(torch.load(input_file_path))
+        return model
 
     def _join_input_file_path(
         self, file_name: str, subdir_name: Optional[str], load_from_output_dir: bool

@@ -2,13 +2,11 @@ import statistics
 from datetime import date
 
 import numpy as np
-import scipy.stats
 import torch
 from torch.utils.data import DataLoader
 
 from parametricpinn.ansatz import create_normalized_hbc_ansatz_1D
-from parametricpinn.calibration.likelihood import compile_likelihood
-from parametricpinn.calibration.mcmc_metropolishastings import mcmc_metropolishastings
+from parametricpinn.calibration import Data, MetropolisHastingsConfig, calibrate
 from parametricpinn.data import (
     TrainingData1DPDE,
     TrainingData1DStressBC,
@@ -19,6 +17,7 @@ from parametricpinn.data import (
     create_validation_dataset_1D,
 )
 from parametricpinn.io import ProjectDirectory
+from parametricpinn.io.loaderssavers import PytorchModelSaver
 from parametricpinn.network import FFNN
 from parametricpinn.postprocessing.plot import (
     DisplacementsPlotterConfig1D,
@@ -46,7 +45,7 @@ layer_sizes = [2, 16, 16, 1]
 num_samples_train = 128
 num_points_pde = 128
 batch_size_train = num_samples_train
-num_epochs = 400
+num_epochs = 200
 loss_metric = torch.nn.MSELoss()
 # Validation
 num_samples_valid = 128
@@ -292,47 +291,56 @@ if __name__ == "__main__":
         config=displacements_plotter_config,
     )
 
-    ## Calibration
+    ### Save model
+    print("Save model ...")
+    model_saver = PytorchModelSaver(project_directory=project_directory)
+    model_saver.save(
+        model=ansatz, file_name="model_parameters", subdir_name=output_subdir
+    )
+
+    ### Calibration
     exact_youngs_modulus = 195000
     num_data_points = 32
     std_noise = 5 * 1e-4
     coordinates = np.linspace(
         start=0.0, stop=length, num=num_data_points, endpoint=True
     ).reshape((-1, 1))
-    clean_data = calculate_displacements_solution_1D(
+    clean_displacements = calculate_displacements_solution_1D(
         coordinates=coordinates,
         length=length,
         youngs_modulus=exact_youngs_modulus,
         traction=traction,
         volume_force=volume_force,
     )
-    noisy_data = clean_data + np.random.normal(
-        loc=0.0, scale=std_noise, size=clean_data.shape
+    noisy_displacements = clean_displacements + np.random.normal(
+        loc=0.0, scale=std_noise, size=clean_displacements.shape
     )
-
     prior_mean_youngs_modulus = 210000
     prior_std_youngs_modulus = 15000
-    prior = scipy.stats.multivariate_normal(
-        mean=np.array([prior_mean_youngs_modulus]),
-        cov=np.array([prior_std_youngs_modulus**2]),
-    )
-    covariance_error = np.diag(np.full(num_data_points, std_noise**2))
-    likelihood = compile_likelihood(
-        model=ansatz,
-        coordinates=coordinates,
-        data=noisy_data,
-        covariance_error=covariance_error,
-        device=device,
-    )
     std_proposal_density = 1000
-    posterior_moments, samples = mcmc_metropolishastings(
+
+    data = Data(
+        coordinates=coordinates,
+        displacements=noisy_displacements,
+        std_noise=std_noise,
+        num_data_points=num_data_points,
+    )
+
+    mcmc_config = MetropolisHastingsConfig(
         parameter_names=("Youngs modulus",),
-        likelihood=likelihood,
-        prior=prior,
+        prior_means=np.array([prior_mean_youngs_modulus]),
+        prior_stds=np.array([prior_std_youngs_modulus]),
         initial_parameters=np.array([prior_mean_youngs_modulus]),
-        cov_proposal_density=np.array([std_proposal_density**2]),
         num_iterations=int(1e5),
+        cov_proposal_density=np.power(np.array([std_proposal_density]), 2),
+    )
+
+    posterior_moments, samples = calibrate(
+        model=ansatz,
+        data=data,
+        mcmc_config=mcmc_config,
         output_subdir=output_subdir,
         project_directory=project_directory,
+        device=device,
     )
     print(posterior_moments)
