@@ -66,9 +66,7 @@ def mcmc_metropolishastings(
     samples_list: Samples = []
 
     def one_iteration(parameters: Tensor) -> Tensor:
-        next_parameters = parameters + proposal_density.sample(
-            sample_shape=parameters.size()
-        )
+        next_parameters = parameters + proposal_density.sample()
         acceptance_ratio = torch.minimum(
             torch.tensor(1.0, device=device),
             unnormalized_posterior(next_parameters)

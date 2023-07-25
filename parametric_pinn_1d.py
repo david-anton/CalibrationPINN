@@ -302,9 +302,10 @@ if __name__ == "__main__":
     exact_youngs_modulus = 195000
     num_data_points = 32
     std_noise = 5 * 1e-4
-    coordinates = np.linspace(
-        start=0.0, stop=length, num=num_data_points, endpoint=True
-    ).reshape((-1, 1))
+    coordinates = torch.reshape(
+        torch.linspace(start=0.0, end=length, steps=num_data_points, device=device),
+        (-1, 1),
+    )
     clean_displacements = calculate_displacements_solution_1D(
         coordinates=coordinates,
         length=length,
@@ -312,8 +313,8 @@ if __name__ == "__main__":
         traction=traction,
         volume_force=volume_force,
     )
-    noisy_displacements = clean_displacements + np.random.normal(
-        loc=0.0, scale=std_noise, size=clean_displacements.shape
+    noisy_displacements = clean_displacements + torch.normal(
+        mean=0.0, std=std_noise, size=clean_displacements.size()
     )
     prior_mean_youngs_modulus = 210000
     prior_std_youngs_modulus = 15000
@@ -328,17 +329,18 @@ if __name__ == "__main__":
 
     mcmc_config = MetropolisHastingsConfig(
         parameter_names=("Youngs modulus",),
-        prior_means=np.array([prior_mean_youngs_modulus]),
-        prior_stds=np.array([prior_std_youngs_modulus]),
-        initial_parameters=np.array([prior_mean_youngs_modulus]),
+        prior_means=[prior_mean_youngs_modulus],
+        prior_stds=[prior_std_youngs_modulus],
+        initial_parameters=torch.tensor([prior_mean_youngs_modulus]),
         num_iterations=int(1e5),
-        cov_proposal_density=np.power(np.array([std_proposal_density]), 2),
+        cov_proposal_density=torch.pow(torch.tensor([std_proposal_density]), 2),
     )
 
     posterior_moments, samples = calibrate(
         model=ansatz,
         data=data,
         mcmc_config=mcmc_config,
+        name_model_parameters_file="model_parameters",
         output_subdir=output_subdir,
         project_directory=project_directory,
         device=device,
