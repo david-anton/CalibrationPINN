@@ -32,7 +32,9 @@ def test_likelihood_func_single_data():
 
     actual = sut(parameters)
 
-    expected = (1 / torch.sqrt(2 * torch.tensor(math.pi) * covariance_error[0])) * torch.pow(torch.tensor(math.e), -1)
+    expected = (
+        1 / torch.sqrt(2 * torch.tensor(math.pi) * covariance_error[0])
+    ) * torch.pow(torch.tensor(math.e), -1)
     torch.testing.assert_close(actual, expected)
 
 
@@ -53,6 +55,8 @@ def test_likelihood_func_multiple_data():
     actual = sut(parameters)
 
     expected = (
-        1 / (2 * torch.tensor(math.pi) * torch.sqrt(torch.det(covariance_error))) * torch.pow(torch.tensor(math.e), -2)
+        1
+        / (2 * torch.tensor(math.pi) * torch.sqrt(torch.det(covariance_error)))
+        * torch.pow(torch.tensor(math.e), -2)
     )
     torch.testing.assert_close(actual, expected)

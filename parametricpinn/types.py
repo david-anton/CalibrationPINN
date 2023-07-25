@@ -15,6 +15,7 @@ Tensor: TypeAlias = torch.Tensor
 Parameter: TypeAlias = nn.Parameter
 Module: TypeAlias = torch.nn.Module
 Device: TypeAlias = torch.device
+TorchMultiNormalDist: TypeAlias = torch.distributions.MultivariateNormal
 
 # Numpy
 NPArray: TypeAlias = Union[
@@ -25,8 +26,8 @@ NPArray: TypeAlias = Union[
 ]
 
 # Scipy statistics
-UniNormalDist: TypeAlias = norm_gen
-MultiNormalDist: TypeAlias = multivariate_normal_gen
+SciPyUniNormalDist: TypeAlias = norm_gen
+SciPyMultiNormalDist: TypeAlias = multivariate_normal_gen
 
 # Pandas
 PDDataFrame: TypeAlias = pd.DataFrame

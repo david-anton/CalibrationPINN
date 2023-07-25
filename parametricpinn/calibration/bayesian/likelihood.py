@@ -7,7 +7,7 @@ from parametricpinn.calibration.utility import _freeze_model
 from parametricpinn.errors import CalibrationDataDoesNotMatchError
 from parametricpinn.types import Device, Module, Tensor
 
-LikelihoodFunc: TypeAlias = Callable[[Tensor], float]
+LikelihoodFunc: TypeAlias = Callable[[Tensor], Tensor]
 
 
 def compile_likelihood(
@@ -27,7 +27,7 @@ def compile_likelihood(
                 "Shape of input and output for calibration does not match!"
             )
 
-    def _calculate_inverse_and_determinant_of_covariance_matrix(
+    def _calculate_inv_and_det_of_cov_matrix(
         cov_matrix: Tensor,
     ) -> tuple[Tensor, Tensor]:
         if cov_matrix.size() == (1,):
@@ -42,9 +42,9 @@ def compile_likelihood(
     (
         inv_cov_error,
         det_cov_error,
-    ) = _calculate_inverse_and_determinant_of_covariance_matrix(covariance_error)
+    ) = _calculate_inv_and_det_of_cov_matrix(covariance_error)
 
-    def likelihood_func(parameters: Tensor) -> float:
+    def likelihood_func(parameters: Tensor) -> Tensor:
         model_input = torch.concat(
             (
                 coordinates,

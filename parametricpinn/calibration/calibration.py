@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from typing import Callable, Optional, TypeAlias, cast
+from typing import Callable, TypeAlias, cast
 
-import numpy as np
-import scipy.stats
+import torch
 
 from parametricpinn.calibration.bayesian.likelihood import (
     LikelihoodFunc,
@@ -16,18 +15,18 @@ from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNo
 from parametricpinn.errors import MCMCConfigError
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.loaderssavers import PytorchModelLoader
-from parametricpinn.types import Device, Module, MultiNormalDist, NPArray
+from parametricpinn.types import Device, Module, NPArray, Tensor, TorchMultiNormalDist
 
 MCMC_Algorithm: TypeAlias = MCMC_MetropolisHastings
-Compiled_MCMC_Algorithm: TypeAlias = Callable[
+MCMC_Algorithm_Closure: TypeAlias = Callable[
     [], tuple[MomentsMultivariateNormal, NPArray]
 ]
 
 
 @dataclass
 class Data:
-    coordinates: NPArray
-    displacements: NPArray
+    coordinates: Tensor
+    displacements: Tensor
     std_noise: float
     num_data_points: int
 
@@ -37,30 +36,32 @@ class MCMCConfig:
     parameter_names: tuple[str, ...]
     prior_means: list[float]
     prior_stds: list[float]
-    initial_parameters: NPArray
+    initial_parameters: Tensor
     num_iterations: int
 
 
 @dataclass
 class MetropolisHastingsConfig(MCMCConfig):
-    cov_proposal_density: NPArray
+    cov_proposal_density: Tensor
 
 
 def calibrate(
     model: Module,
     data: Data,
     mcmc_config: MCMCConfig,
+    name_model_parameters_file: str,
     output_subdir: str,
     project_directory: ProjectDirectory,
     device: Device,
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
     model = _load_model(
         model=model,
+        name_model_parameters_file=name_model_parameters_file,
         output_subdir=output_subdir,
         project_directory=project_directory,
         device=device,
     )
-    prior = _compile_prior(mcmc_config=mcmc_config)
+    prior = _compile_prior(mcmc_config=mcmc_config, device=device)
     likelihood = _compile_likelihood(model=model, data=data, device=device)
     mcmc_algorithm = _compile_mcmc_algorithm(
         mcmc_config=mcmc_config,
@@ -68,12 +69,14 @@ def calibrate(
         prior=prior,
         output_subdir=output_subdir,
         project_directory=project_directory,
+        device=device,
     )
     return mcmc_algorithm()
 
 
 def _load_model(
     model: Module,
+    name_model_parameters_file: str,
     output_subdir: str,
     project_directory: ProjectDirectory,
     device: Device,
@@ -81,19 +84,31 @@ def _load_model(
     print("Load model ...")
     model_loader = PytorchModelLoader(project_directory=project_directory)
     return model_loader.load(
-        model=model, file_name="model_parameters", subdir_name=output_subdir
+        model=model, file_name=name_model_parameters_file, subdir_name=output_subdir
     ).to(device)
 
 
-def _compile_prior(mcmc_config: MCMCConfig) -> MultiNormalDist:
-    return scipy.stats.multivariate_normal(
-        mean=np.array([mcmc_config.prior_means]),
-        cov=np.power(np.array([mcmc_config.prior_stds]), 2),
+def _compile_prior(mcmc_config: MCMCConfig, device: Device) -> TorchMultiNormalDist:
+    def _set_up_covariance_matrix(prior_stds: list[float]) -> Tensor:
+        if len(prior_stds) == 1:
+            return torch.unsqueeze(
+                torch.tensor(prior_stds, dtype=torch.float, device=device) ** 2, dim=1
+            )
+        else:
+            return torch.diag(
+                torch.tensor(prior_stds, dtype=torch.float, device=device) ** 2
+            )
+
+    return torch.distributions.MultivariateNormal(
+        loc=torch.tensor(mcmc_config.prior_means, device=device),
+        covariance_matrix=_set_up_covariance_matrix(mcmc_config.prior_stds),
     )
 
 
 def _compile_likelihood(model: Module, data: Data, device: Device) -> LikelihoodFunc:
-    covariance_error = np.diag(np.full(data.num_data_points, data.std_noise**2))
+    covariance_error = torch.diag(
+        torch.full((data.num_data_points,), data.std_noise**2)
+    )
     return compile_likelihood(
         model=model,
         coordinates=data.coordinates,
@@ -106,10 +121,11 @@ def _compile_likelihood(model: Module, data: Data, device: Device) -> Likelihood
 def _compile_mcmc_algorithm(
     mcmc_config: MCMCConfig,
     likelihood: LikelihoodFunc,
-    prior: MultiNormalDist,
+    prior: TorchMultiNormalDist,
     output_subdir: str,
     project_directory: ProjectDirectory,
-) -> Compiled_MCMC_Algorithm:
+    device: Device,
+) -> MCMC_Algorithm_Closure:
     if isinstance(mcmc_config, MetropolisHastingsConfig):
         mcmc_mh_config = cast(MetropolisHastingsConfig, mcmc_config)
 
@@ -123,6 +139,7 @@ def _compile_mcmc_algorithm(
                 num_iterations=mcmc_mh_config.num_iterations,
                 output_subdir=output_subdir,
                 project_directory=project_directory,
+                device=device,
             )
 
         return mcmc_mh_algorithm
