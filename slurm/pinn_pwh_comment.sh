@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --partition=gpu
+#SBATCH --partition=gpu_irmb_full
 #SBATCH --nodes=1
 #SBATCH --time=48:00:00
 #SBATCH --job-name=PINNPWH
 #SBATCH --ntasks-per-node=1
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:ampere:1
 
 ## Build command
 ## singularity build --fakeroot --force parametricpinn.sif app/.devcontainer/container.def
