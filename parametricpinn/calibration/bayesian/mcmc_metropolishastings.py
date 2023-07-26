@@ -82,7 +82,7 @@ def mcmc_metropolishastings(
     for _ in range(num_iterations):
         parameters = one_iteration(parameters)
 
-    samples = torch.concat(samples_list, dim=0).detach().cpu().numpy()
+    samples = torch.stack(samples_list, dim=0).detach().cpu().numpy()
     posterior_moments = _determine_moments_of_multivariate_normal_distribution(samples)
     plot_posterior_normal_distributions(
         parameter_names, posterior_moments, samples, output_subdir, project_directory
