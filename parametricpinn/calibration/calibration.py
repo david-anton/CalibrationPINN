@@ -34,6 +34,7 @@ class Data:
 @dataclass
 class MCMCConfig:
     parameter_names: tuple[str, ...]
+    true_parameters: tuple[float, ...]
     prior_means: list[float]
     prior_stds: list[float]
     initial_parameters: Tensor
@@ -132,6 +133,7 @@ def _compile_mcmc_algorithm(
         def mcmc_mh_algorithm() -> tuple[MomentsMultivariateNormal, NPArray]:
             return mcmc_metropolishastings(
                 parameter_names=mcmc_mh_config.parameter_names,
+                true_parameters=mcmc_mh_config.true_parameters,
                 likelihood=likelihood,
                 prior=prior,
                 initial_parameters=mcmc_mh_config.initial_parameters,

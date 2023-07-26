@@ -15,6 +15,7 @@ Samples: TypeAlias = list[Tensor]
 MCMC_MetropolisHastings: TypeAlias = Callable[
     [
         tuple[str, ...],
+        tuple[float, ...],
         LikelihoodFunc,
         TorchMultiNormalDist,
         Tensor,
@@ -30,6 +31,7 @@ UnnormalizedPosterior: TypeAlias = Callable[[Tensor], Tensor]
 
 def mcmc_metropolishastings(
     parameter_names: tuple[str, ...],
+    true_parameters: tuple[float, ...],
     likelihood: LikelihoodFunc,
     prior: TorchMultiNormalDist,
     initial_parameters: Tensor,
@@ -85,6 +87,11 @@ def mcmc_metropolishastings(
     samples = torch.stack(samples_list, dim=0).detach().cpu().numpy()
     posterior_moments = _determine_moments_of_multivariate_normal_distribution(samples)
     plot_posterior_normal_distributions(
-        parameter_names, posterior_moments, samples, output_subdir, project_directory
+        parameter_names,
+        true_parameters,
+        posterior_moments,
+        samples,
+        output_subdir,
+        project_directory,
     )
     return posterior_moments, samples

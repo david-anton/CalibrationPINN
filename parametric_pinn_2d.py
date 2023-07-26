@@ -508,9 +508,9 @@ if __name__ == "__main__":
         output_subdir=output_subdir,
         project_directory=project_directory,
         plot_config=displacements_plotter_config,
+        device=device,
         mesh_resolution=0.5,
     )
-
 
     ### Save model
     print("Save model ...")

@@ -18,6 +18,10 @@ class UnivariateNormalPlotterConfig:
         self.font_size = 14
         self.font = {"size": self.label_size}
 
+        # truth
+        self.truth_color = "tab:orange"
+        self.truth_linestyle = "solid"
+
         # histogram
         self.hist_bins = 128
         self.hist_range_in_std = 5
@@ -50,6 +54,7 @@ class UnivariateNormalPlotterConfig:
 
 def plot_posterior_normal_distributions(
     parameter_names: tuple[str, ...],
+    true_parameters: tuple[float, ...],
     moments: MomentsMultivariateNormal,
     samples: NPArray,
     output_subdir: str,
@@ -68,6 +73,7 @@ def plot_posterior_normal_distributions(
         config = UnivariateNormalPlotterConfig()
         plot_univariate_univariate_normal_distribution(
             parameter_name,
+            true_parameters,
             moments_univariate,
             samples,
             output_subdir,
@@ -76,12 +82,18 @@ def plot_posterior_normal_distributions(
         )
     else:
         plot_multivariate_normal_distribution(
-            parameter_names, moments, samples, output_subdir, project_directory
+            parameter_names,
+            true_parameters,
+            moments,
+            samples,
+            output_subdir,
+            project_directory,
         )
 
 
 def plot_multivariate_normal_distribution(
     parameter_names: tuple[str, ...],
+    true_parameters: tuple[float, ...],
     moments: MomentsMultivariateNormal,
     samples: NPArray,
     output_subdir: str,
@@ -93,6 +105,7 @@ def plot_multivariate_normal_distribution(
 
     for parameter_idx in range(num_parameters):
         parameter_name = parameter_names[parameter_idx]
+        true_parameter = true_parameters[parameter_idx]
         mean_univariate = means[parameter_idx]
         std_univariate = np.sqrt(covariance[parameter_idx, parameter_idx])
         moments_univariate = MomentsUnivariateNormal(
@@ -102,6 +115,7 @@ def plot_multivariate_normal_distribution(
         config = UnivariateNormalPlotterConfig()
         plot_univariate_univariate_normal_distribution(
             parameter_name,
+            true_parameter,
             moments_univariate,
             samples_univariate,
             output_subdir,
@@ -112,6 +126,7 @@ def plot_multivariate_normal_distribution(
 
 def plot_univariate_univariate_normal_distribution(
     parameter_name: str,
+    true_parameter: float,
     moments: MomentsUnivariateNormal,
     samples: NPArray,
     output_subdir: str,
@@ -121,6 +136,13 @@ def plot_univariate_univariate_normal_distribution(
     mean = moments.mean
     standard_deviation = moments.standard_deviation
     figure, axes = plt.subplots()
+    # Truth
+    axes.axvline(
+        x=true_parameter,
+        color=config.truth_color,
+        linestyle=config.truth_linestyle,
+        label="truth",
+    )
     # Histogram
     range_hist = config.hist_range_in_std * standard_deviation
     axes.hist(

@@ -9,10 +9,7 @@ from scipy.interpolate import griddata
 
 from parametricpinn.fem.platewithhole import run_simulation
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.settings import get_device
-from parametricpinn.types import Module, NPArray, PLTAxes, PLTFigure
-
-device = get_device()
+from parametricpinn.types import Device, Module, NPArray, PLTAxes, PLTFigure
 
 
 class DisplacementsPlotterConfigPWH:
@@ -93,6 +90,7 @@ def plot_displacements_pwh(
     output_subdir: str,
     project_directory: ProjectDirectory,
     plot_config: DisplacementsPlotterConfigPWH,
+    device: Device,
     mesh_resolution=0.5,
 ) -> None:
     ansatz.eval()
@@ -112,7 +110,12 @@ def plot_displacements_pwh(
             mesh_resolution=mesh_resolution,
         )
         _plot_one_simulation(
-            ansatz, simulation_config, output_subdir, project_directory, plot_config
+            ansatz,
+            simulation_config,
+            output_subdir,
+            project_directory,
+            plot_config,
+            device,
         )
 
 
@@ -122,9 +125,10 @@ def _plot_one_simulation(
     output_subdir: str,
     project_directory: ProjectDirectory,
     plot_config: DisplacementsPlotterConfigPWH,
+    device: Device,
 ):
     simulation_results = _calculate_results(
-        ansatz, simulation_config, output_subdir, project_directory
+        ansatz, simulation_config, output_subdir, project_directory, device
     )
     _plot_results(
         simulation_results,
@@ -140,6 +144,7 @@ def _calculate_results(
     simulation_config: SimulationConfig,
     output_subdir: str,
     project_directory: ProjectDirectory,
+    device: Device,
 ) -> SimulationResults:
     (
         coordinates_x,
@@ -148,7 +153,7 @@ def _calculate_results(
         fem_displacements_y,
     ) = _run_simulation(simulation_config, output_subdir, project_directory)
     pinn_displacements_x, pinn_displacements_y = _run_prametric_pinn(
-        ansatz, simulation_config, coordinates_x, coordinates_y
+        ansatz, simulation_config, coordinates_x, coordinates_y, device
     )
     re_displacements_x = _calculate_relative_error(
         pinn_displacements_x, fem_displacements_x
@@ -201,6 +206,7 @@ def _run_prametric_pinn(
     simulation_config: SimulationConfig,
     coordinates_x: NPArray,
     coordinates_y: NPArray,
+    device: Device,
 ) -> tuple[NPArray, NPArray]:
     youngs_modulus = simulation_config.youngs_modulus
     poissons_ratio = simulation_config.poissons_ratio
