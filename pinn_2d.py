@@ -17,10 +17,7 @@ from parametricpinn.data import (
     create_training_dataset_2D,
     create_validation_dataset_2D,
 )
-from parametricpinn.fem.platewithhole import (
-    generate_validation_data as _generate_validation_data,
-)
-from parametricpinn.fem.platewithhole import run_simulation
+from parametricpinn.fem.platewithhole import generate_validation_data, run_simulation
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN
 from parametricpinn.postprocessing.plot import (
@@ -222,7 +219,7 @@ def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float,
 
 
 ### Preprocessing
-def generate_validation_data() -> None:
+def _generate_validation_data() -> None:
     def _generate_random_parameter_list(
         size: int, min_value: float, max_value: float
     ) -> list[float]:
@@ -235,7 +232,7 @@ def generate_validation_data() -> None:
     poissons_ratios = _generate_random_parameter_list(
         num_samples_valid, min_poissons_ratio, max_poissons_ratio
     )
-    _generate_validation_data(
+    generate_validation_data(
         model=model,
         youngs_moduli=youngs_moduli,
         poissons_ratios=poissons_ratios,
@@ -326,7 +323,7 @@ if __name__ == "__main__":
     print("Load validation data ...")
     if regenerate_valid_data:
         print("Run FE simulations to generate validation data ...")
-        generate_validation_data()
+        _generate_validation_data()
 
     valid_dataset = create_validation_dataset_2D(
         input_subdir=input_subdir_valid,

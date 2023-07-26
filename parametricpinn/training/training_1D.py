@@ -99,6 +99,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             mean_rl2 = statistics.mean(rl2_hist_batches)
         return mean_mae, mean_rl2
 
+    ### Training process
     train_dataloader = DataLoader(
         dataset=train_dataset,
         batch_size=train_batch_size,
@@ -132,7 +133,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     valid_hist_rl2 = []
     valid_epochs = []
 
-    ### Closure for LBFGS
+    # Closure for LBFGS
     def loss_func_closure() -> float:
         optimizer.zero_grad()
         loss_pde, loss_stress_bc = loss_func(ansatz, batch_pde, batch_stress_bc)
@@ -140,7 +141,6 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         loss.backward()
         return loss.item()
 
-    ### Training
     print("Start training ...")
     for epoch in range(train_num_epochs):
         train_batches = iter(train_dataloader)

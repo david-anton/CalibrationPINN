@@ -25,7 +25,7 @@ from parametricpinn.training.training_1D import (
 from parametricpinn.types import Module
 
 ### Configuration
-retrain_ansatz = False
+retrain_parametric_pinn = False
 # Set up
 length = 100.0
 traction = 1.0
@@ -204,6 +204,6 @@ def calibration_step() -> None:
     print(posterior_moments)
 
 
-if retrain_ansatz:
+if retrain_parametric_pinn:
     training_step()
 calibration_step()
