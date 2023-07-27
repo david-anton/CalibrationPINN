@@ -34,6 +34,29 @@ class DisplacementsPlotterConfig1D:
 def plot_displacements_1D(
     ansatz: Module,
     length: float,
+    youngs_modulus_list: list[float],
+    traction: float,
+    volume_force: float,
+    output_subdir: str,
+    project_directory: ProjectDirectory,
+    config: DisplacementsPlotterConfig1D,
+) -> None:
+    for youngs_modulus in youngs_modulus_list:
+        _plot_one_displacements_1D(
+            ansatz=ansatz,
+            length=length,
+            youngs_modulus=youngs_modulus,
+            traction=traction,
+            volume_force=volume_force,
+            output_subdir=output_subdir,
+            project_directory=project_directory,
+            config=config,
+        )
+
+
+def _plot_one_displacements_1D(
+    ansatz: Module,
+    length: float,
     youngs_modulus: float,
     traction: float,
     volume_force: float,

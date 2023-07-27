@@ -471,7 +471,7 @@ if __name__ == "__main__":
 
     plot_displacements_pwh(
         ansatz=ansatz,
-        youngs_modulus_and_poissons_ratio=[(210000, 0.3)],
+        youngs_modulus_and_poissons_ratio_list=[(210000, 0.3)],
         model=model,
         edge_length=edge_length,
         radius=radius,
