@@ -30,7 +30,7 @@ from parametricpinn.types import Device, Module, Tensor
 
 
 @dataclass
-class TrainingConfiguration():
+class TrainingConfiguration:
     ansatz: Module
     material_model: str
     number_points_per_bc: int
@@ -66,7 +66,6 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
     loss_metric = torch.nn.MSELoss()
 
-
     ### Loss function
     momentum_equation_func = momentum_equation_func_factory(material_model)
     stress_func = stress_func_factory(material_model)
@@ -74,16 +73,14 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     # strain_energy_func = strain_energy_func_factory(material_model)
     # traction_energy_func = traction_energy_func_factory(material_model)
 
-
     lambda_pde_loss = torch.tensor(weight_pde_loss, requires_grad=True).to(device)
-    lambda_symmetry_bc_loss = torch.tensor(weight_symmetry_bc_loss, requires_grad=True).to(
-        device
-    )
-    lambda_traction_bc_loss = torch.tensor(weight_traction_bc_loss, requires_grad=True).to(
-        device
-    )
+    lambda_symmetry_bc_loss = torch.tensor(
+        weight_symmetry_bc_loss, requires_grad=True
+    ).to(device)
+    lambda_traction_bc_loss = torch.tensor(
+        weight_traction_bc_loss, requires_grad=True
+    ).to(device)
     # lambda_energy_loss = torch.tensor(weight_energy_loss, requires_grad=True).to(device)
-
 
     def loss_func(
         ansatz: Module,
@@ -172,9 +169,10 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         # )
         return loss_pde, loss_symmetry_bc, loss_traction_bc  # , loss_energy
 
-
     ### Validation
-    def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float, float]:
+    def validate_model(
+        ansatz: Module, valid_dataloader: DataLoader
+    ) -> tuple[float, float]:
         ansatz.eval()
         with torch.no_grad():
             valid_batches = iter(valid_dataloader)
@@ -291,7 +289,9 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             valid_hist_mae.append(mae)
             valid_hist_rl2.append(rl2)
             valid_epochs.append(epoch)
-            print(f"Validation: Epoch {epoch} / {train_num_epochs - 1}, MAE: {mae}, rL2: {rl2}")
+            print(
+                f"Validation: Epoch {epoch} / {train_num_epochs - 1}, MAE: {mae}, rL2: {rl2}"
+            )
 
     ### Postprocessing
     print("Postprocessing ...")

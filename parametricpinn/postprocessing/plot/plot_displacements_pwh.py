@@ -79,7 +79,7 @@ SimulationResults = namedtuple(
 
 def plot_displacements_pwh(
     ansatz: Module,
-    youngs_modulus_and_poissons_ratio: list[tuple[float, float]],
+    youngs_modulus_and_poissons_ratio_list: list[tuple[float, float]],
     model: str,
     edge_length: float,
     radius: float,
@@ -94,7 +94,7 @@ def plot_displacements_pwh(
     mesh_resolution=0.5,
 ) -> None:
     ansatz.eval()
-    for parameters in youngs_modulus_and_poissons_ratio:
+    for parameters in youngs_modulus_and_poissons_ratio_list:
         youngs_modulus = parameters[0]
         poissons_ratio = parameters[1]
         simulation_config = SimulationConfig(
