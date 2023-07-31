@@ -24,8 +24,8 @@ def test_likelihood_func_single_data():
     covariance_error = torch.tensor([1 / 2])
     sut = compile_likelihood(
         model=model,
-        coordinates=coordinates,
-        data=data,
+        inputs=coordinates,
+        outputs=data,
         covariance_error=covariance_error,
         device=device,
     )
@@ -46,8 +46,8 @@ def test_likelihood_func_multiple_data():
     covariance_error = torch.diag(torch.full((2,), 1 / 2))
     sut = compile_likelihood(
         model=model,
-        coordinates=coordinates,
-        data=data,
+        inputs=coordinates,
+        outputs=data,
         covariance_error=covariance_error,
         device=device,
     )

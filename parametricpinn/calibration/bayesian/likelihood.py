@@ -3,8 +3,7 @@ from typing import Callable, TypeAlias
 
 import torch
 
-from parametricpinn.calibration.utility import _freeze_model
-from parametricpinn.errors import CalibrationDataDoesNotMatchError
+from parametricpinn.calibration.data import PreprocessedData
 from parametricpinn.types import Device, Module, Tensor
 
 LikelihoodFunc: TypeAlias = Callable[[Tensor], Tensor]
@@ -12,21 +11,9 @@ LikelihoodFunc: TypeAlias = Callable[[Tensor], Tensor]
 
 def compile_likelihood(
     model: Module,
-    coordinates: Tensor,
-    data: Tensor,
-    covariance_error: Tensor,
+    data: PreprocessedData,
     device: Device,
 ) -> LikelihoodFunc:
-    def _prepare_model(model: Module) -> None:
-        model.to(device)
-        _freeze_model(model)
-
-    def _validate_data(data: Tensor, coordinates: Tensor) -> None:
-        if not data.size()[0] == coordinates.size()[0]:
-            raise CalibrationDataDoesNotMatchError(
-                "Shape of input and output for calibration does not match!"
-            )
-
     def _calculate_inv_and_det_of_cov_matrix(
         cov_matrix: Tensor,
     ) -> tuple[Tensor, Tensor]:
@@ -36,9 +23,10 @@ def compile_likelihood(
         det_cov_matrix = torch.det(cov_matrix)
         return inv_cov_matrix, det_cov_matrix
 
-    _prepare_model(model)
-    _validate_data(data, coordinates)
-    dim_data = data.size()[0]
+    inputs = data.inputs
+    flattened_outputs = data.outputs.ravel()
+    num_data_points = data.num_data_points
+    covariance_error = data.error_covariance_matrix
     (
         inv_cov_error,
         det_cov_error,
@@ -47,17 +35,20 @@ def compile_likelihood(
     def likelihood_func(parameters: Tensor) -> Tensor:
         model_input = torch.concat(
             (
-                coordinates,
-                parameters.repeat((dim_data, 1)),
+                inputs,
+                parameters.repeat((num_data_points, 1)),
             ),
             dim=1,
         ).to(device)
         prediction = model(model_input).detach()
-        residual = (prediction - data).ravel()
+        flattened_prediction = prediction.ravel()
+        residual = flattened_prediction - flattened_outputs
         return (
             1
             / (
-                torch.pow((2 * torch.tensor(math.pi)), torch.tensor(dim_data) / 2)
+                torch.pow(
+                    (2 * torch.tensor(math.pi)), torch.tensor(num_data_points) / 2
+                )
                 * torch.pow(det_cov_error, 1 / 2)
             )
         ) * (

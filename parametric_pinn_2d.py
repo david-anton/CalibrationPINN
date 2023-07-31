@@ -5,6 +5,11 @@ import numpy as np
 import torch
 
 from parametricpinn.ansatz import create_normalized_hbc_ansatz_2D
+from parametricpinn.calibration import (
+    CalibrationData,
+    MetropolisHastingsConfig,
+    calibrate,
+)
 from parametricpinn.data import (
     TrainingDataset2D,
     ValidationDataset2D,
@@ -29,7 +34,7 @@ from parametricpinn.training.training_2D import (
 from parametricpinn.types import Module, Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 material_model = "plane stress"
 edge_length = 100.0
@@ -60,11 +65,12 @@ num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
-fem_mesh_resolution = 0.1
+fem_mesh_resolution = 1.0
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdirectory = f"{current_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_32_col_64_bc_32_full_batch_neurons_4_32"
-output_subdirectory_preprocessing = f"{current_date}_preprocessing"
+output_date = 20230726
+output_subdirectory = f"{output_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_32_col_64_bc_32_full_batch_neurons_4_32"
+output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
 
@@ -140,6 +146,7 @@ def create_datasets() -> tuple[TrainingDataset2D, ValidationDataset2D]:
     validation_dataset = _create_validation_dataset()
     return training_dataset, validation_dataset
 
+
 def create_ansatz() -> Module:
     def _determine_normalization_values() -> dict[str, Tensor]:
         min_coordinate_x = -edge_length
@@ -202,7 +209,6 @@ def create_ansatz() -> Module:
     ).to(device)
 
 
-training_dataset, validation_dataset = create_datasets()
 ansatz = create_ansatz()
 
 
@@ -254,8 +260,87 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
+    exact_youngs_modulus = 210000
+    exact_poissons_ratio = 0.3
+    std_noise = 5 * 1e-4
+
+    simulation_results = run_simulation(
+        model=material_model,
+        youngs_modulus=exact_youngs_modulus,
+        poissons_ratio=exact_poissons_ratio,
+        edge_length=edge_length,
+        radius=radius,
+        volume_force_x=volume_force_x,
+        volume_force_y=volume_force_y,
+        traction_left_x=traction_left_x,
+        traction_left_y=traction_left_y,
+        save_results=False,
+        save_metadata=False,
+        output_subdir=output_subdirectory,
+        project_directory=project_directory,
+        mesh_resolution=1.0,
+    )
+    coordinates_x = torch.tensor(simulation_results.coordinates_x)
+    coordinates_y = torch.tensor(simulation_results.coordinates_y)
+    coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
+    clean_displacements_x = torch.tensor(simulation_results.displacements_x)
+    clean_displacements_y = torch.tensor(simulation_results.displacements_y)
+    noisy_displacements_x = clean_displacements_x + torch.normal(
+        mean=0.0, std=std_noise, size=clean_displacements_x.size()
+    )
+    noisy_displacements_y = clean_displacements_y + torch.normal(
+        mean=0.0, std=std_noise, size=clean_displacements_y.size()
+    )
+    noisy_displacements = torch.concat((noisy_displacements_x, noisy_displacements_y))
+
+    prior_mean_youngs_modulus = 210000
+    prior_std_youngs_modulus = 10000
+    std_proposal_density_youngs_modulus = 1000
+    prior_mean_poissons_ratio = 0.3
+    prior_std_poissons_ratio = 0.03
+    std_proposal_density_poissons_ratio = 0.001
+
+    data = CalibrationData(
+        inputs=coordinates,
+        outputs=noisy_displacements,
+        std_noise=std_noise,
+        num_data_points=noisy_displacements.size()[0],
+        dim_data=2,
+    )
+    mcmc_config = MetropolisHastingsConfig(
+        parameter_names=("Youngs modulus", "Poissons ratio"),
+        true_parameters=(exact_youngs_modulus, exact_poissons_ratio),
+        prior_means=[prior_mean_youngs_modulus, prior_mean_poissons_ratio],
+        prior_stds=[prior_std_youngs_modulus, prior_std_poissons_ratio],
+        initial_parameters=torch.tensor(
+            [prior_mean_youngs_modulus, prior_mean_poissons_ratio]
+        ),
+        num_iterations=int(1e4),
+        cov_proposal_density=torch.diag(
+            torch.tensor(
+                [
+                    std_proposal_density_youngs_modulus,
+                    std_proposal_density_poissons_ratio,
+                ],
+                dtype=torch.float,
+                device=device,
+            )
+            ** 2
+        ),
+    )
+    posterior_moments, samples = calibrate(
+        model=ansatz,
+        calibration_data=data,
+        mcmc_config=mcmc_config,
+        name_model_parameters_file="model_parameters",
+        output_subdir=output_subdirectory,
+        project_directory=project_directory,
+        device=device,
+    )
+    print(posterior_moments)
 
 
 if retrain_parametric_pinn:
+    training_dataset, validation_dataset = create_datasets()
     training_step()
 calibration_step()

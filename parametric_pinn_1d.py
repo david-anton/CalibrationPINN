@@ -3,7 +3,11 @@ from datetime import date
 import torch
 
 from parametricpinn.ansatz import create_normalized_hbc_ansatz_1D
-from parametricpinn.calibration import Data, MetropolisHastingsConfig, calibrate
+from parametricpinn.calibration import (
+    CalibrationData,
+    MetropolisHastingsConfig,
+    calibrate,
+)
 from parametricpinn.data import (
     TrainingDataset1D,
     ValidationDataset1D,
@@ -173,11 +177,12 @@ def calibration_step() -> None:
     prior_std_youngs_modulus = 15000
     std_proposal_density = 1000
 
-    data = Data(
-        coordinates=coordinates,
-        displacements=noisy_displacements,
+    data = CalibrationData(
+        inputs=coordinates,
+        outputs=noisy_displacements,
         std_noise=std_noise,
         num_data_points=num_points_calibration,
+        dim_data=1,
     )
     mcmc_config = MetropolisHastingsConfig(
         parameter_names=("Youngs modulus",),
@@ -190,7 +195,7 @@ def calibration_step() -> None:
     )
     posterior_moments, samples = calibrate(
         model=ansatz,
-        data=data,
+        calibration_data=data,
         mcmc_config=mcmc_config,
         name_model_parameters_file="model_parameters",
         output_subdir=output_subdirectory,

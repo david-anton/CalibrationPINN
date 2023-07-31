@@ -63,7 +63,9 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdirectory = f"{current_date}_test_case_Gagan_pinn_E_210k_nu_03_col_8192_bc_1024_neurons_4_16"
+output_subdirectory = (
+    f"{current_date}_test_case_Gagan_pinn_E_210k_nu_03_col_8192_bc_1024_neurons_4_16"
+)
 output_subdirectory_preprocessing = f"{current_date}_preprocessing"
 save_metadata = True
 
@@ -139,6 +141,7 @@ def create_datasets() -> tuple[TrainingDataset2D, ValidationDataset2D]:
     training_dataset = _create_training_dataset()
     validation_dataset = _create_validation_dataset()
     return training_dataset, validation_dataset
+
 
 def create_ansatz() -> Module:
     def _determine_normalization_values() -> dict[str, Tensor]:

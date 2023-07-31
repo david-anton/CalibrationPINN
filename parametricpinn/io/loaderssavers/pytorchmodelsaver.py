@@ -20,6 +20,8 @@ class PytorchModelSaver:
         output_file_path = self._join_output_file_path(
             file_name, subdir_name, save_to_input_dir
         )
+        self._detach_model_parameters(model)
+        model.cpu()
         torch.save(model.state_dict(), output_file_path)
 
     def _join_output_file_path(
@@ -33,3 +35,7 @@ class PytorchModelSaver:
             return self._project_directory.create_output_file_path(
                 file_name, subdir_name
             )
+
+    def _detach_model_parameters(self, model: Module):
+        for p in model.parameters():
+            p.detach()

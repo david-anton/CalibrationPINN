@@ -1,3 +1,3 @@
-from .calibration import Data, MetropolisHastingsConfig, calibrate
+from .calibration import CalibrationData, MetropolisHastingsConfig, calibrate
 
-__all__ = ["Data", "MetropolisHastingsConfig", "calibrate"]
+__all__ = ["CalibrationData", "MetropolisHastingsConfig", "calibrate"]

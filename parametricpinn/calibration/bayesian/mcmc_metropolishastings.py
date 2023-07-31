@@ -1,8 +1,10 @@
+from dataclasses import dataclass
 from typing import Callable, TypeAlias
 
 import torch
 
 from parametricpinn.calibration.bayesian.likelihood import LikelihoodFunc
+from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
 from parametricpinn.calibration.bayesian.plot import plot_posterior_normal_distributions
 from parametricpinn.calibration.bayesian.statistics import (
     MomentsMultivariateNormal,
@@ -28,6 +30,9 @@ MCMC_MetropolisHastings: TypeAlias = Callable[
 ]
 UnnormalizedPosterior: TypeAlias = Callable[[Tensor], Tensor]
 
+@dataclass
+class MetropolisHastingsConfig(MCMCConfig):
+    cov_proposal_density: Tensor
 
 def mcmc_metropolishastings(
     parameter_names: tuple[str, ...],

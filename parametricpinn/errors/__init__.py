@@ -1,17 +1,17 @@
 from .errors import (
-    CalibrationDataDoesNotMatchError,
     DirectoryNotFoundError,
     FEMConfigurationError,
     FileNotFoundError,
     MCMCConfigError,
     TestConfigurationError,
+    UnvalidCalibrationDataError,
 )
 
 __all__ = [
-    "CalibrationDataDoesNotMatchError",
     "DirectoryNotFoundError",
     "FEMConfigurationError",
     "FileNotFoundError",
     "MCMCConfigError",
     "TestConfigurationError",
+    "UnvalidCalibrationDataError",
 ]
