@@ -29,7 +29,7 @@ from parametricpinn.training.training_1D import (
 from parametricpinn.types import Module, Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 length = 100.0
 traction = 1.0
@@ -181,8 +181,6 @@ def calibration_step() -> None:
         inputs=coordinates,
         outputs=noisy_displacements,
         std_noise=std_noise,
-        num_data_points=num_points_calibration,
-        dim_data=1,
     )
     mcmc_config = MetropolisHastingsConfig(
         parameter_names=("Youngs modulus",),

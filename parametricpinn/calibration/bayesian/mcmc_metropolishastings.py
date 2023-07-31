@@ -14,7 +14,7 @@ from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, NPArray, Tensor, TorchMultiNormalDist
 
 Samples: TypeAlias = list[Tensor]
-MCMC_MetropolisHastings: TypeAlias = Callable[
+MCMC_MetropolisHastings_func: TypeAlias = Callable[
     [
         tuple[str, ...],
         tuple[float, ...],
@@ -30,9 +30,11 @@ MCMC_MetropolisHastings: TypeAlias = Callable[
 ]
 UnnormalizedPosterior: TypeAlias = Callable[[Tensor], Tensor]
 
+
 @dataclass
 class MetropolisHastingsConfig(MCMCConfig):
     cov_proposal_density: Tensor
+
 
 def mcmc_metropolishastings(
     parameter_names: tuple[str, ...],

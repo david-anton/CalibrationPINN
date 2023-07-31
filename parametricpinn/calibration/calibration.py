@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Callable, TypeAlias, cast
 
 import torch
@@ -9,7 +8,8 @@ from parametricpinn.calibration.bayesian.likelihood import (
 )
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
 from parametricpinn.calibration.bayesian.mcmc_metropolishastings import (
-    MCMC_MetropolisHastings,
+    MCMC_MetropolisHastings_func,
+    MetropolisHastingsConfig,
     mcmc_metropolishastings,
 )
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
@@ -20,11 +20,10 @@ from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.loaderssavers import PytorchModelLoader
 from parametricpinn.types import Device, Module, NPArray, Tensor, TorchMultiNormalDist
 
-MCMC_Algorithm: TypeAlias = MCMC_MetropolisHastings
+MCMC_Algorithm: TypeAlias = MCMC_MetropolisHastings_func
 MCMC_Algorithm_Closure: TypeAlias = Callable[
     [], tuple[MomentsMultivariateNormal, NPArray]
 ]
-
 
 
 def calibrate(
