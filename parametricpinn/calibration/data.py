@@ -12,6 +12,5 @@ class CalibrationData:
 
 @dataclass
 class PreprocessedData(CalibrationData):
-    error_covariance_matrix: Tensor
     num_data_points: int
     dim_outputs: int

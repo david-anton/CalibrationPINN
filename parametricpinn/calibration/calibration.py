@@ -61,14 +61,11 @@ def _preprocess_calibration_data(data: CalibrationData) -> PreprocessedData:
     outputs = data.outputs
     num_data_points = outputs.size()[0]
     dim_outputs = outputs.size()[1]
-    error_covariance_matrix = _create_error_covariance_matrix(
-        data=data, num_data_points=num_data_points, dim_outputs=dim_outputs
-    )
+
     return PreprocessedData(
         inputs=data.inputs,
         outputs=data.outputs,
         std_noise=data.std_noise,
-        error_covariance_matrix=error_covariance_matrix,
         num_data_points=num_data_points,
         dim_outputs=dim_outputs,
     )
@@ -81,12 +78,6 @@ def _validate_calibration_data(calibration_data: CalibrationData) -> None:
         raise UnvalidCalibrationDataError(
             "Size of input and output data does not match."
         )
-
-
-def _create_error_covariance_matrix(
-    data: CalibrationData, num_data_points: int, dim_outputs: int
-) -> Tensor:
-    return torch.diag(torch.full((num_data_points * dim_outputs,), data.std_noise**2))
 
 
 def _load_model(
