@@ -263,7 +263,7 @@ def calibration_step() -> None:
     exact_youngs_modulus = 210000
     exact_poissons_ratio = 0.3
     num_data_points = 256
-    std_noise = 0.0  # 5 * 1e-4
+    std_noise = 1e-9  # 5 * 1e-4
 
     simulation_results = run_simulation(
         model=material_model,
