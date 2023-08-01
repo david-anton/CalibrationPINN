@@ -251,7 +251,7 @@ def training_step() -> None:
             project_directory=project_directory,
             plot_config=displacements_plotter_config,
             device=device,
-            mesh_resolution=0.5,
+            mesh_resolution=0.1,
         )
 
     train_parametric_pinn(train_config=train_config)

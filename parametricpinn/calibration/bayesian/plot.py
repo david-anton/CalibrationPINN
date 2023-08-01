@@ -63,6 +63,7 @@ def plot_posterior_normal_distributions(
     num_parameters = len(parameter_names)
     if num_parameters == 1:
         parameter_name = parameter_names[0]
+        true_parameter = true_parameters[0]
         means = moments.mean
         covariance = moments.covariance
         mean_univariate = means[0]
@@ -73,7 +74,7 @@ def plot_posterior_normal_distributions(
         config = UnivariateNormalPlotterConfig()
         plot_univariate_univariate_normal_distribution(
             parameter_name,
-            true_parameters,
+            true_parameter,
             moments_univariate,
             samples,
             output_subdir,
@@ -160,7 +161,7 @@ def plot_univariate_univariate_normal_distribution(
     y = scipy.stats.norm.pdf(x, loc=mean, scale=standard_deviation)
     axes.plot(x, y, color=config.pdf_color, linestyle=config.pdf_linestyle, label="pdf")
     x_ticks = [mean - (3 * standard_deviation), mean, mean + (3 * standard_deviation)]
-    x_tick_labels = [str(int(tick)) for tick in x_ticks]
+    x_tick_labels = [str(round(tick, 2)) for tick in x_ticks]
     axes.axvline(
         x=mean,
         color=config.pdf_mean_color,
