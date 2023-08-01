@@ -308,8 +308,8 @@ def calibration_step() -> None:
     prior_std_youngs_modulus = 10000
     std_proposal_density_youngs_modulus = 1000
     prior_mean_poissons_ratio = 0.3
-    prior_std_poissons_ratio = 0.03
-    std_proposal_density_poissons_ratio = 0.003
+    prior_std_poissons_ratio = 0.015
+    std_proposal_density_poissons_ratio = 0.0015
 
     data = CalibrationData(
         inputs=coordinates,
