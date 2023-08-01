@@ -347,5 +347,5 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     print("Save model ...")
     model_saver = PytorchModelSaver(project_directory=project_directory)
     model_saver.save(
-        model=ansatz, file_name="model_parameters", subdir_name=output_subdir
+        model=ansatz, file_name="model_parameters", subdir_name=output_subdir, device=device
     )

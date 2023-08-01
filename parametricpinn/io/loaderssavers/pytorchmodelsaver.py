@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.types import Module
+from parametricpinn.types import Device, Module
 
 
 class PytorchModelSaver:
@@ -15,6 +15,7 @@ class PytorchModelSaver:
         model: Module,
         file_name: str,
         subdir_name: str,
+        device: Device,
         save_to_input_dir: bool = False,
     ) -> None:
         output_file_path = self._join_output_file_path(
@@ -23,6 +24,7 @@ class PytorchModelSaver:
         self._detach_model_parameters(model)
         model.cpu()
         torch.save(model.state_dict(), output_file_path)
+        model.to(device)
 
     def _join_output_file_path(
         self, file_name: str, subdir_name: str, save_to_input_dir: bool
