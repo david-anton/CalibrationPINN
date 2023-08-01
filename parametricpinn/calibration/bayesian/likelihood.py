@@ -20,7 +20,7 @@ def compile_likelihood(
     size_flattened_outputs = data.num_data_points * data.dim_outputs
 
     def _create_error_covariance_matrix(size_output: int, std_noise: float) -> Tensor:
-        return torch.diag(torch.full((size_output,), std_noise**2))
+        return torch.diag(torch.full((size_output,), std_noise**2, device=device))
 
     def _calculate_inv_and_det(covariance_matrix: Tensor) -> tuple[Tensor, Tensor]:
         if covariance_matrix.size() == (1,):

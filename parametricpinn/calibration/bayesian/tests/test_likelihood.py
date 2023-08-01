@@ -140,7 +140,10 @@ def test_likelihood_func_multiple_data_multiple_dimension():
 
     expected = (
         1
-        / (torch.pow((2 * torch.tensor(math.pi)), 2) * torch.sqrt(torch.det(covariance_error)))
+        / (
+            torch.pow((2 * torch.tensor(math.pi)), 2)
+            * torch.sqrt(torch.det(covariance_error))
+        )
         * torch.pow(torch.tensor(math.e), -4)
     )
     torch.testing.assert_close(actual, expected)

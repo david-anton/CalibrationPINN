@@ -87,7 +87,6 @@ def _load_model(
     project_directory: ProjectDirectory,
     device: Device,
 ) -> Module:
-    print("Load model ...")
     model_loader = PytorchModelLoader(project_directory=project_directory)
     model = model_loader.load(
         model=model, file_name=name_model_parameters_file, subdir_name=output_subdir

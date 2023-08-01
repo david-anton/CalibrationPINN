@@ -34,7 +34,7 @@ from parametricpinn.training.training_2D import (
 from parametricpinn.types import Module, Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 material_model = "plane stress"
 edge_length = 100.0
@@ -68,7 +68,7 @@ batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = 20230731
 output_subdirectory = f"{output_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_32_col_64_bc_32_full_batch_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
@@ -262,7 +262,8 @@ def calibration_step() -> None:
     print("Start calibration ...")
     exact_youngs_modulus = 210000
     exact_poissons_ratio = 0.3
-    std_noise = 5 * 1e-4
+    num_data_points = 256
+    std_noise = 0.0  # 5 * 1e-4
 
     simulation_results = run_simulation(
         model=material_model,
@@ -278,34 +279,42 @@ def calibration_step() -> None:
         save_metadata=False,
         output_subdir=output_subdirectory,
         project_directory=project_directory,
-        mesh_resolution=1.0,
+        mesh_resolution=0.1,
     )
-    coordinates_x = torch.tensor(simulation_results.coordinates_x)
-    coordinates_y = torch.tensor(simulation_results.coordinates_y)
-    coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
-    clean_displacements_x = torch.tensor(simulation_results.displacements_x)
-    clean_displacements_y = torch.tensor(simulation_results.displacements_y)
+    total_size_data = simulation_results.coordinates_x.shape[0]
+    random_indices = torch.randint(
+        low=0, high=total_size_data + 1, size=(num_data_points,)
+    )
+    coordinates_x = torch.tensor(simulation_results.coordinates_x)[random_indices]
+    coordinates_y = torch.tensor(simulation_results.coordinates_y)[random_indices]
+    coordinates = torch.concat((coordinates_x, coordinates_y), dim=1).to(device)
+    clean_displacements_x = torch.tensor(simulation_results.displacements_x)[
+        random_indices
+    ]
+    clean_displacements_y = torch.tensor(simulation_results.displacements_y)[
+        random_indices
+    ]
     noisy_displacements_x = clean_displacements_x + torch.normal(
         mean=0.0, std=std_noise, size=clean_displacements_x.size()
     )
     noisy_displacements_y = clean_displacements_y + torch.normal(
         mean=0.0, std=std_noise, size=clean_displacements_y.size()
     )
-    noisy_displacements = torch.concat((noisy_displacements_x, noisy_displacements_y))
+    noisy_displacements = torch.concat(
+        (noisy_displacements_x, noisy_displacements_y), dim=1
+    ).to(device)
 
     prior_mean_youngs_modulus = 210000
     prior_std_youngs_modulus = 10000
     std_proposal_density_youngs_modulus = 1000
     prior_mean_poissons_ratio = 0.3
     prior_std_poissons_ratio = 0.03
-    std_proposal_density_poissons_ratio = 0.001
+    std_proposal_density_poissons_ratio = 0.003
 
     data = CalibrationData(
         inputs=coordinates,
         outputs=noisy_displacements,
         std_noise=std_noise,
-        num_data_points=noisy_displacements.size()[0],
-        dim_data=2,
     )
     mcmc_config = MetropolisHastingsConfig(
         parameter_names=("Youngs modulus", "Poissons ratio"),
@@ -313,9 +322,9 @@ def calibration_step() -> None:
         prior_means=[prior_mean_youngs_modulus, prior_mean_poissons_ratio],
         prior_stds=[prior_std_youngs_modulus, prior_std_poissons_ratio],
         initial_parameters=torch.tensor(
-            [prior_mean_youngs_modulus, prior_mean_poissons_ratio]
+            [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
         ),
-        num_iterations=int(1e4),
+        num_iterations=int(1e6),
         cov_proposal_density=torch.diag(
             torch.tensor(
                 [
