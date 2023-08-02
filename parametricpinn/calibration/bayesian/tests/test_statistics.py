@@ -4,8 +4,8 @@ import pytest
 from parametricpinn.calibration.bayesian.statistics import (
     MomentsMultivariateNormal,
     MomentsUnivariateNormal,
-    _determine_moments_of_multivariate_normal_distribution,
-    _determine_moments_of_univariate_normal_distribution,
+    determine_moments_of_multivariate_normal_distribution,
+    determine_moments_of_univariate_normal_distribution,
 )
 from parametricpinn.tests.asserts import assert_numpy_arrays_equal
 
@@ -16,7 +16,7 @@ def test_determine_moments_of_univariate_normal_distribution_for_1D_samples():
     samples = np.array([-scale, center, scale])
     num_samples = samples.shape[0]
 
-    actual = _determine_moments_of_univariate_normal_distribution(samples)
+    actual = determine_moments_of_univariate_normal_distribution(samples)
 
     mean = (-scale + center + scale) / num_samples
     standard_deviation = np.sqrt(
@@ -33,7 +33,7 @@ def test_determine_moments_of_univariate_normal_distribution_for_2D_samples():
     samples = np.array([[-scale], [0.0], [scale]])
     num_samples = samples.shape[0]
 
-    actual = _determine_moments_of_univariate_normal_distribution(samples)
+    actual = determine_moments_of_univariate_normal_distribution(samples)
 
     mean = (-scale + center + scale) / num_samples
     standard_deviation = np.sqrt(
@@ -52,7 +52,7 @@ def test_determine_moments_of_multivariate_normal_distribution_mean():
     samples = np.array([[-scale_a, -scale_b], [center_a, center_b], [scale_a, scale_b]])
     num_samples = samples.shape[0]
 
-    moments = _determine_moments_of_multivariate_normal_distribution(samples)
+    moments = determine_moments_of_multivariate_normal_distribution(samples)
     actual = moments.mean
 
     mean_a = (-scale_a + center_a + scale_a) / num_samples
@@ -69,7 +69,7 @@ def test_determine_moments_of_multivariate_normal_distribution_covariance():
     samples = np.array([[-scale_a, -scale_b], [center_a, center_b], [scale_a, scale_b]])
     num_samples = samples.shape[0]
 
-    moments = _determine_moments_of_multivariate_normal_distribution(samples)
+    moments = determine_moments_of_multivariate_normal_distribution(samples)
     actual = moments.covariance
 
     mean_a = (-scale_a + center_a + scale_a) / num_samples
@@ -95,7 +95,7 @@ def test_determine_moments_of_multivariate_normal_distribution_for_univariate_di
     samples = np.array([[-scale], [center], [scale]])
     num_samples = samples.shape[0]
 
-    moments = _determine_moments_of_multivariate_normal_distribution(samples)
+    moments = determine_moments_of_multivariate_normal_distribution(samples)
     actual = moments.mean
 
     mean = (-scale + center + scale) / num_samples
@@ -109,7 +109,7 @@ def test_determine_moments_of_multivariate_normal_distribution_for_univariate_di
     samples = np.array([[-scale], [center], [scale]])
     num_samples = samples.shape[0]
 
-    moments = _determine_moments_of_multivariate_normal_distribution(samples)
+    moments = determine_moments_of_multivariate_normal_distribution(samples)
     actual = moments.covariance
 
     mean = (-scale + center + scale) / num_samples

@@ -9,7 +9,7 @@ MomentsUnivariateNormal = namedtuple(
 )
 
 
-def _determine_moments_of_univariate_normal_distribution(
+def determine_moments_of_univariate_normal_distribution(
     samples: NPArray,
 ) -> MomentsUnivariateNormal:
     mean = np.mean(samples, axis=0)
@@ -22,7 +22,7 @@ MomentsMultivariateNormal = namedtuple(
 )
 
 
-def _determine_moments_of_multivariate_normal_distribution(
+def determine_moments_of_multivariate_normal_distribution(
     samples: NPArray,
 ) -> MomentsMultivariateNormal:
     mean = np.mean(samples, axis=0, keepdims=False)
