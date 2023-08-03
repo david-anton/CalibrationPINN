@@ -355,7 +355,7 @@ def calibration_step() -> None:
     posterior_moments, samples = calibrate(
         model=ansatz,
         calibration_data=data,
-        mcmc_config=mcmc_config_mh,
+        mcmc_config=mcmc_config_h,
         name_model_parameters_file="model_parameters",
         output_subdir=output_subdirectory,
         project_directory=project_directory,
