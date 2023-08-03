@@ -24,6 +24,14 @@ def compile_unnnormalized_posterior(
     return _unnormalized_posterior
 
 
+def correct_num_iterations(num_iterations: int, num_burn_in_iterations: int) -> int:
+    return num_iterations + num_burn_in_iterations
+
+
+def remove_burn_in_phase(sample_list: Samples, num_burn_in_iterations: int) -> Samples:
+    return sample_list[num_burn_in_iterations:]
+
+
 def postprocess_samples(
     samples_list: Samples,
     parameter_names: tuple[str, ...],

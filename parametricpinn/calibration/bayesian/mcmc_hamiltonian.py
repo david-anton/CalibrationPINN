@@ -7,7 +7,9 @@ from parametricpinn.calibration.bayesian.likelihood import LikelihoodFunc
 from parametricpinn.calibration.bayesian.mcmc_base import (
     Samples,
     compile_unnnormalized_posterior,
+    correct_num_iterations,
     postprocess_samples,
+    remove_burn_in_phase,
 )
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
@@ -29,6 +31,7 @@ MCMCHamiltonianFunc: TypeAlias = Callable[
         Tensor,
         int,
         float,
+        int,
         int,
         str,
         ProjectDirectory,
@@ -57,11 +60,15 @@ def mcmc_hamiltonian(
     num_leapfrog_steps: int,
     leapfrog_step_size: float,
     num_iterations: int,
+    num_burn_in_iterations: int,
     output_subdir: str,
     project_directory: ProjectDirectory,
     device: Device,
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
     print("MCMC algorithm used: Hamiltonian")
+    num_iterations = correct_num_iterations(
+        num_iterations=num_iterations, num_burn_in_iterations=num_burn_in_iterations
+    )
     unnormalized_posterior = compile_unnnormalized_posterior(
         likelihood=likelihood, prior=prior
     )
@@ -209,6 +216,9 @@ def mcmc_hamiltonian(
         parameters.detach()
         samples_list.append(parameters)
 
+    samples_list = remove_burn_in_phase(
+        sample_list=samples_list, num_burn_in_iterations=num_burn_in_iterations
+    )
     moments, samples = postprocess_samples(
         samples_list=samples_list,
         parameter_names=parameter_names,

@@ -11,3 +11,4 @@ class MCMCConfig:
     prior_stds: list[float]
     initial_parameters: Tensor
     num_iterations: int
+    num_burn_in_iterations: int
