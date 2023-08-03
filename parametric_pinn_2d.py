@@ -7,6 +7,7 @@ import torch
 from parametricpinn.ansatz import create_normalized_hbc_ansatz_2D
 from parametricpinn.calibration import (
     CalibrationData,
+    HamiltonianConfig,
     MetropolisHastingsConfig,
     calibrate,
 )
@@ -316,7 +317,7 @@ def calibration_step() -> None:
         outputs=noisy_displacements,
         std_noise=std_noise,
     )
-    mcmc_config = MetropolisHastingsConfig(
+    mcmc_config_mh = MetropolisHastingsConfig(
         parameter_names=("Youngs modulus", "Poissons ratio"),
         true_parameters=(exact_youngs_modulus, exact_poissons_ratio),
         prior_means=[prior_mean_youngs_modulus, prior_mean_poissons_ratio],
@@ -325,6 +326,7 @@ def calibration_step() -> None:
             [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
         ),
         num_iterations=int(1e6),
+        num_burn_in_iterations=int(1e4),
         cov_proposal_density=torch.diag(
             torch.tensor(
                 [
@@ -337,10 +339,23 @@ def calibration_step() -> None:
             ** 2
         ),
     )
+    mcmc_config_h = HamiltonianConfig(
+        parameter_names=("Youngs modulus", "Poissons ratio"),
+        true_parameters=(exact_youngs_modulus, exact_poissons_ratio),
+        prior_means=[prior_mean_youngs_modulus, prior_mean_poissons_ratio],
+        prior_stds=[prior_std_youngs_modulus, prior_std_poissons_ratio],
+        initial_parameters=torch.tensor(
+            [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
+        ),
+        num_iterations=int(1e5),
+        num_burn_in_iterations=int(1e4),
+        num_leabfrog_steps=40,
+        leapfrog_step_size=1,
+    )
     posterior_moments, samples = calibrate(
         model=ansatz,
         calibration_data=data,
-        mcmc_config=mcmc_config,
+        mcmc_config=mcmc_config_h,
         name_model_parameters_file="model_parameters",
         output_subdir=output_subdirectory,
         project_directory=project_directory,
