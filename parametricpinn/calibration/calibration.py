@@ -1,4 +1,4 @@
-from typing import Callable, TypeAlias, cast
+from typing import Callable, TypeAlias, Union, cast
 
 import torch
 
@@ -7,20 +7,25 @@ from parametricpinn.calibration.bayesian.likelihood import (
     compile_likelihood,
 )
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
+from parametricpinn.calibration.bayesian.mcmc_hamiltonian import (
+    HamiltonianConfig,
+    MCMCHamiltonianFunc,
+    mcmc_hamiltonian,
+)
 from parametricpinn.calibration.bayesian.mcmc_metropolishastings import (
-    MCMC_MetropolisHastings_func,
+    MCMCMetropolisHastingsFunc,
     MetropolisHastingsConfig,
     mcmc_metropolishastings,
 )
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
 from parametricpinn.calibration.data import CalibrationData, PreprocessedData
-from parametricpinn.calibration.utility import _freeze_model
+from parametricpinn.calibration.utility import freeze_model
 from parametricpinn.errors import MCMCConfigError, UnvalidCalibrationDataError
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.loaderssavers import PytorchModelLoader
 from parametricpinn.types import Device, Module, NPArray, Tensor, TorchMultiNormalDist
 
-MCMC_Algorithm: TypeAlias = MCMC_MetropolisHastings_func
+MCMC_Algorithm: TypeAlias = Union[MCMCMetropolisHastingsFunc, MCMCHamiltonianFunc]
 MCMC_Algorithm_Closure: TypeAlias = Callable[
     [], tuple[MomentsMultivariateNormal, NPArray]
 ]
@@ -91,7 +96,7 @@ def _load_model(
     model = model_loader.load(
         model=model, file_name=name_model_parameters_file, subdir_name=output_subdir
     ).to(device)
-    _freeze_model(model)
+    freeze_model(model)
     return model
 
 
@@ -131,17 +136,17 @@ def _compile_mcmc_algorithm(
     device: Device,
 ) -> MCMC_Algorithm_Closure:
     if isinstance(mcmc_config, MetropolisHastingsConfig):
-        mcmc_mh_config = cast(MetropolisHastingsConfig, mcmc_config)
+        config_mh = cast(MetropolisHastingsConfig, mcmc_config)
 
         def mcmc_mh_algorithm() -> tuple[MomentsMultivariateNormal, NPArray]:
             return mcmc_metropolishastings(
-                parameter_names=mcmc_mh_config.parameter_names,
-                true_parameters=mcmc_mh_config.true_parameters,
+                parameter_names=config_mh.parameter_names,
+                true_parameters=config_mh.true_parameters,
                 likelihood=likelihood,
                 prior=prior,
-                initial_parameters=mcmc_mh_config.initial_parameters,
-                cov_proposal_density=mcmc_mh_config.cov_proposal_density,
-                num_iterations=mcmc_mh_config.num_iterations,
+                initial_parameters=config_mh.initial_parameters,
+                cov_proposal_density=config_mh.cov_proposal_density,
+                num_iterations=config_mh.num_iterations,
                 output_subdir=output_subdir,
                 project_directory=project_directory,
                 device=device,
@@ -149,6 +154,25 @@ def _compile_mcmc_algorithm(
 
         return mcmc_mh_algorithm
 
+    elif isinstance(mcmc_config, HamiltonianConfig):
+        config_h = cast(HamiltonianConfig, mcmc_config)
+
+        def mcmc_hamiltonian_algorithm() -> tuple[MomentsMultivariateNormal, NPArray]:
+            return mcmc_hamiltonian(
+                parameter_names=config_h.parameter_names,
+                true_parameters=config_h.true_parameters,
+                likelihood=likelihood,
+                prior=prior,
+                initial_parameters=config_h.initial_parameters,
+                num_leapfrog_steps=config_h.num_leabfrog_steps,
+                leapfrog_step_size=config_h.leapfrog_step_size,
+                num_iterations=config_h.num_iterations,
+                output_subdir=output_subdir,
+                project_directory=project_directory,
+                device=device,
+            )
+
+        return mcmc_hamiltonian_algorithm
     else:
         raise MCMCConfigError(
             f"There is no implementation for the requested MCMC algorithm {mcmc_config}."

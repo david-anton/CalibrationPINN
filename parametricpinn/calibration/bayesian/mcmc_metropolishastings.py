@@ -5,19 +5,16 @@ import torch
 
 from parametricpinn.calibration.bayesian.likelihood import LikelihoodFunc
 from parametricpinn.calibration.bayesian.mcmc_base import (
+    Samples,
     compile_unnnormalized_posterior,
+    postprocess_samples,
 )
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
-from parametricpinn.calibration.bayesian.plot import plot_posterior_normal_distributions
-from parametricpinn.calibration.bayesian.statistics import (
-    MomentsMultivariateNormal,
-    determine_moments_of_multivariate_normal_distribution,
-)
+from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, NPArray, Tensor, TorchMultiNormalDist
 
-Samples: TypeAlias = list[Tensor]
-MCMC_MetropolisHastings_func: TypeAlias = Callable[
+MCMCMetropolisHastingsFunc: TypeAlias = Callable[
     [
         tuple[str, ...],
         tuple[float, ...],
@@ -51,9 +48,10 @@ def mcmc_metropolishastings(
     project_directory: ProjectDirectory,
     device: Device,
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
+    print("MCMC algorithm used: Metropolis Hastings")
     unnormalized_posterior = compile_unnnormalized_posterior(likelihood, prior)
 
-    def _compile_proposal_density(
+    def compile_proposal_density(
         initial_parameters: Tensor, cov_proposal_density: Tensor
     ) -> TorchMultiNormalDist:
         if cov_proposal_density.size() == (1,):
@@ -65,24 +63,37 @@ def mcmc_metropolishastings(
             covariance_matrix=cov_proposal_density,
         )
 
-    proposal_density = _compile_proposal_density(
+    proposal_density = compile_proposal_density(
         initial_parameters, cov_proposal_density
     )
 
-    def _propose_next_parameters(parameters: Tensor) -> Tensor:
+    def propose_next_parameters(parameters: Tensor) -> Tensor:
         return parameters + proposal_density.sample()
 
-    def one_iteration(parameters: Tensor) -> Tensor:
-        next_parameters = _propose_next_parameters(parameters)
+    @dataclass
+    class MHUpdateState:
+        parameters: Tensor
+        next_parameters: Tensor
+
+    def metropolis_hastings_update(state: MHUpdateState) -> Tensor:
         acceptance_ratio = torch.minimum(
             torch.tensor(1.0, device=device),
-            unnormalized_posterior(next_parameters)
-            / unnormalized_posterior(parameters),
+            unnormalized_posterior(state.next_parameters)
+            / unnormalized_posterior(state.parameters),
         )
         rand_uniform_number = torch.squeeze(torch.rand(1, device=device), 0)
+        next_parameters = state.next_parameters
         if rand_uniform_number > acceptance_ratio:
-            next_parameters = parameters
+            next_parameters = state.parameters
         return next_parameters
+
+    def one_iteration(parameters: Tensor) -> Tensor:
+        next_parameters = propose_next_parameters(parameters)
+        mh_update_state = MHUpdateState(
+            parameters=parameters,
+            next_parameters=next_parameters,
+        )
+        return metropolis_hastings_update(mh_update_state)
 
     samples_list: Samples = []
     parameters = initial_parameters
@@ -90,14 +101,11 @@ def mcmc_metropolishastings(
         parameters = one_iteration(parameters)
         samples_list.append(parameters)
 
-    samples = torch.stack(samples_list, dim=0).detach().cpu().numpy()
-    posterior_moments = determine_moments_of_multivariate_normal_distribution(samples)
-    plot_posterior_normal_distributions(
-        parameter_names,
-        true_parameters,
-        posterior_moments,
-        samples,
-        output_subdir,
-        project_directory,
+    moments, samples = postprocess_samples(
+        samples_list=samples_list,
+        parameter_names=parameter_names,
+        true_parameters=true_parameters,
+        output_subdir=output_subdir,
+        project_directory=project_directory,
     )
-    return posterior_moments, samples
+    return moments, samples
