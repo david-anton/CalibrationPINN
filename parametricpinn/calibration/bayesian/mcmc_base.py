@@ -36,6 +36,7 @@ def postprocess_samples(
     samples_list: Samples,
     parameter_names: tuple[str, ...],
     true_parameters: tuple[float, ...],
+    mcmc_algorithm: str,
     output_subdir: str,
     project_directory: ProjectDirectory,
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
@@ -46,6 +47,7 @@ def postprocess_samples(
         true_parameters,
         posterior_moments,
         samples,
+        mcmc_algorithm,
         output_subdir,
         project_directory,
     )

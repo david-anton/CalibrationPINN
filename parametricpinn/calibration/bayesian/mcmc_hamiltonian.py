@@ -225,6 +225,7 @@ def mcmc_hamiltonian(
         samples_list=samples_list,
         parameter_names=parameter_names,
         true_parameters=true_parameters,
+        mcmc_algorithm="hamiltonian_mcmc",
         output_subdir=output_subdir,
         project_directory=project_directory,
     )

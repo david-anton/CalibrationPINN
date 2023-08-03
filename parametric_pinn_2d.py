@@ -263,8 +263,8 @@ def calibration_step() -> None:
     print("Start calibration ...")
     exact_youngs_modulus = 210000
     exact_poissons_ratio = 0.3
-    num_data_points = 256
-    std_noise = 1e-9  # 5 * 1e-4
+    num_data_points = 16
+    std_noise = 5 * 1e-4
 
     simulation_results = run_simulation(
         model=material_model,
@@ -325,7 +325,7 @@ def calibration_step() -> None:
         initial_parameters=torch.tensor(
             [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
         ),
-        num_iterations=int(1e6),
+        num_iterations=int(1e5),
         num_burn_in_iterations=int(1e4),
         cov_proposal_density=torch.diag(
             torch.tensor(
@@ -349,10 +349,10 @@ def calibration_step() -> None:
         ),
         num_iterations=int(1e5),
         num_burn_in_iterations=int(1e4),
-        num_leabfrog_steps=40,
-        leapfrog_step_size=1,
+        num_leabfrog_steps=32,
+        leapfrog_step_size=0.01,
     )
-    posterior_moments, samples = calibrate(
+    posterior_moments_h, samples_h = calibrate(
         model=ansatz,
         calibration_data=data,
         mcmc_config=mcmc_config_h,
@@ -361,7 +361,16 @@ def calibration_step() -> None:
         project_directory=project_directory,
         device=device,
     )
-    print(posterior_moments)
+    posterior_moments_mh, samples_mh = calibrate(
+        model=ansatz,
+        calibration_data=data,
+        mcmc_config=mcmc_config_mh,
+        name_model_parameters_file="model_parameters",
+        output_subdir=output_subdirectory,
+        project_directory=project_directory,
+        device=device,
+    )
+    print("Calibration finished.")
 
 
 if retrain_parametric_pinn:

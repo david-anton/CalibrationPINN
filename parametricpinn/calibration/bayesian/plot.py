@@ -57,6 +57,7 @@ def plot_posterior_normal_distributions(
     true_parameters: tuple[float, ...],
     moments: MomentsMultivariateNormal,
     samples: NPArray,
+    mcmc_algorithm: str,
     output_subdir: str,
     project_directory: ProjectDirectory,
 ) -> None:
@@ -77,6 +78,7 @@ def plot_posterior_normal_distributions(
             true_parameter,
             moments_univariate,
             samples,
+            mcmc_algorithm,
             output_subdir,
             project_directory,
             config,
@@ -87,6 +89,7 @@ def plot_posterior_normal_distributions(
             true_parameters,
             moments,
             samples,
+            mcmc_algorithm,
             output_subdir,
             project_directory,
         )
@@ -97,6 +100,7 @@ def plot_multivariate_normal_distribution(
     true_parameters: tuple[float, ...],
     moments: MomentsMultivariateNormal,
     samples: NPArray,
+    mcmc_algorithm: str,
     output_subdir: str,
     project_directory: ProjectDirectory,
 ) -> None:
@@ -119,6 +123,7 @@ def plot_multivariate_normal_distribution(
             true_parameter,
             moments_univariate,
             samples_univariate,
+            mcmc_algorithm,
             output_subdir,
             project_directory,
             config,
@@ -130,6 +135,7 @@ def plot_univariate_univariate_normal_distribution(
     true_parameter: float,
     moments: MomentsUnivariateNormal,
     samples: NPArray,
+    mcmc_algorithm: str,
     output_subdir: str,
     project_directory: ProjectDirectory,
     config: UnivariateNormalPlotterConfig,
@@ -186,7 +192,7 @@ def plot_univariate_univariate_normal_distribution(
     axes.set_ylabel("probability density", **config.font)
     axes.tick_params(axis="both", which="minor", labelsize=config.minor_tick_label_size)
     axes.tick_params(axis="both", which="major", labelsize=config.major_tick_label_size)
-    file_name = f"estimated_pdf_{parameter_name.lower()}.png"
+    file_name = f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.png"
     output_path = project_directory.create_output_file_path(
         file_name=file_name, subdir_name=output_subdir
     )

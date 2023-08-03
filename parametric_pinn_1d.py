@@ -169,7 +169,6 @@ def calibration_step() -> None:
     )
     inputs, outputs = calibration_dataset[0]
     coordinates = torch.reshape(inputs[:, 0], (-1, 1))
-    coordinates.requires_grad_(False)
     clean_displacements = outputs
     noisy_displacements = clean_displacements + torch.normal(
         mean=0.0, std=std_noise, size=clean_displacements.size()
