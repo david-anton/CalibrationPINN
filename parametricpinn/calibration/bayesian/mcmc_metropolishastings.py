@@ -65,10 +65,12 @@ def mcmc_metropolishastings(
     ) -> TorchMultiNormalDist:
         if cov_proposal_density.size() == (1,):
             cov_proposal_density = torch.unsqueeze(cov_proposal_density, dim=1)
-        cov_proposal_density = cov_proposal_density.to(torch.float)
+        cov_proposal_density = cov_proposal_density.to(torch.float64)
 
         return torch.distributions.MultivariateNormal(
-            loc=torch.zeros_like(initial_parameters, dtype=torch.float, device=device),
+            loc=torch.zeros_like(
+                initial_parameters, dtype=torch.float64, device=device
+            ),
             covariance_matrix=cov_proposal_density,
         )
 

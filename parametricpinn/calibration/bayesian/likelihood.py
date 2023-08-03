@@ -42,7 +42,7 @@ def compile_likelihood(
             ),
             dim=1,
         ).to(device)
-        prediction = model(model_inputs).detach()
+        prediction = model(model_inputs)
         flattened_prediction = prediction.ravel()
         residual = flattened_prediction - flattened_outputs
 
@@ -50,8 +50,8 @@ def compile_likelihood(
             1
             / (
                 torch.pow(
-                    (2 * torch.tensor(math.pi)),
-                    torch.tensor(size_flattened_outputs) / 2,
+                    (2 * torch.tensor(math.pi, device=device)),
+                    torch.tensor(size_flattened_outputs, device=device) / 2,
                 )
                 * torch.pow(det_cov_error, 1 / 2)
             )

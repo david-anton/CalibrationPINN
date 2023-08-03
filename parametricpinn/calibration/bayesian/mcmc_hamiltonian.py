@@ -89,13 +89,15 @@ def mcmc_hamiltonian(
     def compile_draw_momentums_func(parameters: Tensor) -> DrawMomentumsFunc:
         def compile_momentum_distribution() -> MomentumsDistribution:
             if parameters.size() == (1,):
-                mean = torch.tensor(0.0, dtype=torch.float, device=device)
-                standard_deviation = torch.tensor(1.0, dtype=torch.float, device=device)
+                mean = torch.tensor(0.0, dtype=torch.float64, device=device)
+                standard_deviation = torch.tensor(
+                    1.0, dtype=torch.float64, device=device
+                )
                 return torch.distributions.Normal(loc=mean, scale=standard_deviation)
             else:
-                means = torch.zeros_like(parameters, dtype=torch.float, device=device)
+                means = torch.zeros_like(parameters, dtype=torch.float64, device=device)
                 covariance_matrix = torch.diag(
-                    torch.ones_like(parameters, dtype=torch.float, device=device)
+                    torch.ones_like(parameters, dtype=torch.float64, device=device)
                 )
                 return torch.distributions.MultivariateNormal(
                     loc=means, covariance_matrix=covariance_matrix
@@ -104,7 +106,7 @@ def mcmc_hamiltonian(
         momentums_dist = compile_momentum_distribution()
 
         def draw_momentums_func() -> Tensor:
-            momentums = momentums_dist.sample(sample_shape=parameters.size())
+            momentums = momentums_dist.sample()
             return momentums.requires_grad_(True)
 
         return draw_momentums_func
@@ -211,7 +213,7 @@ def mcmc_hamiltonian(
     parameters = initial_parameters
     for _ in range(num_iterations):
         momentums = draw_momentums_func()
-        parameters = parameters.clone().type(torch.float).requires_grad_(True)
+        parameters = parameters.clone().type(torch.float64).requires_grad_(True)
         parameters = one_iteration(parameters, momentums)
         parameters.detach()
         samples_list.append(parameters)

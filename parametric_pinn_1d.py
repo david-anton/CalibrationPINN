@@ -169,6 +169,7 @@ def calibration_step() -> None:
     )
     inputs, outputs = calibration_dataset[0]
     coordinates = torch.reshape(inputs[:, 0], (-1, 1))
+    coordinates.requires_grad_(False)
     clean_displacements = outputs
     noisy_displacements = clean_displacements + torch.normal(
         mean=0.0, std=std_noise, size=clean_displacements.size()
@@ -201,7 +202,7 @@ def calibration_step() -> None:
         initial_parameters=torch.tensor([prior_mean_youngs_modulus]),
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e4),
-        num_leabfrog_steps=40,
+        num_leabfrog_steps=32,
         leapfrog_step_size=1,
     )
     posterior_moments, samples = calibrate(

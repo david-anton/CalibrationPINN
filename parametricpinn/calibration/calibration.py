@@ -104,11 +104,11 @@ def _compile_prior(mcmc_config: MCMCConfig, device: Device) -> TorchMultiNormalD
     def _set_up_covariance_matrix(prior_stds: list[float]) -> Tensor:
         if len(prior_stds) == 1:
             return torch.unsqueeze(
-                torch.tensor(prior_stds, dtype=torch.float, device=device) ** 2, dim=1
+                torch.tensor(prior_stds, dtype=torch.float64, device=device) ** 2, dim=1
             )
         else:
             return torch.diag(
-                torch.tensor(prior_stds, dtype=torch.float, device=device) ** 2
+                torch.tensor(prior_stds, dtype=torch.float64, device=device) ** 2
             )
 
     return torch.distributions.MultivariateNormal(
