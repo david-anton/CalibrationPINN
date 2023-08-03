@@ -200,7 +200,7 @@ def calibration_step() -> None:
         prior_stds=[prior_std_youngs_modulus],
         initial_parameters=torch.tensor([prior_mean_youngs_modulus]),
         num_iterations=int(1e4),
-        num_burn_in_iterations=int(1e3),
+        num_burn_in_iterations=int(1e4),
         num_leabfrog_steps=40,
         leapfrog_step_size=1,
     )

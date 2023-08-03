@@ -16,7 +16,7 @@ def compile_likelihood(
 ) -> LikelihoodFunc:
     inputs = data.inputs
     flattened_outputs = data.outputs.ravel()
-    size_outputs = data.num_data_points
+    num_data = data.num_data_points
     size_flattened_outputs = data.num_data_points * data.dim_outputs
 
     def _create_error_covariance_matrix(size_output: int, std_noise: float) -> Tensor:
@@ -38,7 +38,7 @@ def compile_likelihood(
         model_inputs = torch.concat(
             (
                 inputs,
-                parameters.repeat((size_outputs, 1)),
+                parameters.repeat((num_data, 1)),
             ),
             dim=1,
         ).to(device)
