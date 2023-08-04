@@ -261,8 +261,8 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    exact_youngs_modulus = 210000
-    exact_poissons_ratio = 0.3
+    exact_youngs_modulus = 195000
+    exact_poissons_ratio = 0.35
     num_data_points = 8
     std_noise = 5 * 1e-4
 
