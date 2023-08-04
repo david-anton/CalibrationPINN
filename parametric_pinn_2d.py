@@ -263,7 +263,7 @@ def calibration_step() -> None:
     print("Start calibration ...")
     exact_youngs_modulus = 210000
     exact_poissons_ratio = 0.3
-    num_data_points = 16
+    num_data_points = 8
     std_noise = 5 * 1e-4
 
     simulation_results = run_simulation(
@@ -352,19 +352,19 @@ def calibration_step() -> None:
         num_leabfrog_steps=32,
         leapfrog_step_size=0.01,
     )
-    posterior_moments_h, samples_h = calibrate(
+    posterior_moments_mh, samples_mh = calibrate(
         model=ansatz,
         calibration_data=data,
-        mcmc_config=mcmc_config_h,
+        mcmc_config=mcmc_config_mh,
         name_model_parameters_file="model_parameters",
         output_subdir=output_subdirectory,
         project_directory=project_directory,
         device=device,
     )
-    posterior_moments_mh, samples_mh = calibrate(
+    posterior_moments_h, samples_h = calibrate(
         model=ansatz,
         calibration_data=data,
-        mcmc_config=mcmc_config_mh,
+        mcmc_config=mcmc_config_h,
         name_model_parameters_file="model_parameters",
         output_subdir=output_subdirectory,
         project_directory=project_directory,
