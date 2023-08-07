@@ -30,7 +30,7 @@ MCMCHamiltonianFunc: TypeAlias = Callable[
         TorchMultiNormalDist,
         Tensor,
         int,
-        float,
+        Tensor,
         int,
         int,
         str,
@@ -48,7 +48,7 @@ DrawMomentumsFunc: TypeAlias = Callable[[], Tensor]
 @dataclass
 class HamiltonianConfig(MCMCConfig):
     num_leabfrog_steps: int
-    leapfrog_step_size: float
+    leapfrog_step_sizes: Tensor
 
 
 def mcmc_hamiltonian(
@@ -58,7 +58,7 @@ def mcmc_hamiltonian(
     prior: TorchMultiNormalDist,
     initial_parameters: Tensor,
     num_leapfrog_steps: int,
-    leapfrog_step_size: float,
+    leapfrog_step_sizes: Tensor,
     num_iterations: int,
     num_burn_in_iterations: int,
     output_subdir: str,
@@ -86,7 +86,7 @@ def mcmc_hamiltonian(
 
         return kinetic_energy_func
 
-    def compile_draw_momentums_func(parameters: Tensor) -> DrawMomentumsFunc:
+    def compile_draw_normalized_momentums_func(parameters: Tensor) -> DrawMomentumsFunc:
         def compile_momentum_distribution() -> MomentumsDistribution:
             if parameters.size() == (1,):
                 mean = torch.tensor(0.0, dtype=torch.float64, device=device)
@@ -115,16 +115,16 @@ def mcmc_hamiltonian(
         parameters: Tensor, momentums: Tensor
     ) -> tuple[Tensor, Tensor]:
         potential_energy_func = compile_potential_energy_func()
-        step_size = torch.tensor(leapfrog_step_size)
+        step_sizes = leapfrog_step_sizes
 
         def leapfrog_step(
             parameters: Tensor, momentums: Tensor, is_last_step: bool
         ) -> tuple[Tensor, Tensor]:
-            parameters = parameters + step_size * momentums
+            parameters = parameters + step_sizes * momentums
             if not is_last_step:
                 momentums = (
                     momentums
-                    - step_size
+                    - step_sizes
                     * torch.autograd.grad(
                         potential_energy_func(parameters),
                         parameters,
@@ -137,9 +137,8 @@ def mcmc_hamiltonian(
         # Half step for momentums (in the beginning)
         momentums = (
             momentums
-            - 1
+            - step_sizes
             / 2
-            * step_size
             * torch.autograd.grad(
                 potential_energy_func(parameters),
                 parameters,
@@ -147,6 +146,8 @@ def mcmc_hamiltonian(
                 create_graph=False,
             )[0]
         )
+
+        # Full steps
         for i in range(num_leapfrog_steps):
             is_last_step = i == num_leapfrog_steps - 1
             parameters, momentums = leapfrog_step(parameters, momentums, is_last_step)
@@ -154,9 +155,8 @@ def mcmc_hamiltonian(
         # Half step for momentums (in the end)
         momentums = (
             momentums
-            - 1
+            - step_sizes
             / 2
-            * step_size
             * torch.autograd.grad(
                 potential_energy_func(parameters),
                 parameters,
@@ -198,7 +198,13 @@ def mcmc_hamiltonian(
             next_parameters = state.parameters
         return next_parameters
 
-    def one_iteration(parameters: Tensor, momentums: Tensor) -> Tensor:
+    draw_normalized_momentums_func = compile_draw_normalized_momentums_func(
+        initial_parameters
+    )
+
+    def one_iteration(parameters: Tensor) -> Tensor:
+        normalized_momentums = draw_normalized_momentums_func()
+        momentums = leapfrog_step_sizes * normalized_momentums
         next_parameters, next_momentums = propose_next_parameters(parameters, momentums)
         mh_update_state = MHUpdateState(
             parameters=parameters,
@@ -208,13 +214,11 @@ def mcmc_hamiltonian(
         )
         return metropolis_hastings_update(mh_update_state)
 
-    draw_momentums_func = compile_draw_momentums_func(initial_parameters)
     samples_list: Samples = []
     parameters = initial_parameters
     for _ in range(num_iterations):
-        momentums = draw_momentums_func()
         parameters = parameters.clone().type(torch.float64).requires_grad_(True)
-        parameters = one_iteration(parameters, momentums)
+        parameters = one_iteration(parameters)
         parameters.detach()
         samples_list.append(parameters)
 

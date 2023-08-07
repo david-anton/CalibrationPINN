@@ -350,7 +350,9 @@ def calibration_step() -> None:
         num_iterations=int(1e5),
         num_burn_in_iterations=int(1e4),
         num_leabfrog_steps=32,
-        leapfrog_step_size=0.01,
+        leapfrog_step_sizes=torch.tensor(
+            [prior_std_youngs_modulus, prior_std_poissons_ratio], device=device
+        ),
     )
     posterior_moments_mh, samples_mh = calibrate(
         model=ansatz,

@@ -166,7 +166,7 @@ def _compile_mcmc_algorithm(
                 prior=prior,
                 initial_parameters=config_h.initial_parameters,
                 num_leapfrog_steps=config_h.num_leabfrog_steps,
-                leapfrog_step_size=config_h.leapfrog_step_size,
+                leapfrog_step_sizes=config_h.leapfrog_step_sizes,
                 num_iterations=config_h.num_iterations,
                 num_burn_in_iterations=config_h.num_burn_in_iterations,
                 output_subdir=output_subdir,

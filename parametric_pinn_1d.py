@@ -188,21 +188,23 @@ def calibration_step() -> None:
         true_parameters=(exact_youngs_modulus,),
         prior_means=[prior_mean_youngs_modulus],
         prior_stds=[prior_std_youngs_modulus],
-        initial_parameters=torch.tensor([prior_mean_youngs_modulus]),
+        initial_parameters=torch.tensor([prior_mean_youngs_modulus], device=device),
         num_iterations=int(1e5),
         num_burn_in_iterations=int(1e4),
-        cov_proposal_density=torch.pow(torch.tensor([std_proposal_density]), 2),
+        cov_proposal_density=torch.pow(
+            torch.tensor([std_proposal_density], device=device), 2
+        ),
     )
     mcmc_config_h = HamiltonianConfig(
         parameter_names=("Youngs modulus",),
         true_parameters=(exact_youngs_modulus,),
         prior_means=[prior_mean_youngs_modulus],
         prior_stds=[prior_std_youngs_modulus],
-        initial_parameters=torch.tensor([prior_mean_youngs_modulus]),
+        initial_parameters=torch.tensor([prior_mean_youngs_modulus], device=device),
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e4),
         num_leabfrog_steps=32,
-        leapfrog_step_size=1,
+        leapfrog_step_sizes=torch.tensor(prior_std_youngs_modulus, device=device),
     )
     posterior_moments, samples = calibrate(
         model=ansatz,
