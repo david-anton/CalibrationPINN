@@ -13,6 +13,7 @@ from parametricpinn.calibration.bayesian.mcmc_base import (
     remove_burn_in_phase,
 )
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
+from parametricpinn.calibration.bayesian.prior import PriorFunc
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import (
@@ -28,7 +29,7 @@ MCMCHamiltonianFunc: TypeAlias = Callable[
         tuple[str, ...],
         tuple[float, ...],
         LikelihoodFunc,
-        TorchMultiNormalDist,
+        PriorFunc,
         Tensor,
         int,
         Tensor,
@@ -56,7 +57,7 @@ def mcmc_hamiltonian(
     parameter_names: tuple[str, ...],
     true_parameters: tuple[float, ...],
     likelihood: LikelihoodFunc,
-    prior: TorchMultiNormalDist,
+    prior: PriorFunc,
     initial_parameters: Tensor,
     num_leapfrog_steps: int,
     leapfrog_step_sizes: Tensor,
@@ -66,8 +67,6 @@ def mcmc_hamiltonian(
     project_directory: ProjectDirectory,
     device: Device,
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
-    print("MCMC algorithm used: Hamiltonian")
-
     num_total_iterations = correct_num_iterations(
         num_iterations=num_iterations, num_burn_in_iterations=num_burn_in_iterations
     )
@@ -83,7 +82,6 @@ def mcmc_hamiltonian(
 
     def compile_kinetic_energy_func() -> KineticEnergyFunc:
         def kinetic_energy_func(momentums: Tensor) -> Tensor:
-            # Simplest form of kinetic energy
             return 1 / 2 * torch.sum(torch.pow(momentums, 2))
 
         return kinetic_energy_func
@@ -221,7 +219,7 @@ def mcmc_hamiltonian(
     num_accepted_proposals = 0
     parameters = initial_parameters
     for _ in range(num_total_iterations):
-        parameters = parameters.clone().requires_grad_(True)
+        parameters = parameters.type(torch.float).clone().requires_grad_(True)
         parameters, is_accepted = one_iteration(parameters)
         parameters.detach()
         samples_list.append(parameters)

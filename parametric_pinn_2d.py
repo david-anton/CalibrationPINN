@@ -353,19 +353,17 @@ def calibration_step() -> None:
         num_iterations=int(1e5),
         num_burn_in_iterations=int(1e4),
         num_leabfrog_steps=32,
-        leapfrog_step_sizes=torch.tensor(
-            [prior_std_youngs_modulus, prior_std_poissons_ratio], device=device
-        ),
+        leapfrog_step_sizes=torch.tensor([10, 0.001], device=device),
     )
-    # posterior_moments_mh, samples_mh = calibrate(
-    #     model=ansatz,
-    #     calibration_data=data,
-    #     mcmc_config=mcmc_config_mh,
-    #     name_model_parameters_file="model_parameters",
-    #     output_subdir=output_subdirectory,
-    #     project_directory=project_directory,
-    #     device=device,
-    # )
+    posterior_moments_mh, samples_mh = calibrate(
+        model=ansatz,
+        calibration_data=data,
+        mcmc_config=mcmc_config_mh,
+        name_model_parameters_file="model_parameters",
+        output_subdir=output_subdirectory,
+        project_directory=project_directory,
+        device=device,
+    )
     posterior_moments_h, samples_h = calibrate(
         model=ansatz,
         calibration_data=data,

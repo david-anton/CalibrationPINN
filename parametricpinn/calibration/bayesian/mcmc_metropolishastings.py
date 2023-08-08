@@ -13,6 +13,7 @@ from parametricpinn.calibration.bayesian.mcmc_base import (
     remove_burn_in_phase,
 )
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
+from parametricpinn.calibration.bayesian.prior import PriorFunc
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, NPArray, Tensor, TorchMultiNormalDist
@@ -22,7 +23,7 @@ MCMCMetropolisHastingsFunc: TypeAlias = Callable[
         tuple[str, ...],
         tuple[float, ...],
         LikelihoodFunc,
-        TorchMultiNormalDist,
+        PriorFunc,
         Tensor,
         Tensor,
         int,
@@ -44,7 +45,7 @@ def mcmc_metropolishastings(
     parameter_names: tuple[str, ...],
     true_parameters: tuple[float, ...],
     likelihood: LikelihoodFunc,
-    prior: TorchMultiNormalDist,
+    prior: PriorFunc,
     initial_parameters: Tensor,
     cov_proposal_density: Tensor,
     num_iterations: int,
@@ -53,7 +54,6 @@ def mcmc_metropolishastings(
     project_directory: ProjectDirectory,
     device: Device,
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
-    print("MCMC algorithm used: Metropolis Hastings")
     num_total_iterations = correct_num_iterations(
         num_iterations=num_iterations, num_burn_in_iterations=num_burn_in_iterations
     )
@@ -66,7 +66,6 @@ def mcmc_metropolishastings(
     ) -> TorchMultiNormalDist:
         if cov_proposal_density.size() == (1,):
             cov_proposal_density = torch.unsqueeze(cov_proposal_density, dim=1)
-        cov_proposal_density = cov_proposal_density.to(torch.float64)
 
         return torch.distributions.MultivariateNormal(
             loc=torch.zeros_like(initial_parameters, device=device),

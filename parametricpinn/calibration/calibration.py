@@ -17,6 +17,7 @@ from parametricpinn.calibration.bayesian.mcmc_metropolishastings import (
     MetropolisHastingsConfig,
     mcmc_metropolishastings,
 )
+from parametricpinn.calibration.bayesian.prior import PriorFunc
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
 from parametricpinn.calibration.data import CalibrationData, PreprocessedData
 from parametricpinn.calibration.utility import freeze_model
@@ -33,9 +34,10 @@ MCMC_Algorithm_Closure: TypeAlias = Callable[
 
 def calibrate(
     model: Module,
-    calibration_data: CalibrationData,
-    mcmc_config: MCMCConfig,
     name_model_parameters_file: str,
+    calibration_data: CalibrationData,
+    prior: PriorFunc,
+    mcmc_config: MCMCConfig,
     output_subdir: str,
     project_directory: ProjectDirectory,
     device: Device,
@@ -48,7 +50,6 @@ def calibrate(
         project_directory=project_directory,
         device=device,
     )
-    prior = _compile_prior(mcmc_config=mcmc_config, device=device)
     likelihood = _compile_likelihood(model=model, data=preprocessed_data, device=device)
     mcmc_algorithm = _compile_mcmc_algorithm(
         mcmc_config=mcmc_config,
@@ -100,23 +101,6 @@ def _load_model(
     return model
 
 
-def _compile_prior(mcmc_config: MCMCConfig, device: Device) -> TorchMultiNormalDist:
-    def _set_up_covariance_matrix(prior_stds: list[float]) -> Tensor:
-        if len(prior_stds) == 1:
-            return torch.unsqueeze(
-                torch.tensor(prior_stds, dtype=torch.float64, device=device) ** 2, dim=1
-            )
-        else:
-            return torch.diag(
-                torch.tensor(prior_stds, dtype=torch.float64, device=device) ** 2
-            )
-
-    return torch.distributions.MultivariateNormal(
-        loc=torch.tensor(mcmc_config.prior_means, device=device),
-        covariance_matrix=_set_up_covariance_matrix(mcmc_config.prior_stds),
-    )
-
-
 def _compile_likelihood(
     model: Module, data: PreprocessedData, device: Device
 ) -> LikelihoodFunc:
@@ -130,13 +114,14 @@ def _compile_likelihood(
 def _compile_mcmc_algorithm(
     mcmc_config: MCMCConfig,
     likelihood: LikelihoodFunc,
-    prior: TorchMultiNormalDist,
+    prior: PriorFunc,
     output_subdir: str,
     project_directory: ProjectDirectory,
     device: Device,
 ) -> MCMC_Algorithm_Closure:
     if isinstance(mcmc_config, MetropolisHastingsConfig):
         config_mh = cast(MetropolisHastingsConfig, mcmc_config)
+        print("MCMC algorithm used: Metropolis Hastings")
 
         def mcmc_mh_algorithm() -> tuple[MomentsMultivariateNormal, NPArray]:
             return mcmc_metropolishastings(
@@ -157,6 +142,7 @@ def _compile_mcmc_algorithm(
 
     elif isinstance(mcmc_config, HamiltonianConfig):
         config_h = cast(HamiltonianConfig, mcmc_config)
+        print("MCMC algorithm used: Hamiltonian")
 
         def mcmc_hamiltonian_algorithm() -> tuple[MomentsMultivariateNormal, NPArray]:
             return mcmc_hamiltonian(

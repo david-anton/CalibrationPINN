@@ -4,6 +4,7 @@ import torch
 
 from parametricpinn.calibration.bayesian.likelihood import LikelihoodFunc
 from parametricpinn.calibration.bayesian.plot import plot_posterior_normal_distributions
+from parametricpinn.calibration.bayesian.prior import PriorFunc
 from parametricpinn.calibration.bayesian.statistics import (
     MomentsMultivariateNormal,
     determine_moments_of_multivariate_normal_distribution,
@@ -16,10 +17,10 @@ Samples: TypeAlias = list[Tensor]
 
 
 def compile_unnnormalized_posterior(
-    likelihood: LikelihoodFunc, prior: TorchMultiNormalDist
+    likelihood: LikelihoodFunc, prior: PriorFunc
 ) -> UnnormalizedPosterior:
     def _unnormalized_posterior(parameters: Tensor) -> Tensor:
-        return likelihood(parameters) * torch.exp(prior.log_prob(parameters))
+        return likelihood(parameters) * prior(parameters)
 
     return _unnormalized_posterior
 

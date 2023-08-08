@@ -9,6 +9,9 @@ from parametricpinn.calibration import (
     MetropolisHastingsConfig,
     calibrate,
 )
+from parametricpinn.calibration.bayesian.prior import (
+    compile_univariate_normal_distributed_prior,
+)
 from parametricpinn.data import (
     TrainingDataset1D,
     ValidationDataset1D,
@@ -52,7 +55,8 @@ num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdirectory = f"{current_date}_Parametric_PINN_1D"
+output_date = 20230731
+output_subdirectory = f"{output_date}_Parametric_PINN_1D"
 
 
 ### Set up simulation
@@ -175,21 +179,26 @@ def calibration_step() -> None:
     )
 
     prior_mean_youngs_modulus = 210000
-    prior_std_youngs_modulus = 15000
-    std_proposal_density = 1000
+    prior_std_youngs_modulus = 10000
+    prior = compile_univariate_normal_distributed_prior(
+        mean=prior_mean_youngs_modulus,
+        standard_deviation=prior_std_youngs_modulus,
+        device=device,
+    )
 
     data = CalibrationData(
         inputs=coordinates,
         outputs=noisy_displacements,
         std_noise=std_noise,
     )
+
+
+    std_proposal_density = 1000
     mcmc_config_mh = MetropolisHastingsConfig(
         parameter_names=("Youngs modulus",),
         true_parameters=(exact_youngs_modulus,),
-        prior_means=[prior_mean_youngs_modulus],
-        prior_stds=[prior_std_youngs_modulus],
         initial_parameters=torch.tensor([prior_mean_youngs_modulus], device=device),
-        num_iterations=int(1e5),
+        num_iterations=int(1e4),
         num_burn_in_iterations=int(1e4),
         cov_proposal_density=torch.pow(
             torch.tensor([std_proposal_density], device=device), 2
@@ -198,19 +207,18 @@ def calibration_step() -> None:
     mcmc_config_h = HamiltonianConfig(
         parameter_names=("Youngs modulus",),
         true_parameters=(exact_youngs_modulus,),
-        prior_means=[prior_mean_youngs_modulus],
-        prior_stds=[prior_std_youngs_modulus],
         initial_parameters=torch.tensor([prior_mean_youngs_modulus], device=device),
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e4),
         num_leabfrog_steps=32,
-        leapfrog_step_sizes=torch.tensor(prior_std_youngs_modulus, device=device),
+        leapfrog_step_sizes=torch.tensor(0.1, device=device),
     )
     posterior_moments, samples = calibrate(
         model=ansatz,
-        calibration_data=data,
-        mcmc_config=mcmc_config_h,
         name_model_parameters_file="model_parameters",
+        calibration_data=data,
+        prior=prior,
+        mcmc_config=mcmc_config_mh,
         output_subdir=output_subdirectory,
         project_directory=project_directory,
         device=device,
