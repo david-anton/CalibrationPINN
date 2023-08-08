@@ -15,6 +15,7 @@ Tensor: TypeAlias = torch.Tensor
 Parameter: TypeAlias = nn.Parameter
 Module: TypeAlias = torch.nn.Module
 Device: TypeAlias = torch.device
+TorchUniformDist: TypeAlias = torch.distributions.Uniform
 TorchUniNormalDist: TypeAlias = torch.distributions.Normal
 TorchMultiNormalDist: TypeAlias = torch.distributions.MultivariateNormal
 

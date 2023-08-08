@@ -3,6 +3,7 @@ from .errors import (
     FEMConfigurationError,
     FileNotFoundError,
     MCMCConfigError,
+    MixedDistributionError,
     TestConfigurationError,
     UnvalidCalibrationDataError,
 )
@@ -12,6 +13,7 @@ __all__ = [
     "FEMConfigurationError",
     "FileNotFoundError",
     "MCMCConfigError",
+    "MixedDistributionError",
     "TestConfigurationError",
     "UnvalidCalibrationDataError",
 ]
