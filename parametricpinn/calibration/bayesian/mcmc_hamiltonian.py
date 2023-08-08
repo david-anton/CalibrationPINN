@@ -91,15 +91,13 @@ def mcmc_hamiltonian(
     def compile_draw_normalized_momentums_func(parameters: Tensor) -> DrawMomentumsFunc:
         def compile_momentum_distribution() -> MomentumsDistribution:
             if parameters.size() == (1,):
-                mean = torch.tensor(0.0, dtype=torch.float64, device=device)
-                standard_deviation = torch.tensor(
-                    1.0, dtype=torch.float64, device=device
-                )
+                mean = torch.tensor(0.0, device=device)
+                standard_deviation = torch.tensor(1.0, device=device)
                 return torch.distributions.Normal(loc=mean, scale=standard_deviation)
             else:
-                means = torch.zeros_like(parameters, dtype=torch.float64, device=device)
+                means = torch.zeros_like(parameters, device=device)
                 covariance_matrix = torch.diag(
-                    torch.ones_like(parameters, dtype=torch.float64, device=device)
+                    torch.ones_like(parameters, device=device)
                 )
                 return torch.distributions.MultivariateNormal(
                     loc=means, covariance_matrix=covariance_matrix
@@ -227,7 +225,7 @@ def mcmc_hamiltonian(
     num_accepted_proposals = 0
     parameters = initial_parameters
     for _ in range(num_total_iterations):
-        parameters = parameters.clone().type(torch.float64).requires_grad_(True)
+        parameters = parameters.clone().requires_grad_(True)
         parameters, is_accepted = one_iteration(parameters)
         parameters.detach()
         samples_list.append(parameters)

@@ -69,9 +69,7 @@ def mcmc_metropolishastings(
         cov_proposal_density = cov_proposal_density.to(torch.float64)
 
         return torch.distributions.MultivariateNormal(
-            loc=torch.zeros_like(
-                initial_parameters, dtype=torch.float64, device=device
-            ),
+            loc=torch.zeros_like(initial_parameters, device=device),
             covariance_matrix=cov_proposal_density,
         )
 
