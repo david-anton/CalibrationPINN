@@ -135,9 +135,12 @@ def mcmc_hamiltonian(
                         create_graph=False,
                     )[0]
                 )
+                print(f"Momentums: {momentums}")
             return parameters, momentums
 
         # Half step for momentums (in the beginning)
+        print(f"Initial parameters: {parameters}")
+        print(f"Initial momentums: {momentums}")
         momentums = (
             momentums
             - step_sizes
@@ -149,6 +152,7 @@ def mcmc_hamiltonian(
                 create_graph=False,
             )[0]
         )
+        print(f"Momentums after half step: {momentums}")
 
         # Full steps
         for i in range(num_leapfrog_steps):
