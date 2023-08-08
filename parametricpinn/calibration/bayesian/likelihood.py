@@ -19,20 +19,28 @@ def compile_likelihood(
     num_data = data.num_data_points
     size_flattened_outputs = data.num_data_points * data.dim_outputs
 
-    def _create_error_covariance_matrix(size_output: int, std_noise: float) -> Tensor:
+    def create_error_covariance_matrix(size_output: int, std_noise: float) -> Tensor:
         return torch.diag(torch.full((size_output,), std_noise**2, device=device))
 
-    def _calculate_inv_and_det(covariance_matrix: Tensor) -> tuple[Tensor, Tensor]:
-        if covariance_matrix.size() == (1,):
-            covariance_matrix = torch.unsqueeze(covariance_matrix, 1)
-        inv_cov_matrix = torch.inverse(covariance_matrix)
-        det_cov_matrix = torch.det(covariance_matrix)
-        return inv_cov_matrix, det_cov_matrix
+    def calculate_inv_and_det(matrix: Tensor) -> tuple[Tensor, Tensor]:
+        if matrix.size() == (1,):
+            matrix = torch.unsqueeze(matrix, 1)
+        inv_matrix = torch.inverse(matrix)
+        det_matrix = torch.det(matrix)
+        return inv_matrix, det_matrix
 
-    covariance_error = _create_error_covariance_matrix(
-        size_output=size_flattened_outputs, std_noise=data.std_noise
-    )
-    inv_cov_error, det_cov_error = _calculate_inv_and_det(covariance_error)
+    def calculate_normalizing_constant(det_cov_error: Tensor) -> Tensor:
+        return 1 / (
+            torch.pow(
+                (2 * torch.tensor(math.pi, device=device)),
+                torch.tensor(size_flattened_outputs, device=device) / 2,
+            )
+            * torch.pow(det_cov_error, 1 / 2)
+        )
+
+    cov_error = create_error_covariance_matrix(size_flattened_outputs, data.std_noise)
+    inv_cov_error, det_cov_error = calculate_inv_and_det(cov_error)
+    normalizing_constant = calculate_normalizing_constant(det_cov_error)
 
     def likelihood_func(parameters: Tensor) -> Tensor:
         model_inputs = torch.concat(
@@ -46,16 +54,7 @@ def compile_likelihood(
         flattened_prediction = prediction.ravel()
         residual = flattened_prediction - flattened_outputs
 
-        return (
-            1
-            / (
-                torch.pow(
-                    (2 * torch.tensor(math.pi, device=device)),
-                    torch.tensor(size_flattened_outputs, device=device) / 2,
-                )
-                * torch.pow(det_cov_error, 1 / 2)
-            )
-        ) * (
+        return normalizing_constant * (
             torch.exp(
                 -1 / 2 * residual @ inv_cov_error @ torch.transpose(residual, -1, 0)
             )
