@@ -205,8 +205,9 @@ def mcmc_hamiltonian(
     )
 
     def one_iteration(parameters: Tensor) -> tuple[Tensor, bool]:
-        normalized_momentums = draw_normalized_momentums_func()
-        momentums = leapfrog_step_sizes * normalized_momentums
+        momentums = draw_normalized_momentums_func()
+        # normalized_momentums = draw_normalized_momentums_func()
+        # momentums = leapfrog_step_sizes * normalized_momentums
         next_parameters, next_momentums = propose_next_parameters(parameters, momentums)
         mh_update_state = MHUpdateState(
             parameters=parameters,
