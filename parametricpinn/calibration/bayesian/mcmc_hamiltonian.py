@@ -121,7 +121,6 @@ def mcmc_hamiltonian(
             parameters: Tensor, momentums: Tensor, is_last_step: bool
         ) -> tuple[Tensor, Tensor]:
             parameters = parameters + step_sizes * momentums
-            print(f"Parameters: {parameters}")
             if not is_last_step:
                 momentums = (
                     momentums
@@ -133,12 +132,9 @@ def mcmc_hamiltonian(
                         create_graph=False,
                     )[0]
                 )
-                print(f"Momentums: {momentums}")
             return parameters, momentums
 
         # Half step for momentums (in the beginning)
-        print(f"Initial parameters: {parameters}")
-        print(f"Initial momentums: {momentums}")
         momentums = (
             momentums
             - step_sizes
@@ -150,7 +146,6 @@ def mcmc_hamiltonian(
                 create_graph=False,
             )[0]
         )
-        print(f"Momentums after half step: {momentums}")
 
         # Full steps
         for i in range(num_leapfrog_steps):

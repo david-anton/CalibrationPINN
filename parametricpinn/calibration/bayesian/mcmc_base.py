@@ -19,15 +19,19 @@ def compile_unnnormalized_posterior(
     likelihood: LikelihoodFunc, prior: TorchMultiNormalDist
 ) -> UnnormalizedPosterior:
     def _unnormalized_posterior(parameters: Tensor) -> Tensor:
-        # print(f"likelihood: {likelihood(parameters)}")
         # print(
-        #     f"Gradient likelihood: {torch.autograd.grad(likelihood(parameters), parameters, retain_graph=False, create_graph=False,)[0]}"
+        #     f"Unnormalized posterior: {likelihood(parameters) * torch.exp(prior.log_prob(parameters))}"
         # )
-        # print(f"prior: {torch.pow(10, prior.log_prob(parameters))}")
         # print(
-        #     f"Gradient prior: {torch.autograd.grad(torch.pow(10, prior.log_prob(parameters)), parameters, retain_graph=False, create_graph=False,)[0]}"
+        #     f"Potential energy: {-torch.log(likelihood(parameters) * torch.exp(prior.log_prob(parameters)))}"
         # )
-        return likelihood(parameters) * torch.pow(10, prior.log_prob(parameters))
+        # print(
+        #     f"Gradient unnormalized posterior: {torch.autograd.grad(likelihood(parameters) * torch.exp(prior.log_prob(parameters)), parameters, retain_graph=False, create_graph=False,)[0]}"
+        # )
+        # print(
+        #     f"Gradient potential energy: {torch.autograd.grad(-torch.log(likelihood(parameters) * torch.exp(prior.log_prob(parameters))), parameters, retain_graph=False, create_graph=False,)[0]}"
+        # )
+        return likelihood(parameters) * torch.exp(prior.log_prob(parameters))
 
     return _unnormalized_posterior
 
