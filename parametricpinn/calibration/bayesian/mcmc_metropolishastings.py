@@ -8,6 +8,7 @@ from parametricpinn.calibration.bayesian.mcmc_base import (
     Samples,
     compile_unnnormalized_posterior,
     correct_num_iterations,
+    evaluate_acceptance_ratio,
     postprocess_samples,
     remove_burn_in_phase,
 )
@@ -53,7 +54,7 @@ def mcmc_metropolishastings(
     device: Device,
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
     print("MCMC algorithm used: Metropolis Hastings")
-    num_iterations = correct_num_iterations(
+    num_total_iterations = correct_num_iterations(
         num_iterations=num_iterations, num_burn_in_iterations=num_burn_in_iterations
     )
     unnormalized_posterior = compile_unnnormalized_posterior(
@@ -86,7 +87,7 @@ def mcmc_metropolishastings(
         parameters: Tensor
         next_parameters: Tensor
 
-    def metropolis_hastings_update(state: MHUpdateState) -> Tensor:
+    def metropolis_hastings_update(state: MHUpdateState) -> tuple[Tensor, bool]:
         acceptance_ratio = torch.minimum(
             torch.tensor(1.0, device=device),
             unnormalized_posterior(state.next_parameters)
@@ -94,11 +95,13 @@ def mcmc_metropolishastings(
         )
         rand_uniform_number = torch.squeeze(torch.rand(1, device=device), 0)
         next_parameters = state.next_parameters
+        is_accepted = True
         if rand_uniform_number > acceptance_ratio:
             next_parameters = state.parameters
-        return next_parameters
+            is_accepted = False
+        return next_parameters, is_accepted
 
-    def one_iteration(parameters: Tensor) -> Tensor:
+    def one_iteration(parameters: Tensor) -> tuple[Tensor, bool]:
         next_parameters = propose_next_parameters(parameters)
         mh_update_state = MHUpdateState(
             parameters=parameters,
@@ -107,10 +110,13 @@ def mcmc_metropolishastings(
         return metropolis_hastings_update(mh_update_state)
 
     samples_list: Samples = []
+    num_accepted_proposals = 0
     parameters = initial_parameters
-    for _ in range(num_iterations):
-        parameters = one_iteration(parameters)
+    for _ in range(num_total_iterations):
+        parameters, is_accepted = one_iteration(parameters)
         samples_list.append(parameters)
+        if is_accepted:
+            num_accepted_proposals = +1
 
     samples_list = remove_burn_in_phase(
         sample_list=samples_list, num_burn_in_iterations=num_burn_in_iterations
@@ -122,5 +128,8 @@ def mcmc_metropolishastings(
         mcmc_algorithm="metropolishastings_mcmc",
         output_subdir=output_subdir,
         project_directory=project_directory,
+    )
+    evaluate_acceptance_ratio(
+        num_accepted_proposals=num_accepted_proposals, num_iterations=num_iterations
     )
     return moments, samples

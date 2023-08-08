@@ -52,3 +52,8 @@ def postprocess_samples(
         project_directory,
     )
     return posterior_moments, samples
+
+
+def evaluate_acceptance_ratio(num_accepted_proposals: int, num_iterations: int) -> None:
+    acceptance_ratio = num_accepted_proposals / num_iterations
+    print(f"Acceptance ratio: {round(acceptance_ratio, 3)}")

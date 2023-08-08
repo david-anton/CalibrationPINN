@@ -266,45 +266,48 @@ def calibration_step() -> None:
     num_data_points = 8
     std_noise = 5 * 1e-4
 
-    simulation_results = run_simulation(
-        model=material_model,
-        youngs_modulus=exact_youngs_modulus,
-        poissons_ratio=exact_poissons_ratio,
-        edge_length=edge_length,
-        radius=radius,
-        volume_force_x=volume_force_x,
-        volume_force_y=volume_force_y,
-        traction_left_x=traction_left_x,
-        traction_left_y=traction_left_y,
-        save_results=False,
-        save_metadata=False,
-        output_subdir=output_subdirectory,
-        project_directory=project_directory,
-        mesh_resolution=0.1,
-    )
-    total_size_data = simulation_results.coordinates_x.shape[0]
-    random_indices = torch.randint(
-        low=0, high=total_size_data + 1, size=(num_data_points,)
-    )
-    coordinates_x = torch.tensor(simulation_results.coordinates_x)[random_indices]
-    coordinates_y = torch.tensor(simulation_results.coordinates_y)[random_indices]
-    coordinates = torch.concat((coordinates_x, coordinates_y), dim=1).to(device)
-    clean_displacements_x = torch.tensor(simulation_results.displacements_x)[
-        random_indices
-    ]
-    clean_displacements_y = torch.tensor(simulation_results.displacements_y)[
-        random_indices
-    ]
-    noisy_displacements_x = clean_displacements_x + torch.normal(
-        mean=0.0, std=std_noise, size=clean_displacements_x.size()
-    )
-    noisy_displacements_y = clean_displacements_y + torch.normal(
-        mean=0.0, std=std_noise, size=clean_displacements_y.size()
-    )
-    noisy_displacements = torch.concat(
-        (noisy_displacements_x, noisy_displacements_y), dim=1
-    ).to(device)
+    def generate_calibration_data() -> tuple[Tensor, Tensor]:
+        simulation_results = run_simulation(
+            model=material_model,
+            youngs_modulus=exact_youngs_modulus,
+            poissons_ratio=exact_poissons_ratio,
+            edge_length=edge_length,
+            radius=radius,
+            volume_force_x=volume_force_x,
+            volume_force_y=volume_force_y,
+            traction_left_x=traction_left_x,
+            traction_left_y=traction_left_y,
+            save_results=False,
+            save_metadata=False,
+            output_subdir=output_subdirectory,
+            project_directory=project_directory,
+            mesh_resolution=0.1,
+        )
+        total_size_data = simulation_results.coordinates_x.shape[0]
+        random_indices = torch.randint(
+            low=0, high=total_size_data + 1, size=(num_data_points,)
+        )
+        coordinates_x = torch.tensor(simulation_results.coordinates_x)[random_indices]
+        coordinates_y = torch.tensor(simulation_results.coordinates_y)[random_indices]
+        coordinates = torch.concat((coordinates_x, coordinates_y), dim=1).to(device)
+        clean_displacements_x = torch.tensor(simulation_results.displacements_x)[
+            random_indices
+        ]
+        clean_displacements_y = torch.tensor(simulation_results.displacements_y)[
+            random_indices
+        ]
+        noisy_displacements_x = clean_displacements_x + torch.normal(
+            mean=0.0, std=std_noise, size=clean_displacements_x.size()
+        )
+        noisy_displacements_y = clean_displacements_y + torch.normal(
+            mean=0.0, std=std_noise, size=clean_displacements_y.size()
+        )
+        noisy_displacements = torch.concat(
+            (noisy_displacements_x, noisy_displacements_y), dim=1
+        ).to(device)
+        return coordinates, noisy_displacements
 
+    coordinates, noisy_displacements = generate_calibration_data()
     prior_mean_youngs_modulus = 210000
     prior_std_youngs_modulus = 10000
     std_proposal_density_youngs_modulus = 1000
@@ -354,15 +357,15 @@ def calibration_step() -> None:
             [prior_std_youngs_modulus, prior_std_poissons_ratio], device=device
         ),
     )
-    posterior_moments_mh, samples_mh = calibrate(
-        model=ansatz,
-        calibration_data=data,
-        mcmc_config=mcmc_config_mh,
-        name_model_parameters_file="model_parameters",
-        output_subdir=output_subdirectory,
-        project_directory=project_directory,
-        device=device,
-    )
+    # posterior_moments_mh, samples_mh = calibrate(
+    #     model=ansatz,
+    #     calibration_data=data,
+    #     mcmc_config=mcmc_config_mh,
+    #     name_model_parameters_file="model_parameters",
+    #     output_subdir=output_subdirectory,
+    #     project_directory=project_directory,
+    #     device=device,
+    # )
     posterior_moments_h, samples_h = calibrate(
         model=ansatz,
         calibration_data=data,

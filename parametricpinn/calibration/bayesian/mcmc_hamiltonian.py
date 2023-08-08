@@ -8,6 +8,7 @@ from parametricpinn.calibration.bayesian.mcmc_base import (
     Samples,
     compile_unnnormalized_posterior,
     correct_num_iterations,
+    evaluate_acceptance_ratio,
     postprocess_samples,
     remove_burn_in_phase,
 )
@@ -66,7 +67,8 @@ def mcmc_hamiltonian(
     device: Device,
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
     print("MCMC algorithm used: Hamiltonian")
-    num_iterations = correct_num_iterations(
+
+    num_total_iterations = correct_num_iterations(
         num_iterations=num_iterations, num_burn_in_iterations=num_burn_in_iterations
     )
     unnormalized_posterior = compile_unnnormalized_posterior(
@@ -121,6 +123,7 @@ def mcmc_hamiltonian(
             parameters: Tensor, momentums: Tensor, is_last_step: bool
         ) -> tuple[Tensor, Tensor]:
             parameters = parameters + step_sizes * momentums
+            print(f"Parameters: {parameters}")
             if not is_last_step:
                 momentums = (
                     momentums
@@ -173,7 +176,7 @@ def mcmc_hamiltonian(
         next_parameters: Tensor
         next_momentums: Tensor
 
-    def metropolis_hastings_update(state: MHUpdateState) -> Tensor:
+    def metropolis_hastings_update(state: MHUpdateState) -> tuple[Tensor, bool]:
         potential_energy_func = compile_potential_energy_func()
         kinetic_energy_func = compile_kinetic_energy_func()
         potential_energy = potential_energy_func(state.parameters)
@@ -194,15 +197,17 @@ def mcmc_hamiltonian(
         )
         rand_uniform_number = torch.squeeze(torch.rand(1, device=device), 0)
         next_parameters = state.next_parameters
+        is_accepted = True
         if rand_uniform_number > acceptance_ratio:
             next_parameters = state.parameters
-        return next_parameters
+            is_accepted = False
+        return next_parameters, is_accepted
 
     draw_normalized_momentums_func = compile_draw_normalized_momentums_func(
         initial_parameters
     )
 
-    def one_iteration(parameters: Tensor) -> Tensor:
+    def one_iteration(parameters: Tensor) -> tuple[Tensor, bool]:
         normalized_momentums = draw_normalized_momentums_func()
         momentums = leapfrog_step_sizes * normalized_momentums
         next_parameters, next_momentums = propose_next_parameters(parameters, momentums)
@@ -215,12 +220,15 @@ def mcmc_hamiltonian(
         return metropolis_hastings_update(mh_update_state)
 
     samples_list: Samples = []
+    num_accepted_proposals = 0
     parameters = initial_parameters
-    for _ in range(num_iterations):
+    for _ in range(num_total_iterations):
         parameters = parameters.clone().type(torch.float64).requires_grad_(True)
-        parameters = one_iteration(parameters)
+        parameters, is_accepted = one_iteration(parameters)
         parameters.detach()
         samples_list.append(parameters)
+        if is_accepted:
+            num_accepted_proposals += 1
 
     samples_list = remove_burn_in_phase(
         sample_list=samples_list, num_burn_in_iterations=num_burn_in_iterations
@@ -233,4 +241,8 @@ def mcmc_hamiltonian(
         output_subdir=output_subdir,
         project_directory=project_directory,
     )
+    evaluate_acceptance_ratio(
+        num_accepted_proposals=num_accepted_proposals, num_iterations=num_iterations
+    )
+
     return moments, samples
