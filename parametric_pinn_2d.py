@@ -346,8 +346,8 @@ def calibration_step() -> None:
         cov_proposal_density=torch.diag(
             torch.tensor(
                 [
-                    std_proposal_density_youngs_modulus,
-                    std_proposal_density_poissons_ratio,
+                    5000,
+                    0.001,
                 ],
                 dtype=torch.float,
                 device=device,
@@ -362,7 +362,7 @@ def calibration_step() -> None:
         num_iterations=int(1e5),
         num_burn_in_iterations=int(1e4),
         num_leabfrog_steps=32,
-        leapfrog_step_sizes=torch.tensor([10, 0.001], device=device),
+        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
     )
     posterior_moments_mh, samples_mh = calibrate(
         model=ansatz,
