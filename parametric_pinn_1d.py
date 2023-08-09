@@ -178,8 +178,8 @@ def calibration_step() -> None:
         coordinates = torch.reshape(inputs[:, 0], (-1, 1)).to(device)
         clean_displacements = outputs
         noisy_displacements = clean_displacements + torch.normal(
-            mean=torch.tensor(0.0, device=device),
-            std=torch.tensor(std_noise, device=device),
+            mean=torch.tensor(0.0),
+            std=torch.tensor(std_noise),
         ).to(device)
         return coordinates, noisy_displacements
 
