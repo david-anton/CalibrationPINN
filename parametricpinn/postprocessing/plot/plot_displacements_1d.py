@@ -3,7 +3,7 @@ import torch
 
 from parametricpinn.data import calculate_displacements_solution_1D
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.types import Module
+from parametricpinn.types import Device, Module
 
 
 class DisplacementsPlotterConfig1D:
@@ -40,6 +40,7 @@ def plot_displacements_1D(
     output_subdir: str,
     project_directory: ProjectDirectory,
     config: DisplacementsPlotterConfig1D,
+    device: Device
 ) -> None:
     for youngs_modulus in youngs_modulus_list:
         _plot_one_displacements_1D(
@@ -51,6 +52,7 @@ def plot_displacements_1D(
             output_subdir=output_subdir,
             project_directory=project_directory,
             config=config,
+            device=device
         )
 
 
@@ -63,6 +65,7 @@ def _plot_one_displacements_1D(
     output_subdir: str,
     project_directory: ProjectDirectory,
     config: DisplacementsPlotterConfig1D,
+    device: Device
 ) -> None:
     num_points = 1000
     x_coor = torch.linspace(0.0, length, num_points).view((num_points, 1))
@@ -78,8 +81,8 @@ def _plot_one_displacements_1D(
         .numpy()
     )
     x_E = torch.full((num_points, 1), youngs_modulus)
-    x = torch.concat((x_coor, x_E), dim=1)
-    prediction = ansatz(x).detach().numpy()
+    x = torch.concat((x_coor, x_E), dim=1).to(device)
+    prediction = ansatz(x).cpu().detach().numpy()
     x_coor = x_coor.detach().numpy()
     figure, axes = plt.subplots()
     axes.plot(x_coor, solution, label="solution")
