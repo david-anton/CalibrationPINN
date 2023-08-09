@@ -158,24 +158,30 @@ def training_step() -> None:
 
 
 def calibration_step() -> None:
+    print("Start calibration ...")
     exact_youngs_modulus = 195000
     num_points_calibration = 32
     std_noise = 5 * 1e-4
-    calibration_dataset = create_validation_dataset_1D(
-        length=length,
-        min_youngs_modulus=exact_youngs_modulus,
-        max_youngs_modulus=exact_youngs_modulus,
-        traction=traction,
-        volume_force=volume_force,
-        num_points=num_points_calibration,
-        num_samples=1,
-    )
-    inputs, outputs = calibration_dataset[0]
-    coordinates = torch.reshape(inputs[:, 0], (-1, 1))
-    clean_displacements = outputs
-    noisy_displacements = clean_displacements + torch.normal(
-        mean=0.0, std=std_noise, size=clean_displacements.size()
-    )
+
+    def generate_calibration_data() -> tuple[Tensor, Tensor]:
+        calibration_dataset = create_validation_dataset_1D(
+            length=length,
+            min_youngs_modulus=exact_youngs_modulus,
+            max_youngs_modulus=exact_youngs_modulus,
+            traction=traction,
+            volume_force=volume_force,
+            num_points=num_points_calibration,
+            num_samples=1,
+        )
+        inputs, outputs = calibration_dataset[0]
+        coordinates = torch.reshape(inputs[:, 0], (-1, 1)).to(device)
+        clean_displacements = outputs
+        noisy_displacements = clean_displacements + torch.normal(
+            mean=0.0, std=std_noise, size=clean_displacements.size()
+        ).to(device)
+        return coordinates, noisy_displacements
+
+    coordinates, noisy_displacements = generate_calibration_data()
     data = CalibrationData(
         inputs=coordinates,
         outputs=noisy_displacements,
