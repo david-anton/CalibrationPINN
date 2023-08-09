@@ -40,7 +40,7 @@ def plot_displacements_1D(
     output_subdir: str,
     project_directory: ProjectDirectory,
     config: DisplacementsPlotterConfig1D,
-    device: Device
+    device: Device,
 ) -> None:
     for youngs_modulus in youngs_modulus_list:
         _plot_one_displacements_1D(
@@ -52,7 +52,7 @@ def plot_displacements_1D(
             output_subdir=output_subdir,
             project_directory=project_directory,
             config=config,
-            device=device
+            device=device,
         )
 
 
@@ -65,7 +65,7 @@ def _plot_one_displacements_1D(
     output_subdir: str,
     project_directory: ProjectDirectory,
     config: DisplacementsPlotterConfig1D,
-    device: Device
+    device: Device,
 ) -> None:
     num_points = 1000
     x_coor = torch.linspace(0.0, length, num_points).view((num_points, 1))

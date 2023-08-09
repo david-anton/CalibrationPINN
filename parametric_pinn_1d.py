@@ -151,6 +151,7 @@ def training_step() -> None:
             output_subdir=output_subdirectory,
             project_directory=project_directory,
             config=displacements_plotter_config,
+            device=device,
         )
 
     train_parametric_pinn(train_config=train_config)
@@ -242,6 +243,7 @@ def calibration_step() -> None:
         device=device,
     )
     print("Calibration finished.")
+
 
 if retrain_parametric_pinn:
     training_dataset, validation_dataset = create_datasets()
