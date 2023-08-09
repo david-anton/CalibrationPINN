@@ -11,6 +11,9 @@ from parametricpinn.calibration import (
     MetropolisHastingsConfig,
     calibrate,
 )
+from parametricpinn.calibration.bayesian.prior import (
+    compile_multivariate_normal_distributed_prior,
+)
 from parametricpinn.data import (
     TrainingDataset2D,
     ValidationDataset2D,
@@ -308,26 +311,36 @@ def calibration_step() -> None:
         return coordinates, noisy_displacements
 
     coordinates, noisy_displacements = generate_calibration_data()
+    data = CalibrationData(
+        inputs=coordinates,
+        outputs=noisy_displacements,
+        std_noise=std_noise,
+    )
+
     prior_mean_youngs_modulus = 210000
     prior_std_youngs_modulus = 10000
     std_proposal_density_youngs_modulus = 1000
     prior_mean_poissons_ratio = 0.3
     prior_std_poissons_ratio = 0.015
     std_proposal_density_poissons_ratio = 0.0015
-
-    data = CalibrationData(
-        inputs=coordinates,
-        outputs=noisy_displacements,
-        std_noise=std_noise,
+    prior_means = torch.tensor([prior_mean_youngs_modulus, prior_mean_poissons_ratio])
+    prior_covariance_matrix = torch.tensor(
+        [[prior_std_youngs_modulus**2, 0], [0, prior_std_poissons_ratio**2]]
     )
+    prior = compile_multivariate_normal_distributed_prior(
+        means=prior_means, covariance_matrix=prior_covariance_matrix, device=device
+    )
+
+    parameter_names = ("Youngs modulus", "Poissons ratio")
+    true_parameters = (exact_youngs_modulus, exact_poissons_ratio)
+    initial_parameters = torch.tensor(
+        [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
+    )
+
     mcmc_config_mh = MetropolisHastingsConfig(
-        parameter_names=("Youngs modulus", "Poissons ratio"),
-        true_parameters=(exact_youngs_modulus, exact_poissons_ratio),
-        prior_means=[prior_mean_youngs_modulus, prior_mean_poissons_ratio],
-        prior_stds=[prior_std_youngs_modulus, prior_std_poissons_ratio],
-        initial_parameters=torch.tensor(
-            [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
-        ),
+        parameter_names=parameter_names,
+        true_parameters=true_parameters,
+        initial_parameters=initial_parameters,
         num_iterations=int(1e5),
         num_burn_in_iterations=int(1e4),
         cov_proposal_density=torch.diag(
@@ -343,13 +356,9 @@ def calibration_step() -> None:
         ),
     )
     mcmc_config_h = HamiltonianConfig(
-        parameter_names=("Youngs modulus", "Poissons ratio"),
-        true_parameters=(exact_youngs_modulus, exact_poissons_ratio),
-        prior_means=[prior_mean_youngs_modulus, prior_mean_poissons_ratio],
-        prior_stds=[prior_std_youngs_modulus, prior_std_poissons_ratio],
-        initial_parameters=torch.tensor(
-            [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
-        ),
+        parameter_names=parameter_names,
+        true_parameters=true_parameters,
+        initial_parameters=initial_parameters,
         num_iterations=int(1e5),
         num_burn_in_iterations=int(1e4),
         num_leabfrog_steps=32,
@@ -357,18 +366,20 @@ def calibration_step() -> None:
     )
     posterior_moments_mh, samples_mh = calibrate(
         model=ansatz,
-        calibration_data=data,
-        mcmc_config=mcmc_config_mh,
         name_model_parameters_file="model_parameters",
+        calibration_data=data,
+        prior=prior,
+        mcmc_config=mcmc_config_mh,
         output_subdir=output_subdirectory,
         project_directory=project_directory,
         device=device,
     )
     posterior_moments_h, samples_h = calibrate(
         model=ansatz,
-        calibration_data=data,
-        mcmc_config=mcmc_config_h,
         name_model_parameters_file="model_parameters",
+        calibration_data=data,
+        prior=prior,
+        mcmc_config=mcmc_config_h,
         output_subdir=output_subdirectory,
         project_directory=project_directory,
         device=device,

@@ -7,8 +7,8 @@ from parametricpinn.calibration.bayesian.likelihood import LikelihoodFunc
 from parametricpinn.calibration.bayesian.mcmc_base import (
     Samples,
     compile_unnnormalized_posterior,
-    correct_num_iterations,
     evaluate_acceptance_ratio,
+    expand_num_iterations,
     postprocess_samples,
     remove_burn_in_phase,
 )
@@ -67,7 +67,7 @@ def mcmc_hamiltonian(
     project_directory: ProjectDirectory,
     device: Device,
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
-    num_total_iterations = correct_num_iterations(
+    num_total_iterations = expand_num_iterations(
         num_iterations=num_iterations, num_burn_in_iterations=num_burn_in_iterations
     )
     unnormalized_posterior = compile_unnnormalized_posterior(
@@ -89,13 +89,15 @@ def mcmc_hamiltonian(
     def compile_draw_normalized_momentums_func(parameters: Tensor) -> DrawMomentumsFunc:
         def compile_momentum_distribution() -> MomentumsDistribution:
             if parameters.size() == (1,):
-                mean = torch.tensor(0.0, device=device)
-                standard_deviation = torch.tensor(1.0, device=device)
+                mean = torch.tensor(0.0, dtype=torch.float64, device=device)
+                standard_deviation = torch.tensor(
+                    1.0, dtype=torch.float64, device=device
+                )
                 return torch.distributions.Normal(loc=mean, scale=standard_deviation)
             else:
-                means = torch.zeros_like(parameters, device=device)
+                means = torch.zeros_like(parameters, dtype=torch.float64, device=device)
                 covariance_matrix = torch.diag(
-                    torch.ones_like(parameters, device=device)
+                    torch.ones_like(parameters, dtype=torch.float64, device=device)
                 )
                 return torch.distributions.MultivariateNormal(
                     loc=means, covariance_matrix=covariance_matrix
@@ -218,12 +220,12 @@ def mcmc_hamiltonian(
     samples_list: Samples = []
     num_accepted_proposals = 0
     parameters = initial_parameters
-    for _ in range(num_total_iterations):
-        parameters = parameters.type(torch.float).clone().requires_grad_(True)
+    for i in range(num_total_iterations):
+        parameters = parameters.type(torch.float64).clone().requires_grad_(True)
         parameters, is_accepted = one_iteration(parameters)
         parameters.detach()
         samples_list.append(parameters)
-        if is_accepted:
+        if i < num_burn_in_iterations and is_accepted:
             num_accepted_proposals += 1
 
     samples_list = remove_burn_in_phase(

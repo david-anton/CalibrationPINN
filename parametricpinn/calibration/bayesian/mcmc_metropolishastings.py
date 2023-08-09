@@ -7,8 +7,8 @@ from parametricpinn.calibration.bayesian.likelihood import LikelihoodFunc
 from parametricpinn.calibration.bayesian.mcmc_base import (
     Samples,
     compile_unnnormalized_posterior,
-    correct_num_iterations,
     evaluate_acceptance_ratio,
+    expand_num_iterations,
     postprocess_samples,
     remove_burn_in_phase,
 )
@@ -54,7 +54,7 @@ def mcmc_metropolishastings(
     project_directory: ProjectDirectory,
     device: Device,
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
-    num_total_iterations = correct_num_iterations(
+    num_total_iterations = expand_num_iterations(
         num_iterations=num_iterations, num_burn_in_iterations=num_burn_in_iterations
     )
     unnormalized_posterior = compile_unnnormalized_posterior(
@@ -66,9 +66,12 @@ def mcmc_metropolishastings(
     ) -> TorchMultiNormalDist:
         if cov_proposal_density.size() == (1,):
             cov_proposal_density = torch.unsqueeze(cov_proposal_density, dim=1)
+        cov_proposal_density = cov_proposal_density.type(torch.float64)
 
         return torch.distributions.MultivariateNormal(
-            loc=torch.zeros_like(initial_parameters, device=device),
+            loc=torch.zeros_like(
+                initial_parameters, dtype=torch.float64, device=device
+            ),
             covariance_matrix=cov_proposal_density,
         )
 
@@ -109,11 +112,11 @@ def mcmc_metropolishastings(
     samples_list: Samples = []
     num_accepted_proposals = 0
     parameters = initial_parameters
-    for _ in range(num_total_iterations):
+    for i in range(num_total_iterations):
         parameters, is_accepted = one_iteration(parameters)
         samples_list.append(parameters)
-        if is_accepted:
-            num_accepted_proposals = +1
+        if i < num_burn_in_iterations and is_accepted:
+            num_accepted_proposals += 1
 
     samples_list = remove_burn_in_phase(
         sample_list=samples_list, num_burn_in_iterations=num_burn_in_iterations

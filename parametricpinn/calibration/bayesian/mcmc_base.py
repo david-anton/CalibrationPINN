@@ -20,12 +20,16 @@ def compile_unnnormalized_posterior(
     likelihood: LikelihoodFunc, prior: PriorFunc
 ) -> UnnormalizedPosterior:
     def _unnormalized_posterior(parameters: Tensor) -> Tensor:
+        # print(f"Likelihood: {likelihood(parameters)}")
+        # print(f"Prior: {prior(parameters)}")
+        # print(f"Potential energy: {-torch.log(likelihood(parameters) * prior(parameters))}")
+        # print(f"Grad potential energy: {torch.autograd.grad(-torch.log(likelihood(parameters) * prior(parameters)), parameters, retain_graph=False, create_graph=False)[0]}")
         return likelihood(parameters) * prior(parameters)
 
     return _unnormalized_posterior
 
 
-def correct_num_iterations(num_iterations: int, num_burn_in_iterations: int) -> int:
+def expand_num_iterations(num_iterations: int, num_burn_in_iterations: int) -> int:
     return num_iterations + num_burn_in_iterations
 
 
@@ -57,4 +61,4 @@ def postprocess_samples(
 
 def evaluate_acceptance_ratio(num_accepted_proposals: int, num_iterations: int) -> None:
     acceptance_ratio = num_accepted_proposals / num_iterations
-    print(f"Acceptance ratio: {round(acceptance_ratio, 3)}")
+    print(f"Acceptance ratio: {round(acceptance_ratio, 4)}")

@@ -33,7 +33,7 @@ from parametricpinn.training.training_1D import (
 from parametricpinn.types import Module, Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 length = 100.0
 traction = 1.0
@@ -55,7 +55,7 @@ num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = 20230731
+output_date = current_date
 output_subdirectory = f"{output_date}_Parametric_PINN_1D"
 
 
@@ -124,7 +124,6 @@ def create_ansatz() -> Module:
     ).to(device)
 
 
-training_dataset, validation_dataset = create_datasets()
 ansatz = create_ansatz()
 
 
@@ -177,6 +176,11 @@ def calibration_step() -> None:
     noisy_displacements = clean_displacements + torch.normal(
         mean=0.0, std=std_noise, size=clean_displacements.size()
     )
+    data = CalibrationData(
+        inputs=coordinates,
+        outputs=noisy_displacements,
+        std_noise=std_noise,
+    )
 
     prior_mean_youngs_modulus = 210000
     prior_std_youngs_modulus = 10000
@@ -186,18 +190,15 @@ def calibration_step() -> None:
         device=device,
     )
 
-    data = CalibrationData(
-        inputs=coordinates,
-        outputs=noisy_displacements,
-        std_noise=std_noise,
-    )
-
+    parameter_names = ("Youngs modulus",)
+    true_parameters = (exact_youngs_modulus,)
+    initial_parameters = torch.tensor([prior_mean_youngs_modulus], device=device)
 
     std_proposal_density = 1000
     mcmc_config_mh = MetropolisHastingsConfig(
-        parameter_names=("Youngs modulus",),
-        true_parameters=(exact_youngs_modulus,),
-        initial_parameters=torch.tensor([prior_mean_youngs_modulus], device=device),
+        parameter_names=parameter_names,
+        true_parameters=true_parameters,
+        initial_parameters=initial_parameters,
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e4),
         cov_proposal_density=torch.pow(
@@ -205,15 +206,16 @@ def calibration_step() -> None:
         ),
     )
     mcmc_config_h = HamiltonianConfig(
-        parameter_names=("Youngs modulus",),
-        true_parameters=(exact_youngs_modulus,),
-        initial_parameters=torch.tensor([prior_mean_youngs_modulus], device=device),
+        parameter_names=parameter_names,
+        true_parameters=true_parameters,
+        initial_parameters=initial_parameters,
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e4),
         num_leabfrog_steps=32,
-        leapfrog_step_sizes=torch.tensor(0.1, device=device),
+        leapfrog_step_sizes=torch.tensor(1.0, device=device),
     )
-    posterior_moments, samples = calibrate(
+
+    posterior_moments_mh, samples_mh = calibrate(
         model=ansatz,
         name_model_parameters_file="model_parameters",
         calibration_data=data,
@@ -223,9 +225,19 @@ def calibration_step() -> None:
         project_directory=project_directory,
         device=device,
     )
-    print(posterior_moments)
-
+    posterior_moments_h, samples_h = calibrate(
+        model=ansatz,
+        name_model_parameters_file="model_parameters",
+        calibration_data=data,
+        prior=prior,
+        mcmc_config=mcmc_config_h,
+        output_subdir=output_subdirectory,
+        project_directory=project_directory,
+        device=device,
+    )
+    print("Calibration finished.")
 
 if retrain_parametric_pinn:
+    training_dataset, validation_dataset = create_datasets()
     training_step()
 calibration_step()

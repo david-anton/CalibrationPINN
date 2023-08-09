@@ -34,8 +34,8 @@ def compile_univariate_uniform_distributed_prior(
     lower_limit: float, upper_limit: float, device: Device
 ) -> PriorFunc:
     distribution = torch.distributions.Uniform(
-        low=torch.tensor(lower_limit, device=device),
-        high=torch.tensor(upper_limit, device=device),
+        low=torch.tensor(lower_limit, dtype=torch.float64, device=device),
+        high=torch.tensor(upper_limit, dtype=torch.float64, device=device),
         validate_args=False,
     )
     return compile_prior(distribution)
@@ -45,8 +45,8 @@ def compile_univariate_normal_distributed_prior(
     mean: float, standard_deviation: float, device: Device
 ) -> PriorFunc:
     distribution = torch.distributions.Normal(
-        loc=torch.tensor(mean, device=device),
-        scale=torch.tensor(standard_deviation, device=device),
+        loc=torch.tensor(mean, dtype=torch.float64, device=device),
+        scale=torch.tensor(standard_deviation, dtype=torch.float64, device=device),
     )
     return compile_prior(distribution)
 
@@ -55,8 +55,8 @@ def compile_multivariate_normal_distributed_prior(
     means: Tensor, covariance_matrix: Tensor, device: Device
 ) -> PriorFunc:
     distribution = torch.distributions.MultivariateNormal(
-        loc=means.to(device),
-        covariance_matrix=covariance_matrix.to(device),
+        loc=means.type(torch.float64).to(device),
+        covariance_matrix=covariance_matrix.type(torch.float64).to(device),
     )
     return compile_prior(distribution)
 
