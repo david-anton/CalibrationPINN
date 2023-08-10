@@ -115,7 +115,7 @@ def mcmc_metropolishastings(
     for i in range(num_total_iterations):
         parameters, is_accepted = one_iteration(parameters)
         samples_list.append(parameters)
-        if i < num_burn_in_iterations and is_accepted:
+        if i > num_burn_in_iterations and is_accepted:
             num_accepted_proposals += 1
 
     samples_list = remove_burn_in_phase(

@@ -225,7 +225,7 @@ def mcmc_hamiltonian(
         parameters, is_accepted = one_iteration(parameters)
         parameters.detach()
         samples_list.append(parameters)
-        if i < num_burn_in_iterations and is_accepted:
+        if i > num_burn_in_iterations and is_accepted:
             num_accepted_proposals += 1
 
     samples_list = remove_burn_in_phase(
