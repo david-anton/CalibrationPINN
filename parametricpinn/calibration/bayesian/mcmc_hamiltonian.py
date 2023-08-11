@@ -221,7 +221,7 @@ def mcmc_hamiltonian(
     num_accepted_proposals = 0
     parameters = initial_parameters
     for i in range(num_total_iterations):
-        parameters = parameters.type(torch.float64).clone().requires_grad_(True)
+        parameters = parameters.clone().type(torch.float64).requires_grad_(True)
         parameters, is_accepted = one_iteration(parameters)
         parameters.detach()
         samples_list.append(parameters)
