@@ -7,6 +7,7 @@ from parametricpinn.calibration import (
     CalibrationData,
     HamiltonianConfig,
     MetropolisHastingsConfig,
+    NaiveNUTSConfig,
     calibrate,
 )
 from parametricpinn.calibration.bayesian.prior import (
@@ -182,10 +183,6 @@ def calibration_step() -> None:
             std=torch.tensor(std_noise, device=device),
         )
         noisy_displacements = clean_displacements + noise
-        print(coordinates)
-        print(clean_displacements)
-        print(noise)
-        print(noisy_displacements)
         return coordinates, noisy_displacements
 
     coordinates, noisy_displacements = generate_calibration_data()
@@ -227,6 +224,14 @@ def calibration_step() -> None:
         num_leabfrog_steps=32,
         leapfrog_step_sizes=torch.tensor(1.0, device=device),
     )
+    mcmc_config_nnuts = NaiveNUTSConfig(
+        parameter_names=parameter_names,
+        true_parameters=true_parameters,
+        initial_parameters=initial_parameters,
+        num_iterations=int(1e4),
+        num_burn_in_iterations=int(1e4),
+        leapfrog_step_sizes=torch.tensor(1.0, device=device),
+    )
 
     posterior_moments_mh, samples_mh = calibrate(
         model=ansatz,
@@ -244,6 +249,16 @@ def calibration_step() -> None:
         calibration_data=data,
         prior=prior,
         mcmc_config=mcmc_config_h,
+        output_subdir=output_subdirectory,
+        project_directory=project_directory,
+        device=device,
+    )
+    posterior_moments_nnuts, samples_nnuts = calibrate(
+        model=ansatz,
+        name_model_parameters_file="model_parameters",
+        calibration_data=data,
+        prior=prior,
+        mcmc_config=mcmc_config_nnuts,
         output_subdir=output_subdirectory,
         project_directory=project_directory,
         device=device,

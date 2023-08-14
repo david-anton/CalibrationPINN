@@ -10,7 +10,7 @@ from parametricpinn.calibration.bayesian.statistics import (
     determine_moments_of_multivariate_normal_distribution,
 )
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.types import NPArray, Tensor, TorchMultiNormalDist
+from parametricpinn.types import NPArray, Tensor
 
 UnnormalizedPosterior: TypeAlias = Callable[[Tensor], Tensor]
 Samples: TypeAlias = list[Tensor]

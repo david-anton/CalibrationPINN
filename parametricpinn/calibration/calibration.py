@@ -1,6 +1,4 @@
-from typing import Callable, TypeAlias, Union, cast
-
-import torch
+from typing import Callable, TypeAlias, cast
 
 from parametricpinn.calibration.bayesian.likelihood import (
     LikelihoodFunc,
@@ -9,13 +7,15 @@ from parametricpinn.calibration.bayesian.likelihood import (
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
 from parametricpinn.calibration.bayesian.mcmc_hamiltonian import (
     HamiltonianConfig,
-    MCMCHamiltonianFunc,
     mcmc_hamiltonian,
 )
 from parametricpinn.calibration.bayesian.mcmc_metropolishastings import (
-    MCMCMetropolisHastingsFunc,
     MetropolisHastingsConfig,
     mcmc_metropolishastings,
+)
+from parametricpinn.calibration.bayesian.mcmc_naivenuts import (
+    NaiveNUTSConfig,
+    mcmc_naivenuts,
 )
 from parametricpinn.calibration.bayesian.prior import PriorFunc
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
@@ -24,11 +24,11 @@ from parametricpinn.calibration.utility import freeze_model
 from parametricpinn.errors import MCMCConfigError, UnvalidCalibrationDataError
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.loaderssavers import PytorchModelLoader
-from parametricpinn.types import Device, Module, NPArray, Tensor, TorchMultiNormalDist
+from parametricpinn.types import Device, Module, NPArray
 
-MCMC_Algorithm: TypeAlias = Union[MCMCMetropolisHastingsFunc, MCMCHamiltonianFunc]
+MCMC_Algorithm_Output: TypeAlias = tuple[MomentsMultivariateNormal, NPArray]
 MCMC_Algorithm_Closure: TypeAlias = Callable[
-    [], tuple[MomentsMultivariateNormal, NPArray]
+    [], MCMC_Algorithm_Output
 ]
 
 
@@ -41,7 +41,7 @@ def calibrate(
     output_subdir: str,
     project_directory: ProjectDirectory,
     device: Device,
-) -> tuple[MomentsMultivariateNormal, NPArray]:
+) -> MCMC_Algorithm_Output:
     preprocessed_data = _preprocess_calibration_data(calibration_data)
     model = _load_model(
         model=model,
@@ -123,7 +123,7 @@ def _compile_mcmc_algorithm(
         config_mh = cast(MetropolisHastingsConfig, mcmc_config)
         print("MCMC algorithm used: Metropolis Hastings")
 
-        def mcmc_mh_algorithm() -> tuple[MomentsMultivariateNormal, NPArray]:
+        def mcmc_mh_algorithm() -> MCMC_Algorithm_Output:
             return mcmc_metropolishastings(
                 parameter_names=config_mh.parameter_names,
                 true_parameters=config_mh.true_parameters,
@@ -144,7 +144,7 @@ def _compile_mcmc_algorithm(
         config_h = cast(HamiltonianConfig, mcmc_config)
         print("MCMC algorithm used: Hamiltonian")
 
-        def mcmc_hamiltonian_algorithm() -> tuple[MomentsMultivariateNormal, NPArray]:
+        def mcmc_hamiltonian_algorithm() -> MCMC_Algorithm_Output:
             return mcmc_hamiltonian(
                 parameter_names=config_h.parameter_names,
                 true_parameters=config_h.true_parameters,
@@ -161,6 +161,25 @@ def _compile_mcmc_algorithm(
             )
 
         return mcmc_hamiltonian_algorithm
+    elif isinstance(mcmc_config, NaiveNUTSConfig):
+        config_nnuts = cast(NaiveNUTSConfig, mcmc_config)
+        print("MCMC algorithm used: Naive NUTS")
+
+        def mcmc_naive_nuts_algorithm() -> MCMC_Algorithm_Output:
+            return mcmc_naivenuts(
+                parameter_names=config_nnuts.parameter_names,
+                true_parameters=config_nnuts.true_parameters,
+                likelihood=likelihood,
+                prior=prior,
+                initial_parameters=config_nnuts.initial_parameters,
+                leapfrog_step_sizes=config_nnuts.leapfrog_step_sizes,
+                num_iterations=config_nnuts.num_iterations,
+                num_burn_in_iterations=config_nnuts.num_burn_in_iterations,
+                output_subdir=output_subdir,
+                project_directory=project_directory,
+                device=device,
+            )
+        return mcmc_naive_nuts_algorithm
     else:
         raise MCMCConfigError(
             f"There is no implementation for the requested MCMC algorithm {mcmc_config}."
