@@ -356,9 +356,11 @@ def mcmc_efficientnuts(
                         direction=direction,
                         tree_depth=tree_depth,
                         step_sizes=step_sizes,
-                    ), old_tree=tree)
+                    ),
+                    old_tree=tree,
+                )
             else:
-                tree_s1 =  keep_minus_from_old_tree(
+                tree_s1 = keep_minus_from_old_tree(
                     new_tree=build_tree(
                         parameters=tree.parameters_p,
                         momentums=tree.momentums_p,
@@ -366,7 +368,9 @@ def mcmc_efficientnuts(
                         direction=direction,
                         tree_depth=tree_depth,
                         step_sizes=step_sizes,
-                    ), old_tree=tree)
+                    ),
+                    old_tree=tree,
+                )
             if not tree_s1.is_terminated:
                 candidate_states.extend(tree_s1.candidate_states)
             is_terminated = tree_s1.is_terminated or is_distance_decreasing(
@@ -380,7 +384,6 @@ def mcmc_efficientnuts(
         parameters, momentums = random.choice(candidate_states)
         return parameters
 
-    ################################################################
     def one_iteration(parameters: Tensor) -> Tensor:
         return naive_nuts_sampler(parameters)
 
