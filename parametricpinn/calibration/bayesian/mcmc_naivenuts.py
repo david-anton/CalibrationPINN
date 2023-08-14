@@ -56,7 +56,7 @@ MCMCNaiveNUTSFunc: TypeAlias = Callable[
 
 
 @dataclass
-class EfficientNUTSConfig(MCMCConfig):
+class NaiveNUTSConfig(MCMCConfig):
     leapfrog_step_sizes: Tensor
 
 
@@ -70,7 +70,7 @@ class Tree:
     is_terminated: TerminationFlag
 
 
-def mcmc_efficientnuts(
+def mcmc_naivenuts(
     parameter_names: tuple[str, ...],
     true_parameters: tuple[float, ...],
     likelihood: LikelihoodFunc,
@@ -97,9 +97,9 @@ def mcmc_efficientnuts(
     ) -> DrawMomentumsFunc:
         def compile_momentum_distribution() -> MomentumsDistribution:
             if parameters.size() == (1,):
-                mean = torch.tensor(0.0, dtype=torch.float64, device=device)
+                mean = torch.tensor([0.0], dtype=torch.float64, device=device)
                 standard_deviation = torch.tensor(
-                    1.0, dtype=torch.float64, device=device
+                    [1.0], dtype=torch.float64, device=device
                 )
                 return torch.distributions.Normal(loc=mean, scale=standard_deviation)
             else:
@@ -402,7 +402,7 @@ def mcmc_efficientnuts(
         samples_list=samples_list,
         parameter_names=parameter_names,
         true_parameters=true_parameters,
-        mcmc_algorithm="efficientnuts_mcmc",
+        mcmc_algorithm="naivenuts_mcmc",
         output_subdir=output_subdir,
         project_directory=project_directory,
     )
