@@ -7,6 +7,7 @@ import torch
 from parametricpinn.ansatz import create_normalized_hbc_ansatz_2D
 from parametricpinn.calibration import (
     CalibrationData,
+    EfficientNUTSConfig,
     HamiltonianConfig,
     MetropolisHastingsConfig,
     NaiveNUTSConfig,
@@ -71,6 +72,11 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
+# Calibration
+use_random_walk_metropolis_hasting = True
+use_hamiltonian = True
+use_naive_nuts = True
+use_efficient_nuts = True
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = 20230731
@@ -342,8 +348,8 @@ def calibration_step() -> None:
         parameter_names=parameter_names,
         true_parameters=true_parameters,
         initial_parameters=initial_parameters,
-        num_iterations=int(1e5),
-        num_burn_in_iterations=int(1e4),
+        num_iterations=int(1e4),
+        num_burn_in_iterations=int(1e3),
         cov_proposal_density=torch.diag(
             torch.tensor(
                 [
@@ -361,7 +367,7 @@ def calibration_step() -> None:
         true_parameters=true_parameters,
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
-        num_burn_in_iterations=int(1e4),
+        num_burn_in_iterations=int(1e3),
         num_leabfrog_steps=64,
         leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
     )
@@ -370,40 +376,61 @@ def calibration_step() -> None:
         true_parameters=true_parameters,
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
-        num_burn_in_iterations=int(1e4),
-        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
+        num_burn_in_iterations=int(1e3),
+        leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
     )
-
-    posterior_moments_mh, samples_mh = calibrate(
-        model=ansatz,
-        name_model_parameters_file="model_parameters",
-        calibration_data=data,
-        prior=prior,
-        mcmc_config=mcmc_config_mh,
-        output_subdir=output_subdirectory,
-        project_directory=project_directory,
-        device=device,
+    mcmc_config_enuts = EfficientNUTSConfig(
+        parameter_names=parameter_names,
+        true_parameters=true_parameters,
+        initial_parameters=initial_parameters,
+        num_iterations=int(1e4),
+        num_burn_in_iterations=int(1e3),
+        leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
     )
-    posterior_moments_h, samples_h = calibrate(
-        model=ansatz,
-        name_model_parameters_file="model_parameters",
-        calibration_data=data,
-        prior=prior,
-        mcmc_config=mcmc_config_h,
-        output_subdir=output_subdirectory,
-        project_directory=project_directory,
-        device=device,
-    )
-    posterior_moments_nnuts, samples_nnuts = calibrate(
-        model=ansatz,
-        name_model_parameters_file="model_parameters",
-        calibration_data=data,
-        prior=prior,
-        mcmc_config=mcmc_config_nnuts,
-        output_subdir=output_subdirectory,
-        project_directory=project_directory,
-        device=device,
-    )
+    if use_hamiltonian:
+        posterior_moments_mh, samples_mh = calibrate(
+            model=ansatz,
+            name_model_parameters_file="model_parameters",
+            calibration_data=data,
+            prior=prior,
+            mcmc_config=mcmc_config_mh,
+            output_subdir=output_subdirectory,
+            project_directory=project_directory,
+            device=device,
+        )
+    if use_random_walk_metropolis_hasting:
+        posterior_moments_h, samples_h = calibrate(
+            model=ansatz,
+            name_model_parameters_file="model_parameters",
+            calibration_data=data,
+            prior=prior,
+            mcmc_config=mcmc_config_h,
+            output_subdir=output_subdirectory,
+            project_directory=project_directory,
+            device=device,
+        )
+    if use_naive_nuts:
+        posterior_moments_nnuts, samples_nnuts = calibrate(
+            model=ansatz,
+            name_model_parameters_file="model_parameters",
+            calibration_data=data,
+            prior=prior,
+            mcmc_config=mcmc_config_nnuts,
+            output_subdir=output_subdirectory,
+            project_directory=project_directory,
+            device=device,
+        )
+    if use_efficient_nuts:
+        posterior_moments_enuts, samples_enuts = calibrate(
+            model=ansatz,
+            name_model_parameters_file="model_parameters",
+            calibration_data=data,
+            prior=prior,
+            mcmc_config=mcmc_config_enuts,
+            output_subdir=output_subdirectory,
+            project_directory=project_directory,
+            device=device,
+        )
     print("Calibration finished.")
 
 

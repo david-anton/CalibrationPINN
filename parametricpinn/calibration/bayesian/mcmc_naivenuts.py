@@ -371,6 +371,7 @@ def mcmc_naivenuts(
             tree_depth += 1
 
         parameters, momentums = random.choice(tree.candidate_states)
+        # print(f"Step length: {2**tree_depth}")
         return parameters
 
     def one_iteration(parameters: Tensor) -> Tensor:
@@ -383,6 +384,7 @@ def mcmc_naivenuts(
         parameters = one_iteration(parameters)
         parameters.detach()
         samples_list.append(parameters)
+        # print(f"Iteration: {i}")
 
     samples_list = remove_burn_in_phase(
         sample_list=samples_list, num_burn_in_iterations=num_burn_in_iterations

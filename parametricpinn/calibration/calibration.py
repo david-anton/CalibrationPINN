@@ -5,6 +5,10 @@ from parametricpinn.calibration.bayesian.likelihood import (
     compile_likelihood,
 )
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
+from parametricpinn.calibration.bayesian.mcmc_efficientnuts import (
+    EfficientNUTSConfig,
+    mcmc_efficientnuts,
+)
 from parametricpinn.calibration.bayesian.mcmc_hamiltonian import (
     HamiltonianConfig,
     mcmc_hamiltonian,
@@ -179,6 +183,26 @@ def _compile_mcmc_algorithm(
             )
 
         return mcmc_naive_nuts_algorithm
+    elif isinstance(mcmc_config, EfficientNUTSConfig):
+        config_enuts = cast(EfficientNUTSConfig, mcmc_config)
+        print("MCMC algorithm used: Efficient NUTS")
+
+        def mcmc_efficient_nuts_algorithm() -> MCMC_Algorithm_Output:
+            return mcmc_efficientnuts(
+                parameter_names=config_enuts.parameter_names,
+                true_parameters=config_enuts.true_parameters,
+                likelihood=likelihood,
+                prior=prior,
+                initial_parameters=config_enuts.initial_parameters,
+                leapfrog_step_sizes=config_enuts.leapfrog_step_sizes,
+                num_iterations=config_enuts.num_iterations,
+                num_burn_in_iterations=config_enuts.num_burn_in_iterations,
+                output_subdir=output_subdir,
+                project_directory=project_directory,
+                device=device,
+            )
+
+        return mcmc_efficient_nuts_algorithm
     else:
         raise MCMCConfigError(
             f"There is no implementation for the requested MCMC algorithm {mcmc_config}."

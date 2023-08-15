@@ -294,15 +294,16 @@ def mcmc_efficientnuts(
                     tree_s1.candidate_set_size + tree_s2.candidate_set_size
                 )
                 is_terminated = tree_s2.is_terminated or is_distance_decreasing(tree_s2)
-            return Tree(
-                parameters_m=tree_s2.parameters_m,
-                momentums_m=tree_s2.momentums_m,
-                parameters_p=tree_s2.parameters_p,
-                momentums_p=tree_s2.momentums_p,
-                parameters_candidate=parameters_candidate,
-                candidate_set_size=candidate_set_size,
-                is_terminated=is_terminated,
-            )
+                return Tree(
+                    parameters_m=tree_s2.parameters_m,
+                    momentums_m=tree_s2.momentums_m,
+                    parameters_p=tree_s2.parameters_p,
+                    momentums_p=tree_s2.momentums_p,
+                    parameters_candidate=parameters_candidate,
+                    candidate_set_size=candidate_set_size,
+                    is_terminated=is_terminated,
+                )
+            return tree_s1
 
         def build_tree(
             parameters: Parameters,
@@ -414,6 +415,7 @@ def mcmc_efficientnuts(
             )
             tree_depth += 1
 
+        # print(f"Step length: {2**tree_depth}")
         return parameters_candidate
 
     def one_iteration(parameters: Tensor) -> Tensor:
@@ -426,6 +428,7 @@ def mcmc_efficientnuts(
         parameters = one_iteration(parameters)
         parameters.detach()
         samples_list.append(parameters)
+        # print(f"Iteration: {i}")
 
     samples_list = remove_burn_in_phase(
         sample_list=samples_list, num_burn_in_iterations=num_burn_in_iterations
@@ -434,7 +437,7 @@ def mcmc_efficientnuts(
         samples_list=samples_list,
         parameter_names=parameter_names,
         true_parameters=true_parameters,
-        mcmc_algorithm="naivenuts_mcmc",
+        mcmc_algorithm="efficientnuts_mcmc",
         output_subdir=output_subdir,
         project_directory=project_directory,
     )
