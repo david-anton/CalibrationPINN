@@ -27,9 +27,7 @@ from parametricpinn.io.loaderssavers import PytorchModelLoader
 from parametricpinn.types import Device, Module, NPArray
 
 MCMC_Algorithm_Output: TypeAlias = tuple[MomentsMultivariateNormal, NPArray]
-MCMC_Algorithm_Closure: TypeAlias = Callable[
-    [], MCMC_Algorithm_Output
-]
+MCMC_Algorithm_Closure: TypeAlias = Callable[[], MCMC_Algorithm_Output]
 
 
 def calibrate(
@@ -179,6 +177,7 @@ def _compile_mcmc_algorithm(
                 project_directory=project_directory,
                 device=device,
             )
+
         return mcmc_naive_nuts_algorithm
     else:
         raise MCMCConfigError(

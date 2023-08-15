@@ -164,10 +164,15 @@ def mcmc_naivenuts(
                 high=negative_hamiltonian,
             ).sample()
 
-        def is_distance_decreasing(tree: Tree) -> TerminationFlag:
-            parameters_delta = tree.parameters_p - tree.parameters_m
-            distance_progress_m = torch.matmul(parameters_delta, tree.momentums_m)
-            distance_progress_p = torch.matmul(parameters_delta, tree.momentums_p)
+        def is_distance_decreasing(
+            parameters_m: Parameters,
+            momentums_m: Momentums,
+            parameters_p: Parameters,
+            momentums_p: Momentums,
+        ) -> TerminationFlag:
+            parameters_delta = parameters_p - parameters_m
+            distance_progress_m = torch.matmul(parameters_delta, momentums_m)
+            distance_progress_p = torch.matmul(parameters_delta, momentums_p)
             zero = torch.tensor(0.0, device=device)
             if distance_progress_m < zero or distance_progress_p < zero:
                 return True
@@ -186,16 +191,16 @@ def mcmc_naivenuts(
             return bool(slice_variable <= negative_hamiltonian)
 
         def keep_plus_from_old_tree(new_tree: Tree, old_tree: Tree) -> Tree:
-            new_tree_copy = dataclasses.replace(new_tree)
-            new_tree_copy.parameters_p = old_tree.parameters_p
-            new_tree_copy.momentums_p = old_tree.momentums_p
-            return new_tree_copy
+            tree_copy = dataclasses.replace(new_tree)
+            tree_copy.parameters_p = old_tree.parameters_p
+            tree_copy.momentums_p = old_tree.momentums_p
+            return tree_copy
 
         def keep_minus_from_old_tree(new_tree: Tree, old_tree: Tree) -> Tree:
-            new_tree_copy = dataclasses.replace(new_tree)
-            new_tree_copy.parameters_m = old_tree.parameters_m
-            new_tree_copy.momentums_m = old_tree.momentums_m
-            return new_tree_copy
+            tree_copy = dataclasses.replace(new_tree)
+            tree_copy.parameters_m = old_tree.parameters_m
+            tree_copy.momentums_m = old_tree.momentums_m
+            return tree_copy
 
         def build_tree_base_case(
             parameters: Parameters,
@@ -205,8 +210,9 @@ def mcmc_naivenuts(
             step_sizes: StepSizes,
         ) -> Tree:
             """Take one leapfrog step in direction 'direction'."""
+            step_sizes = direction * step_sizes
             parameters_s1, momentums_s1 = leapfrog_step(
-                parameters, momentums, direction * step_sizes
+                parameters, momentums, step_sizes
             )
             candidate_states_s1 = []
             if is_state_in_slice(parameters_s1, momentums_s1, slice_variable):
@@ -266,20 +272,29 @@ def mcmc_naivenuts(
                     old_tree=tree_s1,
                 )
 
-            candidate_states = tree_s1.candidate_states
-            candidate_states.extend(tree_s2.candidate_states)
-            is_terminated = (
+            parameters_m = tree_s2.parameters_m
+            momentums_m = tree_s2.momentums_m
+            parameters_p = tree_s2.parameters_p
+            momentums_p = tree_s2.momentums_p
+            candidate_states_s1 = tree_s1.candidate_states
+            candidate_states_s1.extend(tree_s2.candidate_states)
+            is_terminated_s1 = (
                 tree_s1.is_terminated
                 or tree_s2.is_terminated
-                or is_distance_decreasing(tree_s2)
+                or is_distance_decreasing(
+                    parameters_m=parameters_m,
+                    momentums_m=momentums_m,
+                    parameters_p=parameters_p,
+                    momentums_p=momentums_p,
+                )
             )
             return Tree(
-                parameters_m=tree_s2.parameters_m,
-                momentums_m=tree_s2.momentums_m,
-                parameters_p=tree_s2.parameters_p,
-                momentums_p=tree_s2.momentums_p,
-                candidate_states=candidate_states,
-                is_terminated=is_terminated,
+                parameters_m=parameters_m,
+                momentums_m=momentums_m,
+                parameters_p=parameters_p,
+                momentums_p=momentums_p,
+                candidate_states=candidate_states_s1,
+                is_terminated=is_terminated_s1,
             )
 
         def build_tree(
@@ -308,7 +323,6 @@ def mcmc_naivenuts(
                     step_sizes=step_sizes,
                 )
 
-
         sample_normalized_momentums = compile_draw_normalized_momentums_func(
             initial_parameters
         )
@@ -318,17 +332,19 @@ def mcmc_naivenuts(
 
         momentums = sample_normalized_momentums()
         slice_variable = sample_slice_variable(parameters, momentums)
+        is_terminated = False
+        candidate_states = [(parameters, momentums)]
         tree = Tree(
             parameters_m=parameters,
             momentums_m=momentums,
             parameters_p=parameters,
             momentums_p=momentums,
-            candidate_states=[(parameters, momentums)],
-            is_terminated=False
+            candidate_states=candidate_states,
+            is_terminated=is_terminated,
         )
         tree_depth = 0
 
-        while not tree.is_terminated:
+        while not is_terminated:
             direction = random.choice(directions)
 
             if direction == -1:
@@ -355,22 +371,17 @@ def mcmc_naivenuts(
                     ),
                     old_tree=tree,
                 )
-
-            candidate_states = tree.candidate_states
             if not tree_s1.is_terminated:
                 candidate_states.extend(tree_s1.candidate_states)
-            is_terminated = tree_s1.is_terminated or is_distance_decreasing(tree_s1)
-
-            tree = Tree(
+            is_terminated = tree_s1.is_terminated or is_distance_decreasing(
                 parameters_m=tree_s1.parameters_m,
                 momentums_m=tree_s1.momentums_m,
                 parameters_p=tree_s1.parameters_p,
                 momentums_p=tree_s1.momentums_p,
-                candidate_states=candidate_states,
-                is_terminated=is_terminated
             )
+            tree_depth += 1
 
-        parameters, momentums = random.choice(tree.candidate_states)
+        parameters, momentums = random.choice(candidate_states)
         return parameters
 
     def one_iteration(parameters: Tensor) -> Tensor:
