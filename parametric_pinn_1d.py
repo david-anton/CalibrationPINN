@@ -216,9 +216,7 @@ def calibration_step() -> None:
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e3),
-        cov_proposal_density=torch.pow(
-            torch.tensor([1000], device=device), 2
-        ),
+        cov_proposal_density=torch.pow(torch.tensor([1000], device=device), 2),
     )
     mcmc_config_h = HamiltonianConfig(
         parameter_names=parameter_names,

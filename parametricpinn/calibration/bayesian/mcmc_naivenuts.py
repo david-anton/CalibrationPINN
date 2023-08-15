@@ -1,7 +1,6 @@
-import dataclasses
 import random
 from dataclasses import dataclass
-from typing import Callable, TypeAlias, Union
+from typing import Callable, TypeAlias
 
 import torch
 
@@ -14,29 +13,31 @@ from parametricpinn.calibration.bayesian.mcmc_base import (
     remove_burn_in_phase,
 )
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
+from parametricpinn.calibration.bayesian.mcmc_nuts_base import (
+    Direction,
+    Momentums,
+    Parameters,
+    SliceVariable,
+    StepSizes,
+    TerminationFlag,
+    Tree,
+    TreeDepth,
+    _is_distance_decreasing,
+    _is_error_too_large,
+    _is_state_in_slice,
+    _leapfrog_step,
+    _potential_energy_func,
+    _sample_normalized_momentums,
+    _sample_slice_variable,
+    keep_minus_from_old_tree,
+    keep_plus_from_old_tree,
+)
 from parametricpinn.calibration.bayesian.prior import PriorFunc
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.types import (
-    Device,
-    NPArray,
-    Tensor,
-    TorchMultiNormalDist,
-    TorchUniNormalDist,
-)
+from parametricpinn.types import Device, NPArray, Tensor
 
-Parameters: TypeAlias = Tensor
-Momentums: TypeAlias = Tensor
-MomentumsDistribution = Union[TorchUniNormalDist, TorchMultiNormalDist]
-DrawMomentumsFunc: TypeAlias = Callable[[], Momentums]
-SliceVariable: TypeAlias = Tensor
-Energy: TypeAlias = Tensor
-Hamiltonian: TypeAlias = Energy
-StepSizes: TypeAlias = Tensor
-Direction: TypeAlias = int
 CandidateStates: TypeAlias = list[tuple[Parameters, Momentums]]
-TerminationFlag: TypeAlias = bool
-TreeDepth: TypeAlias = int
 MCMCNaiveNUTSFunc: TypeAlias = Callable[
     [
         tuple[str, ...],
@@ -61,11 +62,7 @@ class NaiveNUTSConfig(MCMCConfig):
 
 
 @dataclass
-class Tree:
-    parameters_m: Parameters
-    momentums_m: Momentums
-    parameters_p: Parameters
-    momentums_p: Momentums
+class NaiveTree(Tree):
     candidate_states: CandidateStates
     is_terminated: TerminationFlag
 
@@ -86,116 +83,18 @@ def mcmc_naivenuts(
     num_total_iterations = expand_num_iterations(num_iterations, num_burn_in_iterations)
     unnormalized_posterior = compile_unnnormalized_posterior(likelihood, prior)
 
-    def potential_energy_func(parameters: Parameters) -> Energy:
-        return -torch.log(unnormalized_posterior(parameters))
-
-    def kinetic_energy_func(momentums: Momentums) -> Energy:
-        return 1 / 2 * torch.sum(torch.pow(momentums, 2))
-
-    def compile_draw_normalized_momentums_func(
-        parameters: Parameters,
-    ) -> DrawMomentumsFunc:
-        def compile_momentum_distribution() -> MomentumsDistribution:
-            if parameters.size() == (1,):
-                mean = torch.tensor([0.0], dtype=torch.float64, device=device)
-                standard_deviation = torch.tensor(
-                    [1.0], dtype=torch.float64, device=device
-                )
-                return torch.distributions.Normal(loc=mean, scale=standard_deviation)
-            else:
-                means = torch.zeros_like(parameters, dtype=torch.float64, device=device)
-                covariance_matrix = torch.diag(
-                    torch.ones_like(parameters, dtype=torch.float64, device=device)
-                )
-                return torch.distributions.MultivariateNormal(
-                    loc=means, covariance_matrix=covariance_matrix
-                )
-
-        momentums_dist = compile_momentum_distribution()
-
-        def draw_momentums_func() -> Momentums:
-            momentums = momentums_dist.sample()
-            return momentums.requires_grad_(True)
-
-        return draw_momentums_func
-
-    def leapfrog_step(
-        parameters: Parameters, momentums: Momentums, step_sizes: StepSizes
-    ) -> tuple[Parameters, Momentums]:
-        def half_momentums_step(
-            parameters: Parameters, momentums: Momentums, step_sizes: StepSizes
-        ) -> Momentums:
-            return (
-                momentums
-                - step_sizes
-                / 2
-                * torch.autograd.grad(
-                    potential_energy_func(parameters),
-                    parameters,
-                    retain_graph=False,
-                    create_graph=False,
-                )[0]
-            )
-
-        def full_parameter_step(
-            parameters: Parameters, momentums: Momentums, step_sizes: StepSizes
-        ) -> Parameters:
-            return parameters + step_sizes * momentums
-
-        momentums = half_momentums_step(parameters, momentums, step_sizes)
-        parameters = full_parameter_step(parameters, momentums, step_sizes)
-        momentums = half_momentums_step(parameters, momentums, step_sizes)
-        return parameters, momentums
-
     def naive_nuts_sampler(parameters: Parameters) -> Parameters:
-        def calculate_negative_hamiltonian(
-            parameters: Parameters, momentums: Momentums
-        ) -> Hamiltonian:
-            potential_energy = potential_energy_func(parameters)
-            kinetic_energy = kinetic_energy_func(momentums)
-            return -1 * (potential_energy + kinetic_energy)
+        step_sizes = leapfrog_step_sizes
+        directions = [-1, 1]
+        delta_error = torch.tensor(1000.0, device=device)
 
-        def sample_slice_variable(
-            parameters: Parameters, momentums: Momentums
-        ) -> SliceVariable:
-            negative_hamiltonian = calculate_negative_hamiltonian(parameters, momentums)
-            return torch.distributions.Uniform(
-                low=torch.tensor(0.0, dtype=torch.float64, device=device),
-                high=negative_hamiltonian,
-            ).sample()
-
-        def is_distance_decreasing(tree: Tree) -> TerminationFlag:
-            parameters_delta = tree.parameters_p - tree.parameters_m
-            distance_progress_m = torch.matmul(parameters_delta, tree.momentums_m)
-            distance_progress_p = torch.matmul(parameters_delta, tree.momentums_p)
-            zero = torch.tensor(0.0, device=device)
-            if distance_progress_m < zero or distance_progress_p < zero:
-                return True
-            return False
-
-        def is_error_too_large(
-            parameters: Parameters, momentums: Momentums, slice_variable: SliceVariable
-        ) -> bool:
-            negative_hamiltonian = calculate_negative_hamiltonian(parameters, momentums)
-            return bool(negative_hamiltonian - torch.log(slice_variable) < -delta_error)
-
-        def is_state_in_slice(
-            parameters: Parameters, momentums: Momentums, slice_variable: SliceVariable
-        ) -> bool:
-            negative_hamiltonian = calculate_negative_hamiltonian(parameters, momentums)
-            return bool(slice_variable <= negative_hamiltonian)
-
-        def keep_plus_from_old_tree(new_tree: Tree, old_tree: Tree) -> Tree:
-            new_tree_copy = dataclasses.replace(new_tree)
-            new_tree_copy.parameters_p = old_tree.parameters_p
-            new_tree_copy.momentums_p = old_tree.momentums_p
-            return new_tree_copy
-
-        def keep_minus_from_old_tree(new_tree: Tree, old_tree: Tree) -> Tree:
-            new_tree_copy = dataclasses.replace(new_tree)
-            new_tree_copy.parameters_m = old_tree.parameters_m
-            new_tree_copy.momentums_m = old_tree.momentums_m
-            return new_tree_copy
+        potential_energy = _potential_energy_func(unnormalized_posterior)
+        sample_momentums = _sample_normalized_momentums(initial_parameters, device)
+        sample_slice_variable = _sample_slice_variable(potential_energy, device)
+        leapfrog_step = _leapfrog_step(potential_energy)
+        is_distance_decreasing = _is_distance_decreasing(device)
+        is_error_too_large = _is_error_too_large(potential_energy, delta_error, device)
+        is_state_in_slice = _is_state_in_slice(potential_energy, device)
 
         def build_tree_base_case(
             parameters: Parameters,
@@ -203,7 +102,7 @@ def mcmc_naivenuts(
             slice_variable: SliceVariable,
             direction: Direction,
             step_sizes: StepSizes,
-        ) -> Tree:
+        ) -> NaiveTree:
             """Take one leapfrog step in direction 'direction'."""
             parameters_s1, momentums_s1 = leapfrog_step(
                 parameters, momentums, direction * step_sizes
@@ -214,7 +113,7 @@ def mcmc_naivenuts(
             is_terminated = is_error_too_large(
                 parameters_s1, momentums_s1, slice_variable
             )
-            return Tree(
+            return NaiveTree(
                 parameters_m=parameters_s1,
                 momentums_m=momentums_s1,
                 parameters_p=parameters_s1,
@@ -230,7 +129,7 @@ def mcmc_naivenuts(
             direction: Direction,
             tree_depth: TreeDepth,
             step_sizes: StepSizes,
-        ) -> Tree:
+        ) -> NaiveTree:
             """Build left and right subtrees."""
             tree_depth = tree_depth - 1
             tree_s1 = build_tree(
@@ -273,7 +172,7 @@ def mcmc_naivenuts(
                 or tree_s2.is_terminated
                 or is_distance_decreasing(tree_s2)
             )
-            return Tree(
+            return NaiveTree(
                 parameters_m=tree_s2.parameters_m,
                 momentums_m=tree_s2.momentums_m,
                 parameters_p=tree_s2.parameters_p,
@@ -289,7 +188,7 @@ def mcmc_naivenuts(
             direction: Direction,
             tree_depth: TreeDepth,
             step_sizes: StepSizes,
-        ) -> Tree:
+        ) -> NaiveTree:
             if tree_depth == 0:
                 return build_tree_base_case(
                     parameters=parameters,
@@ -308,16 +207,9 @@ def mcmc_naivenuts(
                     step_sizes=step_sizes,
                 )
 
-        sample_normalized_momentums = compile_draw_normalized_momentums_func(
-            initial_parameters
-        )
-        step_sizes = leapfrog_step_sizes
-        directions = [-1, 1]
-        delta_error = torch.tensor(1000.0, device=device)
-
-        momentums = sample_normalized_momentums()
+        momentums = sample_momentums()
         slice_variable = sample_slice_variable(parameters, momentums)
-        tree = Tree(
+        tree = NaiveTree(
             parameters_m=parameters,
             momentums_m=momentums,
             parameters_p=parameters,
@@ -360,7 +252,7 @@ def mcmc_naivenuts(
                 candidate_states.extend(tree_s1.candidate_states)
             is_terminated = tree_s1.is_terminated or is_distance_decreasing(tree_s1)
 
-            tree = Tree(
+            tree = NaiveTree(
                 parameters_m=tree_s1.parameters_m,
                 momentums_m=tree_s1.momentums_m,
                 parameters_p=tree_s1.parameters_p,
