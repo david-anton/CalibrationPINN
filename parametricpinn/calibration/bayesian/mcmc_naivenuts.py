@@ -208,10 +208,10 @@ def mcmc_naivenuts(
             parameters_s1, momentums_s1 = leapfrog_step(
                 parameters, momentums, direction * step_sizes
             )
-            candidate_states_s1 = []
+            candidate_states = []
             if is_state_in_slice(parameters_s1, momentums_s1, slice_variable):
-                candidate_states_s1.append((parameters_s1, momentums_s1))
-            is_terminated_s1 = is_error_too_large(
+                candidate_states.append((parameters_s1, momentums_s1))
+            is_terminated = is_error_too_large(
                 parameters_s1, momentums_s1, slice_variable
             )
             return Tree(
@@ -219,8 +219,8 @@ def mcmc_naivenuts(
                 momentums_m=momentums_s1,
                 parameters_p=parameters_s1,
                 momentums_p=momentums_s1,
-                candidate_states=candidate_states_s1,
-                is_terminated=is_terminated_s1,
+                candidate_states=candidate_states,
+                is_terminated=is_terminated,
             )
 
         def build_tree_recursive_case(
@@ -308,7 +308,6 @@ def mcmc_naivenuts(
                     step_sizes=step_sizes,
                 )
 
-
         sample_normalized_momentums = compile_draw_normalized_momentums_func(
             initial_parameters
         )
@@ -324,7 +323,7 @@ def mcmc_naivenuts(
             parameters_p=parameters,
             momentums_p=momentums,
             candidate_states=[(parameters, momentums)],
-            is_terminated=False
+            is_terminated=False,
         )
         tree_depth = 0
 
@@ -367,8 +366,9 @@ def mcmc_naivenuts(
                 parameters_p=tree_s1.parameters_p,
                 momentums_p=tree_s1.momentums_p,
                 candidate_states=candidate_states,
-                is_terminated=is_terminated
+                is_terminated=is_terminated,
             )
+            tree_depth += 1
 
         parameters, momentums = random.choice(tree.candidate_states)
         return parameters

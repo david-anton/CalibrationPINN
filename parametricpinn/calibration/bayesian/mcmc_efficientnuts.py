@@ -34,10 +34,10 @@ Energy: TypeAlias = Tensor
 Hamiltonian: TypeAlias = Energy
 StepSizes: TypeAlias = Tensor
 Direction: TypeAlias = int
-CandidateStates: TypeAlias = list[tuple[Parameters, Momentums]]
+CandidateSetSize: TypeAlias = int
 TerminationFlag: TypeAlias = bool
 TreeDepth: TypeAlias = int
-MCMCNaiveNUTSFunc: TypeAlias = Callable[
+MCMCEfficientNUTSFunc: TypeAlias = Callable[
     [
         tuple[str, ...],
         tuple[float, ...],
@@ -56,7 +56,7 @@ MCMCNaiveNUTSFunc: TypeAlias = Callable[
 
 
 @dataclass
-class NaiveNUTSConfig(MCMCConfig):
+class EfficientNUTSConfig(MCMCConfig):
     leapfrog_step_sizes: Tensor
 
 
@@ -66,11 +66,12 @@ class Tree:
     momentums_m: Momentums
     parameters_p: Parameters
     momentums_p: Momentums
-    candidate_states: CandidateStates
+    parameters_candidate: Parameters
+    candidate_set_size: CandidateSetSize
     is_terminated: TerminationFlag
 
 
-def mcmc_naivenuts(
+def mcmc_efficientnuts(
     parameter_names: tuple[str, ...],
     true_parameters: tuple[float, ...],
     likelihood: LikelihoodFunc,
@@ -197,6 +198,23 @@ def mcmc_naivenuts(
             new_tree_copy.momentums_m = old_tree.momentums_m
             return new_tree_copy
 
+        def update_parameters_canditate_in_recursive_case(
+            tree_s1: Tree, tree_s2: Tree
+        ) -> Parameters:
+            acceptance_ratio = torch.minimum(
+                torch.tensor(1.0, device=device),
+                torch.tensor(
+                    tree_s2.candidate_set_size
+                    / (tree_s1.candidate_set_size + tree_s2.candidate_set_size),
+                    device=device,
+                ),
+            )
+            rand_uniform_number = torch.squeeze(torch.rand(1, device=device), 0)
+            parameters_candidate = tree_s1.parameters_candidate
+            if rand_uniform_number <= acceptance_ratio:
+                parameters_candidate = tree_s2.parameters_candidate
+            return parameters_candidate
+
         def build_tree_base_case(
             parameters: Parameters,
             momentums: Momentums,
@@ -208,9 +226,9 @@ def mcmc_naivenuts(
             parameters_s1, momentums_s1 = leapfrog_step(
                 parameters, momentums, direction * step_sizes
             )
-            candidate_states_s1 = []
+            candidate_set_size = 0
             if is_state_in_slice(parameters_s1, momentums_s1, slice_variable):
-                candidate_states_s1.append((parameters_s1, momentums_s1))
+                candidate_set_size = 1
             is_terminated_s1 = is_error_too_large(
                 parameters_s1, momentums_s1, slice_variable
             )
@@ -219,7 +237,8 @@ def mcmc_naivenuts(
                 momentums_m=momentums_s1,
                 parameters_p=parameters_s1,
                 momentums_p=momentums_s1,
-                candidate_states=candidate_states_s1,
+                parameters_candidate=parameters_s1,
+                candidate_set_size=candidate_set_size,
                 is_terminated=is_terminated_s1,
             )
 
@@ -241,44 +260,47 @@ def mcmc_naivenuts(
                 tree_depth=tree_depth,
                 step_sizes=step_sizes,
             )
-            if direction == -1:
-                tree_s2 = keep_plus_from_old_tree(
-                    new_tree=build_tree(
-                        parameters=tree_s1.parameters_m,
-                        momentums=tree_s1.momentums_m,
-                        slice_variable=slice_variable,
-                        direction=direction,
-                        tree_depth=tree_depth,
-                        step_sizes=step_sizes,
-                    ),
-                    old_tree=tree_s1,
-                )
-            else:
-                tree_s2 = keep_minus_from_old_tree(
-                    new_tree=build_tree(
-                        parameters=tree_s1.parameters_p,
-                        momentums=tree_s1.momentums_p,
-                        slice_variable=slice_variable,
-                        direction=direction,
-                        tree_depth=tree_depth,
-                        step_sizes=step_sizes,
-                    ),
-                    old_tree=tree_s1,
-                )
+            if not tree_s1.is_terminated:
+                if direction == -1:
+                    tree_s2 = keep_plus_from_old_tree(
+                        new_tree=build_tree(
+                            parameters=tree_s1.parameters_m,
+                            momentums=tree_s1.momentums_m,
+                            slice_variable=slice_variable,
+                            direction=direction,
+                            tree_depth=tree_depth,
+                            step_sizes=step_sizes,
+                        ),
+                        old_tree=tree_s1,
+                    )
+                else:
+                    tree_s2 = keep_minus_from_old_tree(
+                        new_tree=build_tree(
+                            parameters=tree_s1.parameters_p,
+                            momentums=tree_s1.momentums_p,
+                            slice_variable=slice_variable,
+                            direction=direction,
+                            tree_depth=tree_depth,
+                            step_sizes=step_sizes,
+                        ),
+                        old_tree=tree_s1,
+                    )
 
-            candidate_states = tree_s1.candidate_states
-            candidate_states.extend(tree_s2.candidate_states)
-            is_terminated = (
-                tree_s1.is_terminated
-                or tree_s2.is_terminated
-                or is_distance_decreasing(tree_s2)
-            )
+                parameters_candidate = tree_s1.parameters_candidate
+                parameters_candidate = update_parameters_canditate_in_recursive_case(
+                    tree_s1=tree_s1, tree_s2=tree_s2
+                )
+                candidate_set_size = (
+                    tree_s1.candidate_set_size + tree_s2.candidate_set_size
+                )
+                is_terminated = tree_s2.is_terminated or is_distance_decreasing(tree_s2)
             return Tree(
                 parameters_m=tree_s2.parameters_m,
                 momentums_m=tree_s2.momentums_m,
                 parameters_p=tree_s2.parameters_p,
                 momentums_p=tree_s2.momentums_p,
-                candidate_states=candidate_states,
+                parameters_candidate=parameters_candidate,
+                candidate_set_size=candidate_set_size,
                 is_terminated=is_terminated,
             )
 
@@ -308,6 +330,22 @@ def mcmc_naivenuts(
                     step_sizes=step_sizes,
                 )
 
+        def update_parameters_canditate_after_doubling(
+            tree: Tree,
+            tree_s1: Tree,
+        ) -> Parameters:
+            acceptance_ratio = torch.minimum(
+                torch.tensor(1.0, device=device),
+                torch.tensor(
+                    tree_s1.candidate_set_size / tree.candidate_set_size,
+                    device=device,
+                ),
+            )
+            rand_uniform_number = torch.squeeze(torch.rand(1, device=device), 0)
+            parameters_candidate = tree.parameters_candidate
+            if rand_uniform_number <= acceptance_ratio:
+                parameters_candidate = tree_s1.parameters_candidate
+            return parameters_candidate
 
         sample_normalized_momentums = compile_draw_normalized_momentums_func(
             initial_parameters
@@ -323,8 +361,9 @@ def mcmc_naivenuts(
             momentums_m=momentums,
             parameters_p=parameters,
             momentums_p=momentums,
-            candidate_states=[(parameters, momentums)],
-            is_terminated=False
+            parameters_candidate=parameters,
+            candidate_set_size=1,
+            is_terminated=False,
         )
         tree_depth = 0
 
@@ -356,9 +395,12 @@ def mcmc_naivenuts(
                     old_tree=tree,
                 )
 
-            candidate_states = tree.candidate_states
+            parameters_candidate = tree.parameters_candidate
             if not tree_s1.is_terminated:
-                candidate_states.extend(tree_s1.candidate_states)
+                parameters_candidate = update_parameters_canditate_after_doubling(
+                    tree=tree, tree_s1=tree_s1,
+                )
+            candidate_set_size = tree.candidate_set_size + tree_s1.candidate_set_size
             is_terminated = tree_s1.is_terminated or is_distance_decreasing(tree_s1)
 
             tree = Tree(
@@ -366,12 +408,13 @@ def mcmc_naivenuts(
                 momentums_m=tree_s1.momentums_m,
                 parameters_p=tree_s1.parameters_p,
                 momentums_p=tree_s1.momentums_p,
-                candidate_states=candidate_states,
-                is_terminated=is_terminated
+                parameters_candidate=parameters_candidate,
+                candidate_set_size=candidate_set_size,
+                is_terminated=is_terminated,
             )
+            tree_depth += 1
 
-        parameters, momentums = random.choice(tree.candidate_states)
-        return parameters
+        return parameters_candidate
 
     def one_iteration(parameters: Tensor) -> Tensor:
         return naive_nuts_sampler(parameters)
