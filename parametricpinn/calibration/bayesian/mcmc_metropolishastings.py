@@ -5,8 +5,10 @@ import torch
 
 from parametricpinn.calibration.bayesian.likelihood import LikelihoodFunc
 from parametricpinn.calibration.bayesian.mcmc_base import (
+    IsAccepted,
+    Parameters,
     Samples,
-    compile_unnnormalized_posterior,
+    _unnnormalized_posterior,
     evaluate_acceptance_ratio,
     expand_num_iterations,
     postprocess_samples,
@@ -18,14 +20,16 @@ from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNo
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, NPArray, Tensor, TorchMultiNormalDist
 
+CovarianceProposalDensity: TypeAlias = Tensor
+
 MCMCMetropolisHastingsFunc: TypeAlias = Callable[
     [
         tuple[str, ...],
         tuple[float, ...],
         LikelihoodFunc,
         PriorFunc,
-        Tensor,
-        Tensor,
+        Parameters,
+        CovarianceProposalDensity,
         int,
         int,
         str,
@@ -46,23 +50,20 @@ def mcmc_metropolishastings(
     true_parameters: tuple[float, ...],
     likelihood: LikelihoodFunc,
     prior: PriorFunc,
-    initial_parameters: Tensor,
-    cov_proposal_density: Tensor,
+    initial_parameters: Parameters,
+    cov_proposal_density: CovarianceProposalDensity,
     num_iterations: int,
     num_burn_in_iterations: int,
     output_subdir: str,
     project_directory: ProjectDirectory,
     device: Device,
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
-    num_total_iterations = expand_num_iterations(
-        num_iterations=num_iterations, num_burn_in_iterations=num_burn_in_iterations
-    )
-    unnormalized_posterior = compile_unnnormalized_posterior(
-        likelihood=likelihood, prior=prior
-    )
+    num_total_iterations = expand_num_iterations(num_iterations, num_burn_in_iterations)
+
+    unnormalized_posterior = _unnnormalized_posterior(likelihood, prior)
 
     def compile_proposal_density(
-        initial_parameters: Tensor, cov_proposal_density: Tensor
+        initial_parameters: Parameters, cov_proposal_density: CovarianceProposalDensity
     ) -> TorchMultiNormalDist:
         if cov_proposal_density.size() == (1,):
             cov_proposal_density = torch.unsqueeze(cov_proposal_density, dim=1)
@@ -79,35 +80,42 @@ def mcmc_metropolishastings(
         initial_parameters, cov_proposal_density
     )
 
-    def propose_next_parameters(parameters: Tensor) -> Tensor:
-        return parameters + proposal_density.sample()
+    def metropolis_hastings_sampler(
+        parameters: Parameters,
+    ) -> tuple[Parameters, IsAccepted]:
+        def propose_next_parameters(parameters: Parameters) -> Parameters:
+            return parameters + proposal_density.sample()
 
-    @dataclass
-    class MHUpdateState:
-        parameters: Tensor
-        next_parameters: Tensor
+        @dataclass
+        class MHUpdateState:
+            parameters: Parameters
+            next_parameters: Parameters
 
-    def metropolis_hastings_update(state: MHUpdateState) -> tuple[Tensor, bool]:
-        acceptance_ratio = torch.minimum(
-            torch.tensor(1.0, device=device),
-            unnormalized_posterior(state.next_parameters)
-            / unnormalized_posterior(state.parameters),
-        )
-        rand_uniform_number = torch.squeeze(torch.rand(1, device=device), 0)
-        next_parameters = state.next_parameters
-        is_accepted = True
-        if rand_uniform_number > acceptance_ratio:
-            next_parameters = state.parameters
-            is_accepted = False
-        return next_parameters, is_accepted
+        def metropolis_hastings_update(
+            state: MHUpdateState,
+        ) -> tuple[Parameters, IsAccepted]:
+            acceptance_ratio = torch.minimum(
+                torch.tensor(1.0, device=device),
+                unnormalized_posterior(state.next_parameters)
+                / unnormalized_posterior(state.parameters),
+            )
+            rand_uniform_number = torch.squeeze(torch.rand(1, device=device), 0)
+            next_parameters = state.next_parameters
+            is_accepted = True
+            if rand_uniform_number > acceptance_ratio:
+                next_parameters = state.parameters
+                is_accepted = False
+            return next_parameters, is_accepted
 
-    def one_iteration(parameters: Tensor) -> tuple[Tensor, bool]:
         next_parameters = propose_next_parameters(parameters)
         mh_update_state = MHUpdateState(
             parameters=parameters,
             next_parameters=next_parameters,
         )
         return metropolis_hastings_update(mh_update_state)
+
+    def one_iteration(parameters: Tensor) -> tuple[Tensor, bool]:
+        return metropolis_hastings_sampler(parameters)
 
     samples_list: Samples = []
     num_accepted_proposals = 0

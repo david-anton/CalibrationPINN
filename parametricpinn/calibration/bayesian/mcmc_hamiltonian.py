@@ -5,24 +5,29 @@ import torch
 
 from parametricpinn.calibration.bayesian.likelihood import LikelihoodFunc
 from parametricpinn.calibration.bayesian.mcmc_base import (
+    IsAccepted,
     Samples,
-    compile_unnnormalized_posterior,
+    _unnnormalized_posterior,
     evaluate_acceptance_ratio,
     expand_num_iterations,
     postprocess_samples,
     remove_burn_in_phase,
 )
+from parametricpinn.calibration.bayesian.mcmc_base_hamiltonian import (
+    Momentums,
+    Parameters,
+    StepSizes,
+    _potential_energy_func,
+    _sample_normalized_momentums,
+    kinetic_energy_func,
+)
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
 from parametricpinn.calibration.bayesian.prior import PriorFunc
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.types import (
-    Device,
-    NPArray,
-    Tensor,
-    TorchMultiNormalDist,
-    TorchUniNormalDist,
-)
+from parametricpinn.types import Device, NPArray, Tensor
+
+IsLastStep: TypeAlias = bool
 
 MCMCHamiltonianFunc: TypeAlias = Callable[
     [
@@ -30,9 +35,9 @@ MCMCHamiltonianFunc: TypeAlias = Callable[
         tuple[float, ...],
         LikelihoodFunc,
         PriorFunc,
-        Tensor,
+        Parameters,
         int,
-        Tensor,
+        StepSizes,
         int,
         int,
         str,
@@ -41,10 +46,6 @@ MCMCHamiltonianFunc: TypeAlias = Callable[
     ],
     tuple[MomentsMultivariateNormal, NPArray],
 ]
-PotentialEnergyFunc: TypeAlias = Callable[[Tensor], Tensor]
-KineticEnergyFunc: TypeAlias = Callable[[Tensor], Tensor]
-MomentumsDistribution = Union[TorchUniNormalDist, TorchMultiNormalDist]
-DrawMomentumsFunc: TypeAlias = Callable[[], Tensor]
 
 
 @dataclass
@@ -58,73 +59,35 @@ def mcmc_hamiltonian(
     true_parameters: tuple[float, ...],
     likelihood: LikelihoodFunc,
     prior: PriorFunc,
-    initial_parameters: Tensor,
+    initial_parameters: Parameters,
     num_leapfrog_steps: int,
-    leapfrog_step_sizes: Tensor,
+    leapfrog_step_sizes: StepSizes,
     num_iterations: int,
     num_burn_in_iterations: int,
     output_subdir: str,
     project_directory: ProjectDirectory,
     device: Device,
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
-    num_total_iterations = expand_num_iterations(
-        num_iterations=num_iterations, num_burn_in_iterations=num_burn_in_iterations
+    step_sizes = leapfrog_step_sizes
+    num_total_iterations = expand_num_iterations(num_iterations, num_burn_in_iterations)
+
+    unnormalized_posterior = _unnnormalized_posterior(likelihood, prior)
+    draw_normalized_momentums_func = _sample_normalized_momentums(
+        initial_parameters, device
     )
-    unnormalized_posterior = compile_unnnormalized_posterior(
-        likelihood=likelihood, prior=prior
-    )
+    potential_energy_func = _potential_energy_func(unnormalized_posterior)
 
-    def compile_potential_energy_func() -> PotentialEnergyFunc:
-        def potential_energy_func(parameters: Tensor) -> Tensor:
-            return -torch.log(unnormalized_posterior(parameters))
-
-        return potential_energy_func
-
-    def compile_kinetic_energy_func() -> KineticEnergyFunc:
-        def kinetic_energy_func(momentums: Tensor) -> Tensor:
-            return 1 / 2 * torch.sum(torch.pow(momentums, 2))
-
-        return kinetic_energy_func
-
-    def compile_draw_normalized_momentums_func(parameters: Tensor) -> DrawMomentumsFunc:
-        def compile_momentum_distribution() -> MomentumsDistribution:
-            if parameters.size() == (1,):
-                mean = torch.tensor(0.0, dtype=torch.float64, device=device)
-                standard_deviation = torch.tensor(
-                    1.0, dtype=torch.float64, device=device
-                )
-                return torch.distributions.Normal(loc=mean, scale=standard_deviation)
-            else:
-                means = torch.zeros_like(parameters, dtype=torch.float64, device=device)
-                covariance_matrix = torch.diag(
-                    torch.ones_like(parameters, dtype=torch.float64, device=device)
-                )
-                return torch.distributions.MultivariateNormal(
-                    loc=means, covariance_matrix=covariance_matrix
-                )
-
-        momentums_dist = compile_momentum_distribution()
-
-        def draw_momentums_func() -> Tensor:
-            momentums = momentums_dist.sample()
-            return momentums.requires_grad_(True)
-
-        return draw_momentums_func
-
-    def propose_next_parameters(
-        parameters: Tensor, momentums: Tensor
-    ) -> tuple[Tensor, Tensor]:
-        potential_energy_func = compile_potential_energy_func()
-        step_sizes = leapfrog_step_sizes
-
-        def leapfrog_step(
-            parameters: Tensor, momentums: Tensor, is_last_step: bool
+    def hamiltonian_sampler(parameters: Parameters) -> tuple[Parameters, IsAccepted]:
+        def propose_next_state(
+            parameters: Tensor, momentums: Tensor
         ) -> tuple[Tensor, Tensor]:
-            parameters = parameters + step_sizes * momentums
-            if not is_last_step:
-                momentums = (
+            def half_momentums_step(
+                parameters: Parameters, momentums: Momentums
+            ) -> Momentums:
+                return (
                     momentums
                     - step_sizes
+                    / 2
                     * torch.autograd.grad(
                         potential_energy_func(parameters),
                         parameters,
@@ -132,83 +95,74 @@ def mcmc_hamiltonian(
                         create_graph=False,
                     )[0]
                 )
+
+            def full_parameter_and_momentum_step(
+                parameters: Parameters, momentums: Momentums, is_last_step: IsLastStep
+            ) -> tuple[Tensor, Tensor]:
+                parameters = parameters + step_sizes * momentums
+                if not is_last_step:
+                    momentums = (
+                        momentums
+                        - step_sizes
+                        * torch.autograd.grad(
+                            potential_energy_func(parameters),
+                            parameters,
+                            retain_graph=False,
+                            create_graph=False,
+                        )[0]
+                    )
+                return parameters, momentums
+
+            # Half step for momentum (in the beginning)
+            momentums = half_momentums_step(parameters, momentums)
+
+            # Full steps
+            for i in range(num_leapfrog_steps):
+                is_last_step = i == num_leapfrog_steps - 1
+                parameters, momentums = full_parameter_and_momentum_step(
+                    parameters, momentums, is_last_step
+                )
+
+            # Half step for momentums (in the end)
+            momentums = half_momentums_step(parameters, momentums)
             return parameters, momentums
 
-        # Half step for momentums (in the beginning)
-        momentums = (
-            momentums
-            - step_sizes
-            / 2
-            * torch.autograd.grad(
-                potential_energy_func(parameters),
-                parameters,
-                retain_graph=False,
-                create_graph=False,
-            )[0]
-        )
+        @dataclass
+        class MHUpdateState:
+            parameters: Tensor
+            momentums: Tensor
+            next_parameters: Tensor
+            next_momentums: Tensor
 
-        # Full steps
-        for i in range(num_leapfrog_steps):
-            is_last_step = i == num_leapfrog_steps - 1
-            parameters, momentums = leapfrog_step(parameters, momentums, is_last_step)
+        def metropolis_hastings_update(
+            state: MHUpdateState,
+        ) -> tuple[Parameters, IsAccepted]:
+            potential_energy = potential_energy_func(state.parameters)
+            kinetic_energy = kinetic_energy_func(state.momentums)
+            # Negate momentums to make proposal symmetric
+            state.next_momentums = -state.next_momentums
+            next_potential_energy = potential_energy_func(state.next_parameters)
+            next_kinetic_energy = kinetic_energy_func(state.next_momentums)
 
-        # Half step for momentums (in the end)
-        momentums = (
-            momentums
-            - step_sizes
-            / 2
-            * torch.autograd.grad(
-                potential_energy_func(parameters),
-                parameters,
-                retain_graph=False,
-                create_graph=False,
-            )[0]
-        )
-        return parameters, momentums
+            acceptance_ratio = torch.minimum(
+                torch.tensor(1.0, device=device),
+                torch.exp(
+                    potential_energy
+                    - next_potential_energy
+                    + kinetic_energy
+                    - next_kinetic_energy
+                ),
+            )
+            rand_uniform_number = torch.squeeze(torch.rand(1, device=device), 0)
+            next_parameters = state.next_parameters
+            is_accepted = True
+            if rand_uniform_number > acceptance_ratio:
+                next_parameters = state.parameters
+                is_accepted = False
+            return next_parameters, is_accepted
 
-    @dataclass
-    class MHUpdateState:
-        parameters: Tensor
-        momentums: Tensor
-        next_parameters: Tensor
-        next_momentums: Tensor
-
-    def metropolis_hastings_update(state: MHUpdateState) -> tuple[Tensor, bool]:
-        potential_energy_func = compile_potential_energy_func()
-        kinetic_energy_func = compile_kinetic_energy_func()
-        potential_energy = potential_energy_func(state.parameters)
-        kinetic_energy = kinetic_energy_func(state.momentums)
-        # Negate momentums to make proposal symmetric
-        state.next_momentums = -state.next_momentums
-        next_potential_energy = potential_energy_func(state.next_parameters)
-        next_kinetic_energy = kinetic_energy_func(state.next_momentums)
-
-        acceptance_ratio = torch.minimum(
-            torch.tensor(1.0, device=device),
-            torch.exp(
-                potential_energy
-                - next_potential_energy
-                + kinetic_energy
-                - next_kinetic_energy
-            ),
-        )
-        rand_uniform_number = torch.squeeze(torch.rand(1, device=device), 0)
-        next_parameters = state.next_parameters
-        is_accepted = True
-        if rand_uniform_number > acceptance_ratio:
-            next_parameters = state.parameters
-            is_accepted = False
-        return next_parameters, is_accepted
-
-    draw_normalized_momentums_func = compile_draw_normalized_momentums_func(
-        initial_parameters
-    )
-
-    def one_iteration(parameters: Tensor) -> tuple[Tensor, bool]:
         momentums = draw_normalized_momentums_func()
-        # normalized_momentums = draw_normalized_momentums_func()
-        # momentums = leapfrog_step_sizes * normalized_momentums
-        next_parameters, next_momentums = propose_next_parameters(parameters, momentums)
+        next_parameters, next_momentums = propose_next_state(parameters, momentums)
         mh_update_state = MHUpdateState(
             parameters=parameters,
             momentums=momentums,
@@ -216,6 +170,9 @@ def mcmc_hamiltonian(
             next_momentums=next_momentums,
         )
         return metropolis_hastings_update(mh_update_state)
+
+    def one_iteration(parameters: Tensor) -> tuple[Parameters, IsAccepted]:
+        return hamiltonian_sampler(parameters)
 
     samples_list: Samples = []
     num_accepted_proposals = 0

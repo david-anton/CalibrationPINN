@@ -1,23 +1,23 @@
 import dataclasses
 from dataclasses import dataclass
-from typing import Callable, TypeAlias, Union
+from typing import Callable, TypeAlias, TypeVar
 
 import torch
 
-from parametricpinn.calibration.bayesian.mcmc_base import UnnormalizedPosterior
-from parametricpinn.types import (
-    Device,
-    Tensor,
-    TorchMultiNormalDist,
-    TorchUniNormalDist,
+from parametricpinn.calibration.bayesian.mcmc_base_hamiltonian import (
+    Energy,
+    Momentums,
+    Parameters,
+    PotentialEnergyFunc,
+    StepSizes,
+    _potential_energy_func,
+    _sample_normalized_momentums,
+    kinetic_energy_func,
 )
+from parametricpinn.types import Device, Tensor
 
-Parameters: TypeAlias = Tensor
-Momentums: TypeAlias = Tensor
 SliceVariable: TypeAlias = Tensor
-Energy: TypeAlias = Tensor
 Hamiltonian: TypeAlias = Energy
-StepSizes: TypeAlias = Tensor
 Direction: TypeAlias = int
 TerminationFlag: TypeAlias = bool
 TreeDepth: TypeAlias = int
@@ -29,53 +29,6 @@ class Tree:
     momentums_m: Momentums
     parameters_p: Parameters
     momentums_p: Momentums
-
-
-PotentialEnergyFunc: TypeAlias = Callable[[Parameters], Energy]
-
-
-def _potential_energy_func(
-    unnormalized_posterior: UnnormalizedPosterior,
-) -> PotentialEnergyFunc:
-    def potential_energy_func(parameters: Parameters) -> Energy:
-        return -torch.log(unnormalized_posterior(parameters))
-
-    return potential_energy_func
-
-
-def kinetic_energy_func(momentums: Momentums) -> Energy:
-    return 1 / 2 * torch.sum(torch.pow(momentums, 2))
-
-
-DrawMomentumsFunc: TypeAlias = Callable[[], Momentums]
-MomentumsDistribution = Union[TorchUniNormalDist, TorchMultiNormalDist]
-
-
-def _sample_normalized_momentums(
-    parameters: Parameters,
-    device: Device,
-) -> DrawMomentumsFunc:
-    def compile_momentum_distribution() -> MomentumsDistribution:
-        if parameters.size() == (1,):
-            mean = torch.tensor([0.0], dtype=torch.float64, device=device)
-            standard_deviation = torch.tensor([1.0], dtype=torch.float64, device=device)
-            return torch.distributions.Normal(loc=mean, scale=standard_deviation)
-        else:
-            means = torch.zeros_like(parameters, dtype=torch.float64, device=device)
-            covariance_matrix = torch.diag(
-                torch.ones_like(parameters, dtype=torch.float64, device=device)
-            )
-            return torch.distributions.MultivariateNormal(
-                loc=means, covariance_matrix=covariance_matrix
-            )
-
-    momentums_dist = compile_momentum_distribution()
-
-    def sample_momentums() -> Momentums:
-        momentums = momentums_dist.sample()
-        return momentums.requires_grad_(True)
-
-    return sample_momentums
 
 
 LeapfrogStepFunc: TypeAlias = Callable[
@@ -214,14 +167,17 @@ def _is_state_in_slice(
     return is_state_in_slice
 
 
-def keep_plus_from_old_tree(new_tree: Tree, old_tree: Tree) -> Tree:
+TreeType = TypeVar("TreeType", bound=Tree)
+
+
+def keep_plus_from_old_tree(new_tree: TreeType, old_tree: TreeType) -> TreeType:
     new_tree_copy = dataclasses.replace(new_tree)
     new_tree_copy.parameters_p = old_tree.parameters_p
     new_tree_copy.momentums_p = old_tree.momentums_p
     return new_tree_copy
 
 
-def keep_minus_from_old_tree(new_tree: Tree, old_tree: Tree) -> Tree:
+def keep_minus_from_old_tree(new_tree: TreeType, old_tree: TreeType) -> TreeType:
     new_tree_copy = dataclasses.replace(new_tree)
     new_tree_copy.parameters_m = old_tree.parameters_m
     new_tree_copy.momentums_m = old_tree.momentums_m

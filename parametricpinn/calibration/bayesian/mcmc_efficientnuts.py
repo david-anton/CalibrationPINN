@@ -7,13 +7,12 @@ import torch
 from parametricpinn.calibration.bayesian.likelihood import LikelihoodFunc
 from parametricpinn.calibration.bayesian.mcmc_base import (
     Samples,
-    compile_unnnormalized_posterior,
+    _unnnormalized_posterior,
     expand_num_iterations,
     postprocess_samples,
     remove_burn_in_phase,
 )
-from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
-from parametricpinn.calibration.bayesian.mcmc_nuts_base import (
+from parametricpinn.calibration.bayesian.mcmc_base_nuts import (
     Direction,
     Momentums,
     Parameters,
@@ -32,12 +31,14 @@ from parametricpinn.calibration.bayesian.mcmc_nuts_base import (
     keep_minus_from_old_tree,
     keep_plus_from_old_tree,
 )
+from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
 from parametricpinn.calibration.bayesian.prior import PriorFunc
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, NPArray, Tensor
 
 CandidateSetSize: TypeAlias = int
+
 MCMCEfficientNUTSFunc: TypeAlias = Callable[
     [
         tuple[str, ...],
@@ -62,7 +63,7 @@ class EfficientNUTSConfig(MCMCConfig):
 
 
 @dataclass
-class EfficientTree(NaiveTree):
+class EfficientTree(Tree):
     parameters_candidate: Parameters
     candidate_set_size: CandidateSetSize
     is_terminated: TerminationFlag
@@ -81,22 +82,21 @@ def mcmc_efficientnuts(
     project_directory: ProjectDirectory,
     device: Device,
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
+    step_sizes = leapfrog_step_sizes
+    directions = [-1, 1]
+    delta_error = torch.tensor(1000.0, device=device)
     num_total_iterations = expand_num_iterations(num_iterations, num_burn_in_iterations)
-    unnormalized_posterior = compile_unnnormalized_posterior(likelihood, prior)
+
+    unnormalized_posterior = _unnnormalized_posterior(likelihood, prior)
+    potential_energy_func = _potential_energy_func(unnormalized_posterior)
+    sample_momentums = _sample_normalized_momentums(initial_parameters, device)
+    sample_slice_variable = _sample_slice_variable(potential_energy_func, device)
+    leapfrog_step = _leapfrog_step(potential_energy_func)
+    is_distance_decreasing = _is_distance_decreasing(device)
+    is_error_too_large = _is_error_too_large(potential_energy_func, delta_error, device)
+    is_state_in_slice = _is_state_in_slice(potential_energy_func, device)
 
     def naive_nuts_sampler(parameters: Parameters) -> Parameters:
-        step_sizes = leapfrog_step_sizes
-        directions = [-1, 1]
-        delta_error = torch.tensor(1000.0, device=device)
-
-        potential_energy = _potential_energy_func(unnormalized_posterior)
-        sample_momentums = _sample_normalized_momentums(initial_parameters, device)
-        sample_slice_variable = _sample_slice_variable(potential_energy, device)
-        leapfrog_step = _leapfrog_step(potential_energy)
-        is_distance_decreasing = _is_distance_decreasing(device)
-        is_error_too_large = _is_error_too_large(potential_energy, delta_error, device)
-        is_state_in_slice = _is_state_in_slice(potential_energy, device)
-
         def update_parameters_canditate_in_recursive_case(
             tree_s1: EfficientTree, tree_s2: EfficientTree
         ) -> Parameters:

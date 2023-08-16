@@ -12,21 +12,19 @@ from parametricpinn.calibration.bayesian.statistics import (
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import NPArray, Tensor
 
+Parameters: TypeAlias = Tensor
 UnnormalizedPosterior: TypeAlias = Callable[[Tensor], Tensor]
 Samples: TypeAlias = list[Tensor]
+IsAccepted: TypeAlias = bool
 
 
-def compile_unnnormalized_posterior(
+def _unnnormalized_posterior(
     likelihood: LikelihoodFunc, prior: PriorFunc
 ) -> UnnormalizedPosterior:
-    def _unnormalized_posterior(parameters: Tensor) -> Tensor:
-        # print(f"Likelihood: {likelihood(parameters)}")
-        # print(f"Prior: {prior(parameters)}")
-        # print(f"Potential energy: {-torch.log(likelihood(parameters) * prior(parameters))}")
-        # print(f"Grad potential energy: {torch.autograd.grad(-torch.log(likelihood(parameters) * prior(parameters)), parameters, retain_graph=False, create_graph=False)[0]}")
+    def unnormalized_posterior(parameters: Tensor) -> Tensor:
         return likelihood(parameters) * prior(parameters)
 
-    return _unnormalized_posterior
+    return unnormalized_posterior
 
 
 def expand_num_iterations(num_iterations: int, num_burn_in_iterations: int) -> int:
