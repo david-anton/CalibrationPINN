@@ -167,7 +167,9 @@ def plot_univariate_univariate_normal_distribution(
     y = scipy.stats.norm.pdf(x, loc=mean, scale=standard_deviation)
     axes.plot(x, y, color=config.pdf_color, linestyle=config.pdf_linestyle, label="pdf")
     x_ticks = [mean - (3 * standard_deviation), mean, mean + (3 * standard_deviation)]
-    x_tick_labels = [str(round(tick, 2)) for tick in x_ticks]
+    x_tick_labels = [
+        str(round(tick, 2)) if tick >= 1.0 else str(round(tick, 4)) for tick in x_ticks
+    ]
     axes.axvline(
         x=mean,
         color=config.pdf_mean_color,

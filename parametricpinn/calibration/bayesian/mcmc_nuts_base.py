@@ -149,19 +149,20 @@ def _sample_slice_variable(
         parameters: Parameters, momentums: Momentums
     ) -> SliceVariable:
         negative_hamiltonian = calculate_negative_hamiltonian(parameters, momentums)
+        unnormalized_joint_probability = torch.exp(negative_hamiltonian)
         return torch.distributions.Uniform(
             low=torch.tensor(0.0, dtype=torch.float64, device=device),
-            high=negative_hamiltonian,
+            high=unnormalized_joint_probability,
         ).sample()
 
     return sample_slice_variable
 
 
-IsDistanceDecreasingFunc: TypeAlias = Callable[[NaiveTree], TerminationFlag]
+IsDistanceDecreasingFunc: TypeAlias = Callable[[Tree], TerminationFlag]
 
 
 def _is_distance_decreasing(device: Device) -> IsDistanceDecreasingFunc:
-    def is_distance_decreasing(tree: NaiveTree) -> TerminationFlag:
+    def is_distance_decreasing(tree: Tree) -> TerminationFlag:
         parameters_delta = tree.parameters_p - tree.parameters_m
         distance_progress_m = torch.matmul(parameters_delta, tree.momentums_m)
         distance_progress_p = torch.matmul(parameters_delta, tree.momentums_p)
@@ -207,19 +208,20 @@ def _is_state_in_slice(
         parameters: Parameters, momentums: Momentums, slice_variable: SliceVariable
     ) -> bool:
         negative_hamiltonian = calculate_negative_hamiltonian(parameters, momentums)
-        return bool(slice_variable <= negative_hamiltonian)
+        unnormalized_joint_probability = torch.exp(negative_hamiltonian)
+        return bool(slice_variable <= unnormalized_joint_probability)
 
     return is_state_in_slice
 
 
-def keep_plus_from_old_tree(new_tree: NaiveTree, old_tree: NaiveTree) -> NaiveTree:
+def keep_plus_from_old_tree(new_tree: Tree, old_tree: Tree) -> Tree:
     new_tree_copy = dataclasses.replace(new_tree)
     new_tree_copy.parameters_p = old_tree.parameters_p
     new_tree_copy.momentums_p = old_tree.momentums_p
     return new_tree_copy
 
 
-def keep_minus_from_old_tree(new_tree: NaiveTree, old_tree: NaiveTree) -> NaiveTree:
+def keep_minus_from_old_tree(new_tree: Tree, old_tree: Tree) -> Tree:
     new_tree_copy = dataclasses.replace(new_tree)
     new_tree_copy.parameters_m = old_tree.parameters_m
     new_tree_copy.momentums_m = old_tree.momentums_m
