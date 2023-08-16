@@ -223,8 +223,8 @@ def calibration_step() -> None:
         true_parameters=true_parameters,
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
-        num_burn_in_iterations=int(1e4),
-        num_leabfrog_steps=32,
+        num_burn_in_iterations=int(1e3),
+        num_leabfrog_steps=64,
         leapfrog_step_sizes=torch.tensor(1.0, device=device),
     )
     mcmc_config_nnuts = NaiveNUTSConfig(
