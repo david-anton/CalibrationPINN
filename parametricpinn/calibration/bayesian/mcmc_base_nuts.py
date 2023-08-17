@@ -185,8 +185,13 @@ def keep_minus_from_old_tree(new_tree: TreeType, old_tree: TreeType) -> TreeType
 
 
 def log_bernoulli(log_probability: Tensor, device: Device) -> bool:
-    if torch.isnan(log_probability):
-        raise FloatingPointError("log_probability can't be nan.")
+    """
+    Runs a Bernoulli experiment on a logarithmic probability. 
+    Returns True with provided probability and False otherwise.
+
+    If log_probability is nan, it will be set to 0.0.
+    """
+    log_probability = torch.nan_to_num(log_probability, nan=0.0)
     return bool(torch.log(torch.rand(1, device=device)) < log_probability)
 
 
