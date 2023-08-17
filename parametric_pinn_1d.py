@@ -258,7 +258,7 @@ def calibration_step() -> None:
             device=device,
         )
         end = perf_counter()
-        time = end- start
+        time = end - start
         print(f"Run time Metropolis-Hasting: {time}")
     if use_hamiltonian:
         start = perf_counter()
@@ -273,7 +273,7 @@ def calibration_step() -> None:
             device=device,
         )
         end = perf_counter()
-        time = end- start
+        time = end - start
         print(f"Run time Hamiltonian: {time}")
     if use_naive_nuts:
         start = perf_counter()
@@ -288,7 +288,7 @@ def calibration_step() -> None:
             device=device,
         )
         end = perf_counter()
-        time = end- start
+        time = end - start
         print(f"Run time naive NUTS: {time}")
     if use_efficient_nuts:
         start = perf_counter()
@@ -303,7 +303,7 @@ def calibration_step() -> None:
             device=device,
         )
         end = perf_counter()
-        time = end- start
+        time = end - start
         print(f"Run time efficient NUTS: {time}")
     print("Calibration finished.")
 

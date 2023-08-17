@@ -184,7 +184,11 @@ def keep_minus_from_old_tree(new_tree: TreeType, old_tree: TreeType) -> TreeType
     return new_tree_copy
 
 
-def log_bernoulli(log_probability: Tensor) -> bool:
+def log_bernoulli(log_probability: Tensor, device: Device) -> bool:
     if torch.isnan(log_probability):
         raise FloatingPointError("log_probability can't be nan.")
-    return bool(torch.log(torch.rand(1)) < log_probability)
+    return bool(torch.log(torch.rand(1, device=device)) < log_probability)
+
+
+def is_max_tree_depth_reached(tree_depth: TreeDepth, max_tree_depth: TreeDepth) -> bool:
+    return tree_depth >= max_tree_depth

@@ -28,6 +28,7 @@ from parametricpinn.calibration.bayesian.mcmc_base_nuts import (
     _potential_energy_func,
     _sample_normalized_momentums,
     _sample_slice_variable,
+    is_max_tree_depth_reached,
     keep_minus_from_old_tree,
     keep_plus_from_old_tree,
     log_bernoulli,
@@ -109,7 +110,7 @@ def mcmc_efficientnuts(
             size_s1 = tree_s1.candidate_set_size
             log_acceptance_probability = torch.log(size_s1) - torch.log(size)
             parameters_candidate = tree.parameters_candidate
-            if log_bernoulli(log_acceptance_probability):
+            if log_bernoulli(log_acceptance_probability, device):
                 parameters_candidate = tree_s1.parameters_candidate
             return parameters_candidate
 
@@ -122,7 +123,7 @@ def mcmc_efficientnuts(
                 size_s1 + size_s2
             )
             parameters_candidate = tree_s1.parameters_candidate
-            if log_bernoulli(log_acceptance_probability):
+            if log_bernoulli(log_acceptance_probability, device):
                 parameters_candidate = tree_s2.parameters_candidate
             return parameters_candidate
 
@@ -242,9 +243,6 @@ def mcmc_efficientnuts(
                     step_sizes=step_sizes,
                 )
 
-        def is_max_tree_depth_reached(tree_depth: TreeDepth) -> bool:
-            return tree_depth >= max_tree_depth
-
         momentums = sample_momentums()
         slice_variable = sample_slice_variable(parameters, momentums)
         tree = EfficientTree(
@@ -305,7 +303,9 @@ def mcmc_efficientnuts(
                 candidate_set_size=candidate_set_size,
                 is_terminated=is_terminated,
             )
-            max_tree_depth_reached = is_max_tree_depth_reached(tree_depth)
+            max_tree_depth_reached = is_max_tree_depth_reached(
+                tree_depth, max_tree_depth
+            )
             tree_depth += 1
 
         return parameters_candidate
