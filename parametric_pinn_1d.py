@@ -1,4 +1,5 @@
 from datetime import date
+from time import perf_counter
 
 import torch
 
@@ -58,7 +59,7 @@ batch_size_valid = num_samples_valid
 # Calibration
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = True
-use_naive_nuts = True
+use_naive_nuts = False
 use_efficient_nuts = True
 # Output
 current_date = date.today().strftime("%Y%m%d")
@@ -224,7 +225,7 @@ def calibration_step() -> None:
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e3),
-        num_leabfrog_steps=64,
+        num_leabfrog_steps=128,
         leapfrog_step_sizes=torch.tensor(1.0, device=device),
     )
     mcmc_config_nnuts = NaiveNUTSConfig(
@@ -245,6 +246,7 @@ def calibration_step() -> None:
         leapfrog_step_sizes=torch.tensor(10.0, device=device),
     )
     if use_random_walk_metropolis_hasting:
+        start = perf_counter()
         posterior_moments_mh, samples_mh = calibrate(
             model=ansatz,
             name_model_parameters_file="model_parameters",
@@ -255,7 +257,11 @@ def calibration_step() -> None:
             project_directory=project_directory,
             device=device,
         )
+        end = perf_counter()
+        time = end- start
+        print(f"Run time Metropolis-Hasting: {time}")
     if use_hamiltonian:
+        start = perf_counter()
         posterior_moments_h, samples_h = calibrate(
             model=ansatz,
             name_model_parameters_file="model_parameters",
@@ -266,7 +272,11 @@ def calibration_step() -> None:
             project_directory=project_directory,
             device=device,
         )
+        end = perf_counter()
+        time = end- start
+        print(f"Run time Hamiltonian: {time}")
     if use_naive_nuts:
+        start = perf_counter()
         posterior_moments_nnuts, samples_nnuts = calibrate(
             model=ansatz,
             name_model_parameters_file="model_parameters",
@@ -277,7 +287,11 @@ def calibration_step() -> None:
             project_directory=project_directory,
             device=device,
         )
+        end = perf_counter()
+        time = end- start
+        print(f"Run time naive NUTS: {time}")
     if use_efficient_nuts:
+        start = perf_counter()
         posterior_moments_enuts, samples_enuts = calibrate(
             model=ansatz,
             name_model_parameters_file="model_parameters",
@@ -288,6 +302,9 @@ def calibration_step() -> None:
             project_directory=project_directory,
             device=device,
         )
+        end = perf_counter()
+        time = end- start
+        print(f"Run time efficient NUTS: {time}")
     print("Calibration finished.")
 
 
