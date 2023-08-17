@@ -197,6 +197,7 @@ def _compile_mcmc_algorithm(
                 leapfrog_step_sizes=config_enuts.leapfrog_step_sizes,
                 num_iterations=config_enuts.num_iterations,
                 num_burn_in_iterations=config_enuts.num_burn_in_iterations,
+                max_tree_depth=config_enuts.max_tree_depth,
                 output_subdir=output_subdir,
                 project_directory=project_directory,
                 device=device,

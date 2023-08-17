@@ -182,3 +182,9 @@ def keep_minus_from_old_tree(new_tree: TreeType, old_tree: TreeType) -> TreeType
     new_tree_copy.parameters_m = old_tree.parameters_m
     new_tree_copy.momentums_m = old_tree.momentums_m
     return new_tree_copy
+
+
+def log_bernoulli(log_probability: Tensor) -> bool:
+    if torch.isnan(log_probability):
+        raise FloatingPointError("log_probability can't be nan.")
+    return bool(torch.log(torch.rand(1)) < log_probability)

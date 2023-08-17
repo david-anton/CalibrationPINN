@@ -30,6 +30,7 @@ from parametricpinn.calibration.bayesian.mcmc_base_nuts import (
     _sample_slice_variable,
     keep_minus_from_old_tree,
     keep_plus_from_old_tree,
+    log_bernoulli,
 )
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
 from parametricpinn.calibration.bayesian.prior import PriorFunc
@@ -37,7 +38,7 @@ from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNo
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, NPArray, Tensor
 
-CandidateSetSize: TypeAlias = int
+CandidateSetSize: TypeAlias = Tensor
 
 MCMCEfficientNUTSFunc: TypeAlias = Callable[
     [
@@ -49,6 +50,7 @@ MCMCEfficientNUTSFunc: TypeAlias = Callable[
         StepSizes,
         int,
         int,
+        TreeDepth,
         str,
         ProjectDirectory,
         Device,
@@ -60,6 +62,7 @@ MCMCEfficientNUTSFunc: TypeAlias = Callable[
 @dataclass
 class EfficientNUTSConfig(MCMCConfig):
     leapfrog_step_sizes: Tensor
+    max_tree_depth: TreeDepth
 
 
 @dataclass
@@ -78,6 +81,7 @@ def mcmc_efficientnuts(
     leapfrog_step_sizes: StepSizes,
     num_iterations: int,
     num_burn_in_iterations: int,
+    max_tree_depth: TreeDepth,
     output_subdir: str,
     project_directory: ProjectDirectory,
     device: Device,
@@ -97,24 +101,32 @@ def mcmc_efficientnuts(
     is_state_in_slice = _is_state_in_slice(potential_energy_func, device)
 
     def naive_nuts_sampler(parameters: Parameters) -> Parameters:
-        def update_parameters_canditate_in_recursive_case(
+        def update_parameters_canditate_after_doubling(
+            tree: EfficientTree,
+            tree_s1: EfficientTree,
+        ) -> Parameters:
+            size = tree.candidate_set_size
+            size_s1 = tree_s1.candidate_set_size
+            log_acceptance_probability = torch.log(size_s1) - torch.log(size)
+            parameters_candidate = tree.parameters_candidate
+            if log_bernoulli(log_acceptance_probability):
+                parameters_candidate = tree_s1.parameters_candidate
+            return parameters_candidate
+
+        def update_parameters_canditate_in_subtrees(
             tree_s1: EfficientTree, tree_s2: EfficientTree
         ) -> Parameters:
-            acceptance_ratio = torch.minimum(
-                torch.tensor(1.0, device=device),
-                torch.tensor(
-                    tree_s2.candidate_set_size
-                    / (tree_s1.candidate_set_size + tree_s2.candidate_set_size),
-                    device=device,
-                ),
+            size_s1 = tree_s1.candidate_set_size
+            size_s2 = tree_s2.candidate_set_size
+            log_acceptance_probability = torch.log(size_s2) - torch.log(
+                size_s1 + size_s2
             )
-            rand_uniform_number = torch.squeeze(torch.rand(1, device=device), 0)
             parameters_candidate = tree_s1.parameters_candidate
-            if rand_uniform_number <= acceptance_ratio:
+            if log_bernoulli(log_acceptance_probability):
                 parameters_candidate = tree_s2.parameters_candidate
             return parameters_candidate
 
-        def build_tree_base_case(
+        def base_step(
             parameters: Parameters,
             momentums: Momentums,
             slice_variable: SliceVariable,
@@ -125,9 +137,9 @@ def mcmc_efficientnuts(
             parameters_s1, momentums_s1 = leapfrog_step(
                 parameters, momentums, direction * step_sizes
             )
-            candidate_set_size = 0
+            candidate_set_size = torch.tensor(0, dtype=torch.int16, device=device)
             if is_state_in_slice(parameters_s1, momentums_s1, slice_variable):
-                candidate_set_size = 1
+                candidate_set_size = torch.tensor(1, dtype=torch.int16, device=device)
             is_terminated_s1 = is_error_too_large(
                 parameters_s1, momentums_s1, slice_variable
             )
@@ -141,7 +153,7 @@ def mcmc_efficientnuts(
                 is_terminated=is_terminated_s1,
             )
 
-        def build_tree_recursive_case(
+        def build_subtree(
             parameters: Parameters,
             momentums: Momentums,
             slice_variable: SliceVariable,
@@ -186,7 +198,7 @@ def mcmc_efficientnuts(
                     )
 
                 parameters_candidate = tree_s1.parameters_candidate
-                parameters_candidate = update_parameters_canditate_in_recursive_case(
+                parameters_candidate = update_parameters_canditate_in_subtrees(
                     tree_s1=tree_s1, tree_s2=tree_s2
                 )
                 candidate_set_size = (
@@ -213,7 +225,7 @@ def mcmc_efficientnuts(
             step_sizes: StepSizes,
         ) -> EfficientTree:
             if tree_depth == 0:
-                return build_tree_base_case(
+                return base_step(
                     parameters=parameters,
                     momentums=momentums,
                     slice_variable=slice_variable,
@@ -221,7 +233,7 @@ def mcmc_efficientnuts(
                     step_sizes=step_sizes,
                 )
             else:
-                return build_tree_recursive_case(
+                return build_subtree(
                     parameters=parameters,
                     momentums=momentums,
                     slice_variable=slice_variable,
@@ -230,22 +242,8 @@ def mcmc_efficientnuts(
                     step_sizes=step_sizes,
                 )
 
-        def update_parameters_canditate_after_doubling(
-            tree: EfficientTree,
-            tree_s1: EfficientTree,
-        ) -> Parameters:
-            acceptance_ratio = torch.minimum(
-                torch.tensor(1.0, device=device),
-                torch.tensor(
-                    tree_s1.candidate_set_size / tree.candidate_set_size,
-                    device=device,
-                ),
-            )
-            rand_uniform_number = torch.squeeze(torch.rand(1, device=device), 0)
-            parameters_candidate = tree.parameters_candidate
-            if rand_uniform_number <= acceptance_ratio:
-                parameters_candidate = tree_s1.parameters_candidate
-            return parameters_candidate
+        def is_max_tree_depth_reached(tree_depth: TreeDepth) -> bool:
+            return tree_depth >= max_tree_depth
 
         momentums = sample_momentums()
         slice_variable = sample_slice_variable(parameters, momentums)
@@ -255,12 +253,13 @@ def mcmc_efficientnuts(
             parameters_p=parameters,
             momentums_p=momentums,
             parameters_candidate=parameters,
-            candidate_set_size=1,
+            candidate_set_size=torch.tensor(1, dtype=torch.int16, device=device),
             is_terminated=False,
         )
+        max_tree_depth_reached = False
         tree_depth = 0
 
-        while not tree.is_terminated:
+        while not tree.is_terminated and not max_tree_depth_reached:
             direction = random.choice(directions)
 
             if direction == -1:
@@ -306,9 +305,9 @@ def mcmc_efficientnuts(
                 candidate_set_size=candidate_set_size,
                 is_terminated=is_terminated,
             )
+            max_tree_depth_reached = is_max_tree_depth_reached(tree_depth)
             tree_depth += 1
 
-        # print(f"Step length: {2**tree_depth}")
         return parameters_candidate
 
     def one_iteration(parameters: Tensor) -> Tensor:
@@ -321,7 +320,6 @@ def mcmc_efficientnuts(
         parameters = one_iteration(parameters)
         parameters.detach()
         samples_list.append(parameters)
-        # print(f"Iteration: {i}")
 
     samples_list = remove_burn_in_phase(
         sample_list=samples_list, num_burn_in_iterations=num_burn_in_iterations

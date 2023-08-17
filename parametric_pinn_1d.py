@@ -241,6 +241,7 @@ def calibration_step() -> None:
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e3),
+        max_tree_depth=10,
         leapfrog_step_sizes=torch.tensor(10.0, device=device),
     )
     if use_random_walk_metropolis_hasting:
