@@ -15,6 +15,7 @@ def compile_likelihood(
     device: Device,
 ) -> LikelihoodFunc:
     inputs = data.inputs
+    inputs.detach()
     flattened_outputs = data.outputs.ravel()
     size_data = data.num_data_points
     num_flattened_outputs = size_data * data.dim_outputs
