@@ -141,8 +141,9 @@ def mcmc_hamiltonian(
             kinetic_energy = kinetic_energy_func(state.momentums)
             # Negate momentums to make proposal symmetric
             state.next_momentums = -state.next_momentums
-            next_potential_energy = potential_energy_func(state.next_parameters)
-            next_kinetic_energy = kinetic_energy_func(state.next_momentums)
+            with torch.no_grad():
+                next_potential_energy = potential_energy_func(state.next_parameters)
+                next_kinetic_energy = kinetic_energy_func(state.next_momentums)
 
             acceptance_ratio = torch.minimum(
                 torch.tensor(1.0, device=device),

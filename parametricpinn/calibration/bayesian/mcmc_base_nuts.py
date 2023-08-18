@@ -81,8 +81,9 @@ def _calculate_negative_hamiltonian(
     def calculate_negative_hamiltonian(
         parameters: Parameters, momentums: Momentums
     ) -> Hamiltonian:
-        potential_energy = potential_energy_func(parameters)
-        kinetic_energy = kinetic_energy_func(momentums)
+        with torch.no_grad():
+            potential_energy = potential_energy_func(parameters)
+            kinetic_energy = kinetic_energy_func(momentums)
         return -1 * (potential_energy + kinetic_energy)
 
     return calculate_negative_hamiltonian
@@ -132,7 +133,7 @@ IsErrorTooLargeFunc: TypeAlias = Callable[[Parameters, Momentums, SliceVariable]
 
 
 def _is_error_too_large(
-    potential_energy_func: PotentialEnergyFunc, delta_error: DeltaError, device: Device
+    potential_energy_func: PotentialEnergyFunc, delta_error: DeltaError
 ) -> IsErrorTooLargeFunc:
     calculate_negative_hamiltonian = _calculate_negative_hamiltonian(
         potential_energy_func
@@ -150,9 +151,7 @@ def _is_error_too_large(
 IsStateInSliceFunc: TypeAlias = Callable[[Parameters, Momentums, SliceVariable], bool]
 
 
-def _is_state_in_slice(
-    potential_energy_func: PotentialEnergyFunc, device: Device
-) -> IsStateInSliceFunc:
+def _is_state_in_slice(potential_energy_func: PotentialEnergyFunc) -> IsStateInSliceFunc:
     calculate_negative_hamiltonian = _calculate_negative_hamiltonian(
         potential_energy_func
     )

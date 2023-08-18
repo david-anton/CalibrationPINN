@@ -98,8 +98,8 @@ def mcmc_efficientnuts(
     sample_slice_variable = _sample_slice_variable(potential_energy_func, device)
     leapfrog_step = _leapfrog_step(potential_energy_func)
     is_distance_decreasing = _is_distance_decreasing(device)
-    is_error_too_large = _is_error_too_large(potential_energy_func, delta_error, device)
-    is_state_in_slice = _is_state_in_slice(potential_energy_func, device)
+    is_error_too_large = _is_error_too_large(potential_energy_func, delta_error)
+    is_state_in_slice = _is_state_in_slice(potential_energy_func)
 
     def naive_nuts_sampler(parameters: Parameters) -> Parameters:
         def update_parameters_canditate_after_doubling(
