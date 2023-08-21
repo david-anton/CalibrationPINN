@@ -369,7 +369,7 @@ def calibration_step() -> None:
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e3),
-        num_leabfrog_steps=1024,
+        num_leabfrog_steps=256,
         leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
     )
     mcmc_config_nnuts = NaiveNUTSConfig(
@@ -386,7 +386,7 @@ def calibration_step() -> None:
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e3),
-        max_tree_depth=10,
+        max_tree_depth=8,
         leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
     )
     if use_random_walk_metropolis_hasting:
