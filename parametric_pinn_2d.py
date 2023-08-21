@@ -74,7 +74,7 @@ num_points_valid = 1024
 batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Calibration
-use_random_walk_metropolis_hasting = False
+use_random_walk_metropolis_hasting = True
 use_hamiltonian = True
 use_naive_nuts = False
 use_efficient_nuts = True
@@ -389,7 +389,7 @@ def calibration_step() -> None:
         max_tree_depth=10,
         leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
     )
-    if use_hamiltonian:
+    if use_random_walk_metropolis_hasting:
         start = perf_counter()
         posterior_moments_mh, samples_mh = calibrate(
             model=ansatz,
@@ -404,7 +404,7 @@ def calibration_step() -> None:
         end = perf_counter()
         time = end - start
         print(f"Run time Metropolis-Hasting: {time}")
-    if use_random_walk_metropolis_hasting:
+    if use_hamiltonian:
         start = perf_counter()
         posterior_moments_h, samples_h = calibrate(
             model=ansatz,
