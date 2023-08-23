@@ -116,4 +116,3 @@ for name, parameters in ansatz.named_parameters():
 if retrain_parametric_pinn:
     training_dataset = create_datasets()
     # training_step()
-

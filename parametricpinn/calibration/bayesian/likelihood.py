@@ -1,53 +1,88 @@
-import math
-from typing import Callable, TypeAlias
+from typing import Protocol
 
 import torch
 
-from parametricpinn.calibration.data import PreprocessedData
+from parametricpinn.calibration.data import PreprocessedCalibrationData
 from parametricpinn.types import Device, Module, Tensor, TorchMultiNormalDist
 
-LikelihoodFunc: TypeAlias = Callable[[Tensor], Tensor]
+
+class Likelihood(Protocol):
+    def prob(self, parameters: Tensor) -> Tensor:
+        pass
+
+    def log_prob(self, parameters: Tensor) -> Tensor:
+        pass
+
+    def grad_log_prob(self, parameters: Tensor) -> Tensor:
+        pass
 
 
-def compile_likelihood(
-    model: Module,
-    data: PreprocessedData,
-    device: Device,
-) -> LikelihoodFunc:
-    inputs = data.inputs
-    inputs.detach()
-    flattened_outputs = data.outputs.ravel()
-    size_data = data.num_data_points
-    num_flattened_outputs = size_data * data.dim_outputs
+class CalibrationLikelihood:
+    def __init__(
+        self,
+        model: Module,
+        data: PreprocessedCalibrationData,
+        device: Device,
+    ):
+        self._model = model
+        self._data = data
+        self._num_flattened_outputs = self._data.num_data_points * data.dim_outputs
+        self._device = device
+        self._likelihood = self._initialize_likelihood()
 
-    def create_error_covariance_matrix(num_outputs: int, std_noise: float) -> Tensor:
-        return torch.diag(
-            torch.full(
-                (num_outputs,), std_noise**2, dtype=torch.float64, device=device
-            )
-        )
+    def prob(self, parameters: Tensor) -> Tensor:
+        with torch.no_grad():
+            return self._prob(parameters)
 
-    def compile_likelihood(num_outputs: int, covariance_matrix) -> TorchMultiNormalDist:
+    def log_prob(self, parameters: Tensor) -> Tensor:
+        with torch.no_grad():
+            return self._log_prob(parameters)
+
+    def grad_log_prob(self, parameters: Tensor) -> Tensor:
+        return torch.autograd.grad(
+            self._log_prob(parameters),
+            parameters,
+            retain_graph=False,
+            create_graph=False,
+        )[0]
+
+    def _prob(self, parameters: Tensor) -> Tensor:
+        return torch.exp(self._log_prob(parameters))
+
+    def _log_prob(self, parameters: Tensor) -> Tensor:
+        residual = self._calculate_residual(parameters)
+        return self._likelihood.log_prob(residual)
+
+    def _initialize_likelihood(self) -> TorchMultiNormalDist:
+        covariance_matrix = self._assemble_residual_covariance_matrix()
         return torch.distributions.MultivariateNormal(
-            loc=torch.zeros((num_outputs,), dtype=torch.float64, device=device),
+            loc=torch.zeros(
+                (self._num_flattened_outputs), dtype=torch.float64, device=self._device
+            ),
             covariance_matrix=covariance_matrix,
         )
 
-    cov_error = create_error_covariance_matrix(num_flattened_outputs, data.std_noise)
-    likelihood = compile_likelihood(num_flattened_outputs, cov_error)
+    def _assemble_residual_covariance_matrix(self) -> Tensor:
+        return torch.diag(
+            torch.full(
+                (self._num_flattened_outputs,),
+                self._data.std_noise**2,
+                dtype=torch.float64,
+                device=self._device,
+            )
+        )
 
-    def likelihood_func(parameters: Tensor) -> Tensor:
+    def _calculate_flattened_model_outputs(self, parameters: Tensor) -> Tensor:
         model_inputs = torch.concat(
             (
-                inputs,
-                parameters.repeat((size_data, 1)),
+                self._data.inputs.detach(),
+                parameters.repeat((self._data.num_data_points, 1)),
             ),
             dim=1,
-        ).to(device)
-        prediction = model(model_inputs)
-        flattened_prediction = prediction.ravel()
-        residual = flattened_prediction - flattened_outputs
+        ).to(self._device)
+        model_output = self._model(model_inputs)
+        return model_output.ravel()
 
-        return torch.exp(likelihood.log_prob(residual))
-
-    return likelihood_func
+    def _calculate_residual(self, parameters: Tensor) -> Tensor:
+        flattened_model_outputs = self._calculate_flattened_model_outputs(parameters)
+        return flattened_model_outputs - self._data.outputs.ravel()

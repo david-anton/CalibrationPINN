@@ -151,7 +151,9 @@ def _is_error_too_large(
 IsStateInSliceFunc: TypeAlias = Callable[[Parameters, Momentums, SliceVariable], bool]
 
 
-def _is_state_in_slice(potential_energy_func: PotentialEnergyFunc) -> IsStateInSliceFunc:
+def _is_state_in_slice(
+    potential_energy_func: PotentialEnergyFunc,
+) -> IsStateInSliceFunc:
     calculate_negative_hamiltonian = _calculate_negative_hamiltonian(
         potential_energy_func
     )
@@ -185,7 +187,7 @@ def keep_minus_from_old_tree(new_tree: TreeType, old_tree: TreeType) -> TreeType
 
 def log_bernoulli(log_probability: Tensor, device: Device) -> bool:
     """
-    Runs a Bernoulli experiment on a logarithmic probability. 
+    Runs a Bernoulli experiment on a logarithmic probability.
     Returns True with provided probability and False otherwise.
 
     If log_probability is nan, it will be set to 0.0.

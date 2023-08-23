@@ -11,6 +11,6 @@ class CalibrationData:
 
 
 @dataclass
-class PreprocessedData(CalibrationData):
+class PreprocessedCalibrationData(CalibrationData):
     num_data_points: int
     dim_outputs: int

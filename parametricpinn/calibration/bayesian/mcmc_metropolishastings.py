@@ -3,7 +3,7 @@ from typing import Callable, TypeAlias
 
 import torch
 
-from parametricpinn.calibration.bayesian.likelihood import LikelihoodFunc
+from parametricpinn.calibration.bayesian.likelihood import Likelihood
 from parametricpinn.calibration.bayesian.mcmc_base import (
     IsAccepted,
     Parameters,
@@ -26,7 +26,7 @@ MCMCMetropolisHastingsFunc: TypeAlias = Callable[
     [
         tuple[str, ...],
         tuple[float, ...],
-        LikelihoodFunc,
+        Likelihood,
         PriorFunc,
         Parameters,
         CovarianceProposalDensity,
@@ -48,7 +48,7 @@ class MetropolisHastingsConfig(MCMCConfig):
 def mcmc_metropolishastings(
     parameter_names: tuple[str, ...],
     true_parameters: tuple[float, ...],
-    likelihood: LikelihoodFunc,
+    likelihood: Likelihood,
     prior: PriorFunc,
     initial_parameters: Parameters,
     cov_proposal_density: CovarianceProposalDensity,

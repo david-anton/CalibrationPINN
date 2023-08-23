@@ -3,7 +3,7 @@ from typing import Callable, TypeAlias, Union
 
 import torch
 
-from parametricpinn.calibration.bayesian.likelihood import LikelihoodFunc
+from parametricpinn.calibration.bayesian.likelihood import Likelihood
 from parametricpinn.calibration.bayesian.mcmc_base import (
     IsAccepted,
     Samples,
@@ -33,7 +33,7 @@ MCMCHamiltonianFunc: TypeAlias = Callable[
     [
         tuple[str, ...],
         tuple[float, ...],
-        LikelihoodFunc,
+        Likelihood,
         PriorFunc,
         Parameters,
         int,
@@ -57,7 +57,7 @@ class HamiltonianConfig(MCMCConfig):
 def mcmc_hamiltonian(
     parameter_names: tuple[str, ...],
     true_parameters: tuple[float, ...],
-    likelihood: LikelihoodFunc,
+    likelihood: Likelihood,
     prior: PriorFunc,
     initial_parameters: Parameters,
     num_leapfrog_steps: int,

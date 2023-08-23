@@ -4,7 +4,7 @@ from typing import Callable, TypeAlias
 
 import torch
 
-from parametricpinn.calibration.bayesian.likelihood import LikelihoodFunc
+from parametricpinn.calibration.bayesian.likelihood import Likelihood
 from parametricpinn.calibration.bayesian.mcmc_base import (
     Samples,
     _unnnormalized_posterior,
@@ -43,7 +43,7 @@ MCMCNaiveNUTSFunc: TypeAlias = Callable[
     [
         tuple[str, ...],
         tuple[float, ...],
-        LikelihoodFunc,
+        Likelihood,
         PriorFunc,
         Parameters,
         StepSizes,
@@ -71,7 +71,7 @@ class NaiveTree(Tree):
 def mcmc_naivenuts(
     parameter_names: tuple[str, ...],
     true_parameters: tuple[float, ...],
-    likelihood: LikelihoodFunc,
+    likelihood: Likelihood,
     prior: PriorFunc,
     initial_parameters: Parameters,
     leapfrog_step_sizes: StepSizes,

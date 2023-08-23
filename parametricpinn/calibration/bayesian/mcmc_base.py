@@ -2,7 +2,7 @@ from typing import Callable, TypeAlias
 
 import torch
 
-from parametricpinn.calibration.bayesian.likelihood import LikelihoodFunc
+from parametricpinn.calibration.bayesian.likelihood import Likelihood
 from parametricpinn.calibration.bayesian.plot import plot_posterior_normal_distributions
 from parametricpinn.calibration.bayesian.prior import PriorFunc
 from parametricpinn.calibration.bayesian.statistics import (
@@ -19,10 +19,10 @@ IsAccepted: TypeAlias = bool
 
 
 def _unnnormalized_posterior(
-    likelihood: LikelihoodFunc, prior: PriorFunc
+    likelihood: Likelihood, prior: PriorFunc
 ) -> UnnormalizedPosterior:
     def unnormalized_posterior(parameters: Tensor) -> Tensor:
-        return likelihood(parameters) * prior(parameters)
+        return likelihood.prob(parameters) * prior(parameters)
 
     return unnormalized_posterior
 

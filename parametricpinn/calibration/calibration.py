@@ -1,9 +1,6 @@
 from typing import Callable, TypeAlias, cast
 
-from parametricpinn.calibration.bayesian.likelihood import (
-    LikelihoodFunc,
-    compile_likelihood,
-)
+from parametricpinn.calibration.bayesian.likelihood import CalibrationLikelihood
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
 from parametricpinn.calibration.bayesian.mcmc_efficientnuts import (
     EfficientNUTSConfig,
@@ -23,7 +20,7 @@ from parametricpinn.calibration.bayesian.mcmc_naivenuts import (
 )
 from parametricpinn.calibration.bayesian.prior import PriorFunc
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
-from parametricpinn.calibration.data import CalibrationData, PreprocessedData
+from parametricpinn.calibration.data import CalibrationData, PreprocessedCalibrationData
 from parametricpinn.calibration.utility import freeze_model
 from parametricpinn.errors import MCMCConfigError, UnvalidCalibrationDataError
 from parametricpinn.io import ProjectDirectory
@@ -64,13 +61,13 @@ def calibrate(
     return mcmc_algorithm()
 
 
-def _preprocess_calibration_data(data: CalibrationData) -> PreprocessedData:
+def _preprocess_calibration_data(data: CalibrationData) -> PreprocessedCalibrationData:
     _validate_calibration_data(data)
     outputs = data.outputs
     num_data_points = outputs.size()[0]
     dim_outputs = outputs.size()[1]
 
-    return PreprocessedData(
+    return PreprocessedCalibrationData(
         inputs=data.inputs,
         outputs=data.outputs,
         std_noise=data.std_noise,
@@ -104,9 +101,9 @@ def _load_model(
 
 
 def _compile_likelihood(
-    model: Module, data: PreprocessedData, device: Device
-) -> LikelihoodFunc:
-    return compile_likelihood(
+    model: Module, data: PreprocessedCalibrationData, device: Device
+) -> CalibrationLikelihood:
+    return CalibrationLikelihood(
         model=model,
         data=data,
         device=device,
@@ -115,7 +112,7 @@ def _compile_likelihood(
 
 def _compile_mcmc_algorithm(
     mcmc_config: MCMCConfig,
-    likelihood: LikelihoodFunc,
+    likelihood: CalibrationLikelihood,
     prior: PriorFunc,
     output_subdir: str,
     project_directory: ProjectDirectory,
