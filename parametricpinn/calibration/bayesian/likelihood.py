@@ -2,8 +2,12 @@ from typing import Protocol
 
 import torch
 
+from parametricpinn.calibration.bayesian.distributions import (
+    MultivariateNormalDistributon,
+    create_multivariate_normal_distribution,
+)
 from parametricpinn.calibration.data import PreprocessedCalibrationData
-from parametricpinn.types import Device, Module, Tensor, TorchMultiNormalDist
+from parametricpinn.types import Device, Module, Tensor
 
 
 class Likelihood(Protocol):
@@ -53,13 +57,14 @@ class CalibrationLikelihood:
         residual = self._calculate_residual(parameters)
         return self._likelihood.log_prob(residual)
 
-    def _initialize_likelihood(self) -> TorchMultiNormalDist:
+    def _initialize_likelihood(self) -> MultivariateNormalDistributon:
         covariance_matrix = self._assemble_residual_covariance_matrix()
-        return torch.distributions.MultivariateNormal(
-            loc=torch.zeros(
+        return create_multivariate_normal_distribution(
+            means=torch.zeros(
                 (self._num_flattened_outputs), dtype=torch.float64, device=self._device
             ),
             covariance_matrix=covariance_matrix,
+            device=self._device,
         )
 
     def _assemble_residual_covariance_matrix(self) -> Tensor:

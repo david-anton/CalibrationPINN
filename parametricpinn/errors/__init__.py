@@ -6,6 +6,7 @@ from .errors import (
     MixedDistributionError,
     TestConfigurationError,
     UnivariateNormalDistributionError,
+    UnivariateUniformDistributionError,
     UnvalidCalibrationDataError,
 )
 
@@ -17,5 +18,6 @@ __all__ = [
     "MixedDistributionError",
     "TestConfigurationError",
     "UnivariateNormalDistributionError",
+    "UnivariateUniformDistributionError",
     "UnvalidCalibrationDataError",
 ]

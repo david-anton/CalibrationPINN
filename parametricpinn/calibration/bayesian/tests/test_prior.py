@@ -175,9 +175,4 @@ def test_mixed_multivariate_independently_distributed_prior(
 
     actual = sut.prob(parameter)
 
-    print("############################")
-    print(actual)
-    print(expected)
-    print("############################")
-
     torch.testing.assert_close(actual, expected)

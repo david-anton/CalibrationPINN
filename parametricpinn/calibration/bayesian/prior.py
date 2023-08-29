@@ -3,17 +3,23 @@ from typing import TypeAlias, Union
 import torch
 
 from parametricpinn.calibration.bayesian.distributions import (
-    CustomDistribution,
+    MixedIndependetMultivariateDistribution,
+    MultivariateNormalDistributon,
     UnivariateDistributions,
+    UnivariateNormalDistributon,
+    UnivariateUniformDistributon,
     create_mixed_multivariate_independently_distribution,
     create_multivariate_normal_distribution,
     create_univariate_normal_distribution,
     create_univariate_uniform_distribution,
 )
-from parametricpinn.types import Device, Tensor, TorchMultiNormalDist, TorchUniformDist
+from parametricpinn.types import Device, Tensor
 
 PriorDistribution: TypeAlias = Union[
-    TorchUniformDist, TorchMultiNormalDist, CustomDistribution
+    UnivariateUniformDistributon,
+    UnivariateNormalDistributon,
+    MultivariateNormalDistributon,
+    MixedIndependetMultivariateDistribution,
 ]
 
 
@@ -41,10 +47,7 @@ class Prior:
         return torch.exp(self._log_prob(parameters))
 
     def _log_prob(self, parameters: Tensor) -> Tensor:
-        log_prob = self._distribution.log_prob(parameters)
-        if log_prob.shape is not torch.Size([]):
-            return torch.squeeze(log_prob, dim=0)
-        return log_prob
+        return self._distribution.log_prob(parameters)
 
 
 def create_univariate_uniform_distributed_prior(
