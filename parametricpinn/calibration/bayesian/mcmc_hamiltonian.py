@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable, TypeAlias, Union
+from typing import Callable, TypeAlias
 
 import torch
 
@@ -7,7 +7,7 @@ from parametricpinn.calibration.bayesian.likelihood import Likelihood
 from parametricpinn.calibration.bayesian.mcmc_base import (
     IsAccepted,
     Samples,
-    _unnnormalized_posterior,
+    _log_unnormalized_posterior,
     evaluate_acceptance_ratio,
     expand_num_iterations,
     postprocess_samples,
@@ -17,6 +17,8 @@ from parametricpinn.calibration.bayesian.mcmc_base_hamiltonian import (
     Momentums,
     Parameters,
     StepSizes,
+    _grad_log_unnormalized_posterior,
+    _grad_potential_energy_func,
     _potential_energy_func,
     _sample_normalized_momentums,
     kinetic_energy_func,
@@ -71,11 +73,11 @@ def mcmc_hamiltonian(
     step_sizes = leapfrog_step_sizes
     num_total_iterations = expand_num_iterations(num_iterations, num_burn_in_iterations)
 
-    unnormalized_posterior = _unnnormalized_posterior(likelihood, prior)
-    draw_normalized_momentums_func = _sample_normalized_momentums(
-        initial_parameters, device
-    )
-    potential_energy_func = _potential_energy_func(unnormalized_posterior)
+    log_unnorm_posterior = _log_unnormalized_posterior(likelihood, prior)
+    grad_log_unnorm_posterior = _grad_log_unnormalized_posterior(likelihood, prior)
+    draw_norm_momentums_func = _sample_normalized_momentums(initial_parameters, device)
+    potential_energy_func = _potential_energy_func(log_unnorm_posterior)
+    grad_potential_energy_func = _grad_potential_energy_func(grad_log_unnorm_posterior)
 
     def hamiltonian_sampler(parameters: Parameters) -> tuple[Parameters, IsAccepted]:
         def propose_next_state(
@@ -84,16 +86,8 @@ def mcmc_hamiltonian(
             def half_momentums_step(
                 parameters: Parameters, momentums: Momentums
             ) -> Momentums:
-                return (
-                    momentums
-                    - step_sizes
-                    / 2
-                    * torch.autograd.grad(
-                        potential_energy_func(parameters),
-                        parameters,
-                        retain_graph=False,
-                        create_graph=False,
-                    )[0]
+                return momentums - step_sizes / 2 * grad_potential_energy_func(
+                    parameters
                 )
 
             def full_parameter_and_momentum_step(
@@ -101,15 +95,8 @@ def mcmc_hamiltonian(
             ) -> tuple[Tensor, Tensor]:
                 parameters = parameters + step_sizes * momentums
                 if not is_last_step:
-                    momentums = (
-                        momentums
-                        - step_sizes
-                        * torch.autograd.grad(
-                            potential_energy_func(parameters),
-                            parameters,
-                            retain_graph=False,
-                            create_graph=False,
-                        )[0]
+                    momentums = momentums - step_sizes * grad_potential_energy_func(
+                        parameters
                     )
                 return parameters, momentums
 
@@ -141,9 +128,8 @@ def mcmc_hamiltonian(
             kinetic_energy = kinetic_energy_func(state.momentums)
             # Negate momentums to make proposal symmetric
             state.next_momentums = -state.next_momentums
-            with torch.no_grad():
-                next_potential_energy = potential_energy_func(state.next_parameters)
-                next_kinetic_energy = kinetic_energy_func(state.next_momentums)
+            next_potential_energy = potential_energy_func(state.next_parameters)
+            next_kinetic_energy = kinetic_energy_func(state.next_momentums)
 
             acceptance_prob = torch.exp(
                 potential_energy
@@ -159,7 +145,7 @@ def mcmc_hamiltonian(
                 is_accepted = False
             return next_parameters, is_accepted
 
-        momentums = draw_normalized_momentums_func()
+        momentums = draw_norm_momentums_func()
         next_parameters, next_momentums = propose_next_state(parameters, momentums)
         mh_update_state = MHUpdateState(
             parameters=parameters,

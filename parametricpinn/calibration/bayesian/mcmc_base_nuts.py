@@ -6,10 +6,13 @@ import torch
 
 from parametricpinn.calibration.bayesian.mcmc_base_hamiltonian import (
     Energy,
+    GradPotentialEnergyFunc,
     Momentums,
     Parameters,
     PotentialEnergyFunc,
     StepSizes,
+    _grad_log_unnormalized_posterior,
+    _grad_potential_energy_func,
     _potential_energy_func,
     _sample_normalized_momentums,
     kinetic_energy_func,
@@ -37,7 +40,7 @@ LeapfrogStepFunc: TypeAlias = Callable[
 
 
 def _leapfrog_step(
-    potential_energy_func: PotentialEnergyFunc,
+    grad_potential_energy_func: GradPotentialEnergyFunc,
 ) -> LeapfrogStepFunc:
     def leapfrog_step(
         parameters: Parameters, momentums: Momentums, step_sizes: StepSizes
@@ -45,17 +48,7 @@ def _leapfrog_step(
         def half_momentums_step(
             parameters: Parameters, momentums: Momentums, step_sizes: StepSizes
         ) -> Momentums:
-            return (
-                momentums
-                - step_sizes
-                / 2
-                * torch.autograd.grad(
-                    potential_energy_func(parameters),
-                    parameters,
-                    retain_graph=False,
-                    create_graph=False,
-                )[0]
-            )
+            return momentums - step_sizes / 2 * grad_potential_energy_func(parameters)
 
         def full_parameter_step(
             parameters: Parameters, momentums: Momentums, step_sizes: StepSizes

@@ -2,10 +2,13 @@ from typing import Callable, TypeAlias, Union
 
 import torch
 
+from parametricpinn.calibration.bayesian.likelihood import Likelihood
 from parametricpinn.calibration.bayesian.mcmc_base import (
+    LogUnnormalizedPosterior,
     Parameters,
-    UnnormalizedPosterior,
+    Probability,
 )
+from parametricpinn.calibration.bayesian.prior import Prior
 from parametricpinn.types import (
     Device,
     Tensor,
@@ -18,16 +21,40 @@ Energy: TypeAlias = Tensor
 StepSizes: TypeAlias = Tensor
 
 
+GradLogUnnormalizedPosterior: TypeAlias = Callable[[Tensor], Tensor]
+
+
+def _grad_log_unnormalized_posterior(
+    likelihood: Likelihood, prior: Prior
+) -> GradLogUnnormalizedPosterior:
+    def grad_log_unnormalized_posterior(parameters: Parameters) -> Probability:
+        return likelihood.grad_log_prob(parameters) + prior.grad_log_prob(parameters)
+
+    return grad_log_unnormalized_posterior
+
+
 PotentialEnergyFunc: TypeAlias = Callable[[Parameters], Energy]
 
 
 def _potential_energy_func(
-    unnormalized_posterior: UnnormalizedPosterior,
+    log_unnormalized_posterior: LogUnnormalizedPosterior,
 ) -> PotentialEnergyFunc:
     def potential_energy_func(parameters: Parameters) -> Energy:
-        return -torch.log(unnormalized_posterior(parameters))
+        return -log_unnormalized_posterior(parameters)
 
     return potential_energy_func
+
+
+GradPotentialEnergyFunc: TypeAlias = Callable[[Parameters], Energy]
+
+
+def _grad_potential_energy_func(
+    grad_log_unnormalized_posterior: GradLogUnnormalizedPosterior,
+) -> GradPotentialEnergyFunc:
+    def grad_potential_energy_func(parameters: Parameters) -> Energy:
+        return -grad_log_unnormalized_posterior(parameters)
+
+    return grad_potential_energy_func
 
 
 def kinetic_energy_func(momentums: Momentums) -> Energy:

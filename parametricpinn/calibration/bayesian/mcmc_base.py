@@ -13,16 +13,29 @@ from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import NPArray, Tensor
 
 Parameters: TypeAlias = Tensor
-UnnormalizedPosterior: TypeAlias = Callable[[Tensor], Tensor]
-Samples: TypeAlias = list[Tensor]
+Probability: TypeAlias = Tensor
+LogUnnormalizedPosterior: TypeAlias = Callable[[Parameters], Probability]
+UnnormalizedPosterior: TypeAlias = Callable[[Parameters], Probability]
+Samples: TypeAlias = list[Parameters]
 IsAccepted: TypeAlias = bool
 
 
-def _unnnormalized_posterior(
+def _log_unnormalized_posterior(
+    likelihood: Likelihood, prior: Prior
+) -> LogUnnormalizedPosterior:
+    def log_unnormalized_posterior(parameters: Parameters) -> Probability:
+        return likelihood.log_prob(parameters) + prior.log_prob(parameters)
+
+    return log_unnormalized_posterior
+
+
+def _unnormalized_posterior(
     likelihood: Likelihood, prior: Prior
 ) -> UnnormalizedPosterior:
-    def unnormalized_posterior(parameters: Tensor) -> Tensor:
-        return likelihood.prob(parameters) * prior.prob(parameters)
+    log_unnormalized_posterior = _log_unnormalized_posterior(likelihood, prior)
+
+    def unnormalized_posterior(parameters: Parameters) -> Probability:
+        return torch.exp(log_unnormalized_posterior(parameters))
 
     return unnormalized_posterior
 

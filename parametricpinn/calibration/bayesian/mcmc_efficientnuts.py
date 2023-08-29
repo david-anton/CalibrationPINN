@@ -7,7 +7,7 @@ import torch
 from parametricpinn.calibration.bayesian.likelihood import Likelihood
 from parametricpinn.calibration.bayesian.mcmc_base import (
     Samples,
-    _unnnormalized_posterior,
+    _log_unnormalized_posterior,
     expand_num_iterations,
     postprocess_samples,
     remove_burn_in_phase,
@@ -21,6 +21,8 @@ from parametricpinn.calibration.bayesian.mcmc_base_nuts import (
     TerminationFlag,
     Tree,
     TreeDepth,
+    _grad_log_unnormalized_posterior,
+    _grad_potential_energy_func,
     _is_distance_decreasing,
     _is_error_too_large,
     _is_state_in_slice,
@@ -92,11 +94,13 @@ def mcmc_efficientnuts(
     delta_error = torch.tensor(1000.0, device=device)
     num_total_iterations = expand_num_iterations(num_iterations, num_burn_in_iterations)
 
-    unnormalized_posterior = _unnnormalized_posterior(likelihood, prior)
-    potential_energy_func = _potential_energy_func(unnormalized_posterior)
+    log_unnorm_posterior = _log_unnormalized_posterior(likelihood, prior)
+    grad_log_unnorm_posterior = _grad_log_unnormalized_posterior(likelihood, prior)
+    potential_energy_func = _potential_energy_func(log_unnorm_posterior)
+    grad_potential_energy_func = _grad_potential_energy_func(grad_log_unnorm_posterior)
     sample_momentums = _sample_normalized_momentums(initial_parameters, device)
     sample_slice_variable = _sample_slice_variable(potential_energy_func, device)
-    leapfrog_step = _leapfrog_step(potential_energy_func)
+    leapfrog_step = _leapfrog_step(grad_potential_energy_func)
     is_distance_decreasing = _is_distance_decreasing(device)
     is_error_too_large = _is_error_too_large(potential_energy_func, delta_error)
     is_state_in_slice = _is_state_in_slice(potential_energy_func)
