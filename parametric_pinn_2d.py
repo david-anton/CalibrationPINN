@@ -80,7 +80,7 @@ use_naive_nuts = False
 use_efficient_nuts = True
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = 20230731
+output_date = current_date
 output_subdirectory = f"{output_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_32_col_64_bc_32_full_batch_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
@@ -370,7 +370,7 @@ def calibration_step() -> None:
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e3),
         num_leabfrog_steps=256,
-        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
+        leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
     )
     mcmc_config_nnuts = NaiveNUTSConfig(
         parameter_names=parameter_names,
@@ -387,7 +387,7 @@ def calibration_step() -> None:
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e3),
         max_tree_depth=8,
-        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
+        leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
     )
     if use_random_walk_metropolis_hasting:
         start = perf_counter()

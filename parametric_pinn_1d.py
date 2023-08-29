@@ -57,8 +57,8 @@ valid_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_random_walk_metropolis_hasting = False
-use_hamiltonian = False
+use_random_walk_metropolis_hasting = True
+use_hamiltonian = True
 use_naive_nuts = False
 use_efficient_nuts = True
 # Output
@@ -225,7 +225,7 @@ def calibration_step() -> None:
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e3),
-        num_leabfrog_steps=128,
+        num_leabfrog_steps=256,
         leapfrog_step_sizes=torch.tensor(1.0, device=device),
     )
     mcmc_config_nnuts = NaiveNUTSConfig(
