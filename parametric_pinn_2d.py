@@ -80,7 +80,7 @@ use_naive_nuts = False
 use_efficient_nuts = True
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = 20230731
 output_subdirectory = f"{output_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_32_col_64_bc_32_full_batch_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
