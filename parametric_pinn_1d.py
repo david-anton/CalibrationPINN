@@ -13,7 +13,7 @@ from parametricpinn.calibration import (
     calibrate,
 )
 from parametricpinn.calibration.bayesian.prior import (
-    compile_univariate_normal_distributed_prior,
+    create_univariate_normal_distributed_prior,
 )
 from parametricpinn.data import (
     TrainingDataset1D,
@@ -29,7 +29,7 @@ from parametricpinn.postprocessing.plot import (
     plot_displacements_1D,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.training_1D import (
+from parametricpinn.training.training_1d import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
@@ -201,7 +201,7 @@ def calibration_step() -> None:
 
     prior_mean_youngs_modulus = 210000
     prior_std_youngs_modulus = 10000
-    prior = compile_univariate_normal_distributed_prior(
+    prior = create_univariate_normal_distributed_prior(
         mean=prior_mean_youngs_modulus,
         standard_deviation=prior_std_youngs_modulus,
         device=device,

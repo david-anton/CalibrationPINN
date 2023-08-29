@@ -18,7 +18,7 @@ from parametricpinn.calibration.bayesian.mcmc_naivenuts import (
     NaiveNUTSConfig,
     mcmc_naivenuts,
 )
-from parametricpinn.calibration.bayesian.prior import PriorFunc
+from parametricpinn.calibration.bayesian.prior import Prior
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
 from parametricpinn.calibration.data import CalibrationData, PreprocessedCalibrationData
 from parametricpinn.calibration.utility import freeze_model
@@ -35,7 +35,7 @@ def calibrate(
     model: Module,
     name_model_parameters_file: str,
     calibration_data: CalibrationData,
-    prior: PriorFunc,
+    prior: Prior,
     mcmc_config: MCMCConfig,
     output_subdir: str,
     project_directory: ProjectDirectory,
@@ -113,7 +113,7 @@ def _compile_likelihood(
 def _compile_mcmc_algorithm(
     mcmc_config: MCMCConfig,
     likelihood: CalibrationLikelihood,
-    prior: PriorFunc,
+    prior: Prior,
     output_subdir: str,
     project_directory: ProjectDirectory,
     device: Device,

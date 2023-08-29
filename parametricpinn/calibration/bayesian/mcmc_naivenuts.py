@@ -32,7 +32,7 @@ from parametricpinn.calibration.bayesian.mcmc_base_nuts import (
     keep_plus_from_old_tree,
 )
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
-from parametricpinn.calibration.bayesian.prior import PriorFunc
+from parametricpinn.calibration.bayesian.prior import Prior
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, NPArray, Tensor
@@ -44,7 +44,7 @@ MCMCNaiveNUTSFunc: TypeAlias = Callable[
         tuple[str, ...],
         tuple[float, ...],
         Likelihood,
-        PriorFunc,
+        Prior,
         Parameters,
         StepSizes,
         int,
@@ -72,7 +72,7 @@ def mcmc_naivenuts(
     parameter_names: tuple[str, ...],
     true_parameters: tuple[float, ...],
     likelihood: Likelihood,
-    prior: PriorFunc,
+    prior: Prior,
     initial_parameters: Parameters,
     leapfrog_step_sizes: StepSizes,
     num_iterations: int,

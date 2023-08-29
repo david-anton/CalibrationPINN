@@ -15,7 +15,7 @@ from parametricpinn.calibration import (
     calibrate,
 )
 from parametricpinn.calibration.bayesian.prior import (
-    compile_multivariate_normal_distributed_prior,
+    create_multivariate_normal_distributed_prior,
 )
 from parametricpinn.data import (
     TrainingDataset2D,
@@ -335,7 +335,7 @@ def calibration_step() -> None:
     prior_covariance_matrix = torch.tensor(
         [[prior_std_youngs_modulus**2, 0], [0, prior_std_poissons_ratio**2]]
     )
-    prior = compile_multivariate_normal_distributed_prior(
+    prior = create_multivariate_normal_distributed_prior(
         means=prior_means, covariance_matrix=prior_covariance_matrix, device=device
     )
 

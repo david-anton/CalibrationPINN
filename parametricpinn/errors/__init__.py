@@ -5,6 +5,7 @@ from .errors import (
     MCMCConfigError,
     MixedDistributionError,
     TestConfigurationError,
+    UnivariateNormalDistributionError,
     UnvalidCalibrationDataError,
 )
 
@@ -15,5 +16,6 @@ __all__ = [
     "MCMCConfigError",
     "MixedDistributionError",
     "TestConfigurationError",
+    "UnivariateNormalDistributionError",
     "UnvalidCalibrationDataError",
 ]

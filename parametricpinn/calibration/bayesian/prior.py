@@ -1,70 +1,83 @@
-from typing import Callable, TypeAlias, Union
+from typing import TypeAlias, Union
 
 import torch
 
 from parametricpinn.calibration.bayesian.distributions import (
-    MixedIndependetMultivariateDistribution,
-    TorchUnivariateDistributions,
+    CustomDistribution,
+    UnivariateDistributions,
+    create_mixed_multivariate_independently_distribution,
+    create_multivariate_normal_distribution,
+    create_univariate_normal_distribution,
+    create_univariate_uniform_distribution,
 )
-from parametricpinn.types import (
-    Device,
-    Tensor,
-    TorchMultiNormalDist,
-    TorchUniformDist,
-    TorchUniNormalDist,
-)
+from parametricpinn.types import Device, Tensor, TorchMultiNormalDist, TorchUniformDist
 
 PriorDistribution: TypeAlias = Union[
-    TorchUniformDist,
-    TorchUniNormalDist,
-    TorchMultiNormalDist,
-    MixedIndependetMultivariateDistribution,
+    TorchUniformDist, TorchMultiNormalDist, CustomDistribution
 ]
-PriorFunc: TypeAlias = Callable[[Tensor], Tensor]
 
 
-def compile_prior(distribution: PriorDistribution) -> PriorFunc:
-    def prior_func(parameters: Tensor) -> Tensor:
-        return torch.exp(distribution.log_prob(parameters))
+class Prior:
+    def __init__(self, distribution: PriorDistribution):
+        self._distribution = distribution
 
-    return prior_func
+    def prob(self, parameters: Tensor) -> Tensor:
+        with torch.no_grad():
+            return self._prob(parameters)
+
+    def log_prob(self, parameters: Tensor) -> Tensor:
+        with torch.no_grad():
+            return self._log_prob(parameters)
+
+    def grad_log_prob(self, parameters: Tensor) -> Tensor:
+        return torch.autograd.grad(
+            self._log_prob(parameters),
+            parameters,
+            retain_graph=False,
+            create_graph=False,
+        )[0]
+
+    def _prob(self, parameters: Tensor) -> Tensor:
+        return torch.exp(self._log_prob(parameters))
+
+    def _log_prob(self, parameters: Tensor) -> Tensor:
+        log_prob = self._distribution.log_prob(parameters)
+        if log_prob.shape is not torch.Size([]):
+            return torch.squeeze(log_prob, dim=0)
+        return log_prob
 
 
-def compile_univariate_uniform_distributed_prior(
+def create_univariate_uniform_distributed_prior(
     lower_limit: float, upper_limit: float, device: Device
-) -> PriorFunc:
-    distribution = torch.distributions.Uniform(
-        low=torch.tensor(lower_limit, dtype=torch.float64, device=device),
-        high=torch.tensor(upper_limit, dtype=torch.float64, device=device),
-        validate_args=False,
+) -> Prior:
+    distribution = create_univariate_uniform_distribution(
+        lower_limit, upper_limit, device
     )
-    return compile_prior(distribution)
+    return Prior(distribution)
 
 
-def compile_univariate_normal_distributed_prior(
+def create_univariate_normal_distributed_prior(
     mean: float, standard_deviation: float, device: Device
-) -> PriorFunc:
-    distribution = torch.distributions.Normal(
-        loc=torch.tensor(mean, dtype=torch.float64, device=device),
-        scale=torch.tensor(standard_deviation, dtype=torch.float64, device=device),
+) -> Prior:
+    distribution = create_univariate_normal_distribution(
+        mean, standard_deviation, device
     )
-    return compile_prior(distribution)
+    return Prior(distribution)
 
 
-def compile_multivariate_normal_distributed_prior(
+def create_multivariate_normal_distributed_prior(
     means: Tensor, covariance_matrix: Tensor, device: Device
-) -> PriorFunc:
-    distribution = torch.distributions.MultivariateNormal(
-        loc=means.type(torch.float64).to(device),
-        covariance_matrix=covariance_matrix.type(torch.float64).to(device),
+) -> Prior:
+    distribution = create_multivariate_normal_distribution(
+        means, covariance_matrix, device
     )
-    return compile_prior(distribution)
+    return Prior(distribution)
 
 
-def compile_mixed_multivariate_independently_distributed_prior(
-    independent_univariate_distributions: list[TorchUnivariateDistributions],
-) -> PriorFunc:
-    distribution = MixedIndependetMultivariateDistribution(
+def create_mixed_multivariate_independently_distributed_prior(
+    independent_univariate_distributions: list[UnivariateDistributions],
+) -> Prior:
+    distribution = create_mixed_multivariate_independently_distribution(
         independent_univariate_distributions
     )
-    return compile_prior(distribution)
+    return Prior(distribution)

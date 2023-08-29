@@ -15,7 +15,7 @@ from parametricpinn.calibration.bayesian.mcmc_base import (
     remove_burn_in_phase,
 )
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
-from parametricpinn.calibration.bayesian.prior import PriorFunc
+from parametricpinn.calibration.bayesian.prior import Prior
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, NPArray, Tensor, TorchMultiNormalDist
@@ -27,7 +27,7 @@ MCMCMetropolisHastingsFunc: TypeAlias = Callable[
         tuple[str, ...],
         tuple[float, ...],
         Likelihood,
-        PriorFunc,
+        Prior,
         Parameters,
         CovarianceProposalDensity,
         int,
@@ -49,7 +49,7 @@ def mcmc_metropolishastings(
     parameter_names: tuple[str, ...],
     true_parameters: tuple[float, ...],
     likelihood: Likelihood,
-    prior: PriorFunc,
+    prior: Prior,
     initial_parameters: Parameters,
     cov_proposal_density: CovarianceProposalDensity,
     num_iterations: int,
@@ -94,15 +94,13 @@ def mcmc_metropolishastings(
         def metropolis_hastings_update(
             state: MHUpdateState,
         ) -> tuple[Parameters, IsAccepted]:
-            acceptance_ratio = torch.minimum(
-                torch.tensor(1.0, device=device),
-                unnormalized_posterior(state.next_parameters)
-                / unnormalized_posterior(state.parameters),
-            )
+            acceptance_prob = unnormalized_posterior(
+                state.next_parameters
+            ) / unnormalized_posterior(state.parameters)
             rand_uniform_number = torch.squeeze(torch.rand(1, device=device), 0)
             next_parameters = state.next_parameters
             is_accepted = True
-            if rand_uniform_number > acceptance_ratio:
+            if rand_uniform_number > acceptance_prob:
                 next_parameters = state.parameters
                 is_accepted = False
             return next_parameters, is_accepted

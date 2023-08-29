@@ -37,6 +37,11 @@ class MCMCConfigError(Error):
         super().__init__(message)
 
 
+class UnivariateNormalDistributionError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
 class MixedDistributionError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)

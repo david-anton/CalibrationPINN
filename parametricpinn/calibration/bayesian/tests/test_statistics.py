@@ -118,6 +118,5 @@ def test_determine_moments_of_multivariate_normal_distribution_for_univariate_di
         num_samples - 1
     )
     expected = np.array([variance])
-    print(actual)
     np.testing.assert_array_almost_equal(actual, expected)
     assert_numpy_arrays_equal(actual, expected)

@@ -22,7 +22,7 @@ from parametricpinn.calibration.bayesian.mcmc_base_hamiltonian import (
     kinetic_energy_func,
 )
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
-from parametricpinn.calibration.bayesian.prior import PriorFunc
+from parametricpinn.calibration.bayesian.prior import Prior
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, NPArray, Tensor
@@ -34,7 +34,7 @@ MCMCHamiltonianFunc: TypeAlias = Callable[
         tuple[str, ...],
         tuple[float, ...],
         Likelihood,
-        PriorFunc,
+        Prior,
         Parameters,
         int,
         StepSizes,
@@ -58,7 +58,7 @@ def mcmc_hamiltonian(
     parameter_names: tuple[str, ...],
     true_parameters: tuple[float, ...],
     likelihood: Likelihood,
-    prior: PriorFunc,
+    prior: Prior,
     initial_parameters: Parameters,
     num_leapfrog_steps: int,
     leapfrog_step_sizes: StepSizes,
@@ -145,19 +145,16 @@ def mcmc_hamiltonian(
                 next_potential_energy = potential_energy_func(state.next_parameters)
                 next_kinetic_energy = kinetic_energy_func(state.next_momentums)
 
-            acceptance_ratio = torch.minimum(
-                torch.tensor(1.0, device=device),
-                torch.exp(
-                    potential_energy
-                    - next_potential_energy
-                    + kinetic_energy
-                    - next_kinetic_energy
-                ),
+            acceptance_prob = torch.exp(
+                potential_energy
+                - next_potential_energy
+                + kinetic_energy
+                - next_kinetic_energy
             )
             rand_uniform_number = torch.squeeze(torch.rand(1, device=device), 0)
             next_parameters = state.next_parameters
             is_accepted = True
-            if rand_uniform_number > acceptance_ratio:
+            if rand_uniform_number > acceptance_prob:
                 next_parameters = state.parameters
                 is_accepted = False
             return next_parameters, is_accepted

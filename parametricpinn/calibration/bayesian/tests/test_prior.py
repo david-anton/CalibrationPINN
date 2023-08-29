@@ -2,19 +2,29 @@ import pytest
 import torch
 
 from parametricpinn.calibration.bayesian.prior import (
-    compile_mixed_multivariate_independently_distributed_prior,
-    compile_multivariate_normal_distributed_prior,
-    compile_univariate_normal_distributed_prior,
-    compile_univariate_uniform_distributed_prior,
+    create_mixed_multivariate_independently_distributed_prior,
+    create_multivariate_normal_distributed_prior,
+    create_univariate_normal_distributed_prior,
+    create_univariate_normal_distribution,
+    create_univariate_uniform_distributed_prior,
+    create_univariate_uniform_distribution,
 )
 from parametricpinn.types import Tensor
 
 device = torch.device("cpu")
 
 
+def _expected_univariate_uniform_distributed_prior() -> list[tuple[Tensor, Tensor]]:
+    return [
+        (torch.tensor([0.0]), torch.tensor(0.5, dtype=torch.float64)),
+        (torch.tensor([-2.0]), torch.tensor(0.0, dtype=torch.float64)),
+        (torch.tensor([2.0]), torch.tensor(0.0, dtype=torch.float64)),
+    ]
+
+
 def _expected_univariate_normal_distributed_prior() -> list[tuple[Tensor, Tensor]]:
-    mean = 0.0
-    standard_deviation = 1.0
+    mean = torch.tensor(0.0)
+    standard_deviation = torch.tensor(1.0)
     return [
         (
             torch.tensor([0.0]),
@@ -22,7 +32,7 @@ def _expected_univariate_normal_distributed_prior() -> list[tuple[Tensor, Tensor
                 torch.distributions.Normal(loc=mean, scale=standard_deviation).log_prob(
                     torch.tensor([0.0])
                 )
-            ),
+            ).type(torch.float64)[0],
         ),
         (
             torch.tensor([-1.0]),
@@ -30,7 +40,7 @@ def _expected_univariate_normal_distributed_prior() -> list[tuple[Tensor, Tensor
                 torch.distributions.Normal(loc=mean, scale=standard_deviation).log_prob(
                     torch.tensor([-1.0])
                 )
-            ),
+            ).type(torch.float64)[0],
         ),
         (
             torch.tensor([1.0]),
@@ -38,7 +48,7 @@ def _expected_univariate_normal_distributed_prior() -> list[tuple[Tensor, Tensor
                 torch.distributions.Normal(loc=mean, scale=standard_deviation).log_prob(
                     torch.tensor([1.0])
                 )
-            ),
+            ).type(torch.float64)[0],
         ),
     ]
 
@@ -53,7 +63,7 @@ def _expected_multivariate_normal_distributed_prior() -> list[tuple[Tensor, Tens
                 torch.distributions.MultivariateNormal(
                     loc=means, covariance_matrix=covariance_matrix
                 ).log_prob(torch.tensor([0.0, 0.0]))
-            ),
+            ).type(torch.float64),
         ),
         (
             torch.tensor([-1.0, -1.0]),
@@ -61,7 +71,7 @@ def _expected_multivariate_normal_distributed_prior() -> list[tuple[Tensor, Tens
                 torch.distributions.MultivariateNormal(
                     loc=means, covariance_matrix=covariance_matrix
                 ).log_prob(torch.tensor([-1.0, -1.0]))
-            ),
+            ).type(torch.float64),
         ),
         (
             torch.tensor([1.0, 1.0]),
@@ -69,7 +79,7 @@ def _expected_multivariate_normal_distributed_prior() -> list[tuple[Tensor, Tens
                 torch.distributions.MultivariateNormal(
                     loc=means, covariance_matrix=covariance_matrix
                 ).log_prob(torch.tensor([1.0, 1.0]))
-            ),
+            ).type(torch.float64),
         ),
     ]
 
@@ -79,12 +89,12 @@ def _expected_mixed_multivariate_independently_distributed_prior() -> (
 ):
     mean_normal_dist = 0.0
     standard_deviation_normal_dist = 1.0
-    parameter_normal_dist = torch.tensor(0.0)
+    parameter_normal_dist = 0.0
     probability_normal_dist = torch.exp(
         torch.distributions.Normal(
             loc=mean_normal_dist, scale=standard_deviation_normal_dist
-        ).log_prob(parameter_normal_dist)
-    )
+        ).log_prob(torch.tensor(parameter_normal_dist))
+    ).type(torch.float64)
 
     return [
         (torch.tensor([0.0, parameter_normal_dist]), 0.5 * probability_normal_dist),
@@ -94,21 +104,16 @@ def _expected_mixed_multivariate_independently_distributed_prior() -> (
 
 
 @pytest.mark.parametrize(
-    ("parameter", "expected"),
-    [
-        (torch.tensor([0.0]), torch.tensor([0.5])),
-        (torch.tensor([-2.0]), torch.tensor([0.0])),
-        (torch.tensor([2.0]), torch.tensor([0.0])),
-    ],
+    ("parameter", "expected"), _expected_univariate_uniform_distributed_prior()
 )
 def test_univariate_uniform_distributed_prior(parameter: Tensor, expected: Tensor):
     lower_limit = -1.0
     upper_limit = 1.0
-    sut = compile_univariate_uniform_distributed_prior(
+    sut = create_univariate_uniform_distributed_prior(
         lower_limit=lower_limit, upper_limit=upper_limit, device=device
     )
 
-    actual = sut(parameter)
+    actual = sut.prob(parameter)
 
     torch.testing.assert_close(actual, expected)
 
@@ -119,11 +124,11 @@ def test_univariate_uniform_distributed_prior(parameter: Tensor, expected: Tenso
 def test_univariate_normal_distributed_prior(parameter: Tensor, expected: Tensor):
     mean = 0.0
     standard_deviation = 1.0
-    sut = compile_univariate_normal_distributed_prior(
+    sut = create_univariate_normal_distributed_prior(
         mean=mean, standard_deviation=standard_deviation, device=device
     )
 
-    actual = sut(parameter)
+    actual = sut.prob(parameter)
 
     torch.testing.assert_close(actual, expected)
 
@@ -134,11 +139,11 @@ def test_univariate_normal_distributed_prior(parameter: Tensor, expected: Tensor
 def test_multivariate_normal_distributed_prior(parameter: Tensor, expected: Tensor):
     means = torch.tensor([0.0, 0.0])
     covariance_matrix = torch.tensor([[1.0, 0.0], [0.0, 1.0]])
-    sut = compile_multivariate_normal_distributed_prior(
+    sut = create_multivariate_normal_distributed_prior(
         means=means, covariance_matrix=covariance_matrix, device=device
     )
 
-    actual = sut(parameter)
+    actual = sut.prob(parameter)
 
     torch.testing.assert_close(actual, expected)
 
@@ -152,18 +157,27 @@ def test_mixed_multivariate_independently_distributed_prior(
 ):
     lower_bound_uniform_dist = -1
     upper_bound_uniform_dist = 1
-    uniform_dist = torch.distributions.Uniform(
-        low=lower_bound_uniform_dist, high=upper_bound_uniform_dist, validate_args=False
+    uniform_dist = create_univariate_uniform_distribution(
+        lower_limit=lower_bound_uniform_dist,
+        upper_limit=upper_bound_uniform_dist,
+        device=device,
     )
     mean_normal_dist = 0.0
     standard_deviation_normal_dist = 1.0
-    normal_dist = torch.distributions.Normal(
-        loc=mean_normal_dist, scale=standard_deviation_normal_dist
+    normal_dist = create_univariate_normal_distribution(
+        mean=mean_normal_dist,
+        standard_deviation=standard_deviation_normal_dist,
+        device=device,
     )
-    sut = compile_mixed_multivariate_independently_distributed_prior(
+    sut = create_mixed_multivariate_independently_distributed_prior(
         independent_univariate_distributions=[uniform_dist, normal_dist]
     )
 
-    actual = sut(parameter)
+    actual = sut.prob(parameter)
+
+    print("############################")
+    print(actual)
+    print(expected)
+    print("############################")
 
     torch.testing.assert_close(actual, expected)
