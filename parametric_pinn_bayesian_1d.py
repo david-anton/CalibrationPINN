@@ -12,7 +12,7 @@ from parametricpinn.data import (
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.training_bayesian_1D import (
+from parametricpinn.training.training_bayesian_1d import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
