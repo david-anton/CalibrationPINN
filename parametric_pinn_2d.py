@@ -349,7 +349,7 @@ def calibration_step() -> None:
         parameter_names=parameter_names,
         true_parameters=true_parameters,
         initial_parameters=initial_parameters,
-        num_iterations=int(1e4),
+        num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
         cov_proposal_density=torch.diag(
             torch.tensor(
@@ -367,7 +367,7 @@ def calibration_step() -> None:
         parameter_names=parameter_names,
         true_parameters=true_parameters,
         initial_parameters=initial_parameters,
-        num_iterations=int(1e4),
+        num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
         num_leabfrog_steps=256,
         leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
@@ -376,7 +376,7 @@ def calibration_step() -> None:
         parameter_names=parameter_names,
         true_parameters=true_parameters,
         initial_parameters=initial_parameters,
-        num_iterations=int(1e4),
+        num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
         leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
     )
@@ -384,7 +384,7 @@ def calibration_step() -> None:
         parameter_names=parameter_names,
         true_parameters=true_parameters,
         initial_parameters=initial_parameters,
-        num_iterations=int(1e4),
+        num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
         max_tree_depth=8,
         leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
