@@ -70,6 +70,8 @@ class MultivariateNormalDistributon:
             loc=means.type(torch.float64).to(device),
             covariance_matrix=covariance_matrix.type(torch.float64).to(device),
         )
+        self.means = self._distribution.mean
+        self.variances = self._distribution.variance
 
     def log_prob(self, sample: Tensor):
         log_prob = self._distribution.log_prob(sample)

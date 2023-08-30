@@ -1,4 +1,5 @@
 from .errors import (
+    BayesianNNError,
     DirectoryNotFoundError,
     FEMConfigurationError,
     FileNotFoundError,
@@ -11,6 +12,7 @@ from .errors import (
 )
 
 __all__ = [
+    "BayesianNNError",
     "DirectoryNotFoundError",
     "FEMConfigurationError",
     "FileNotFoundError",

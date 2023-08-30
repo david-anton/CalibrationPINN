@@ -25,7 +25,7 @@ PriorDistribution: TypeAlias = Union[
 
 class Prior:
     def __init__(self, distribution: PriorDistribution):
-        self._distribution = distribution
+        self.distribution = distribution
 
     def prob(self, parameters: Tensor) -> Tensor:
         with torch.no_grad():
@@ -47,7 +47,7 @@ class Prior:
         return torch.exp(self._log_prob(parameters))
 
     def _log_prob(self, parameters: Tensor) -> Tensor:
-        return self._distribution.log_prob(parameters)
+        return self.distribution.log_prob(parameters)
 
 
 def create_univariate_uniform_distributed_prior(
