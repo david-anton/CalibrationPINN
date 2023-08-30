@@ -17,23 +17,18 @@ from parametricpinn.calibration.bayesian.mcmc_base import (
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
 from parametricpinn.calibration.bayesian.prior import Prior
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
-from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, NPArray, Tensor, TorchMultiNormalDist
 
 CovarianceProposalDensity: TypeAlias = Tensor
 
 MCMCMetropolisHastingsFunc: TypeAlias = Callable[
     [
-        tuple[str, ...],
-        tuple[float, ...],
         Likelihood,
         Prior,
         Parameters,
         CovarianceProposalDensity,
         int,
         int,
-        str,
-        ProjectDirectory,
         Device,
     ],
     tuple[MomentsMultivariateNormal, NPArray],
@@ -46,16 +41,12 @@ class MetropolisHastingsConfig(MCMCConfig):
 
 
 def mcmc_metropolishastings(
-    parameter_names: tuple[str, ...],
-    true_parameters: tuple[float, ...],
     likelihood: Likelihood,
     prior: Prior,
     initial_parameters: Parameters,
     cov_proposal_density: CovarianceProposalDensity,
     num_iterations: int,
     num_burn_in_iterations: int,
-    output_subdir: str,
-    project_directory: ProjectDirectory,
     device: Device,
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
     num_total_iterations = expand_num_iterations(num_iterations, num_burn_in_iterations)
@@ -127,14 +118,7 @@ def mcmc_metropolishastings(
     samples_list = remove_burn_in_phase(
         sample_list=samples_list, num_burn_in_iterations=num_burn_in_iterations
     )
-    moments, samples = postprocess_samples(
-        samples_list=samples_list,
-        parameter_names=parameter_names,
-        true_parameters=true_parameters,
-        mcmc_algorithm="metropolishastings_mcmc",
-        output_subdir=output_subdir,
-        project_directory=project_directory,
-    )
+    moments, samples = postprocess_samples(samples_list=samples_list)
     evaluate_acceptance_ratio(
         num_accepted_proposals=num_accepted_proposals, num_iterations=num_iterations
     )

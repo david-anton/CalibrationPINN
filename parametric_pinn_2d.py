@@ -14,6 +14,9 @@ from parametricpinn.calibration import (
     NaiveNUTSConfig,
     calibrate,
 )
+from parametricpinn.calibration.bayesian.plot import (
+    plot_multivariate_normal_distribution,
+)
 from parametricpinn.calibration.bayesian.prior import (
     create_multivariate_normal_distributed_prior,
 )
@@ -346,8 +349,6 @@ def calibration_step() -> None:
     )
 
     mcmc_config_mh = MetropolisHastingsConfig(
-        parameter_names=parameter_names,
-        true_parameters=true_parameters,
         initial_parameters=initial_parameters,
         num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
@@ -364,8 +365,6 @@ def calibration_step() -> None:
         ),
     )
     mcmc_config_h = HamiltonianConfig(
-        parameter_names=parameter_names,
-        true_parameters=true_parameters,
         initial_parameters=initial_parameters,
         num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
@@ -373,16 +372,12 @@ def calibration_step() -> None:
         leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
     )
     mcmc_config_nnuts = NaiveNUTSConfig(
-        parameter_names=parameter_names,
-        true_parameters=true_parameters,
         initial_parameters=initial_parameters,
         num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
         leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
     )
     mcmc_config_enuts = EfficientNUTSConfig(
-        parameter_names=parameter_names,
-        true_parameters=true_parameters,
         initial_parameters=initial_parameters,
         num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
@@ -404,6 +399,15 @@ def calibration_step() -> None:
         end = perf_counter()
         time = end - start
         print(f"Run time Metropolis-Hasting: {time}")
+        plot_multivariate_normal_distribution(
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            moments=posterior_moments_mh,
+            samples=samples_mh,
+            mcmc_algorithm="metropolis_hastings",
+            output_subdir=output_subdirectory,
+            project_directory=project_directory
+        )
     if use_hamiltonian:
         start = perf_counter()
         posterior_moments_h, samples_h = calibrate(
@@ -419,6 +423,15 @@ def calibration_step() -> None:
         end = perf_counter()
         time = end - start
         print(f"Run time Hamiltonian: {time}")
+        plot_multivariate_normal_distribution(
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            moments=posterior_moments_h,
+            samples=samples_h,
+            mcmc_algorithm="hamiltonian",
+            output_subdir=output_subdirectory,
+            project_directory=project_directory
+        )
     if use_naive_nuts:
         start = perf_counter()
         posterior_moments_nnuts, samples_nnuts = calibrate(
@@ -434,6 +447,15 @@ def calibration_step() -> None:
         end = perf_counter()
         time = end - start
         print(f"Run time naive NUTS: {time}")
+        plot_multivariate_normal_distribution(
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            moments=posterior_moments_nnuts,
+            samples=samples_nnuts,
+            mcmc_algorithm="naive_nuts",
+            output_subdir=output_subdirectory,
+            project_directory=project_directory
+        )
     if use_efficient_nuts:
         start = perf_counter()
         posterior_moments_enuts, samples_enuts = calibrate(
@@ -449,6 +471,15 @@ def calibration_step() -> None:
         end = perf_counter()
         time = end - start
         print(f"Run time efficient NUTS: {time}")
+        plot_multivariate_normal_distribution(
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            moments=posterior_moments_enuts,
+            samples=samples_enuts,
+            mcmc_algorithm="efficient_nuts",
+            output_subdir=output_subdirectory,
+            project_directory=project_directory
+        )
     print("Calibration finished.")
 
 

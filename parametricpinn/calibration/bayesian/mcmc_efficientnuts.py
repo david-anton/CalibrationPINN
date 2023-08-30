@@ -38,15 +38,12 @@ from parametricpinn.calibration.bayesian.mcmc_base_nuts import (
 from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
 from parametricpinn.calibration.bayesian.prior import Prior
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
-from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, NPArray, Tensor
 
 CandidateSetSize: TypeAlias = Tensor
 
 MCMCEfficientNUTSFunc: TypeAlias = Callable[
     [
-        tuple[str, ...],
-        tuple[float, ...],
         Likelihood,
         Prior,
         Parameters,
@@ -54,8 +51,6 @@ MCMCEfficientNUTSFunc: TypeAlias = Callable[
         int,
         int,
         TreeDepth,
-        str,
-        ProjectDirectory,
         Device,
     ],
     tuple[MomentsMultivariateNormal, NPArray],
@@ -76,8 +71,6 @@ class EfficientTree(Tree):
 
 
 def mcmc_efficientnuts(
-    parameter_names: tuple[str, ...],
-    true_parameters: tuple[float, ...],
     likelihood: Likelihood,
     prior: Prior,
     initial_parameters: Parameters,
@@ -85,8 +78,6 @@ def mcmc_efficientnuts(
     num_iterations: int,
     num_burn_in_iterations: int,
     max_tree_depth: TreeDepth,
-    output_subdir: str,
-    project_directory: ProjectDirectory,
     device: Device,
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
     step_sizes = leapfrog_step_sizes
@@ -328,13 +319,6 @@ def mcmc_efficientnuts(
     samples_list = remove_burn_in_phase(
         sample_list=samples_list, num_burn_in_iterations=num_burn_in_iterations
     )
-    moments, samples = postprocess_samples(
-        samples_list=samples_list,
-        parameter_names=parameter_names,
-        true_parameters=true_parameters,
-        mcmc_algorithm="efficientnuts_mcmc",
-        output_subdir=output_subdir,
-        project_directory=project_directory,
-    )
+    moments, samples = postprocess_samples(samples_list=samples_list)
 
     return moments, samples

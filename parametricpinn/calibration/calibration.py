@@ -54,8 +54,6 @@ def calibrate(
         mcmc_config=mcmc_config,
         likelihood=likelihood,
         prior=prior,
-        output_subdir=output_subdir,
-        project_directory=project_directory,
         device=device,
     )
     return mcmc_algorithm()
@@ -114,8 +112,6 @@ def _compile_mcmc_algorithm(
     mcmc_config: MCMCConfig,
     likelihood: CalibrationLikelihood,
     prior: Prior,
-    output_subdir: str,
-    project_directory: ProjectDirectory,
     device: Device,
 ) -> MCMC_Algorithm_Closure:
     if isinstance(mcmc_config, MetropolisHastingsConfig):
@@ -124,16 +120,12 @@ def _compile_mcmc_algorithm(
 
         def mcmc_mh_algorithm() -> MCMC_Algorithm_Output:
             return mcmc_metropolishastings(
-                parameter_names=config_mh.parameter_names,
-                true_parameters=config_mh.true_parameters,
                 likelihood=likelihood,
                 prior=prior,
                 initial_parameters=config_mh.initial_parameters,
                 cov_proposal_density=config_mh.cov_proposal_density,
                 num_iterations=config_mh.num_iterations,
                 num_burn_in_iterations=config_mh.num_burn_in_iterations,
-                output_subdir=output_subdir,
-                project_directory=project_directory,
                 device=device,
             )
 
@@ -145,8 +137,6 @@ def _compile_mcmc_algorithm(
 
         def mcmc_hamiltonian_algorithm() -> MCMC_Algorithm_Output:
             return mcmc_hamiltonian(
-                parameter_names=config_h.parameter_names,
-                true_parameters=config_h.true_parameters,
                 likelihood=likelihood,
                 prior=prior,
                 initial_parameters=config_h.initial_parameters,
@@ -154,8 +144,6 @@ def _compile_mcmc_algorithm(
                 leapfrog_step_sizes=config_h.leapfrog_step_sizes,
                 num_iterations=config_h.num_iterations,
                 num_burn_in_iterations=config_h.num_burn_in_iterations,
-                output_subdir=output_subdir,
-                project_directory=project_directory,
                 device=device,
             )
 
@@ -166,16 +154,12 @@ def _compile_mcmc_algorithm(
 
         def mcmc_naive_nuts_algorithm() -> MCMC_Algorithm_Output:
             return mcmc_naivenuts(
-                parameter_names=config_nnuts.parameter_names,
-                true_parameters=config_nnuts.true_parameters,
                 likelihood=likelihood,
                 prior=prior,
                 initial_parameters=config_nnuts.initial_parameters,
                 leapfrog_step_sizes=config_nnuts.leapfrog_step_sizes,
                 num_iterations=config_nnuts.num_iterations,
                 num_burn_in_iterations=config_nnuts.num_burn_in_iterations,
-                output_subdir=output_subdir,
-                project_directory=project_directory,
                 device=device,
             )
 
@@ -186,8 +170,6 @@ def _compile_mcmc_algorithm(
 
         def mcmc_efficient_nuts_algorithm() -> MCMC_Algorithm_Output:
             return mcmc_efficientnuts(
-                parameter_names=config_enuts.parameter_names,
-                true_parameters=config_enuts.true_parameters,
                 likelihood=likelihood,
                 prior=prior,
                 initial_parameters=config_enuts.initial_parameters,
@@ -195,8 +177,6 @@ def _compile_mcmc_algorithm(
                 num_iterations=config_enuts.num_iterations,
                 num_burn_in_iterations=config_enuts.num_burn_in_iterations,
                 max_tree_depth=config_enuts.max_tree_depth,
-                output_subdir=output_subdir,
-                project_directory=project_directory,
                 device=device,
             )
 
