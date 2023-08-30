@@ -79,6 +79,21 @@ class FFNN(Module):
         self._output = nn.Sequential(*self._layers)
         self._parameter_structure = self._determine_parameter_structure()
 
+    def forward(self, x: Tensor) -> Tensor:
+        return self._output(x)
+
+    def get_flattened_parameters(self) -> FlattenedParameters:
+        flattened_parameter_sets = []
+        for parameter_set in self._output.parameters():
+            flattened_parameter_sets.append(parameter_set.ravel())
+        return torch.concat(flattened_parameter_sets, dim=0)
+
+    def set_flattened_parameters(
+        self, flattened_parameters: FlattenedParameters
+    ) -> None:
+        state_dict = self._create_state_dict(flattened_parameters)
+        self._output.load_state_dict(state_dict=state_dict, strict=True)
+
     def _set_up_layers(
         self,
         layer_sizes: list[int],
@@ -115,21 +130,6 @@ class FFNN(Module):
                 ParameterSet(name=name, num_parameters=num_parameters, shape=shape)
             )
         return tuple(parameter_structure)
-
-    def forward(self, x: Tensor) -> Tensor:
-        return self._output(x)
-
-    def get_flattened_parameters(self) -> FlattenedParameters:
-        flattened_parameter_sets = []
-        for parameter_set in self._output.parameters():
-            flattened_parameter_sets.append(parameter_set.ravel())
-        return torch.concat(flattened_parameter_sets, dim=0)
-
-    def set_flattened_parameters(
-        self, flattened_parameters: FlattenedParameters
-    ) -> None:
-        state_dict = self._create_state_dict(flattened_parameters)
-        self._output.load_state_dict(state_dict=state_dict, strict=True)
 
     def _create_state_dict(self, flattened_parameters) -> OrderedDict:
         state_dict = OrderedDict()

@@ -10,7 +10,7 @@ from parametricpinn.data import (
     create_training_dataset_1D,
 )
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.network import BNN
+from parametricpinn.network import BFFNN
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
 from parametricpinn.training.training_bayesian_1d import (
     TrainingConfiguration,
@@ -84,7 +84,7 @@ def create_ansatz() -> Module:
         }
 
     normalization_values = _determine_normalization_values()
-    network = BNN(layer_sizes=layer_sizes)
+    network = BFFNN(layer_sizes=layer_sizes)
     print(network._parameter_structure)
     print(network.get_flattened_parameters())
     return create_normalized_hbc_ansatz_1D(

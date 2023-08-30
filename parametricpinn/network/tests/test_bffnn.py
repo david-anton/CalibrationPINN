@@ -5,7 +5,7 @@ import torch
 from parametricpinn.calibration.bayesian.distributions import (
     MultivariateNormalDistributon,
 )
-from parametricpinn.network.bnn import BNN, ParameterPriorStds
+from parametricpinn.network.bffnn import BFFNN, ParameterPriorStds
 
 device = torch.device("cpu")
 layer_sizes = [2, 4, 1]
@@ -14,7 +14,7 @@ std_bias = 1.0
 
 
 def test_create_multivariate_normal_prior_distribution() -> None:
-    sut = BNN(layer_sizes=layer_sizes)
+    sut = BFFNN(layer_sizes=layer_sizes)
     parameter_stds = ParameterPriorStds(weight=std_weight, bias=std_bias)
 
     prior = sut.create_multivariate_normal_prior(
@@ -27,7 +27,7 @@ def test_create_multivariate_normal_prior_distribution() -> None:
 
 
 def test_create_multivariate_normal_prior_means() -> None:
-    sut = BNN(layer_sizes=layer_sizes)
+    sut = BFFNN(layer_sizes=layer_sizes)
     parameter_stds = ParameterPriorStds(weight=std_weight, bias=std_bias)
 
     prior = sut.create_multivariate_normal_prior(
@@ -49,7 +49,7 @@ def test_create_multivariate_normal_prior_means() -> None:
 
 
 def test_create_multivariate_normal_prior_variances() -> None:
-    sut = BNN(layer_sizes=layer_sizes)
+    sut = BFFNN(layer_sizes=layer_sizes)
     parameter_stds = ParameterPriorStds(weight=std_weight, bias=std_bias)
 
     prior = sut.create_multivariate_normal_prior(

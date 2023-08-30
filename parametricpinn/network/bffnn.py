@@ -17,7 +17,7 @@ class ParameterPriorStds(NamedTuple):
     bias: float
 
 
-class BNN(FFNN):
+class BFFNN(FFNN):
     def __init__(self, layer_sizes: list[int]) -> None:
         super().__init__(
             layer_sizes,

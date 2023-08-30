@@ -406,7 +406,7 @@ def calibration_step() -> None:
             samples=samples_mh,
             mcmc_algorithm="metropolis_hastings",
             output_subdir=output_subdirectory,
-            project_directory=project_directory
+            project_directory=project_directory,
         )
     if use_hamiltonian:
         start = perf_counter()
@@ -430,7 +430,7 @@ def calibration_step() -> None:
             samples=samples_h,
             mcmc_algorithm="hamiltonian",
             output_subdir=output_subdirectory,
-            project_directory=project_directory
+            project_directory=project_directory,
         )
     if use_naive_nuts:
         start = perf_counter()
@@ -454,7 +454,7 @@ def calibration_step() -> None:
             samples=samples_nnuts,
             mcmc_algorithm="naive_nuts",
             output_subdir=output_subdirectory,
-            project_directory=project_directory
+            project_directory=project_directory,
         )
     if use_efficient_nuts:
         start = perf_counter()
@@ -478,7 +478,7 @@ def calibration_step() -> None:
             samples=samples_enuts,
             mcmc_algorithm="efficient_nuts",
             output_subdir=output_subdirectory,
-            project_directory=project_directory
+            project_directory=project_directory,
         )
     print("Calibration finished.")
 
