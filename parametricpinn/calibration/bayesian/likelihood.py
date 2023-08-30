@@ -54,8 +54,8 @@ class CalibrationLikelihood:
         return torch.exp(self._log_prob(parameters))
 
     def _log_prob(self, parameters: Tensor) -> Tensor:
-        residual = self._calculate_residual(parameters)
-        return self._likelihood.log_prob(residual)
+        residuals = self._calculate_residuals(parameters)
+        return self._likelihood.log_prob(residuals)
 
     def _initialize_likelihood(self) -> MultivariateNormalDistributon:
         covariance_matrix = self._assemble_residual_covariance_matrix()
@@ -88,6 +88,6 @@ class CalibrationLikelihood:
         model_output = self._model(model_inputs)
         return model_output.ravel()
 
-    def _calculate_residual(self, parameters: Tensor) -> Tensor:
+    def _calculate_residuals(self, parameters: Tensor) -> Tensor:
         flattened_model_outputs = self._calculate_flattened_model_outputs(parameters)
         return flattened_model_outputs - self._data.outputs.ravel()

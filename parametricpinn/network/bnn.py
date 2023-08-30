@@ -30,7 +30,7 @@ class BNN(FFNN):
         self, parameter_stds: ParameterPriorStds, device: Device
     ) -> Prior:
         means = self._create_means()
-        covariance_matrix = self._create_covariance_matrix(parameter_stds)
+        covariance_matrix = self._assemble_covariance_matrix(parameter_stds)
         return create_multivariate_normal_distributed_prior(
             means, covariance_matrix, device
         )
@@ -42,11 +42,11 @@ class BNN(FFNN):
             means.append(set_means)
         return torch.concat(means, dim=0)
 
-    def _create_covariance_matrix(self, parameter_stds: ParameterPriorStds) -> Tensor:
-        standard_deviations = self._compile_standard_deviations(parameter_stds)
+    def _assemble_covariance_matrix(self, parameter_stds: ParameterPriorStds) -> Tensor:
+        standard_deviations = self._assemble_standard_deviations(parameter_stds)
         return torch.diag(torch.pow(standard_deviations, 2))
 
-    def _compile_standard_deviations(
+    def _assemble_standard_deviations(
         self, parameter_stds: ParameterPriorStds
     ) -> Tensor:
         standard_deviations = []

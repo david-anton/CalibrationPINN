@@ -4,7 +4,6 @@ import torch
 
 from parametricpinn.data.dataset import Dataset
 from parametricpinn.data.geometry import StretchedRod
-from parametricpinn.types import Tensor
 
 TrainingData1DPDE = namedtuple("TrainingData1DPDE", ["x_coor", "x_E", "f", "y_true"])
 TrainingData1DStressBC = namedtuple(
