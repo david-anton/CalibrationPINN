@@ -1,4 +1,5 @@
-from typing import Callable, TypeAlias
+from collections import OrderedDict
+from typing import Callable, NamedTuple, TypeAlias
 
 import torch
 import torch.nn as nn
@@ -7,8 +8,16 @@ from parametricpinn.types import Module, Tensor
 
 InitializationFunc: TypeAlias = Callable[[Tensor], Tensor]
 Layers: TypeAlias = list[Module]
-ParameterSet: TypeAlias = tuple[str, int, torch.Size]
+
+
+class ParameterSet(NamedTuple):
+    name: str
+    num_parameters: int
+    shape: torch.Size
+
+
 ParameterStructure: TypeAlias = tuple[ParameterSet, ...]
+FlattenedParameters: TypeAlias = Tensor
 
 
 class LinearHiddenLayer(nn.Module):
@@ -64,7 +73,9 @@ class FFNN(Module):
         init_bias=nn.init.zeros_,
     ) -> None:
         super().__init__()
-        self._layers = self._set_up_layers(layer_sizes, activation, init_weights, init_bias)
+        self._layers = self._set_up_layers(
+            layer_sizes, activation, init_weights, init_bias
+        )
         self._output = nn.Sequential(*self._layers)
         self._parameter_structure = self._determine_parameter_structure()
 
@@ -97,11 +108,37 @@ class FFNN(Module):
 
     def _determine_parameter_structure(self) -> ParameterStructure:
         parameter_structure = []
-        for name, parameter_set in self._output.named_parameters():
-            num_parameters = torch.numel(parameter_set)
-            shape = parameter_set.shape
-            parameter_structure.append((name, num_parameters, shape))
+        for name, parameters in self._output.named_parameters():
+            num_parameters = torch.numel(parameters)
+            shape = parameters.shape
+            parameter_structure.append(
+                ParameterSet(name=name, num_parameters=num_parameters, shape=shape)
+            )
         return tuple(parameter_structure)
 
     def forward(self, x: Tensor) -> Tensor:
         return self._output(x)
+
+    def get_flattened_parameters(self) -> FlattenedParameters:
+        flattened_parameter_sets = []
+        for parameter_set in self._output.parameters():
+            flattened_parameter_sets.append(parameter_set.ravel())
+        return torch.concat(flattened_parameter_sets, dim=0)
+
+    def set_flattened_parameters(
+        self, flattened_parameters: FlattenedParameters
+    ) -> None:
+        state_dict = self._create_state_dict(flattened_parameters)
+        self._output.load_state_dict(state_dict=state_dict, strict=True)
+
+    def _create_state_dict(self, flattened_parameters) -> OrderedDict:
+        state_dict = OrderedDict()
+        start = 0
+        for parameter_set in self._parameter_structure:
+            end = start + parameter_set.num_parameters
+            parameters = torch.reshape(
+                flattened_parameters[start:end], parameter_set.shape
+            )
+            state_dict[parameter_set.name] = parameters
+            start = end
+        return state_dict
