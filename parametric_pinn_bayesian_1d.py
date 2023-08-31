@@ -1,5 +1,4 @@
 from datetime import date
-from time import perf_counter
 
 import torch
 
@@ -16,10 +15,12 @@ from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import BFFNN
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
 from parametricpinn.training.training_bayesian_1d import (
+    MeasurementsStds,
+    ParameterPriorStds,
     TrainingConfiguration,
     train_parametric_pinn,
 )
-from parametricpinn.types import Module, Tensor
+from parametricpinn.types import Tensor
 
 ### Configuration
 retrain_parametric_pinn = True
@@ -32,10 +33,16 @@ max_youngs_modulus = 255000.0
 displacement_left = 0.0
 # Network
 layer_sizes = [2, 8, 8, 1]
+std_weight = 1.0
+std_bias = 1.0
 # Training
 num_samples_train = 128
 num_points_pde = 128
 training_batch_size = num_samples_train
+number_mcmc_iterations = 100
+# Data
+std_pde = 0.1
+std_stress_bc = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
@@ -50,7 +57,7 @@ set_default_dtype(torch.float64)
 set_seed(0)
 
 
-def create_datasets() -> tuple[TrainingDataset1D]:
+def create_datasets() -> TrainingDataset1D:
     train_dataset = create_training_dataset_1D(
         length=length,
         traction=traction,
@@ -100,19 +107,27 @@ def create_ansatz() -> BayesianAnsatz:
 
 ansatz = create_ansatz()
 
-# def training_step() -> None:
-#     train_config = TrainingConfiguration(
-#         ansatz=ansatz,
-#         training_dataset=training_dataset,
-#         training_batch_size=training_batch_size,
-#         output_subdirectory=output_subdirectory,
-#         project_directory=project_directory,
-#         device=device,
-#     )
 
-#     train_parametric_pinn(train_config=train_config)
+def training_step() -> None:
+    parameter_prior_stds = ParameterPriorStds(weight=std_weight, bias=std_bias)
+    measurements_standard_deviations = MeasurementsStds(
+        pde=std_pde, stress_bc=std_stress_bc
+    )
+
+    train_config = TrainingConfiguration(
+        ansatz=ansatz,
+        parameter_prior_stds=parameter_prior_stds,
+        training_dataset=training_dataset,
+        measurements_standard_deviations=measurements_standard_deviations,
+        number_mcmc_iterations=number_mcmc_iterations,
+        output_subdirectory=output_subdirectory,
+        project_directory=project_directory,
+        device=device,
+    )
+
+    train_parametric_pinn(train_config)
 
 
-# if retrain_parametric_pinn:
-#     training_dataset = create_datasets()
-# training_step()
+if retrain_parametric_pinn:
+    training_dataset = create_datasets()
+    training_step()

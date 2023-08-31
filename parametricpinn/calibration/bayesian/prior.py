@@ -3,11 +3,13 @@ from typing import TypeAlias, Union
 import torch
 
 from parametricpinn.calibration.bayesian.distributions import (
+    IndependentMultivariateNormalDistributon,
     MixedIndependetMultivariateDistribution,
     MultivariateNormalDistributon,
     UnivariateDistributions,
     UnivariateNormalDistributon,
     UnivariateUniformDistributon,
+    create_independent_multivariate_normal_distribution,
     create_mixed_multivariate_independently_distribution,
     create_multivariate_normal_distribution,
     create_univariate_normal_distribution,
@@ -20,6 +22,7 @@ PriorDistribution: TypeAlias = Union[
     UnivariateNormalDistributon,
     MultivariateNormalDistributon,
     MixedIndependetMultivariateDistribution,
+    IndependentMultivariateNormalDistributon,
 ]
 
 
@@ -73,6 +76,15 @@ def create_multivariate_normal_distributed_prior(
 ) -> Prior:
     distribution = create_multivariate_normal_distribution(
         means, covariance_matrix, device
+    )
+    return Prior(distribution)
+
+
+def create_independent_multivariate_normal_distributed_prior(
+    means: Tensor, standard_deviations: Tensor, device: Device
+) -> Prior:
+    distribution = create_independent_multivariate_normal_distribution(
+        means, standard_deviations, device
     )
     return Prior(distribution)
 

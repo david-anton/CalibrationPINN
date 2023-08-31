@@ -5,7 +5,7 @@ import torch.nn as nn
 
 from parametricpinn.calibration.bayesian.prior import (
     Prior,
-    create_multivariate_normal_distributed_prior,
+    create_independent_multivariate_normal_distributed_prior,
 )
 from parametricpinn.errors import BayesianNNError
 from parametricpinn.network.ffnn import FFNN, ParameterSet
@@ -26,13 +26,13 @@ class BFFNN(FFNN):
             init_bias=nn.init.zeros_,
         )
 
-    def create_multivariate_normal_prior(
+    def create_independent_multivariate_normal_prior(
         self, parameter_stds: ParameterPriorStds, device: Device
     ) -> Prior:
         means = self._create_means()
-        covariance_matrix = self._assemble_covariance_matrix(parameter_stds)
-        return create_multivariate_normal_distributed_prior(
-            means, covariance_matrix, device
+        standard_deviations = self._assemble_standard_deviations(parameter_stds)
+        return create_independent_multivariate_normal_distributed_prior(
+            means, standard_deviations, device
         )
 
     def _create_means(self) -> Tensor:
@@ -41,10 +41,6 @@ class BFFNN(FFNN):
             set_means = torch.zeros((parameter_set.num_parameters,))
             means.append(set_means)
         return torch.concat(means, dim=0)
-
-    def _assemble_covariance_matrix(self, parameter_stds: ParameterPriorStds) -> Tensor:
-        standard_deviations = self._assemble_standard_deviations(parameter_stds)
-        return torch.diag(torch.pow(standard_deviations, 2))
 
     def _assemble_standard_deviations(
         self, parameter_stds: ParameterPriorStds

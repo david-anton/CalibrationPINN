@@ -102,14 +102,14 @@ def _expected_independent_multivariate_normal_distribution() -> (
             (
                 torch.distributions.Normal(loc=mean, scale=standard_deviation).log_prob(
                     torch.tensor([-1.0])
-                )[0]
+                )
                 + torch.distributions.Normal(
                     loc=mean, scale=standard_deviation
-                ).log_prob(torch.tensor([0.0]))[0]
+                ).log_prob(torch.tensor([0.0]))
                 + torch.distributions.Normal(
                     loc=mean, scale=standard_deviation
-                ).log_prob(torch.tensor([1.0]))[0]
-            ).type(torch.float64),
+                ).log_prob(torch.tensor([1.0]))
+            ).type(torch.float64)[0],
         ),
     ]
 

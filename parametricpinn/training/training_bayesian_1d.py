@@ -5,10 +5,14 @@ from typing import NamedTuple
 import torch
 
 from parametricpinn.ansatz import BayesianAnsatz
-from parametricpinn.calibration import EfficientNUTSConfig, calibrate
+from parametricpinn.calibration import (
+    EfficientNUTSConfig,
+    MCMC_Algorithm_Output,
+    calibrate,
+)
 from parametricpinn.calibration.bayesian.distributions import (
-    MultivariateNormalDistributon,
-    create_multivariate_normal_distribution,
+    IndependentMultivariateNormalDistributon,
+    create_independent_multivariate_normal_distribution,
 )
 from parametricpinn.data import (
     TrainingData1DPDE,
@@ -19,7 +23,7 @@ from parametricpinn.data import (
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import ParameterPriorStds
 from parametricpinn.training.loss_1d import momentum_equation_func, traction_func
-from parametricpinn.types import Device, Module, Tensor
+from parametricpinn.types import Device, Tensor
 
 
 class MeasurementsStds(NamedTuple):
@@ -39,7 +43,7 @@ class TrainingConfiguration:
     device: Device
 
 
-class Likelihood:
+class TrainigLikelihood:
     def __init__(
         self,
         ansatz: BayesianAnsatz,
@@ -117,11 +121,11 @@ class Likelihood:
         y_stress_bc_true = self._stress_bc_data.y_true.ravel()
         return torch.concat([y_pde_true, y_stress_bc_true], dim=0)
 
-    def _initialize_likelihood(self) -> MultivariateNormalDistributon:
+    def _initialize_likelihood(self) -> IndependentMultivariateNormalDistributon:
         means = self._assemble_residual_means()
-        covariance_matrix = self._assemble_residual_covariance_matrix()
-        return create_multivariate_normal_distribution(
-            means, covariance_matrix, self._device
+        standard_deviations = self._assemble_residual_standard_deviations()
+        return create_independent_multivariate_normal_distribution(
+            means, standard_deviations, self._device
         )
 
     def _assemble_residual_means(self) -> Tensor:
@@ -129,10 +133,6 @@ class Likelihood:
         means_stress_bc = torch.zeros((self._num_flattened_y_stress_bc,))
         means = [means_pde, means_stress_bc]
         return torch.concat(means, dim=0)
-
-    def _assemble_residual_covariance_matrix(self) -> Tensor:
-        standard_deviations = self._assemble_residual_standard_deviations()
-        return torch.diag(torch.pow(standard_deviations, 2))
 
     def _assemble_residual_standard_deviations(self) -> Tensor:
         stds_pde = torch.full((self._num_flattened_y_pde,), self._measurements_stds.pde)
@@ -144,7 +144,9 @@ class Likelihood:
         return torch.concat(stds, dim=0)
 
 
-def train_bayesian_parametric_pinn(train_config: TrainingConfiguration) -> None:
+def train_parametric_pinn(
+    train_config: TrainingConfiguration,
+) -> MCMC_Algorithm_Output:
     ansatz = train_config.ansatz
     parameter_prior_stds = train_config.parameter_prior_stds
     training_dataset = train_config.training_dataset
@@ -154,13 +156,21 @@ def train_bayesian_parametric_pinn(train_config: TrainingConfiguration) -> None:
     project_directory = train_config.project_directory
     device = train_config.device
 
-    prior = ansatz.network.create_multivariate_normal_prior(
+    parameters_shape = ansatz.network.get_flattened_parameters().shape
+
+    likelihood = TrainigLikelihood(
+        ansatz,
+        training_dataset,
+        measurements_standard_deviations,
+        device,
+    )
+
+    prior = ansatz.network.create_independent_multivariate_normal_prior(
         parameter_prior_stds, device
     )
-    parameters_shape = ansatz.network.get_flattened_parameters().shape
+
     initial_parameters = torch.zeros(parameters_shape)
-    leapfrog_step_size = 0.1
-    leapfrog_step_sizes = torch.full(parameters_shape, leapfrog_step_size)
+    leapfrog_step_sizes = torch.full(parameters_shape, 0.1)
 
     mcmc_config = EfficientNUTSConfig(
         initial_parameters=initial_parameters,
@@ -170,15 +180,10 @@ def train_bayesian_parametric_pinn(train_config: TrainingConfiguration) -> None:
         max_tree_depth=6,  # = 64 steps
     )
 
-    # start = perf_counter()
-    # posterior_moments, samples = calibrate(
-    #     model=ansatz,
-    #     name_model_parameters_file="model_parameters",
-    #     calibration_data=data,
-    #     prior=prior,
-    #     mcmc_config=mcmc_config,
-    #     output_subdir=output_subdirectory,
-    #     project_directory=project_directory,
-    #     device=device,
-    # )
-    # end = perf_counter()
+    start = perf_counter()
+    posterior_moments, samples = calibrate(likelihood, prior, mcmc_config, device)
+    end = perf_counter()
+    time = end - start
+    print(f"Sampling time: {time}")
+
+    return posterior_moments, samples

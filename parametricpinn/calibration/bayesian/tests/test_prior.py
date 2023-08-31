@@ -2,6 +2,7 @@ import pytest
 import torch
 
 from parametricpinn.calibration.bayesian.prior import (
+    create_independent_multivariate_normal_distributed_prior,
     create_mixed_multivariate_independently_distributed_prior,
     create_multivariate_normal_distributed_prior,
     create_univariate_normal_distributed_prior,
@@ -84,6 +85,49 @@ def _expected_multivariate_normal_distributed_prior() -> list[tuple[Tensor, Tens
     ]
 
 
+def _expected_independent_multivariate_normal_distributed_prior() -> (
+    list[tuple[Tensor, Tensor]]
+):
+    mean = torch.tensor([0.0])
+    standard_deviation = torch.tensor([1.0])
+    return [
+        (
+            torch.tensor([-1.0, -1.0, -1.0]),
+            torch.exp(
+                3
+                * torch.distributions.Normal(
+                    loc=mean, scale=standard_deviation
+                ).log_prob(torch.tensor([-1.0]))
+            ).type(torch.float64)[0],
+        ),
+        (
+            torch.tensor([1.0, 1.0, 1.0]),
+            torch.exp(
+                3
+                * torch.distributions.Normal(
+                    loc=mean, scale=standard_deviation
+                ).log_prob(torch.tensor([1.0]))
+            ).type(torch.float64)[0],
+        ),
+        (
+            torch.tensor([-1.0, 0.0, 1.0]),
+            torch.exp(
+                (
+                    torch.distributions.Normal(
+                        loc=mean, scale=standard_deviation
+                    ).log_prob(torch.tensor([-1.0]))
+                    + torch.distributions.Normal(
+                        loc=mean, scale=standard_deviation
+                    ).log_prob(torch.tensor([0.0]))
+                    + torch.distributions.Normal(
+                        loc=mean, scale=standard_deviation
+                    ).log_prob(torch.tensor([1.0]))
+                )
+            ).type(torch.float64)[0],
+        ),
+    ]
+
+
 def _expected_mixed_multivariate_independently_distributed_prior() -> (
     list[tuple[Tensor, Tensor]]
 ):
@@ -141,6 +185,24 @@ def test_multivariate_normal_distributed_prior(parameter: Tensor, expected: Tens
     covariance_matrix = torch.tensor([[1.0, 0.0], [0.0, 1.0]])
     sut = create_multivariate_normal_distributed_prior(
         means=means, covariance_matrix=covariance_matrix, device=device
+    )
+
+    actual = sut.prob(parameter)
+
+    torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize(
+    ("parameter", "expected"),
+    _expected_independent_multivariate_normal_distributed_prior(),
+)
+def test_independent_multivariate_normal_distributed_prior(
+    parameter: Tensor, expected: Tensor
+):
+    means = torch.tensor([0.0, 0.0, 0.0])
+    standard_deviations = torch.tensor([1.0, 1.0, 1.0])
+    sut = create_independent_multivariate_normal_distributed_prior(
+        means=means, standard_deviations=standard_deviations, device=device
     )
 
     actual = sut.prob(parameter)

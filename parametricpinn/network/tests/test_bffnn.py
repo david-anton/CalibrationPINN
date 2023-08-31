@@ -3,7 +3,7 @@ from typing import cast
 import torch
 
 from parametricpinn.calibration.bayesian.distributions import (
-    MultivariateNormalDistributon,
+    IndependentMultivariateNormalDistributon,
 )
 from parametricpinn.network.bffnn import BFFNN, ParameterPriorStds
 
@@ -13,27 +13,27 @@ std_weight = 2.0
 std_bias = 1.0
 
 
-def test_create_multivariate_normal_prior_distribution() -> None:
+def test_create_independent_multivariate_normal_prior_distribution() -> None:
     sut = BFFNN(layer_sizes=layer_sizes)
     parameter_stds = ParameterPriorStds(weight=std_weight, bias=std_bias)
 
-    prior = sut.create_multivariate_normal_prior(
+    prior = sut.create_independent_multivariate_normal_prior(
         parameter_stds=parameter_stds, device=device
     )
     actual = type(prior.distribution)
 
-    expected = MultivariateNormalDistributon
+    expected = IndependentMultivariateNormalDistributon
     assert actual == expected
 
 
-def test_create_multivariate_normal_prior_means() -> None:
+def test_create_independent_multivariate_normal_prior_means() -> None:
     sut = BFFNN(layer_sizes=layer_sizes)
     parameter_stds = ParameterPriorStds(weight=std_weight, bias=std_bias)
 
-    prior = sut.create_multivariate_normal_prior(
+    prior = sut.create_independent_multivariate_normal_prior(
         parameter_stds=parameter_stds, device=device
     )
-    distribution = cast(MultivariateNormalDistributon, prior.distribution)
+    distribution = cast(IndependentMultivariateNormalDistributon, prior.distribution)
     actual = distribution.means
 
     expected = torch.concat(
@@ -48,22 +48,22 @@ def test_create_multivariate_normal_prior_means() -> None:
     torch.testing.assert_close(actual, expected)
 
 
-def test_create_multivariate_normal_prior_variances() -> None:
+def test_create_independent_multivariate_normal_prior_standard_deviations() -> None:
     sut = BFFNN(layer_sizes=layer_sizes)
     parameter_stds = ParameterPriorStds(weight=std_weight, bias=std_bias)
 
-    prior = sut.create_multivariate_normal_prior(
+    prior = sut.create_independent_multivariate_normal_prior(
         parameter_stds=parameter_stds, device=device
     )
-    distribution = cast(MultivariateNormalDistributon, prior.distribution)
-    actual = distribution.variances
+    distribution = cast(IndependentMultivariateNormalDistributon, prior.distribution)
+    actual = distribution.standard_deviations
 
     expected = torch.concat(
         [
-            torch.full((8,), std_weight**2),
-            torch.full((4,), std_bias**2),
-            torch.full((4,), std_weight**2),
-            torch.full((1,), std_bias**2),
+            torch.full((8,), std_weight),
+            torch.full((4,), std_bias),
+            torch.full((4,), std_weight),
+            torch.full((1,), std_bias),
         ],
         dim=0,
     ).type(torch.float64)
