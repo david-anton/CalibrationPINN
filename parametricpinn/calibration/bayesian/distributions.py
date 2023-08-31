@@ -78,6 +78,20 @@ class MultivariateNormalDistributon:
         return squeeze_if_necessary(log_prob)
 
 
+class IndependentMultivariateNormalDistributon:
+    def __init__(self, means: Tensor, standard_deviations: Tensor, device: Device):
+        self._distribution = torch.distributions.Normal(
+            loc=means.type(torch.float64).to(device),
+            scale=standard_deviations.type(torch.float64).to(device),
+        )
+        self.means = self._distribution.mean
+        self.standard_deviations = self._distribution.stddev
+
+    def log_prob(self, sample: Tensor):
+        log_prob = torch.sum(self._distribution.log_prob(sample))
+        return squeeze_if_necessary(log_prob)
+
+
 UnivariateDistributions: TypeAlias = Union[
     UnivariateUniformDistributon, UnivariateNormalDistributon
 ]
@@ -126,6 +140,12 @@ def create_multivariate_normal_distribution(
     means: Tensor, covariance_matrix: Tensor, device: Device
 ) -> MultivariateNormalDistributon:
     return MultivariateNormalDistributon(means, covariance_matrix, device)
+
+
+def create_independent_multivariate_normal_distribution(
+    means: Tensor, standard_deviations: Tensor, device: Device
+) -> IndependentMultivariateNormalDistributon:
+    return IndependentMultivariateNormalDistributon(means, standard_deviations, device)
 
 
 def create_mixed_multivariate_independently_distribution(
