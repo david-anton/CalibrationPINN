@@ -13,7 +13,6 @@ from parametricpinn.calibration import (
     EfficientNUTSConfig,
     HamiltonianConfig,
     MetropolisHastingsConfig,
-    NaiveNUTSConfig,
     calibrate,
 )
 from parametricpinn.calibration.bayesian.plot import plot_posterior_normal_distributions
@@ -84,7 +83,6 @@ fem_mesh_resolution = 0.1
 # Calibration
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = True
-use_naive_nuts = False
 use_efficient_nuts = True
 # Output
 current_date = date.today().strftime("%Y%m%d")
@@ -386,12 +384,6 @@ def calibration_step() -> None:
         num_leabfrog_steps=256,
         leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
     )
-    mcmc_config_nnuts = NaiveNUTSConfig(
-        initial_parameters=initial_parameters,
-        num_iterations=int(1e3),
-        num_burn_in_iterations=int(1e3),
-        leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
-    )
     mcmc_config_enuts = EfficientNUTSConfig(
         initial_parameters=initial_parameters,
         num_iterations=int(1e3),
@@ -436,26 +428,6 @@ def calibration_step() -> None:
             moments=posterior_moments_h,
             samples=samples_h,
             mcmc_algorithm="hamiltonian",
-            output_subdir=output_subdirectory,
-            project_directory=project_directory,
-        )
-    if use_naive_nuts:
-        start = perf_counter()
-        posterior_moments_nnuts, samples_nnuts = calibrate(
-            likelihood=likelihood,
-            prior=prior,
-            mcmc_config=mcmc_config_nnuts,
-            device=device,
-        )
-        end = perf_counter()
-        time = end - start
-        print(f"Run time naive NUTS: {time}")
-        plot_posterior_normal_distributions(
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
-            moments=posterior_moments_nnuts,
-            samples=samples_nnuts,
-            mcmc_algorithm="naive_nuts",
             output_subdir=output_subdirectory,
             project_directory=project_directory,
         )
