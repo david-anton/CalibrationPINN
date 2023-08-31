@@ -48,7 +48,7 @@ from parametricpinn.training.training_standard_2d import (
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 material_model = "plane stress"
 edge_length = 100.0
