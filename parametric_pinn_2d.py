@@ -38,7 +38,7 @@ from parametricpinn.postprocessing.plot import (
     plot_displacements_pwh,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.training_2d import (
+from parametricpinn.training.training_standard_2d import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
@@ -217,11 +217,11 @@ def create_ansatz() -> StandardAnsatz:
     return create_standard_normalized_hbc_ansatz_2D(
         displacement_x_right=torch.tensor(0.0).to(device),
         displacement_y_bottom=torch.tensor(0.0).to(device),
-        network=network,
         min_inputs=normalization_values["min_inputs"],
         max_inputs=normalization_values["max_inputs"],
         min_outputs=normalization_values["min_outputs"],
         max_outputs=normalization_values["max_outputs"],
+        network=network,
     ).to(device)
 
 

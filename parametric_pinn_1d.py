@@ -33,7 +33,7 @@ from parametricpinn.postprocessing.plot import (
     plot_displacements_1D,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.training_1d import (
+from parametricpinn.training.training_standard_1d import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
@@ -128,11 +128,11 @@ def create_ansatz() -> StandardAnsatz:
     network = FFNN(layer_sizes=layer_sizes)
     return create_standard_normalized_hbc_ansatz_1D(
         displacement_left=torch.tensor([displacement_left]).to(device),
-        network=network,
         min_inputs=normalization_values["min_inputs"],
         max_inputs=normalization_values["max_inputs"],
         min_outputs=normalization_values["min_output"],
         max_outputs=normalization_values["max_output"],
+        network=network,
     ).to(device)
 
 
