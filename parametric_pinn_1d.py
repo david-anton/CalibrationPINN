@@ -199,7 +199,7 @@ def calibration_step() -> None:
         return coordinates, noisy_displacements
 
     name_model_parameters_file = "model_parameters"
-    ansatz = load_model(
+    model= load_model(
         model=ansatz,
         name_model_parameters_file=name_model_parameters_file,
         input_subdir=output_subdirectory,
@@ -213,7 +213,7 @@ def calibration_step() -> None:
         outputs=noisy_displacements,
         std_noise=std_noise,
     )
-    likelihood = create_ppinn_likelihood(ansatz=ansatz, data=data, device=device)
+    likelihood = create_ppinn_likelihood(ansatz=model, data=data, device=device)
 
     prior_mean_youngs_modulus = 210000
     prior_std_youngs_modulus = 10000
