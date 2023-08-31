@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import torch
 from torch.utils.data import DataLoader
 
+from parametricpinn.ansatz import StandardAnsatz
 from parametricpinn.data import (
     TrainingData2DCollocation,
     TrainingData2DSymmetryBC,
@@ -26,12 +27,12 @@ from parametricpinn.training.loss_2d import (
     traction_func_factory,
 )
 from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm
-from parametricpinn.types import Device, Module, Tensor
+from parametricpinn.types import Device, Tensor
 
 
 @dataclass
 class TrainingConfiguration:
-    ansatz: Module
+    ansatz: StandardAnsatz
     material_model: str
     number_points_per_bc: int
     weight_pde_loss: float
@@ -83,13 +84,13 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     # lambda_energy_loss = torch.tensor(weight_energy_loss, requires_grad=True).to(device)
 
     def loss_func(
-        ansatz: Module,
+        ansatz: StandardAnsatz,
         collocation_data: TrainingData2DCollocation,
         symmetry_bc_data: TrainingData2DSymmetryBC,
         traction_bc_data: TrainingData2DTractionBC,
     ) -> tuple[Tensor, Tensor, Tensor]:
         def loss_func_pde(
-            ansatz: Module, collocation_data: TrainingData2DCollocation
+            ansatz: StandardAnsatz, collocation_data: TrainingData2DCollocation
         ) -> Tensor:
             x_coor = collocation_data.x_coor.to(device)
             x_E = collocation_data.x_E
@@ -101,7 +102,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             return loss_metric(y_true, y)
 
         def loss_func_symmetry_bc(
-            ansatz: Module, symmetry_bc_data: TrainingData2DSymmetryBC
+            ansatz: StandardAnsatz, symmetry_bc_data: TrainingData2DSymmetryBC
         ) -> Tensor:
             x_coor = symmetry_bc_data.x_coor.to(device)
             x_E = symmetry_bc_data.x_E
@@ -122,7 +123,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             return loss_metric(y_true, y)
 
         def loss_func_traction_bc(
-            ansatz: Module, traction_bc_data: TrainingData2DTractionBC
+            ansatz: StandardAnsatz, traction_bc_data: TrainingData2DTractionBC
         ) -> Tensor:
             x_coor = traction_bc_data.x_coor.to(device)
             x_E = traction_bc_data.x_E
@@ -134,7 +135,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             return loss_metric(y_true, y)
 
         # def loss_func_energy(
-        #     ansatz: Module,
+        #     ansatz: StandardAnsatz,
         #     collocation_data: TrainingData2DCollocation,
         #     traction_bc_data: TrainingData2DTractionBC,
         # ) -> Tensor:
@@ -171,7 +172,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
     ### Validation
     def validate_model(
-        ansatz: Module, valid_dataloader: DataLoader
+        ansatz: StandardAnsatz, valid_dataloader: DataLoader
     ) -> tuple[float, float]:
         ansatz.eval()
         with torch.no_grad():

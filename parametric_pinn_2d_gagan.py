@@ -4,7 +4,10 @@ from datetime import date
 import numpy as np
 import torch
 
-from parametricpinn.ansatz import create_normalized_hbc_ansatz_2D
+from parametricpinn.ansatz import (
+    StandardAnsatz,
+    create_standard_normalized_hbc_ansatz_2D,
+)
 from parametricpinn.data import (
     TrainingDataset2D,
     ValidationDataset2D,
@@ -26,7 +29,7 @@ from parametricpinn.training.training_2d import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
-from parametricpinn.types import Module, Tensor
+from parametricpinn.types import Tensor
 
 ### Configuration
 retrain_parametric_pinn = True
@@ -143,7 +146,7 @@ def create_datasets() -> tuple[TrainingDataset2D, ValidationDataset2D]:
     return training_dataset, validation_dataset
 
 
-def create_ansatz() -> Module:
+def create_ansatz() -> StandardAnsatz:
     def _determine_normalization_values() -> dict[str, Tensor]:
         min_coordinate_x = -edge_length
         max_coordinate_x = 0.0
@@ -194,7 +197,7 @@ def create_ansatz() -> Module:
 
     normalization_values = _determine_normalization_values()
     network = FFNN(layer_sizes=layer_sizes)
-    return create_normalized_hbc_ansatz_2D(
+    return create_standard_normalized_hbc_ansatz_2D(
         displacement_x_right=torch.tensor(0.0).to(device),
         displacement_y_bottom=torch.tensor(0.0).to(device),
         network=network,

@@ -5,7 +5,10 @@ from time import perf_counter
 import numpy as np
 import torch
 
-from parametricpinn.ansatz import create_normalized_hbc_ansatz_2D
+from parametricpinn.ansatz import (
+    StandardAnsatz,
+    create_standard_normalized_hbc_ansatz_2D,
+)
 from parametricpinn.calibration import (
     CalibrationData,
     EfficientNUTSConfig,
@@ -14,9 +17,7 @@ from parametricpinn.calibration import (
     NaiveNUTSConfig,
     calibrate,
 )
-from parametricpinn.calibration.bayesian.plot import (
-    plot_multivariate_normal_distribution,
-)
+from parametricpinn.calibration.bayesian.plot import plot_posterior_normal_distributions
 from parametricpinn.calibration.bayesian.prior import (
     create_multivariate_normal_distributed_prior,
 )
@@ -41,7 +42,7 @@ from parametricpinn.training.training_2d import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
-from parametricpinn.types import Module, Tensor
+from parametricpinn.types import Tensor
 
 ### Configuration
 retrain_parametric_pinn = False
@@ -162,7 +163,7 @@ def create_datasets() -> tuple[TrainingDataset2D, ValidationDataset2D]:
     return training_dataset, validation_dataset
 
 
-def create_ansatz() -> Module:
+def create_ansatz() -> StandardAnsatz:
     def _determine_normalization_values() -> dict[str, Tensor]:
         min_coordinate_x = -edge_length
         max_coordinate_x = 0.0
@@ -213,7 +214,7 @@ def create_ansatz() -> Module:
 
     normalization_values = _determine_normalization_values()
     network = FFNN(layer_sizes=layer_sizes)
-    return create_normalized_hbc_ansatz_2D(
+    return create_standard_normalized_hbc_ansatz_2D(
         displacement_x_right=torch.tensor(0.0).to(device),
         displacement_y_bottom=torch.tensor(0.0).to(device),
         network=network,
@@ -399,7 +400,7 @@ def calibration_step() -> None:
         end = perf_counter()
         time = end - start
         print(f"Run time Metropolis-Hasting: {time}")
-        plot_multivariate_normal_distribution(
+        plot_posterior_normal_distributions(
             parameter_names=parameter_names,
             true_parameters=true_parameters,
             moments=posterior_moments_mh,
@@ -423,7 +424,7 @@ def calibration_step() -> None:
         end = perf_counter()
         time = end - start
         print(f"Run time Hamiltonian: {time}")
-        plot_multivariate_normal_distribution(
+        plot_posterior_normal_distributions(
             parameter_names=parameter_names,
             true_parameters=true_parameters,
             moments=posterior_moments_h,
@@ -447,7 +448,7 @@ def calibration_step() -> None:
         end = perf_counter()
         time = end - start
         print(f"Run time naive NUTS: {time}")
-        plot_multivariate_normal_distribution(
+        plot_posterior_normal_distributions(
             parameter_names=parameter_names,
             true_parameters=true_parameters,
             moments=posterior_moments_nnuts,
@@ -471,7 +472,7 @@ def calibration_step() -> None:
         end = perf_counter()
         time = end - start
         print(f"Run time efficient NUTS: {time}")
-        plot_multivariate_normal_distribution(
+        plot_posterior_normal_distributions(
             parameter_names=parameter_names,
             true_parameters=true_parameters,
             moments=posterior_moments_enuts,

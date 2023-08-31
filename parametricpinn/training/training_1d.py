@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import torch
 from torch.utils.data import DataLoader
 
+from parametricpinn.ansatz import StandardAnsatz
 from parametricpinn.data import (
     TrainingData1DPDE,
     TrainingData1DStressBC,
@@ -21,12 +22,12 @@ from parametricpinn.postprocessing.plot import (
 )
 from parametricpinn.training.loss_1d import momentum_equation_func, traction_func
 from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm
-from parametricpinn.types import Device, Module, Tensor
+from parametricpinn.types import Device, Tensor
 
 
 @dataclass
 class TrainingConfiguration:
-    ansatz: Module
+    ansatz: StandardAnsatz
     training_dataset: TrainingDataset1D
     number_training_epochs: int
     training_batch_size: int
@@ -51,11 +52,13 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
     ### Loss function
     def loss_func(
-        ansatz: Module,
+        ansatz: StandardAnsatz,
         pde_data: TrainingData1DPDE,
         stress_bc_data: TrainingData1DStressBC,
     ) -> tuple[Tensor, Tensor]:
-        def loss_func_pde(ansatz: Module, pde_data: TrainingData1DPDE) -> Tensor:
+        def loss_func_pde(
+            ansatz: StandardAnsatz, pde_data: TrainingData1DPDE
+        ) -> Tensor:
             x_coor = pde_data.x_coor.to(device)
             x_E = pde_data.x_E.to(device)
             volume_force = pde_data.f.to(device)
@@ -64,7 +67,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             return loss_metric(y_true, y)
 
         def loss_func_stress_bc(
-            ansatz: Module, stress_bc_data: TrainingData1DStressBC
+            ansatz: StandardAnsatz, stress_bc_data: TrainingData1DStressBC
         ) -> Tensor:
             x_coor = stress_bc_data.x_coor.to(device)
             x_E = stress_bc_data.x_E.to(device)
@@ -78,7 +81,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
     ### Validation
     def validate_model(
-        ansatz: Module, valid_dataloader: DataLoader
+        ansatz: StandardAnsatz, valid_dataloader: DataLoader
     ) -> tuple[float, float]:
         ansatz.eval()
         with torch.no_grad():

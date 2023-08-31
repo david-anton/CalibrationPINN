@@ -1,22 +1,22 @@
 import pytest
 import torch
-import torch.nn as nn
 
-from parametricpinn.ansatz import HBCAnsatz1D
+from parametricpinn.ansatz import StandardAnsatz, create_standard_hbc_ansatz_1D
+from parametricpinn.network import FFNN
 from parametricpinn.types import Tensor
 
 
-class FakeNetwork(nn.Module):
+class FakeNetwork(FFNN):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(layer_sizes=[1, 1])
 
     def forward(self, x: Tensor) -> Tensor:
         return torch.full(size=(x.shape[0], 1), fill_value=2.0)
 
 
-class FakeNetworkSingleInput(nn.Module):
+class FakeNetworkSingleInput(FFNN):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(layer_sizes=[1, 1])
 
     def forward(self, x: Tensor) -> Tensor:
         return torch.tensor([2.0])
@@ -27,16 +27,16 @@ displacement_left = 0.0
 
 
 @pytest.fixture
-def sut() -> HBCAnsatz1D:
+def sut() -> StandardAnsatz:
     network = FakeNetwork()
-    return HBCAnsatz1D(
-        network=network,
+    return create_standard_hbc_ansatz_1D(
         displacement_left=displacement_left,
         range_coordinate=range_coordinates,
+        network=network,
     )
 
 
-def test_HBC_ansatz_1D(sut: HBCAnsatz1D) -> None:
+def test_HBC_ansatz_1D(sut: StandardAnsatz) -> None:
     inputs = torch.tensor([[0.0, 0.0], [0.5, 0.0], [1.0, 0.0]])
 
     actual = sut(inputs)
@@ -46,12 +46,12 @@ def test_HBC_ansatz_1D(sut: HBCAnsatz1D) -> None:
 
 
 @pytest.fixture
-def sut_single_input() -> HBCAnsatz1D:
+def sut_single_input() -> StandardAnsatz:
     network = FakeNetworkSingleInput()
-    return HBCAnsatz1D(
-        network=network,
+    return create_standard_hbc_ansatz_1D(
         displacement_left=displacement_left,
         range_coordinate=range_coordinates,
+        network=network,
     )
 
 
@@ -64,7 +64,7 @@ def sut_single_input() -> HBCAnsatz1D:
     ],
 )
 def test_HBC_ansatz_for_single_input(
-    sut_single_input: HBCAnsatz1D, input: Tensor, expected: Tensor
+    sut_single_input: StandardAnsatz, input: Tensor, expected: Tensor
 ) -> None:
     actual = sut_single_input(input)
 

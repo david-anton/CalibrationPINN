@@ -1,19 +1,23 @@
 import torch
-import torch.nn as nn
 
-from parametricpinn.types import Module, Tensor
+from parametricpinn.ansatz.ansatz_base import (
+    BayesianAnsatz,
+    BayesianNetworks,
+    Networks,
+    StandardAnsatz,
+    StandardNetworks,
+)
+from parametricpinn.types import Tensor
 
 
-class HBCAnsatz2D(nn.Module):
+class HBCAnsatzStrategy2D:
     def __init__(
         self,
-        network: Module,
         displacement_x_right: float,
         displacement_y_bottom: float,
         range_coordinates: Tensor,
     ) -> None:
         super().__init__()
-        self._network = network
         self._boundary_data = torch.tensor(
             [displacement_x_right, displacement_y_bottom]
         ).to(range_coordinates.device)
@@ -30,8 +34,30 @@ class HBCAnsatz2D(nn.Module):
             return x[0:2]
         return x[:, 0:2]
 
-    def forward(self, x: Tensor) -> Tensor:
+    def __call__(self, x: Tensor, network: Networks) -> Tensor:
         x_coor = self._extract_coordinates(x)
-        return self._boundary_data_func() + (
-            self._distance_func(x_coor) * self._network(x)
-        )
+        return self._boundary_data_func() + (self._distance_func(x_coor) * network(x))
+
+
+def create_standard_hbc_ansatz_2D(
+    displacement_x_right: float,
+    displacement_y_bottom: float,
+    range_coordinates: Tensor,
+    network: StandardNetworks,
+) -> StandardAnsatz:
+    ansatz_strategy = HBCAnsatzStrategy2D(
+        displacement_x_right, displacement_y_bottom, range_coordinates
+    )
+    return StandardAnsatz(network, ansatz_strategy)
+
+
+def create_bayesian_hbc_ansatz_2D(
+    displacement_x_right: float,
+    displacement_y_bottom: float,
+    range_coordinates: Tensor,
+    network: BayesianNetworks,
+) -> BayesianAnsatz:
+    ansatz_strategy = HBCAnsatzStrategy2D(
+        displacement_x_right, displacement_y_bottom, range_coordinates
+    )
+    return BayesianAnsatz(network, ansatz_strategy)

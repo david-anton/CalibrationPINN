@@ -1,22 +1,22 @@
 import pytest
 import torch
-import torch.nn as nn
 
-from parametricpinn.ansatz import HBCAnsatz2D
+from parametricpinn.ansatz import StandardAnsatz, create_standard_hbc_ansatz_2D
+from parametricpinn.network import FFNN
 from parametricpinn.types import Tensor
 
 
-class FakeNetwork(nn.Module):
+class FakeNetwork(FFNN):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(layer_sizes=[2, 2])
 
     def forward(self, x: Tensor) -> Tensor:
         return torch.full(size=(x.shape[0], 2), fill_value=2.0)
 
 
-class FakeNetworkSingleInput(nn.Module):
+class FakeNetworkSingleInput(FFNN):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(layer_sizes=[2, 2])
 
     def forward(self, x: Tensor) -> Tensor:
         return torch.tensor([2.0, 2.0])
@@ -28,17 +28,17 @@ range_coordinates = torch.tensor([1.0, 1.0])
 
 
 @pytest.fixture
-def sut() -> HBCAnsatz2D:
+def sut() -> StandardAnsatz:
     network = FakeNetwork()
-    return HBCAnsatz2D(
-        network=network,
+    return create_standard_hbc_ansatz_2D(
         displacement_x_right=displacement_x_right,
         displacement_y_bottom=displacement_y_bottom,
         range_coordinates=range_coordinates,
+        network=network,
     )
 
 
-def test_HBC_ansatz_2D(sut: HBCAnsatz2D) -> None:
+def test_HBC_ansatz_2D(sut: StandardAnsatz) -> None:
     inputs = torch.tensor(
         [
             [0.0, 0.0, 0.0, 0.0],
@@ -72,13 +72,13 @@ def test_HBC_ansatz_2D(sut: HBCAnsatz2D) -> None:
 
 
 @pytest.fixture
-def sut_single_input() -> HBCAnsatz2D:
+def sut_single_input() -> StandardAnsatz:
     network = FakeNetworkSingleInput()
-    return HBCAnsatz2D(
-        network=network,
+    return create_standard_hbc_ansatz_2D(
         displacement_x_right=displacement_x_right,
         displacement_y_bottom=displacement_y_bottom,
         range_coordinates=range_coordinates,
+        network=network,
     )
 
 
@@ -97,7 +97,7 @@ def sut_single_input() -> HBCAnsatz2D:
     ],
 )
 def test_HBC_ansatz_for_single_input(
-    sut_single_input: HBCAnsatz2D, input: Tensor, expected: Tensor
+    sut_single_input: StandardAnsatz, input: Tensor, expected: Tensor
 ) -> None:
     actual = sut_single_input(input)
 

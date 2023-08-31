@@ -7,7 +7,10 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from parametricpinn.ansatz import create_normalized_hbc_ansatz_2D
+from parametricpinn.ansatz import (
+    StandardAnsatz,
+    create_standard_normalized_hbc_ansatz_2D,
+)
 from parametricpinn.data import (
     TrainingData2DCollocation,
     TrainingData2DSymmetryBC,
@@ -109,13 +112,13 @@ area_pwh = torch.tensor(edge_length**2 - 1 / 4 * math.pi * radius**2).to(device)
 
 
 def loss_func(
-    ansatz: Module,
+    ansatz: StandardAnsatz,
     collocation_data: TrainingData2DCollocation,
     symmetry_bc_data: TrainingData2DSymmetryBC,
     traction_bc_data: TrainingData2DTractionBC,
 ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
     def loss_func_pde(
-        ansatz: Module, collocation_data: TrainingData2DCollocation
+        ansatz: StandardAnsatz, collocation_data: TrainingData2DCollocation
     ) -> Tensor:
         x_coor = collocation_data.x_coor.to(device)
         x_E = collocation_data.x_E
@@ -127,7 +130,7 @@ def loss_func(
         return loss_metric(y_true, y)
 
     def loss_func_symmetry_bc(
-        ansatz: Module, symmetry_bc_data: TrainingData2DSymmetryBC
+        ansatz: StandardAnsatz, symmetry_bc_data: TrainingData2DSymmetryBC
     ) -> Tensor:
         x_coor = symmetry_bc_data.x_coor.to(device)
         x_E = symmetry_bc_data.x_E
@@ -148,7 +151,7 @@ def loss_func(
         return loss_metric(y_true, y)
 
     def loss_func_traction_bc(
-        ansatz: Module, traction_bc_data: TrainingData2DTractionBC
+        ansatz: StandardAnsatz, traction_bc_data: TrainingData2DTractionBC
     ) -> Tensor:
         x_coor = traction_bc_data.x_coor.to(device)
         x_E = traction_bc_data.x_E
@@ -160,7 +163,7 @@ def loss_func(
         return loss_metric(y_true, y)
 
     # def loss_func_energy(
-    #     ansatz: Module,
+    #     ansatz: StandardAnsatz,
     #     collocation_data: TrainingData2DCollocation,
     #     traction_bc_data: TrainingData2DTractionBC,
     # ) -> Tensor:
@@ -197,7 +200,7 @@ def loss_func(
 
 
 ### Validation
-def validate_model(ansatz: Module, valid_dataloader: DataLoader) -> tuple[float, float]:
+def validate_model(ansatz: StandardAnsatz, valid_dataloader: DataLoader) -> tuple[float, float]:
     ansatz.eval()
     with torch.no_grad():
         valid_batches = iter(valid_dataloader)
@@ -343,7 +346,7 @@ if __name__ == "__main__":
     normalization_values = determine_normalization_values()
 
     network = FFNN(layer_sizes=layer_sizes)
-    ansatz = create_normalized_hbc_ansatz_2D(
+    ansatz = create_standard_normalized_hbc_ansatz_2D(
         displacement_x_right=torch.tensor(0.0).to(device),
         displacement_y_bottom=torch.tensor(0.0).to(device),
         network=network,
