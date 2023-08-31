@@ -199,7 +199,7 @@ def calibration_step() -> None:
         return coordinates, noisy_displacements
 
     name_model_parameters_file = "model_parameters"
-    model= load_model(
+    model = load_model(
         model=ansatz,
         name_model_parameters_file=name_model_parameters_file,
         input_subdir=output_subdirectory,
