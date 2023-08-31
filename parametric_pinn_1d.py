@@ -8,7 +8,6 @@ from parametricpinn.ansatz import (
     create_standard_normalized_hbc_ansatz_1D,
 )
 from parametricpinn.calibration import (
-    CalibrationData,
     EfficientNUTSConfig,
     HamiltonianConfig,
     MetropolisHastingsConfig,
@@ -16,9 +15,14 @@ from parametricpinn.calibration import (
     calibrate,
 )
 from parametricpinn.calibration.bayesian.plot import plot_posterior_normal_distributions
+from parametricpinn.calibration.bayesian.ppinn import (
+    CalibrationData,
+    create_ppinn_likelihood,
+)
 from parametricpinn.calibration.bayesian.prior import (
     create_univariate_normal_distributed_prior,
 )
+from parametricpinn.calibration.utility import load_model
 from parametricpinn.data import (
     TrainingDataset1D,
     ValidationDataset1D,
@@ -196,12 +200,22 @@ def calibration_step() -> None:
         noisy_displacements = clean_displacements + noise
         return coordinates, noisy_displacements
 
+    name_model_parameters_file = "model_parameters"
+    ansatz = load_model(
+        model=ansatz,
+        name_model_parameters_file=name_model_parameters_file,
+        input_subdir=output_subdirectory,
+        project_directory=project_directory,
+        device=device,
+    )
+
     coordinates, noisy_displacements = generate_calibration_data()
     data = CalibrationData(
         inputs=coordinates,
         outputs=noisy_displacements,
         std_noise=std_noise,
     )
+    likelihood = create_ppinn_likelihood(ansatz=ansatz, data=data, device=device)
 
     prior_mean_youngs_modulus = 210000
     prior_std_youngs_modulus = 10000
@@ -244,13 +258,9 @@ def calibration_step() -> None:
     if use_random_walk_metropolis_hasting:
         start = perf_counter()
         posterior_moments_mh, samples_mh = calibrate(
-            model=ansatz,
-            name_model_parameters_file="model_parameters",
-            calibration_data=data,
+            likelihood=likelihood,
             prior=prior,
             mcmc_config=mcmc_config_mh,
-            output_subdir=output_subdirectory,
-            project_directory=project_directory,
             device=device,
         )
         end = perf_counter()
@@ -268,13 +278,9 @@ def calibration_step() -> None:
     if use_hamiltonian:
         start = perf_counter()
         posterior_moments_h, samples_h = calibrate(
-            model=ansatz,
-            name_model_parameters_file="model_parameters",
-            calibration_data=data,
+            likelihood=likelihood,
             prior=prior,
             mcmc_config=mcmc_config_h,
-            output_subdir=output_subdirectory,
-            project_directory=project_directory,
             device=device,
         )
         end = perf_counter()
@@ -292,13 +298,9 @@ def calibration_step() -> None:
     if use_naive_nuts:
         start = perf_counter()
         posterior_moments_nnuts, samples_nnuts = calibrate(
-            model=ansatz,
-            name_model_parameters_file="model_parameters",
-            calibration_data=data,
+            likelihood=likelihood,
             prior=prior,
             mcmc_config=mcmc_config_nnuts,
-            output_subdir=output_subdirectory,
-            project_directory=project_directory,
             device=device,
         )
         end = perf_counter()
@@ -316,13 +318,9 @@ def calibration_step() -> None:
     if use_efficient_nuts:
         start = perf_counter()
         posterior_moments_enuts, samples_enuts = calibrate(
-            model=ansatz,
-            name_model_parameters_file="model_parameters",
-            calibration_data=data,
+            likelihood=likelihood,
             prior=prior,
             mcmc_config=mcmc_config_enuts,
-            output_subdir=output_subdirectory,
-            project_directory=project_directory,
             device=device,
         )
         end = perf_counter()

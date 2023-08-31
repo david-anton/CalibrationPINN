@@ -4,7 +4,7 @@ from typing import Callable, TypeAlias
 import torch
 
 from parametricpinn.calibration.bayesian.likelihood import Likelihood
-from parametricpinn.calibration.bayesian.mcmc_base import (
+from parametricpinn.calibration.bayesian.mcmc.base import (
     IsAccepted,
     Parameters,
     Samples,
@@ -14,7 +14,7 @@ from parametricpinn.calibration.bayesian.mcmc_base import (
     postprocess_samples,
     remove_burn_in_phase,
 )
-from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
+from parametricpinn.calibration.bayesian.mcmc.config import MCMCConfig
 from parametricpinn.calibration.bayesian.prior import Prior
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
 from parametricpinn.types import Device, NPArray, Tensor, TorchMultiNormalDist

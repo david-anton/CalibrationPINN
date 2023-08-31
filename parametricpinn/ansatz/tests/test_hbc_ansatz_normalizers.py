@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from parametricpinn.ansatz.hbc_ansatz_normalizers import (
+from parametricpinn.ansatz.hbc_normalizers import (
     HBCAnsatzNormalizer,
     HBCAnsatzRenormalizer,
 )

@@ -200,7 +200,9 @@ def loss_func(
 
 
 ### Validation
-def validate_model(ansatz: StandardAnsatz, valid_dataloader: DataLoader) -> tuple[float, float]:
+def validate_model(
+    ansatz: StandardAnsatz, valid_dataloader: DataLoader
+) -> tuple[float, float]:
     ansatz.eval()
     with torch.no_grad():
         valid_batches = iter(valid_dataloader)

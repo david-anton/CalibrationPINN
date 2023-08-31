@@ -1,10 +1,12 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TypeVar
 
 import torch
 
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Module
+
+ModuleType = TypeVar("ModuleType", bound=Module)
 
 
 class PytorchModelLoader:
@@ -13,11 +15,11 @@ class PytorchModelLoader:
 
     def load(
         self,
-        model: Module,
+        model: ModuleType,
         file_name: str,
         subdir_name: Optional[str] = None,
         load_from_output_dir: bool = True,
-    ) -> Module:
+    ) -> ModuleType:
         input_file_path = self._join_input_file_path(
             file_name, subdir_name, load_from_output_dir
         )

@@ -1,117 +1,45 @@
 from typing import Callable, TypeAlias, cast
 
-from parametricpinn.calibration.bayesian.likelihood import CalibrationLikelihood
-from parametricpinn.calibration.bayesian.mcmc_config import MCMCConfig
-from parametricpinn.calibration.bayesian.mcmc_efficientnuts import (
+from parametricpinn.calibration.bayesian.likelihood import Likelihood
+from parametricpinn.calibration.bayesian.mcmc import (
     EfficientNUTSConfig,
-    mcmc_efficientnuts,
-)
-from parametricpinn.calibration.bayesian.mcmc_hamiltonian import (
     HamiltonianConfig,
-    mcmc_hamiltonian,
-)
-from parametricpinn.calibration.bayesian.mcmc_metropolishastings import (
+    MCMCConfig,
     MetropolisHastingsConfig,
-    mcmc_metropolishastings,
-)
-from parametricpinn.calibration.bayesian.mcmc_naivenuts import (
     NaiveNUTSConfig,
+    mcmc_efficientnuts,
+    mcmc_hamiltonian,
+    mcmc_metropolishastings,
     mcmc_naivenuts,
 )
 from parametricpinn.calibration.bayesian.prior import Prior
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
-from parametricpinn.calibration.data import CalibrationData, PreprocessedCalibrationData
-from parametricpinn.calibration.utility import freeze_model
-from parametricpinn.errors import MCMCConfigError, UnvalidCalibrationDataError
-from parametricpinn.io import ProjectDirectory
-from parametricpinn.io.loaderssavers import PytorchModelLoader
-from parametricpinn.types import Device, Module, NPArray
+from parametricpinn.errors import MCMCConfigError
+from parametricpinn.types import Device, NPArray
 
 MCMC_Algorithm_Output: TypeAlias = tuple[MomentsMultivariateNormal, NPArray]
 MCMC_Algorithm_Closure: TypeAlias = Callable[[], MCMC_Algorithm_Output]
 
 
 def calibrate(
-    model: Module,
-    name_model_parameters_file: str,
-    calibration_data: CalibrationData,
+    likelihood: Likelihood,
     prior: Prior,
     mcmc_config: MCMCConfig,
-    output_subdir: str,
-    project_directory: ProjectDirectory,
     device: Device,
 ) -> MCMC_Algorithm_Output:
-    preprocessed_data = _preprocess_calibration_data(calibration_data)
-    model = _load_model(
-        model=model,
-        name_model_parameters_file=name_model_parameters_file,
-        output_subdir=output_subdir,
-        project_directory=project_directory,
-        device=device,
-    )
-    likelihood = _compile_likelihood(model=model, data=preprocessed_data, device=device)
-    mcmc_algorithm = _compile_mcmc_algorithm(
-        mcmc_config=mcmc_config,
+    mcmc_algorithm = _create_mcmc_algorithm(
         likelihood=likelihood,
         prior=prior,
+        mcmc_config=mcmc_config,
         device=device,
     )
     return mcmc_algorithm()
 
 
-def _preprocess_calibration_data(data: CalibrationData) -> PreprocessedCalibrationData:
-    _validate_calibration_data(data)
-    outputs = data.outputs
-    num_data_points = outputs.size()[0]
-    dim_outputs = outputs.size()[1]
-
-    return PreprocessedCalibrationData(
-        inputs=data.inputs,
-        outputs=data.outputs,
-        std_noise=data.std_noise,
-        num_data_points=num_data_points,
-        dim_outputs=dim_outputs,
-    )
-
-
-def _validate_calibration_data(calibration_data: CalibrationData) -> None:
-    inputs = calibration_data.inputs
-    outputs = calibration_data.outputs
-    if not inputs.size()[0] == outputs.size()[0]:
-        raise UnvalidCalibrationDataError(
-            "Size of input and output data does not match."
-        )
-
-
-def _load_model(
-    model: Module,
-    name_model_parameters_file: str,
-    output_subdir: str,
-    project_directory: ProjectDirectory,
-    device: Device,
-) -> Module:
-    model_loader = PytorchModelLoader(project_directory=project_directory)
-    model = model_loader.load(
-        model=model, file_name=name_model_parameters_file, subdir_name=output_subdir
-    ).to(device)
-    freeze_model(model)
-    return model
-
-
-def _compile_likelihood(
-    model: Module, data: PreprocessedCalibrationData, device: Device
-) -> CalibrationLikelihood:
-    return CalibrationLikelihood(
-        model=model,
-        data=data,
-        device=device,
-    )
-
-
-def _compile_mcmc_algorithm(
-    mcmc_config: MCMCConfig,
-    likelihood: CalibrationLikelihood,
+def _create_mcmc_algorithm(
+    likelihood: Likelihood,
     prior: Prior,
+    mcmc_config: MCMCConfig,
     device: Device,
 ) -> MCMC_Algorithm_Closure:
     if isinstance(mcmc_config, MetropolisHastingsConfig):

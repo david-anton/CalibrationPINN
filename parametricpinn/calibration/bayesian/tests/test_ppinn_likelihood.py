@@ -1,25 +1,44 @@
 import math
 
 import torch
+import torch.nn as nn
 
-from parametricpinn.calibration.bayesian.likelihood import CalibrationLikelihood
-from parametricpinn.calibration.data import PreprocessedCalibrationData
+from parametricpinn.ansatz.base import (
+    AnsatzStrategy,
+    Networks,
+    StandardAnsatz,
+    StandardNetworks,
+)
+from parametricpinn.calibration.bayesian.ppinn import (
+    PPINNLikelihood,
+    PreprocessedCalibrationData,
+)
+from parametricpinn.network import FFNN
 from parametricpinn.types import Tensor
 
 device = torch.device("cpu")
 
 
-class FakeModel_SingleDimension(torch.nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
+class FakeAnsatzStrategy(AnsatzStrategy):
+    def __call__(self, x: Tensor, network: Networks) -> Tensor:
+        return torch.zeros((1,))
+
+
+class FakeAnsatz_SingleDimension(StandardAnsatz):
+    def __init__(
+        self, network: StandardNetworks, ansatz_strategy: AnsatzStrategy
+    ) -> None:
+        super().__init__(network, ansatz_strategy)
 
     def forward(self, x: Tensor) -> Tensor:
         return torch.sum(x, dim=1, keepdim=True)
 
 
-class FakeModel_MultipleDimension(torch.nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
+class FakeAnsatz_MultipleDimension(StandardAnsatz):
+    def __init__(
+        self, network: StandardNetworks, ansatz_strategy: AnsatzStrategy
+    ) -> None:
+        super().__init__(network, ansatz_strategy)
 
     def forward(self, x: Tensor) -> Tensor:
         return torch.concat(
@@ -28,8 +47,20 @@ class FakeModel_MultipleDimension(torch.nn.Module):
         )
 
 
+def _create_fake_ansatz_single_dimension() -> StandardAnsatz:
+    fake_network = FFNN(layer_sizes=[1, 1])
+    fake_ansatz_strategy = FakeAnsatzStrategy()
+    return FakeAnsatz_SingleDimension(fake_network, fake_ansatz_strategy)
+
+
+def _create_fake_ansatz_multiple_dimension() -> StandardAnsatz:
+    fake_network = FFNN(layer_sizes=[1, 1])
+    fake_ansatz_strategy = FakeAnsatzStrategy()
+    return FakeAnsatz_MultipleDimension(fake_network, fake_ansatz_strategy)
+
+
 def test_calibration_likelihood_single_data_single_dimension():
-    model = FakeModel_SingleDimension()
+    ansatz = _create_fake_ansatz_single_dimension()
     inputs = torch.tensor([[1.0]])
     parameters = torch.tensor([1.0])
     outputs = torch.tensor([[1.0]])
@@ -42,8 +73,8 @@ def test_calibration_likelihood_single_data_single_dimension():
         num_data_points=1,
         dim_outputs=1,
     )
-    sut = CalibrationLikelihood(
-        model=model,
+    sut = PPINNLikelihood(
+        ansatz=ansatz,
         data=data,
         device=device,
     )
@@ -57,7 +88,7 @@ def test_calibration_likelihood_single_data_single_dimension():
 
 
 def test_calibration_likelihood_multiple_data_single_dimension():
-    model = FakeModel_SingleDimension()
+    ansatz = _create_fake_ansatz_single_dimension()
     inputs = torch.tensor([[1.0], [1.0]])
     parameters = torch.tensor([1.0])
     outputs = torch.tensor([[1.0], [1.0]])
@@ -70,8 +101,8 @@ def test_calibration_likelihood_multiple_data_single_dimension():
         num_data_points=2,
         dim_outputs=1,
     )
-    sut = CalibrationLikelihood(
-        model=model,
+    sut = PPINNLikelihood(
+        ansatz=ansatz,
         data=data,
         device=device,
     )
@@ -87,7 +118,7 @@ def test_calibration_likelihood_multiple_data_single_dimension():
 
 
 def test_calibration_likelihood_single_data_multiple_dimension():
-    model = FakeModel_MultipleDimension()
+    model = _create_fake_ansatz_multiple_dimension()
     inputs = torch.tensor([[0.5, 0.5]])
     parameters = torch.tensor([1.0])
     outputs = torch.tensor([[1.0, 1.0]])
@@ -100,8 +131,8 @@ def test_calibration_likelihood_single_data_multiple_dimension():
         num_data_points=1,
         dim_outputs=2,
     )
-    sut = CalibrationLikelihood(
-        model=model,
+    sut = PPINNLikelihood(
+        ansatz=model,
         data=data,
         device=device,
     )
@@ -117,7 +148,7 @@ def test_calibration_likelihood_single_data_multiple_dimension():
 
 
 def test_calibration_likelihood_multiple_data_multiple_dimension():
-    model = FakeModel_MultipleDimension()
+    model = _create_fake_ansatz_multiple_dimension()
     inputs = torch.tensor([[0.5, 0.5], [0.5, 0.5]])
     parameters = torch.tensor([1.0])
     outputs = torch.tensor([[1.0, 1.0], [1.0, 1.0]])
@@ -130,8 +161,8 @@ def test_calibration_likelihood_multiple_data_multiple_dimension():
         num_data_points=2,
         dim_outputs=2,
     )
-    sut = CalibrationLikelihood(
-        model=model,
+    sut = PPINNLikelihood(
+        ansatz=model,
         data=data,
         device=device,
     )

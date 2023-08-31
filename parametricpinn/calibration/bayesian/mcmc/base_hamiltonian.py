@@ -3,7 +3,7 @@ from typing import Callable, TypeAlias, Union
 import torch
 
 from parametricpinn.calibration.bayesian.likelihood import Likelihood
-from parametricpinn.calibration.bayesian.mcmc_base import (
+from parametricpinn.calibration.bayesian.mcmc.base import (
     LogUnnormalizedPosterior,
     Parameters,
     Probability,
