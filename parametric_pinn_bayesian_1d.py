@@ -3,7 +3,10 @@ from time import perf_counter
 
 import torch
 
-from parametricpinn.ansatz import create_normalized_hbc_ansatz_1D
+from parametricpinn.ansatz import (
+    BayesianAnsatz,
+    create_bayesian_normalized_hbc_ansatz_1D,
+)
 from parametricpinn.data import (
     TrainingDataset1D,
     calculate_displacements_solution_1D,
@@ -60,7 +63,7 @@ def create_datasets() -> tuple[TrainingDataset1D]:
     return train_dataset
 
 
-def create_ansatz() -> Module:
+def create_ansatz() -> BayesianAnsatz:
     def _determine_normalization_values() -> dict[str, Tensor]:
         min_coordinate = 0.0
         max_coordinate = length
@@ -85,15 +88,13 @@ def create_ansatz() -> Module:
 
     normalization_values = _determine_normalization_values()
     network = BFFNN(layer_sizes=layer_sizes)
-    print(network._parameter_structure)
-    print(network.get_flattened_parameters())
-    return create_normalized_hbc_ansatz_1D(
+    return create_bayesian_normalized_hbc_ansatz_1D(
         displacement_left=torch.tensor([displacement_left]).to(device),
-        network=network,
         min_inputs=normalization_values["min_inputs"],
         max_inputs=normalization_values["max_inputs"],
         min_outputs=normalization_values["min_output"],
         max_outputs=normalization_values["max_output"],
+        network=network,
     ).to(device)
 
 
@@ -112,6 +113,6 @@ ansatz = create_ansatz()
 #     train_parametric_pinn(train_config=train_config)
 
 
-if retrain_parametric_pinn:
-    training_dataset = create_datasets()
+# if retrain_parametric_pinn:
+#     training_dataset = create_datasets()
     # training_step()

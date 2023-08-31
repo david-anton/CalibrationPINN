@@ -1,9 +1,11 @@
 from dataclasses import dataclass
+from time import perf_counter
 from typing import NamedTuple
 
 import torch
 
-from parametricpinn.ansatz import
+from parametricpinn.ansatz import BayesianAnsatz
+from parametricpinn.calibration import EfficientNUTSConfig, calibrate
 from parametricpinn.calibration.bayesian.distributions import (
     MultivariateNormalDistributon,
     create_multivariate_normal_distribution,
@@ -17,7 +19,7 @@ from parametricpinn.data import (
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import ParameterPriorStds
 from parametricpinn.training.loss_1d import momentum_equation_func, traction_func
-from parametricpinn.types import Device, Tensor, Module
+from parametricpinn.types import Device, Module, Tensor
 
 
 class MeasurementsStds(NamedTuple):
@@ -27,7 +29,7 @@ class MeasurementsStds(NamedTuple):
 
 @dataclass
 class TrainingConfiguration:
-    ansatz: Module
+    ansatz: BayesianAnsatz
     parameter_prior_stds: ParameterPriorStds
     training_dataset: TrainingDataset1D
     measurements_standard_deviations: MeasurementsStds
@@ -40,7 +42,7 @@ class TrainingConfiguration:
 class Likelihood:
     def __init__(
         self,
-        ansatz: Module,
+        ansatz: BayesianAnsatz,
         training_dataset: TrainingDataset1D,
         measurements_standard_deviations: MeasurementsStds,
         device: Device,
@@ -80,7 +82,7 @@ class Likelihood:
         return self._likelihood.log_prob(residual)
 
     def _calculate_residuals(self, parameters: Tensor) -> Tensor:
-        self._ansatz._network.set_flattened_parameters(parameters)
+        self._ansatz.network.set_flattened_parameters(parameters)
         flattened_ansatz_outputs = self._calculate_flattened_ansatz_outputs()
         return flattened_ansatz_outputs - self._flattened_true_outputs
 
@@ -152,7 +154,31 @@ def train_bayesian_parametric_pinn(train_config: TrainingConfiguration) -> None:
     project_directory = train_config.project_directory
     device = train_config.device
 
-    # prior = ansatz._network.create_multivariate_normal_prior(
-    #     parameter_prior_stds, device
+    prior = ansatz.network.create_multivariate_normal_prior(
+        parameter_prior_stds, device
+    )
+    parameters_shape = ansatz.network.get_flattened_parameters().shape
+    initial_parameters = torch.zeros(parameters_shape)
+    leapfrog_step_size = 0.1
+    leapfrog_step_sizes = torch.full(parameters_shape, leapfrog_step_size)
+
+    mcmc_config = EfficientNUTSConfig(
+        initial_parameters=initial_parameters,
+        num_iterations=number_mcmc_iterations,
+        num_burn_in_iterations=int(1e3),
+        leapfrog_step_sizes=leapfrog_step_sizes,
+        max_tree_depth=6,  # = 64 steps
+    )
+
+    # start = perf_counter()
+    # posterior_moments, samples = calibrate(
+    #     model=ansatz,
+    #     name_model_parameters_file="model_parameters",
+    #     calibration_data=data,
+    #     prior=prior,
+    #     mcmc_config=mcmc_config,
+    #     output_subdir=output_subdirectory,
+    #     project_directory=project_directory,
+    #     device=device,
     # )
-    # initial_parameters = prior.sample()
+    # end = perf_counter()
