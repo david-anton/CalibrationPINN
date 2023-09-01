@@ -74,9 +74,8 @@ def _calculate_negative_hamiltonian(
     def calculate_negative_hamiltonian(
         parameters: Parameters, momentums: Momentums
     ) -> Hamiltonian:
-        with torch.no_grad():
-            potential_energy = potential_energy_func(parameters)
-            kinetic_energy = kinetic_energy_func(momentums)
+        potential_energy = potential_energy_func(parameters)
+        kinetic_energy = kinetic_energy_func(momentums)
         return -1 * (potential_energy + kinetic_energy)
 
     return calculate_negative_hamiltonian

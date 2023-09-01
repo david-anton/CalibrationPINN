@@ -96,7 +96,7 @@ def mcmc_efficientnuts(
     is_error_too_large = _is_error_too_large(potential_energy_func, delta_error)
     is_state_in_slice = _is_state_in_slice(potential_energy_func)
 
-    def naive_nuts_sampler(parameters: Parameters) -> Parameters:
+    def efficient_nuts_sampler(parameters: Parameters) -> Parameters:
         def update_parameters_canditate_after_doubling(
             tree: EfficientTree,
             tree_s1: EfficientTree,
@@ -306,7 +306,7 @@ def mcmc_efficientnuts(
         return parameters_candidate
 
     def one_iteration(parameters: Tensor) -> Tensor:
-        return naive_nuts_sampler(parameters)
+        return efficient_nuts_sampler(parameters)
 
     samples_list: Samples = []
     parameters = initial_parameters
