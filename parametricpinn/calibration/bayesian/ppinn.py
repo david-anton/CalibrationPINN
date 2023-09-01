@@ -4,8 +4,8 @@ import torch
 
 from parametricpinn.ansatz import StandardAnsatz
 from parametricpinn.calibration.bayesian.distributions import (
-    MultivariateNormalDistributon,
-    create_multivariate_normal_distribution,
+    IndependentMultivariateNormalDistributon,
+    create_independent_multivariate_normal_distribution,
 )
 from parametricpinn.errors import UnvalidCalibrationDataError
 from parametricpinn.types import Device, Tensor
@@ -60,24 +60,26 @@ class PPINNLikelihood:
         residuals = self._calculate_residuals(parameters)
         return self._likelihood.log_prob(residuals)
 
-    def _initialize_likelihood(self) -> MultivariateNormalDistributon:
-        covariance_matrix = self._assemble_residual_covariance_matrix()
-        return create_multivariate_normal_distribution(
-            means=torch.zeros(
-                (self._num_flattened_outputs), dtype=torch.float64, device=self._device
-            ),
-            covariance_matrix=covariance_matrix,
+    def _initialize_likelihood(self) -> IndependentMultivariateNormalDistributon:
+        means = self._assemble_residual_means()
+        standard_deviations = self._assemble_residual_standard_deviations()
+        return create_independent_multivariate_normal_distribution(
+            means=means,
+            standard_deviations=standard_deviations,
             device=self._device,
         )
 
-    def _assemble_residual_covariance_matrix(self) -> Tensor:
-        return torch.diag(
-            torch.full(
-                (self._num_flattened_outputs,),
-                self._data.std_noise**2,
-                dtype=torch.float64,
-                device=self._device,
-            )
+    def _assemble_residual_means(self) -> Tensor:
+        return torch.zeros(
+            (self._num_flattened_outputs,), dtype=torch.float64, device=self._device
+        )
+
+    def _assemble_residual_standard_deviations(self) -> Tensor:
+        return torch.full(
+            (self._num_flattened_outputs,),
+            self._data.std_noise,
+            dtype=torch.float64,
+            device=self._device,
         )
 
     def _calculate_flattened_model_outputs(self, parameters: Tensor) -> Tensor:

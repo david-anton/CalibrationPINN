@@ -21,7 +21,7 @@ from parametricpinn.calibration.bayesian.ppinn import (
     create_ppinn_likelihood,
 )
 from parametricpinn.calibration.bayesian.prior import (
-    create_multivariate_normal_distributed_prior,
+    create_independent_multivariate_normal_distributed_prior,
 )
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.data import (
@@ -348,11 +348,11 @@ def calibration_step() -> None:
     prior_std_poissons_ratio = 0.015
     std_proposal_density_poissons_ratio = 0.0015
     prior_means = torch.tensor([prior_mean_youngs_modulus, prior_mean_poissons_ratio])
-    prior_covariance_matrix = torch.tensor(
-        [[prior_std_youngs_modulus**2, 0], [0, prior_std_poissons_ratio**2]]
+    prior_standard_deviations = torch.tensor(
+        [prior_std_youngs_modulus, prior_std_poissons_ratio]
     )
-    prior = create_multivariate_normal_distributed_prior(
-        means=prior_means, covariance_matrix=prior_covariance_matrix, device=device
+    prior = create_independent_multivariate_normal_distributed_prior(
+        means=prior_means, standard_deviations=prior_standard_deviations, device=device
     )
 
     parameter_names = ("Youngs modulus", "Poissons ratio")
