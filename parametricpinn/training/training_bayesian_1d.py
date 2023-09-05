@@ -63,30 +63,31 @@ class TrainigLikelihood:
         self._likelihood = self._initialize_likelihood()
 
     def prob(self, parameters: Tensor) -> Tensor:
+        self._set_model_parameters(parameters)
         with torch.no_grad():
-            return self._prob(parameters)
+            return self._prob()
 
     def log_prob(self, parameters: Tensor) -> Tensor:
+        self._set_model_parameters(parameters)
         with torch.no_grad():
-            return self._log_prob(parameters)
+            return self._log_prob()
 
     def grad_log_prob(self, parameters: Tensor) -> Tensor:
-        return torch.autograd.grad(
-            self._log_prob(parameters),
-            parameters,
-            retain_graph=False,
-            create_graph=False,
-        )[0]
+        self._set_model_parameters(parameters)
+        self._log_prob().backward()
+        return self._ansatz.network.get_flattened_gradients()
 
-    def _prob(self, parameters: Tensor) -> Tensor:
-        return torch.exp(self._log_prob(parameters))
+    def _set_model_parameters(self, parameters: Tensor) -> None:
+        self._ansatz.network.set_flattened_parameters(parameters)
 
-    def _log_prob(self, parameters: Tensor) -> Tensor:
-        residual = self._calculate_residuals(parameters)
+    def _prob(self) -> Tensor:
+        return torch.exp(self._log_prob())
+
+    def _log_prob(self) -> Tensor:
+        residual = self._calculate_residuals()
         return self._likelihood.log_prob(residual)
 
-    def _calculate_residuals(self, parameters: Tensor) -> Tensor:
-        self._ansatz.network.set_flattened_parameters(parameters)
+    def _calculate_residuals(self) -> Tensor:
         flattened_ansatz_outputs = self._calculate_flattened_ansatz_outputs()
         return flattened_ansatz_outputs - self._flattened_true_outputs
 
@@ -170,12 +171,12 @@ def train_parametric_pinn(
     )
 
     initial_parameters = torch.zeros(parameters_shape)
-    leapfrog_step_sizes = torch.full(parameters_shape, 0.1)
+    leapfrog_step_sizes = torch.full(parameters_shape, 1e-6)
 
     mcmc_config = EfficientNUTSConfig(
         initial_parameters=initial_parameters,
         num_iterations=number_mcmc_iterations,
-        num_burn_in_iterations=int(1e3),
+        num_burn_in_iterations=int(1e2),
         leapfrog_step_sizes=leapfrog_step_sizes,
         max_tree_depth=6,  # = 64 steps
     )
@@ -185,5 +186,6 @@ def train_parametric_pinn(
     end = perf_counter()
     time = end - start
     print(f"Sampling time: {time}")
+    print(samples)
 
     return posterior_moments, samples

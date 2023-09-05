@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Callable, NamedTuple, TypeAlias
+from typing import Callable, NamedTuple, TypeAlias, cast
 
 import torch
 import torch.nn as nn
@@ -18,6 +18,7 @@ class ParameterSet(NamedTuple):
 
 ParameterStructure: TypeAlias = tuple[ParameterSet, ...]
 FlattenedParameters: TypeAlias = Tensor
+FlattenedGradients: TypeAlias = Tensor
 
 
 class LinearHiddenLayer(nn.Module):
@@ -93,6 +94,13 @@ class FFNN(Module):
     ) -> None:
         state_dict = self._create_state_dict(flattened_parameters)
         self._output.load_state_dict(state_dict=state_dict, strict=True)
+
+    def get_flattened_gradients(self) -> FlattenedGradients:
+        flattened_gradient_sets = []
+        for parameter_set in self._output.parameters():
+            grad_parameter_set = cast(torch.Tensor, parameter_set.grad)
+            flattened_gradient_sets.append(grad_parameter_set.ravel())
+        return torch.concat(flattened_gradient_sets, dim=0)
 
     def _set_up_layers(
         self,
