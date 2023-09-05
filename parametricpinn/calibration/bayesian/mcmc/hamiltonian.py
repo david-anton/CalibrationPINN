@@ -10,6 +10,7 @@ from parametricpinn.calibration.bayesian.mcmc.base import (
     _log_unnormalized_posterior,
     evaluate_acceptance_ratio,
     expand_num_iterations,
+    log_bernoulli,
     postprocess_samples,
     remove_burn_in_phase,
 )
@@ -122,16 +123,15 @@ def mcmc_hamiltonian(
             next_potential_energy = potential_energy_func(state.next_parameters)
             next_kinetic_energy = kinetic_energy_func(state.next_momentums)
 
-            acceptance_prob = torch.exp(
+            log_acceptance_probability = (
                 potential_energy
                 - next_potential_energy
                 + kinetic_energy
                 - next_kinetic_energy
             )
-            rand_uniform_number = torch.squeeze(torch.rand(1, device=device), 0)
             next_parameters = state.next_parameters
             is_accepted = True
-            if rand_uniform_number > acceptance_prob:
+            if log_bernoulli(log_acceptance_probability, device):
                 next_parameters = state.parameters
                 is_accepted = False
             return next_parameters, is_accepted

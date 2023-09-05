@@ -19,7 +19,7 @@ from parametricpinn.calibration.bayesian.mcmc.base_hamiltonian import (
 )
 from parametricpinn.types import Device, Tensor
 
-SliceVariable: TypeAlias = Tensor
+LogSliceVariable: TypeAlias = Tensor
 Hamiltonian: TypeAlias = Energy
 Direction: TypeAlias = int
 TerminationFlag: TypeAlias = bool
@@ -81,27 +81,34 @@ def _calculate_negative_hamiltonian(
     return calculate_negative_hamiltonian
 
 
-SampleSliceVariableFnuc: TypeAlias = Callable[[Parameters, Momentums], SliceVariable]
+SampleLogSliceVariableFunc: TypeAlias = Callable[
+    [Parameters, Momentums], LogSliceVariable
+]
 
 
-def _sample_slice_variable(
+def _sample_log_slice_variable(
     potential_energy_func: PotentialEnergyFunc, device: Device
-) -> SampleSliceVariableFnuc:
+) -> SampleLogSliceVariableFunc:
     calculate_negative_hamiltonian = _calculate_negative_hamiltonian(
         potential_energy_func
     )
 
-    def sample_slice_variable(
+    def sample_log_slice_variable(
         parameters: Parameters, momentums: Momentums
-    ) -> SliceVariable:
+    ) -> LogSliceVariable:
         negative_hamiltonian = calculate_negative_hamiltonian(parameters, momentums)
-        unnormalized_joint_probability = torch.exp(negative_hamiltonian)
-        return torch.distributions.Uniform(
-            low=torch.tensor(0.0, dtype=torch.float64, device=device),
-            high=unnormalized_joint_probability,
-        ).sample()
+        # The exponential distribution of the logarithmized slice variable follows from a logarithmic transformation
+        # of the uniform distributed slice variable u ~ Uniform(0, exp(-Hamiltonain)). The logarithmic transformation
+        # is applied to avoid floating point undeflow.
+        # See page 712 in "M. Neal, Slice Sampling, 2003".
+        return (
+            negative_hamiltonian
+            - torch.distributions.Exponential(
+                rate=torch.tensor(1.0, dtype=torch.float64, device=device)
+            ).sample()
+        )
 
-    return sample_slice_variable
+    return sample_log_slice_variable
 
 
 IsDistanceDecreasingFunc: TypeAlias = Callable[[Tree], TerminationFlag]
@@ -121,7 +128,9 @@ def _is_distance_decreasing(device: Device) -> IsDistanceDecreasingFunc:
 
 
 DeltaError: TypeAlias = Tensor
-IsErrorTooLargeFunc: TypeAlias = Callable[[Parameters, Momentums, SliceVariable], bool]
+IsErrorTooLargeFunc: TypeAlias = Callable[
+    [Parameters, Momentums, LogSliceVariable], bool
+]
 
 
 def _is_error_too_large(
@@ -132,15 +141,19 @@ def _is_error_too_large(
     )
 
     def is_error_too_large(
-        parameters: Parameters, momentums: Momentums, slice_variable: SliceVariable
+        parameters: Parameters,
+        momentums: Momentums,
+        log_slice_variable: LogSliceVariable,
     ) -> bool:
         negative_hamiltonian = calculate_negative_hamiltonian(parameters, momentums)
-        return bool(negative_hamiltonian - torch.log(slice_variable) < -delta_error)
+        return bool(negative_hamiltonian - log_slice_variable <= -delta_error)
 
     return is_error_too_large
 
 
-IsStateInSliceFunc: TypeAlias = Callable[[Parameters, Momentums, SliceVariable], bool]
+IsStateInSliceFunc: TypeAlias = Callable[
+    [Parameters, Momentums, LogSliceVariable], bool
+]
 
 
 def _is_state_in_slice(
@@ -151,11 +164,12 @@ def _is_state_in_slice(
     )
 
     def is_state_in_slice(
-        parameters: Parameters, momentums: Momentums, slice_variable: SliceVariable
+        parameters: Parameters,
+        momentums: Momentums,
+        log_slice_variable: LogSliceVariable,
     ) -> bool:
         negative_hamiltonian = calculate_negative_hamiltonian(parameters, momentums)
-        unnormalized_joint_probability = torch.exp(negative_hamiltonian)
-        return bool(slice_variable <= unnormalized_joint_probability)
+        return bool(log_slice_variable <= negative_hamiltonian)
 
     return is_state_in_slice
 
@@ -175,17 +189,6 @@ def keep_minus_from_old_tree(new_tree: TreeType, old_tree: TreeType) -> TreeType
     new_tree_copy.parameters_m = old_tree.parameters_m
     new_tree_copy.momentums_m = old_tree.momentums_m
     return new_tree_copy
-
-
-def log_bernoulli(log_probability: Tensor, device: Device) -> bool:
-    """
-    Runs a Bernoulli experiment on a logarithmic probability.
-    Returns True with provided probability and False otherwise.
-
-    If log_probability is nan, it will be set to 0.0.
-    """
-    log_probability = torch.nan_to_num(log_probability, nan=0.0)
-    return bool(torch.log(torch.rand(1, device=device)) < log_probability)
 
 
 def is_max_tree_depth_reached(tree_depth: TreeDepth, max_tree_depth: TreeDepth) -> bool:

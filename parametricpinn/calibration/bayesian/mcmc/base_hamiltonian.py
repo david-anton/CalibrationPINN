@@ -70,18 +70,14 @@ def _sample_normalized_momentums(
     device: Device,
 ) -> DrawMomentumsFunc:
     def compile_momentum_distribution() -> MomentumsDistribution:
-        if parameters.size() == (1,):
+        if parameters.size() == torch.Size([]):
             mean = torch.tensor([0.0], dtype=torch.float64, device=device)
             standard_deviation = torch.tensor([1.0], dtype=torch.float64, device=device)
             return torch.distributions.Normal(loc=mean, scale=standard_deviation)
         else:
             means = torch.zeros_like(parameters, dtype=torch.float64, device=device)
-            covariance_matrix = torch.diag(
-                torch.ones_like(parameters, dtype=torch.float64, device=device)
-            )
-            return torch.distributions.MultivariateNormal(
-                loc=means, covariance_matrix=covariance_matrix
-            )
+            standard_deviations = torch.ones_like(parameters, dtype=torch.float64, device=device)
+            return torch.distributions.Normal(loc=means, scale=standard_deviations)
 
     momentums_dist = compile_momentum_distribution()
 

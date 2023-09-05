@@ -9,14 +9,15 @@ from parametricpinn.calibration.bayesian.mcmc.base import (
     Samples,
     _log_unnormalized_posterior,
     expand_num_iterations,
+    log_bernoulli,
     postprocess_samples,
     remove_burn_in_phase,
 )
 from parametricpinn.calibration.bayesian.mcmc.base_nuts import (
     Direction,
+    LogSliceVariable,
     Momentums,
     Parameters,
-    SliceVariable,
     StepSizes,
     TerminationFlag,
     Tree,
@@ -28,12 +29,11 @@ from parametricpinn.calibration.bayesian.mcmc.base_nuts import (
     _is_state_in_slice,
     _leapfrog_step,
     _potential_energy_func,
+    _sample_log_slice_variable,
     _sample_normalized_momentums,
-    _sample_slice_variable,
     is_max_tree_depth_reached,
     keep_minus_from_old_tree,
     keep_plus_from_old_tree,
-    log_bernoulli,
 )
 from parametricpinn.calibration.bayesian.mcmc.config import MCMCConfig
 from parametricpinn.calibration.bayesian.prior import Prior
@@ -90,7 +90,9 @@ def mcmc_efficientnuts(
     potential_energy_func = _potential_energy_func(log_unnorm_posterior)
     grad_potential_energy_func = _grad_potential_energy_func(grad_log_unnorm_posterior)
     sample_momentums = _sample_normalized_momentums(initial_parameters, device)
-    sample_slice_variable = _sample_slice_variable(potential_energy_func, device)
+    sample_log_slice_variable = _sample_log_slice_variable(
+        potential_energy_func, device
+    )
     leapfrog_step = _leapfrog_step(grad_potential_energy_func)
     is_distance_decreasing = _is_distance_decreasing(device)
     is_error_too_large = _is_error_too_large(potential_energy_func, delta_error)
@@ -125,7 +127,7 @@ def mcmc_efficientnuts(
         def base_step(
             parameters: Parameters,
             momentums: Momentums,
-            slice_variable: SliceVariable,
+            log_slice_variable: LogSliceVariable,
             direction: Direction,
             step_sizes: StepSizes,
         ) -> EfficientTree:
@@ -134,10 +136,10 @@ def mcmc_efficientnuts(
                 parameters, momentums, direction * step_sizes
             )
             candidate_set_size = torch.tensor(0, dtype=torch.int16, device=device)
-            if is_state_in_slice(parameters_s1, momentums_s1, slice_variable):
+            if is_state_in_slice(parameters_s1, momentums_s1, log_slice_variable):
                 candidate_set_size = torch.tensor(1, dtype=torch.int16, device=device)
             is_terminated_s1 = is_error_too_large(
-                parameters_s1, momentums_s1, slice_variable
+                parameters_s1, momentums_s1, log_slice_variable
             )
             return EfficientTree(
                 parameters_m=parameters_s1,
@@ -152,7 +154,7 @@ def mcmc_efficientnuts(
         def build_subtree(
             parameters: Parameters,
             momentums: Momentums,
-            slice_variable: SliceVariable,
+            log_slice_variable: LogSliceVariable,
             direction: Direction,
             tree_depth: TreeDepth,
             step_sizes: StepSizes,
@@ -162,7 +164,7 @@ def mcmc_efficientnuts(
             tree_s1 = build_tree(
                 parameters=parameters,
                 momentums=momentums,
-                slice_variable=slice_variable,
+                log_slice_variable=log_slice_variable,
                 direction=direction,
                 tree_depth=tree_depth,
                 step_sizes=step_sizes,
@@ -173,7 +175,7 @@ def mcmc_efficientnuts(
                         new_tree=build_tree(
                             parameters=tree_s1.parameters_m,
                             momentums=tree_s1.momentums_m,
-                            slice_variable=slice_variable,
+                            log_slice_variable=log_slice_variable,
                             direction=direction,
                             tree_depth=tree_depth,
                             step_sizes=step_sizes,
@@ -185,7 +187,7 @@ def mcmc_efficientnuts(
                         new_tree=build_tree(
                             parameters=tree_s1.parameters_p,
                             momentums=tree_s1.momentums_p,
-                            slice_variable=slice_variable,
+                            log_slice_variable=log_slice_variable,
                             direction=direction,
                             tree_depth=tree_depth,
                             step_sizes=step_sizes,
@@ -215,7 +217,7 @@ def mcmc_efficientnuts(
         def build_tree(
             parameters: Parameters,
             momentums: Momentums,
-            slice_variable: SliceVariable,
+            log_slice_variable: LogSliceVariable,
             direction: Direction,
             tree_depth: TreeDepth,
             step_sizes: StepSizes,
@@ -224,7 +226,7 @@ def mcmc_efficientnuts(
                 return base_step(
                     parameters=parameters,
                     momentums=momentums,
-                    slice_variable=slice_variable,
+                    log_slice_variable=log_slice_variable,
                     direction=direction,
                     step_sizes=step_sizes,
                 )
@@ -232,14 +234,14 @@ def mcmc_efficientnuts(
                 return build_subtree(
                     parameters=parameters,
                     momentums=momentums,
-                    slice_variable=slice_variable,
+                    log_slice_variable=log_slice_variable,
                     direction=direction,
                     tree_depth=tree_depth,
                     step_sizes=step_sizes,
                 )
 
         momentums = sample_momentums()
-        slice_variable = sample_slice_variable(parameters, momentums)
+        log_slice_variable = sample_log_slice_variable(parameters, momentums)
         tree = EfficientTree(
             parameters_m=parameters,
             momentums_m=momentums,
@@ -260,7 +262,7 @@ def mcmc_efficientnuts(
                     new_tree=build_tree(
                         parameters=tree.parameters_m,
                         momentums=tree.momentums_m,
-                        slice_variable=slice_variable,
+                        log_slice_variable=log_slice_variable,
                         direction=direction,
                         tree_depth=tree_depth,
                         step_sizes=step_sizes,
@@ -272,7 +274,7 @@ def mcmc_efficientnuts(
                     new_tree=build_tree(
                         parameters=tree.parameters_p,
                         momentums=tree.momentums_p,
-                        slice_variable=slice_variable,
+                        log_slice_variable=log_slice_variable,
                         direction=direction,
                         tree_depth=tree_depth,
                         step_sizes=step_sizes,

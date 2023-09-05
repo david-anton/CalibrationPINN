@@ -8,7 +8,7 @@ from parametricpinn.calibration.bayesian.statistics import (
     MomentsMultivariateNormal,
     determine_moments_of_multivariate_normal_distribution,
 )
-from parametricpinn.types import NPArray, Tensor
+from parametricpinn.types import Device, NPArray, Tensor
 
 Parameters: TypeAlias = Tensor
 Probability: TypeAlias = Tensor
@@ -57,3 +57,14 @@ def postprocess_samples(
 def evaluate_acceptance_ratio(num_accepted_proposals: int, num_iterations: int) -> None:
     acceptance_ratio = num_accepted_proposals / num_iterations
     print(f"Acceptance ratio: {round(acceptance_ratio, 4)}")
+
+
+def log_bernoulli(log_probability: Tensor, device: Device) -> bool:
+    """
+    Runs a Bernoulli experiment on a logarithmic probability.
+    Returns True with provided probability and False otherwise.
+
+    If log_probability is nan, it will be set to 0.0.
+    """
+    log_probability = torch.nan_to_num(log_probability, nan=0.0)
+    return bool(torch.log(torch.rand(1, device=device)) < log_probability)

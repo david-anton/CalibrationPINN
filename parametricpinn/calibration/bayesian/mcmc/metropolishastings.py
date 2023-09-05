@@ -8,9 +8,11 @@ from parametricpinn.calibration.bayesian.mcmc.base import (
     IsAccepted,
     Parameters,
     Samples,
+    _log_unnormalized_posterior,
     _unnormalized_posterior,
     evaluate_acceptance_ratio,
     expand_num_iterations,
+    log_bernoulli,
     postprocess_samples,
     remove_burn_in_phase,
 )
@@ -51,7 +53,7 @@ def mcmc_metropolishastings(
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
     num_total_iterations = expand_num_iterations(num_iterations, num_burn_in_iterations)
 
-    unnorm_posterior = _unnormalized_posterior(likelihood, prior)
+    log_unnorm_posterior = _log_unnormalized_posterior(likelihood, prior)
 
     def compile_proposal_density(
         initial_parameters: Parameters, cov_proposal_density: CovarianceProposalDensity
@@ -85,13 +87,13 @@ def mcmc_metropolishastings(
         def metropolis_hastings_update(
             state: MHUpdateState,
         ) -> tuple[Parameters, IsAccepted]:
-            acceptance_prob = unnorm_posterior(
+            log_acceptance_probability = log_unnorm_posterior(
                 state.next_parameters
-            ) / unnorm_posterior(state.parameters)
-            rand_uniform_number = torch.squeeze(torch.rand(1, device=device), 0)
+            ) - log_unnorm_posterior(state.parameters)
+
             next_parameters = state.next_parameters
             is_accepted = True
-            if rand_uniform_number > acceptance_prob:
+            if log_bernoulli(log_acceptance_probability, device):
                 next_parameters = state.parameters
                 is_accepted = False
             return next_parameters, is_accepted
