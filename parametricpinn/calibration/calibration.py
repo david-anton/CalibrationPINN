@@ -6,11 +6,9 @@ from parametricpinn.calibration.bayesian.mcmc import (
     HamiltonianConfig,
     MCMCConfig,
     MetropolisHastingsConfig,
-    NaiveNUTSConfig,
     mcmc_efficientnuts,
     mcmc_hamiltonian,
     mcmc_metropolishastings,
-    mcmc_naivenuts,
 )
 from parametricpinn.calibration.bayesian.prior import Prior
 from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
@@ -76,22 +74,6 @@ def _create_mcmc_algorithm(
             )
 
         return mcmc_hamiltonian_algorithm
-    elif isinstance(mcmc_config, NaiveNUTSConfig):
-        config_nnuts = cast(NaiveNUTSConfig, mcmc_config)
-        print("MCMC algorithm used: Naive NUTS")
-
-        def mcmc_naive_nuts_algorithm() -> MCMC_Algorithm_Output:
-            return mcmc_naivenuts(
-                likelihood=likelihood,
-                prior=prior,
-                initial_parameters=config_nnuts.initial_parameters,
-                leapfrog_step_sizes=config_nnuts.leapfrog_step_sizes,
-                num_iterations=config_nnuts.num_iterations,
-                num_burn_in_iterations=config_nnuts.num_burn_in_iterations,
-                device=device,
-            )
-
-        return mcmc_naive_nuts_algorithm
     elif isinstance(mcmc_config, EfficientNUTSConfig):
         config_enuts = cast(EfficientNUTSConfig, mcmc_config)
         print("MCMC algorithm used: Efficient NUTS")

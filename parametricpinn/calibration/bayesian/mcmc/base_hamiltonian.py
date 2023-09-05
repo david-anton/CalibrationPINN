@@ -76,7 +76,9 @@ def _sample_normalized_momentums(
             return torch.distributions.Normal(loc=mean, scale=standard_deviation)
         else:
             means = torch.zeros_like(parameters, dtype=torch.float64, device=device)
-            standard_deviations = torch.ones_like(parameters, dtype=torch.float64, device=device)
+            standard_deviations = torch.ones_like(
+                parameters, dtype=torch.float64, device=device
+            )
             return torch.distributions.Normal(loc=means, scale=standard_deviations)
 
     momentums_dist = compile_momentum_distribution()
