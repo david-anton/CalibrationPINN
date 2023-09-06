@@ -67,4 +67,4 @@ def log_bernoulli(log_probability: Tensor, device: Device) -> bool:
     If log_probability is nan, it will be set to 0.0.
     """
     log_probability = torch.nan_to_num(log_probability, nan=0.0)
-    return bool(torch.log(torch.rand(1, device=device)) < log_probability)
+    return bool(torch.log(torch.rand(1, device=device)) <= log_probability)

@@ -131,7 +131,7 @@ def mcmc_hamiltonian(
             )
             next_parameters = state.next_parameters
             is_accepted = True
-            if log_bernoulli(log_acceptance_probability, device):
+            if not log_bernoulli(log_acceptance_probability, device):
                 next_parameters = state.parameters
                 is_accepted = False
             return next_parameters, is_accepted
