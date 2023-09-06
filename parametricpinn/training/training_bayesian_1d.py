@@ -74,6 +74,7 @@ class TrainigLikelihood:
 
     def grad_log_prob(self, parameters: Tensor) -> Tensor:
         self._set_model_parameters(parameters)
+        self._ansatz.zero_grad()
         self._log_prob().backward()
         return self._ansatz.network.get_flattened_gradients()
 
@@ -171,7 +172,7 @@ def train_parametric_pinn(
     )
 
     initial_parameters = torch.zeros(parameters_shape)
-    leapfrog_step_sizes = torch.full(parameters_shape, 1e-6)
+    leapfrog_step_sizes = torch.full(parameters_shape, 1e-5)
 
     mcmc_config = EfficientNUTSConfig(
         initial_parameters=initial_parameters,

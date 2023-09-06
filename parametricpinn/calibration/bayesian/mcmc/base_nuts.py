@@ -127,14 +127,14 @@ def _is_distance_decreasing(device: Device) -> IsDistanceDecreasingFunc:
     return is_distance_decreasing
 
 
-DeltaError: TypeAlias = Tensor
+MaxDeltaError: TypeAlias = Tensor
 IsErrorTooLargeFunc: TypeAlias = Callable[
     [Parameters, Momentums, LogSliceVariable], bool
 ]
 
 
 def _is_error_too_large(
-    potential_energy_func: PotentialEnergyFunc, delta_error: DeltaError
+    potential_energy_func: PotentialEnergyFunc, max_delta_error: MaxDeltaError
 ) -> IsErrorTooLargeFunc:
     calculate_negative_hamiltonian = _calculate_negative_hamiltonian(
         potential_energy_func
@@ -146,7 +146,7 @@ def _is_error_too_large(
         log_slice_variable: LogSliceVariable,
     ) -> bool:
         negative_hamiltonian = calculate_negative_hamiltonian(parameters, momentums)
-        return bool(negative_hamiltonian - log_slice_variable <= -delta_error)
+        return bool(negative_hamiltonian - log_slice_variable <= -max_delta_error)
 
     return is_error_too_large
 

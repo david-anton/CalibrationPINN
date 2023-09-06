@@ -82,7 +82,7 @@ def mcmc_efficientnuts(
 ) -> tuple[MomentsMultivariateNormal, NPArray]:
     step_sizes = leapfrog_step_sizes
     directions = [-1, 1]
-    delta_error = torch.tensor(1000.0, device=device)
+    max_delta_error = torch.tensor(1000.0, device=device)
     num_total_iterations = expand_num_iterations(num_iterations, num_burn_in_iterations)
 
     log_unnorm_posterior = _log_unnormalized_posterior(likelihood, prior)
@@ -95,7 +95,7 @@ def mcmc_efficientnuts(
     )
     leapfrog_step = _leapfrog_step(grad_potential_energy_func)
     is_distance_decreasing = _is_distance_decreasing(device)
-    is_error_too_large = _is_error_too_large(potential_energy_func, delta_error)
+    is_error_too_large = _is_error_too_large(potential_energy_func, max_delta_error)
     is_state_in_slice = _is_state_in_slice(potential_energy_func)
 
     def efficient_nuts_sampler(parameters: Parameters) -> Parameters:

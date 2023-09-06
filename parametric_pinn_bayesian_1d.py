@@ -41,8 +41,8 @@ num_points_pde = 128
 training_batch_size = num_samples_train
 number_mcmc_iterations = 100
 # Data
-std_pde = 0.1
-std_stress_bc = 0.1
+std_pde = 0.01
+std_stress_bc = 0.01
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
