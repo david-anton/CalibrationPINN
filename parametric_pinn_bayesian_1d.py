@@ -13,6 +13,10 @@ from parametricpinn.data import (
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import BFFNN
+from parametricpinn.postprocessing.plot import (
+    BayesianDisplacementsPlotterConfig1D,
+    plot_bayesian_displacements_1D,
+)
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
 from parametricpinn.training.training_bayesian_1d import (
     MeasurementsStds,
@@ -125,7 +129,24 @@ def training_step() -> None:
         device=device,
     )
 
-    train_parametric_pinn(train_config)
+    def _plot_exemplary_displacements() -> None:
+        displacements_plotter_config = BayesianDisplacementsPlotterConfig1D()
+
+        plot_bayesian_displacements_1D(
+            ansatz=ansatz,
+            parameter_samples=parameter_samples,
+            length=length,
+            youngs_modulus_list=[187634, 238695],
+            traction=traction,
+            volume_force=volume_force,
+            output_subdir=output_subdirectory,
+            project_directory=project_directory,
+            config=displacements_plotter_config,
+            device=device,
+        )
+
+    _, parameter_samples = train_parametric_pinn(train_config)
+    _plot_exemplary_displacements()
 
 
 if retrain_parametric_pinn:
