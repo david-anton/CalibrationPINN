@@ -52,12 +52,12 @@ min_youngs_modulus = 165000.0
 max_youngs_modulus = 255000.0
 displacement_left = 0.0
 # Network
-layer_sizes = [2, 16, 16, 1]
+layer_sizes = [2, 16, 16, 16, 16, 1]
 # Training
 num_samples_train = 128
 num_points_pde = 128
 training_batch_size = num_samples_train
-number_training_epochs = 300
+number_training_epochs = 1000
 # Validation
 num_samples_valid = 128
 valid_interval = 1
