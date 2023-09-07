@@ -74,12 +74,13 @@ class TrainigLikelihood:
 
     def grad_log_prob(self, parameters: Tensor) -> Tensor:
         self._set_model_parameters(parameters)
-        self._ansatz.zero_grad()
+        self._ansatz.network.zero_grad()
         self._log_prob().backward()
         return self._ansatz.network.get_flattened_gradients()
 
     def _set_model_parameters(self, parameters: Tensor) -> None:
         self._ansatz.network.set_flattened_parameters(parameters)
+        self._ansatz.to(self._device)
 
     def _prob(self) -> Tensor:
         return torch.exp(self._log_prob())
@@ -121,7 +122,7 @@ class TrainigLikelihood:
     def _assemble_flattened_true_outputs(self) -> Tensor:
         y_pde_true = self._pde_data.y_true.ravel()
         y_stress_bc_true = self._stress_bc_data.y_true.ravel()
-        return torch.concat([y_pde_true, y_stress_bc_true], dim=0)
+        return torch.concat([y_pde_true, y_stress_bc_true], dim=0).to(self._device)
 
     def _initialize_likelihood(self) -> IndependentMultivariateNormalDistributon:
         means = self._assemble_residual_means()
@@ -134,7 +135,7 @@ class TrainigLikelihood:
         means_pde = torch.zeros((self._num_flattened_y_pde,))
         means_stress_bc = torch.zeros((self._num_flattened_y_stress_bc,))
         means = [means_pde, means_stress_bc]
-        return torch.concat(means, dim=0)
+        return torch.concat(means, dim=0).to(self._device)
 
     def _assemble_residual_standard_deviations(self) -> Tensor:
         stds_pde = torch.full((self._num_flattened_y_pde,), self._measurements_stds.pde)
@@ -143,7 +144,7 @@ class TrainigLikelihood:
             self._measurements_stds.stress_bc,
         )
         stds = [stds_pde, stds_stress_bc]
-        return torch.concat(stds, dim=0)
+        return torch.concat(stds, dim=0).to(self._device)
 
 
 def train_parametric_pinn(
@@ -171,15 +172,15 @@ def train_parametric_pinn(
         parameter_prior_stds, device
     )
 
-    initial_parameters = torch.zeros(parameters_shape)
-    leapfrog_step_sizes = torch.full(parameters_shape, 1e-5)
+    initial_parameters = prior.sample().to(device)
+    leapfrog_step_sizes = torch.full(parameters_shape, 1e-6, device=device)
 
     mcmc_config = EfficientNUTSConfig(
         initial_parameters=initial_parameters,
         num_iterations=number_mcmc_iterations,
-        num_burn_in_iterations=int(1e2),
+        num_burn_in_iterations=int(1e4),
         leapfrog_step_sizes=leapfrog_step_sizes,
-        max_tree_depth=6,  # = 64 steps
+        max_tree_depth=10,  # = 1024 steps
     )
 
     start = perf_counter()
@@ -187,6 +188,5 @@ def train_parametric_pinn(
     end = perf_counter()
     time = end - start
     print(f"Sampling time: {time}")
-    print(samples)
 
     return posterior_moments, samples

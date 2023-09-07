@@ -17,7 +17,10 @@ def squeeze_if_necessary(log_prob: Tensor) -> Tensor:
 
 
 class CustomDistribution(Protocol):
-    def log_prob(self, sample: Tensor):
+    def log_prob(self, sample: Tensor) -> Tensor:
+        pass
+
+    def sample(self) -> Tensor:
         pass
 
 
@@ -36,10 +39,13 @@ class UnivariateUniformDistributon:
                 f"Unexpected shape of sample: {shape}."
             )
 
-    def log_prob(self, sample: Tensor):
+    def log_prob(self, sample: Tensor) -> Tensor:
         self._validate_sample(sample)
         log_prob = self._distribution.log_prob(sample)
         return squeeze_if_necessary(log_prob)
+
+    def sample(self) -> Tensor:
+        return self._distribution.rsample()
 
 
 class UnivariateNormalDistributon:
@@ -58,10 +64,13 @@ class UnivariateNormalDistributon:
                 f"Unexpected shape of sample: {shape}."
             )
 
-    def log_prob(self, sample: Tensor):
+    def log_prob(self, sample: Tensor) -> Tensor:
         self._validate_sample(sample)
         log_prob = self._distribution.log_prob(sample)
         return squeeze_if_necessary(log_prob)
+
+    def sample(self) -> Tensor:
+        return self._distribution.rsample()
 
 
 class MultivariateNormalDistributon:
@@ -73,9 +82,12 @@ class MultivariateNormalDistributon:
         self.means = self._distribution.mean
         self.variances = self._distribution.variance
 
-    def log_prob(self, sample: Tensor):
+    def log_prob(self, sample: Tensor) -> Tensor:
         log_prob = self._distribution.log_prob(sample)
         return squeeze_if_necessary(log_prob)
+
+    def sample(self) -> Tensor:
+        return self._distribution.rsample()
 
 
 class IndependentMultivariateNormalDistributon:
@@ -87,9 +99,12 @@ class IndependentMultivariateNormalDistributon:
         self.means = self._distribution.mean
         self.standard_deviations = self._distribution.stddev
 
-    def log_prob(self, sample: Tensor):
+    def log_prob(self, sample: Tensor) -> Tensor:
         log_prob = torch.sum(self._distribution.log_prob(sample))
         return squeeze_if_necessary(log_prob)
+
+    def sample(self) -> Tensor:
+        return self._distribution.rsample()
 
 
 UnivariateDistributions: TypeAlias = Union[
@@ -122,6 +137,10 @@ class MixedIndependetMultivariateDistribution:
             )
         )
         return squeeze_if_necessary(log_prob)
+
+    def sample(self) -> Tensor:
+        samples = [distribution.sample() for distribution in self._distributions]
+        return torch.concat(samples, dim=0)
 
 
 def create_univariate_uniform_distribution(

@@ -66,7 +66,7 @@ def mcmc_metropolishastings(
             loc=torch.zeros_like(
                 initial_parameters, dtype=torch.float64, device=device
             ),
-            covariance_matrix=cov_proposal_density,
+            covariance_matrix=cov_proposal_density.to(device),
         )
 
     proposal_density = compile_proposal_density(
@@ -110,7 +110,7 @@ def mcmc_metropolishastings(
 
     samples_list: Samples = []
     num_accepted_proposals = 0
-    parameters = initial_parameters
+    parameters = initial_parameters.to(device)
     for i in range(num_total_iterations):
         parameters, is_accepted = one_iteration(parameters)
         samples_list.append(parameters)
