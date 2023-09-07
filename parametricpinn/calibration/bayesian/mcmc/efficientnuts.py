@@ -319,7 +319,6 @@ def mcmc_efficientnuts(
         parameters = one_iteration(parameters)
         parameters.detach()
         samples_list.append(parameters)
-        print(f"Iteration {i}/{num_total_iterations}")
 
     samples_list = remove_burn_in_phase(
         sample_list=samples_list, num_burn_in_iterations=num_burn_in_iterations

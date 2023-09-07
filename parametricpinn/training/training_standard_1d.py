@@ -168,7 +168,6 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         loss_hist_stress_bc.append(mean_loss_stress_bc)
 
         if epoch % 1 == 0:
-            print(f"Validation: Epoch {epoch} / {train_num_epochs}")
             mae, rl2 = validate_model(ansatz, valid_dataloader)
             valid_hist_mae.append(mae)
             valid_hist_rl2.append(rl2)
