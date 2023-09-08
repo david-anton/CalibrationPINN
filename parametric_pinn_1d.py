@@ -57,7 +57,7 @@ layer_sizes = [2, 16, 16, 16, 16, 1]
 num_samples_train = 128
 num_points_pde = 128
 training_batch_size = num_samples_train
-number_training_epochs = 1000
+number_training_epochs = 300
 # Validation
 num_samples_valid = 128
 valid_interval = 1
