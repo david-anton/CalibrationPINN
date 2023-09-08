@@ -178,7 +178,7 @@ def train_parametric_pinn(
     mcmc_config = EfficientNUTSConfig(
         initial_parameters=initial_parameters,
         num_iterations=number_mcmc_iterations,
-        num_burn_in_iterations=int(1e4),
+        num_burn_in_iterations=int(2e3),
         leapfrog_step_sizes=leapfrog_step_sizes,
         max_tree_depth=10,  # = 1024 steps
     )
