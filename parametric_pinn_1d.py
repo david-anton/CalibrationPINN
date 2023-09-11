@@ -228,12 +228,16 @@ def calibration_step() -> None:
     initial_parameters = torch.tensor([prior_mean_youngs_modulus], device=device)
 
     mcmc_config_mh = MetropolisHastingsConfig(
+        likelihood=likelihood,
+        prior=prior,
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e3),
         cov_proposal_density=torch.pow(torch.tensor([1000], device=device), 2),
     )
     mcmc_config_h = HamiltonianConfig(
+        likelihood=likelihood,
+        prior=prior,
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e3),
@@ -241,6 +245,8 @@ def calibration_step() -> None:
         leapfrog_step_sizes=torch.tensor(1.0, device=device),
     )
     mcmc_config_enuts = EfficientNUTSConfig(
+        likelihood=likelihood,
+        prior=prior,
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e3),
@@ -250,9 +256,7 @@ def calibration_step() -> None:
     if use_random_walk_metropolis_hasting:
         start = perf_counter()
         posterior_moments_mh, samples_mh = calibrate(
-            likelihood=likelihood,
-            prior=prior,
-            mcmc_config=mcmc_config_mh,
+            calibration_config=mcmc_config_mh,
             device=device,
         )
         end = perf_counter()
@@ -270,9 +274,7 @@ def calibration_step() -> None:
     if use_hamiltonian:
         start = perf_counter()
         posterior_moments_h, samples_h = calibrate(
-            likelihood=likelihood,
-            prior=prior,
-            mcmc_config=mcmc_config_h,
+            calibration_config=mcmc_config_h,
             device=device,
         )
         end = perf_counter()
@@ -290,9 +292,7 @@ def calibration_step() -> None:
     if use_efficient_nuts:
         start = perf_counter()
         posterior_moments_enuts, samples_enuts = calibrate(
-            likelihood=likelihood,
-            prior=prior,
-            mcmc_config=mcmc_config_enuts,
+            calibration_config=mcmc_config_enuts,
             device=device,
         )
         end = perf_counter()
