@@ -2,10 +2,10 @@ from typing import Callable, TypeAlias
 
 import torch
 
+from parametricpinn.bayesian.likelihood import Likelihood
+from parametricpinn.bayesian.prior import Prior
 from parametricpinn.calibration.base import Parameters
-from parametricpinn.calibration.bayesian.likelihood import Likelihood
-from parametricpinn.calibration.bayesian.prior import Prior
-from parametricpinn.calibration.bayesian.statistics import (
+from parametricpinn.calibration.bayesianinference.statistics import (
     MomentsMultivariateNormal,
     determine_moments_of_multivariate_normal_distribution,
 )

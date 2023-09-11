@@ -87,6 +87,6 @@ def least_squares(
         loss_hist.append(float(loss.detach().cpu().item()))
 
     identified_parameters = parameters.detach().cpu().numpy()
-    print(f"Least squares: {identified_parameters}")
+    print(f"Least squares result: {identified_parameters}")
 
     return identified_parameters, loss_hist

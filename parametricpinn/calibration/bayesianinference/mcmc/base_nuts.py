@@ -4,7 +4,7 @@ from typing import Callable, TypeAlias, TypeVar
 
 import torch
 
-from parametricpinn.calibration.bayesian.mcmc.base_hamiltonian import (
+from parametricpinn.calibration.bayesianinference.mcmc.base_hamiltonian import (
     Energy,
     GradPotentialEnergyFunc,
     Momentums,

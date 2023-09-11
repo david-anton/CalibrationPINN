@@ -32,7 +32,7 @@ class UnvalidCalibrationDataError(Error):
         super().__init__(message)
 
 
-class MCMCConfigError(Error):
+class CalibrationConfigError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
 

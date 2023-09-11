@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from parametricpinn.calibration.bayesian.prior import (
+from parametricpinn.bayesian.prior import (
     create_independent_multivariate_normal_distributed_prior,
     create_mixed_multivariate_independently_distributed_prior,
     create_multivariate_normal_distributed_prior,

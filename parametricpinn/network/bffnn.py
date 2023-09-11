@@ -3,7 +3,7 @@ from typing import NamedTuple
 import torch
 import torch.nn as nn
 
-from parametricpinn.calibration.bayesian.prior import (
+from parametricpinn.bayesian.prior import (
     Prior,
     create_independent_multivariate_normal_distributed_prior,
 )

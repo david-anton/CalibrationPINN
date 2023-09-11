@@ -7,19 +7,19 @@ from parametricpinn.ansatz import (
     StandardAnsatz,
     create_standard_normalized_hbc_ansatz_1D,
 )
+from parametricpinn.bayesian.prior import create_univariate_normal_distributed_prior
 from parametricpinn.calibration import (
+    CalibrationData,
     EfficientNUTSConfig,
     HamiltonianConfig,
     MetropolisHastingsConfig,
     calibrate,
 )
-from parametricpinn.calibration.bayesian.plot import plot_posterior_normal_distributions
-from parametricpinn.calibration.bayesian.ppinn import (
-    CalibrationData,
+from parametricpinn.calibration.bayesianinference.parametric_pinn import (
     create_ppinn_likelihood,
 )
-from parametricpinn.calibration.bayesian.prior import (
-    create_univariate_normal_distributed_prior,
+from parametricpinn.calibration.bayesianinference.plot import (
+    plot_posterior_normal_distributions,
 )
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.data import (

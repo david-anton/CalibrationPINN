@@ -9,19 +9,21 @@ from parametricpinn.ansatz import (
     StandardAnsatz,
     create_standard_normalized_hbc_ansatz_2D,
 )
+from parametricpinn.bayesian.prior import (
+    create_independent_multivariate_normal_distributed_prior,
+)
 from parametricpinn.calibration import (
+    CalibrationData,
     EfficientNUTSConfig,
     HamiltonianConfig,
     MetropolisHastingsConfig,
     calibrate,
 )
-from parametricpinn.calibration.bayesian.plot import plot_posterior_normal_distributions
-from parametricpinn.calibration.bayesian.ppinn import (
-    CalibrationData,
+from parametricpinn.calibration.bayesianinference.parametric_pinn import (
     create_ppinn_likelihood,
 )
-from parametricpinn.calibration.bayesian.prior import (
-    create_independent_multivariate_normal_distributed_prior,
+from parametricpinn.calibration.bayesianinference.plot import (
+    plot_posterior_normal_distributions,
 )
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.data import (
@@ -370,7 +372,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         posterior_moments_mh, samples_mh = calibrate(
             likelihood=likelihood,
             prior=prior,
-            mcmc_config=mcmc_config_mh,
+            calibration_config=mcmc_config_mh,
             device=device,
         )
         end = perf_counter()
@@ -390,7 +392,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         posterior_moments_h, samples_h = calibrate(
             likelihood=likelihood,
             prior=prior,
-            mcmc_config=mcmc_config_h,
+            calibration_config=mcmc_config_h,
             device=device,
         )
         end = perf_counter()
@@ -410,7 +412,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         posterior_moments_enuts, samples_enuts = calibrate(
             likelihood=likelihood,
             prior=prior,
-            mcmc_config=mcmc_config_enuts,
+            calibration_config=mcmc_config_enuts,
             device=device,
         )
         end = perf_counter()

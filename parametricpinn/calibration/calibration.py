@@ -1,8 +1,9 @@
-from typing import Callable, TypeAlias, Union, cast
+from typing import Callable, TypeAlias, Union, cast, overload
 
-from parametricpinn.calibration.bayesian.mcmc import (
+from parametricpinn.calibration.bayesianinference.mcmc import (
     EfficientNUTSConfig,
     HamiltonianConfig,
+    MCMCConfig,
     MCMCOutput,
     MetropolisHastingsConfig,
     mcmc_efficientnuts,
@@ -15,19 +16,30 @@ from parametricpinn.calibration.leastsquares import (
     LeastSquaresOutput,
     least_squares,
 )
-from parametricpinn.errors import MCMCConfigError
+from parametricpinn.errors import CalibrationConfigError
 from parametricpinn.types import Device
 
 CalibrationOutput: TypeAlias = Union[MCMCOutput, LeastSquaresOutput]
 CalibrationAlgorithmClosure: TypeAlias = Callable[[], CalibrationOutput]
 
+
+@overload
+def calibrate(calibration_config: MCMCConfig, device: Device) -> MCMCOutput:
+    ...
+
+
+@overload
+def calibrate(
+    calibration_config: LeastSquaresConfig, device: Device
+) -> LeastSquaresOutput:
+    ...
+
+
 def calibrate(
     calibration_config: CalibrationConfig,
     device: Device,
 ) -> CalibrationOutput:
-    calibration_algorithm = _create_calibration_algorithm(
-        calibration_config, device
-    )
+    calibration_algorithm = _create_calibration_algorithm(calibration_config, device)
     return calibration_algorithm()
 
 
@@ -84,7 +96,7 @@ def _create_calibration_algorithm(
                 max_tree_depth=config_enuts.max_tree_depth,
                 device=device,
             )
-        
+
         return mcmc_efficient_nuts_algorithm
     elif isinstance(calibration_config, LeastSquaresConfig):
         config_ls = cast(LeastSquaresConfig, calibration_config)
@@ -96,11 +108,11 @@ def _create_calibration_algorithm(
                 calibration_data=config_ls.calibration_data,
                 initial_parameters=config_ls.initial_parameters,
                 num_iterations=config_ls.num_iterations,
-                device=device
+                device=device,
             )
 
         return least_squares_algorithm
     else:
-        raise MCMCConfigError(
-            f"There is no implementation for the requested MCMC algorithm {calibration_config}."
+        raise CalibrationConfigError(
+            f"There is no implementation for the requested calibration algorithm {calibration_config}."
         )

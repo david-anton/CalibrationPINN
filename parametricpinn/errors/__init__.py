@@ -1,9 +1,9 @@
 from .errors import (
     BayesianNNError,
+    CalibrationConfigError,
     DirectoryNotFoundError,
     FEMConfigurationError,
     FileNotFoundError,
-    MCMCConfigError,
     MixedDistributionError,
     TestConfigurationError,
     UnivariateNormalDistributionError,
@@ -13,10 +13,10 @@ from .errors import (
 
 __all__ = [
     "BayesianNNError",
+    "CalibrationConfigError",
     "DirectoryNotFoundError",
     "FEMConfigurationError",
     "FileNotFoundError",
-    "MCMCConfigError",
     "MixedDistributionError",
     "TestConfigurationError",
     "UnivariateNormalDistributionError",

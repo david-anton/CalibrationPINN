@@ -3,8 +3,9 @@ from typing import Callable, TypeAlias
 
 import torch
 
-from parametricpinn.calibration.bayesian.likelihood import Likelihood
-from parametricpinn.calibration.bayesian.mcmc.base import (
+from parametricpinn.bayesian.likelihood import Likelihood
+from parametricpinn.bayesian.prior import Prior
+from parametricpinn.calibration.bayesianinference.mcmc.base import (
     IsAccepted,
     MCMCOutput,
     Samples,
@@ -15,7 +16,7 @@ from parametricpinn.calibration.bayesian.mcmc.base import (
     postprocess_samples,
     remove_burn_in_phase,
 )
-from parametricpinn.calibration.bayesian.mcmc.base_hamiltonian import (
+from parametricpinn.calibration.bayesianinference.mcmc.base_hamiltonian import (
     Momentums,
     Parameters,
     StepSizes,
@@ -25,9 +26,7 @@ from parametricpinn.calibration.bayesian.mcmc.base_hamiltonian import (
     _sample_normalized_momentums,
     kinetic_energy_func,
 )
-from parametricpinn.calibration.bayesian.mcmc.config import MCMCConfig
-from parametricpinn.calibration.bayesian.prior import Prior
-from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
+from parametricpinn.calibration.bayesianinference.mcmc.config import MCMCConfig
 from parametricpinn.types import Device, NPArray, Tensor
 
 IsLastStep: TypeAlias = bool

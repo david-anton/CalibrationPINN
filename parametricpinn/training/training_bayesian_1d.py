@@ -5,11 +5,12 @@ from typing import NamedTuple
 import torch
 
 from parametricpinn.ansatz import BayesianAnsatz
-from parametricpinn.calibration import EfficientNUTSConfig, MCMCOutput, calibrate
-from parametricpinn.calibration.bayesian.distributions import (
+from parametricpinn.bayesian.distributions import (
     IndependentMultivariateNormalDistributon,
     create_independent_multivariate_normal_distribution,
 )
+from parametricpinn.calibration import EfficientNUTSConfig, calibrate
+from parametricpinn.calibration.bayesianinference.mcmc import MCMCOutput
 from parametricpinn.data import (
     TrainingData1DPDE,
     TrainingData1DStressBC,

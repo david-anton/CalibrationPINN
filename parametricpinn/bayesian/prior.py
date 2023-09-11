@@ -2,7 +2,7 @@ from typing import TypeAlias, Union
 
 import torch
 
-from parametricpinn.calibration.bayesian.distributions import (
+from parametricpinn.bayesian.distributions import (
     IndependentMultivariateNormalDistributon,
     MixedIndependetMultivariateDistribution,
     MultivariateNormalDistributon,

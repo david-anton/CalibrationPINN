@@ -1,7 +1,6 @@
 import math
 
 import torch
-import torch.nn as nn
 
 from parametricpinn.ansatz.base import (
     AnsatzStrategy,
@@ -9,10 +8,8 @@ from parametricpinn.ansatz.base import (
     StandardAnsatz,
     StandardNetworks,
 )
-from parametricpinn.calibration.bayesian.ppinn import (
-    PPINNLikelihood,
-    PreprocessedCalibrationData,
-)
+from parametricpinn.calibration.base import PreprocessedCalibrationData
+from parametricpinn.calibration.bayesianinference.parametric_pinn import PPINNLikelihood
 from parametricpinn.network import FFNN
 from parametricpinn.types import Tensor
 

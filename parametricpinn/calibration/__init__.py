@@ -1,17 +1,16 @@
-from .bayesian.mcmc import (
+from .base import CalibrationData
+from .bayesianinference.mcmc import (
     EfficientNUTSConfig,
     HamiltonianConfig,
     MetropolisHastingsConfig,
 )
-from .calibration import MCMCOutput, calibrate
-from .leastsquares import LeastSquaresConfig, LeastSquaresOutput
+from .calibration import calibrate
+from .leastsquares import LeastSquaresConfig
 
 __all__ = [
-    "EfficientNUTSConfig",
+    "CalibrationData" "EfficientNUTSConfig",
     "HamiltonianConfig",
     "MetropolisHastingsConfig",
-    "MCMCOutput",
     "LeastSquaresConfig",
-    "LeastSquaresOutput",
     "calibrate",
 ]

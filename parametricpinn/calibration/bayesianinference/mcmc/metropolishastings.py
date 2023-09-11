@@ -3,24 +3,22 @@ from typing import Callable, TypeAlias
 
 import torch
 
-from parametricpinn.calibration.bayesian.likelihood import Likelihood
-from parametricpinn.calibration.bayesian.mcmc.base import (
+from parametricpinn.bayesian.likelihood import Likelihood
+from parametricpinn.bayesian.prior import Prior
+from parametricpinn.calibration.bayesianinference.mcmc.base import (
     IsAccepted,
     MCMCOutput,
     Parameters,
     Samples,
     _log_unnormalized_posterior,
-    _unnormalized_posterior,
     evaluate_acceptance_ratio,
     expand_num_iterations,
     log_bernoulli,
     postprocess_samples,
     remove_burn_in_phase,
 )
-from parametricpinn.calibration.bayesian.mcmc.config import MCMCConfig
-from parametricpinn.calibration.bayesian.prior import Prior
-from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
-from parametricpinn.types import Device, NPArray, Tensor, TorchMultiNormalDist
+from parametricpinn.calibration.bayesianinference.mcmc.config import MCMCConfig
+from parametricpinn.types import Device, Tensor, TorchMultiNormalDist
 
 CovarianceProposalDensity: TypeAlias = Tensor
 

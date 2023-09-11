@@ -4,8 +4,9 @@ from typing import Callable, TypeAlias
 
 import torch
 
-from parametricpinn.calibration.bayesian.likelihood import Likelihood
-from parametricpinn.calibration.bayesian.mcmc.base import (
+from parametricpinn.bayesian.likelihood import Likelihood
+from parametricpinn.bayesian.prior import Prior
+from parametricpinn.calibration.bayesianinference.mcmc.base import (
     MCMCOutput,
     Samples,
     _log_unnormalized_posterior,
@@ -14,7 +15,7 @@ from parametricpinn.calibration.bayesian.mcmc.base import (
     postprocess_samples,
     remove_burn_in_phase,
 )
-from parametricpinn.calibration.bayesian.mcmc.base_nuts import (
+from parametricpinn.calibration.bayesianinference.mcmc.base_nuts import (
     Direction,
     LogSliceVariable,
     Momentums,
@@ -36,9 +37,10 @@ from parametricpinn.calibration.bayesian.mcmc.base_nuts import (
     keep_minus_from_old_tree,
     keep_plus_from_old_tree,
 )
-from parametricpinn.calibration.bayesian.mcmc.config import MCMCConfig
-from parametricpinn.calibration.bayesian.prior import Prior
-from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
+from parametricpinn.calibration.bayesianinference.mcmc.config import MCMCConfig
+from parametricpinn.calibration.bayesianinference.statistics import (
+    MomentsMultivariateNormal,
+)
 from parametricpinn.types import Device, NPArray, Tensor
 
 CandidateSetSize: TypeAlias = Tensor

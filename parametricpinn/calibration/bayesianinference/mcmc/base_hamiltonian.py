@@ -2,13 +2,13 @@ from typing import Callable, TypeAlias, Union
 
 import torch
 
-from parametricpinn.calibration.bayesian.likelihood import Likelihood
-from parametricpinn.calibration.bayesian.mcmc.base import (
+from parametricpinn.bayesian.likelihood import Likelihood
+from parametricpinn.bayesian.prior import Prior
+from parametricpinn.calibration.bayesianinference.mcmc.base import (
     LogUnnormalizedPosterior,
     Parameters,
     Probability,
 )
-from parametricpinn.calibration.bayesian.prior import Prior
 from parametricpinn.types import (
     Device,
     Tensor,

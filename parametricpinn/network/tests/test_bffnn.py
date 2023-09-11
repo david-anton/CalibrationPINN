@@ -2,7 +2,7 @@ from typing import cast
 
 import torch
 
-from parametricpinn.calibration.bayesian.distributions import (
+from parametricpinn.bayesian.distributions import (
     IndependentMultivariateNormalDistributon,
 )
 from parametricpinn.network.bffnn import BFFNN, ParameterPriorStds

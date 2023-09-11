@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
 
-from parametricpinn.calibration.bayesian.statistics import (
+from parametricpinn.calibration.bayesianinference.statistics import (
     MomentsMultivariateNormal,
     MomentsUnivariateNormal,
 )
