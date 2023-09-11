@@ -6,6 +6,7 @@ import torch
 from parametricpinn.calibration.bayesian.likelihood import Likelihood
 from parametricpinn.calibration.bayesian.mcmc.base import (
     IsAccepted,
+    MCMCOutput,
     Samples,
     _log_unnormalized_posterior,
     evaluate_acceptance_ratio,
@@ -42,7 +43,7 @@ MCMCHamiltonianFunc: TypeAlias = Callable[
         int,
         Device,
     ],
-    tuple[MomentsMultivariateNormal, NPArray],
+    MCMCOutput,
 ]
 
 
@@ -61,7 +62,7 @@ def mcmc_hamiltonian(
     num_iterations: int,
     num_burn_in_iterations: int,
     device: Device,
-) -> tuple[MomentsMultivariateNormal, NPArray]:
+) -> MCMCOutput:
     step_sizes = leapfrog_step_sizes
     num_total_iterations = expand_num_iterations(num_iterations, num_burn_in_iterations)
 

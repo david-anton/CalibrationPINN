@@ -3,12 +3,15 @@ from .bayesian.mcmc import (
     HamiltonianConfig,
     MetropolisHastingsConfig,
 )
-from .calibration import MCMC_Algorithm_Output, calibrate
+from .calibration import MCMCOutput, calibrate
+from .leastsquares import LeastSquaresConfig, LeastSquaresOutput
 
 __all__ = [
     "EfficientNUTSConfig",
     "HamiltonianConfig",
     "MetropolisHastingsConfig",
-    "MCMC_Algorithm_Output",
+    "MCMCOutput",
+    "LeastSquaresConfig",
+    "LeastSquaresOutput",
     "calibrate",
 ]

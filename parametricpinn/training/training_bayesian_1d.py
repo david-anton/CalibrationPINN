@@ -5,11 +5,7 @@ from typing import NamedTuple
 import torch
 
 from parametricpinn.ansatz import BayesianAnsatz
-from parametricpinn.calibration import (
-    EfficientNUTSConfig,
-    MCMC_Algorithm_Output,
-    calibrate,
-)
+from parametricpinn.calibration import EfficientNUTSConfig, MCMCOutput, calibrate
 from parametricpinn.calibration.bayesian.distributions import (
     IndependentMultivariateNormalDistributon,
     create_independent_multivariate_normal_distribution,
@@ -149,7 +145,7 @@ class TrainigLikelihood:
 
 def train_parametric_pinn(
     train_config: TrainingConfiguration,
-) -> MCMC_Algorithm_Output:
+) -> MCMCOutput:
     ansatz = train_config.ansatz
     parameter_prior_stds = train_config.parameter_prior_stds
     training_dataset = train_config.training_dataset

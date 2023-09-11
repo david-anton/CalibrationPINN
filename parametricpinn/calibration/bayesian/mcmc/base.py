@@ -11,6 +11,7 @@ from parametricpinn.calibration.bayesian.statistics import (
 )
 from parametricpinn.types import Device, NPArray, Tensor
 
+MCMCOutput: TypeAlias = tuple[MomentsMultivariateNormal, NPArray]
 Probability: TypeAlias = Tensor
 LogUnnormalizedPosterior: TypeAlias = Callable[[Parameters], Probability]
 UnnormalizedPosterior: TypeAlias = Callable[[Parameters], Probability]

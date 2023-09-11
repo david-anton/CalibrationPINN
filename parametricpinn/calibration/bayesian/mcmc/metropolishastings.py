@@ -6,6 +6,7 @@ import torch
 from parametricpinn.calibration.bayesian.likelihood import Likelihood
 from parametricpinn.calibration.bayesian.mcmc.base import (
     IsAccepted,
+    MCMCOutput,
     Parameters,
     Samples,
     _log_unnormalized_posterior,
@@ -33,7 +34,7 @@ MCMCMetropolisHastingsFunc: TypeAlias = Callable[
         int,
         Device,
     ],
-    tuple[MomentsMultivariateNormal, NPArray],
+    MCMCOutput,
 ]
 
 
@@ -50,7 +51,7 @@ def mcmc_metropolishastings(
     num_iterations: int,
     num_burn_in_iterations: int,
     device: Device,
-) -> tuple[MomentsMultivariateNormal, NPArray]:
+) -> MCMCOutput:
     num_total_iterations = expand_num_iterations(num_iterations, num_burn_in_iterations)
 
     log_unnorm_posterior = _log_unnormalized_posterior(likelihood, prior)

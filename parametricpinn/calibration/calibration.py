@@ -1,53 +1,48 @@
-from typing import Callable, TypeAlias, cast
+from typing import Callable, TypeAlias, Union, cast
 
-from parametricpinn.calibration.bayesian.likelihood import Likelihood
 from parametricpinn.calibration.bayesian.mcmc import (
     EfficientNUTSConfig,
     HamiltonianConfig,
-    MCMCConfig,
+    MCMCOutput,
     MetropolisHastingsConfig,
     mcmc_efficientnuts,
     mcmc_hamiltonian,
     mcmc_metropolishastings,
 )
-from parametricpinn.calibration.bayesian.prior import Prior
-from parametricpinn.calibration.bayesian.statistics import MomentsMultivariateNormal
+from parametricpinn.calibration.config import CalibrationConfig
+from parametricpinn.calibration.leastsquares import (
+    LeastSquaresConfig,
+    LeastSquaresOutput,
+    least_squares,
+)
 from parametricpinn.errors import MCMCConfigError
-from parametricpinn.types import Device, NPArray
+from parametricpinn.types import Device
 
-MCMC_Algorithm_Output: TypeAlias = tuple[MomentsMultivariateNormal, NPArray]
-MCMC_Algorithm_Closure: TypeAlias = Callable[[], MCMC_Algorithm_Output]
-
+CalibrationOutput: TypeAlias = Union[MCMCOutput, LeastSquaresOutput]
+CalibrationAlgorithmClosure: TypeAlias = Callable[[], CalibrationOutput]
 
 def calibrate(
-    likelihood: Likelihood,
-    prior: Prior,
-    mcmc_config: MCMCConfig,
+    calibration_config: CalibrationConfig,
     device: Device,
-) -> MCMC_Algorithm_Output:
-    mcmc_algorithm = _create_mcmc_algorithm(
-        likelihood=likelihood,
-        prior=prior,
-        mcmc_config=mcmc_config,
-        device=device,
+) -> CalibrationOutput:
+    calibration_algorithm = _create_calibration_algorithm(
+        calibration_config, device
     )
-    return mcmc_algorithm()
+    return calibration_algorithm()
 
 
-def _create_mcmc_algorithm(
-    likelihood: Likelihood,
-    prior: Prior,
-    mcmc_config: MCMCConfig,
+def _create_calibration_algorithm(
+    calibration_config: CalibrationConfig,
     device: Device,
-) -> MCMC_Algorithm_Closure:
-    if isinstance(mcmc_config, MetropolisHastingsConfig):
-        config_mh = cast(MetropolisHastingsConfig, mcmc_config)
+) -> CalibrationAlgorithmClosure:
+    if isinstance(calibration_config, MetropolisHastingsConfig):
+        config_mh = cast(MetropolisHastingsConfig, calibration_config)
         print("MCMC algorithm used: Metropolis Hastings")
 
-        def mcmc_mh_algorithm() -> MCMC_Algorithm_Output:
+        def mcmc_mh_algorithm() -> MCMCOutput:
             return mcmc_metropolishastings(
-                likelihood=likelihood,
-                prior=prior,
+                likelihood=config_mh.likelihood,
+                prior=config_mh.prior,
                 initial_parameters=config_mh.initial_parameters,
                 cov_proposal_density=config_mh.cov_proposal_density,
                 num_iterations=config_mh.num_iterations,
@@ -57,14 +52,14 @@ def _create_mcmc_algorithm(
 
         return mcmc_mh_algorithm
 
-    elif isinstance(mcmc_config, HamiltonianConfig):
-        config_h = cast(HamiltonianConfig, mcmc_config)
+    elif isinstance(calibration_config, HamiltonianConfig):
+        config_h = cast(HamiltonianConfig, calibration_config)
         print("MCMC algorithm used: Hamiltonian")
 
-        def mcmc_hamiltonian_algorithm() -> MCMC_Algorithm_Output:
+        def mcmc_hamiltonian_algorithm() -> MCMCOutput:
             return mcmc_hamiltonian(
-                likelihood=likelihood,
-                prior=prior,
+                likelihood=config_h.likelihood,
+                prior=config_h.prior,
                 initial_parameters=config_h.initial_parameters,
                 num_leapfrog_steps=config_h.num_leabfrog_steps,
                 leapfrog_step_sizes=config_h.leapfrog_step_sizes,
@@ -74,14 +69,14 @@ def _create_mcmc_algorithm(
             )
 
         return mcmc_hamiltonian_algorithm
-    elif isinstance(mcmc_config, EfficientNUTSConfig):
-        config_enuts = cast(EfficientNUTSConfig, mcmc_config)
+    elif isinstance(calibration_config, EfficientNUTSConfig):
+        config_enuts = cast(EfficientNUTSConfig, calibration_config)
         print("MCMC algorithm used: Efficient NUTS")
 
-        def mcmc_efficient_nuts_algorithm() -> MCMC_Algorithm_Output:
+        def mcmc_efficient_nuts_algorithm() -> MCMCOutput:
             return mcmc_efficientnuts(
-                likelihood=likelihood,
-                prior=prior,
+                likelihood=config_enuts.likelihood,
+                prior=config_enuts.prior,
                 initial_parameters=config_enuts.initial_parameters,
                 leapfrog_step_sizes=config_enuts.leapfrog_step_sizes,
                 num_iterations=config_enuts.num_iterations,
@@ -89,9 +84,23 @@ def _create_mcmc_algorithm(
                 max_tree_depth=config_enuts.max_tree_depth,
                 device=device,
             )
-
+        
         return mcmc_efficient_nuts_algorithm
+    elif isinstance(calibration_config, LeastSquaresConfig):
+        config_ls = cast(LeastSquaresConfig, calibration_config)
+        print("Least squares algorithm used")
+
+        def least_squares_algorithm() -> LeastSquaresOutput:
+            return least_squares(
+                ansatz=config_ls.ansatz,
+                calibration_data=config_ls.calibration_data,
+                initial_parameters=config_ls.initial_parameters,
+                num_iterations=config_ls.num_iterations,
+                device=device
+            )
+
+        return least_squares_algorithm
     else:
         raise MCMCConfigError(
-            f"There is no implementation for the requested MCMC algorithm {mcmc_config}."
+            f"There is no implementation for the requested MCMC algorithm {calibration_config}."
         )

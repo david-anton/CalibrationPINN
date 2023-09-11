@@ -28,7 +28,8 @@ LeastSquaresFunc: TypeAlias = Callable[
 
 @dataclass
 class LeastSquaresConfig(CalibrationConfig):
-    pass
+    ansatz: StandardAnsatz
+    calibration_data: CalibrationData
 
 
 def least_squares(

@@ -6,6 +6,7 @@ import torch
 
 from parametricpinn.calibration.bayesian.likelihood import Likelihood
 from parametricpinn.calibration.bayesian.mcmc.base import (
+    MCMCOutput,
     Samples,
     _log_unnormalized_posterior,
     expand_num_iterations,
@@ -53,7 +54,7 @@ MCMCEfficientNUTSFunc: TypeAlias = Callable[
         TreeDepth,
         Device,
     ],
-    tuple[MomentsMultivariateNormal, NPArray],
+    MCMCOutput,
 ]
 
 
@@ -79,7 +80,7 @@ def mcmc_efficientnuts(
     num_burn_in_iterations: int,
     max_tree_depth: TreeDepth,
     device: Device,
-) -> tuple[MomentsMultivariateNormal, NPArray]:
+) -> MCMCOutput:
     step_sizes = leapfrog_step_sizes
     directions = [-1, 1]
     max_delta_error = torch.tensor(1000.0, device=device)
