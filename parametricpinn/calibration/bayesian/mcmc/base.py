@@ -2,6 +2,7 @@ from typing import Callable, TypeAlias
 
 import torch
 
+from parametricpinn.calibration.base import Parameters
 from parametricpinn.calibration.bayesian.likelihood import Likelihood
 from parametricpinn.calibration.bayesian.prior import Prior
 from parametricpinn.calibration.bayesian.statistics import (
@@ -10,7 +11,6 @@ from parametricpinn.calibration.bayesian.statistics import (
 )
 from parametricpinn.types import Device, NPArray, Tensor
 
-Parameters: TypeAlias = Tensor
 Probability: TypeAlias = Tensor
 LogUnnormalizedPosterior: TypeAlias = Callable[[Parameters], Probability]
 UnnormalizedPosterior: TypeAlias = Callable[[Parameters], Probability]

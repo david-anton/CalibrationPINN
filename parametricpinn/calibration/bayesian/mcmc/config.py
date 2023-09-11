@@ -1,10 +1,8 @@
 from dataclasses import dataclass
 
-from parametricpinn.types import Tensor
+from parametricpinn.calibration.config import CalibrationConfig
 
 
 @dataclass
-class MCMCConfig:
-    initial_parameters: Tensor
-    num_iterations: int
+class MCMCConfig(CalibrationConfig):
     num_burn_in_iterations: int
