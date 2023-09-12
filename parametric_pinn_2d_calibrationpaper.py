@@ -16,6 +16,7 @@ from parametricpinn.calibration import (
     CalibrationData,
     EfficientNUTSConfig,
     HamiltonianConfig,
+    LeastSquaresConfig,
     MetropolisHastingsConfig,
     calibrate,
 )
@@ -77,7 +78,7 @@ weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20230911_validation_data_E_180k_240k_nu_02_04_calibration_paper"
+input_subdir_valid = "20230912_validation_data_E_180k_240k_nu_02_04_calibration_paper"
 num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
@@ -91,9 +92,10 @@ input_subdir_high_noise = "with_noise_4e-04"
 input_subdir_low_noise = "with_noise_2e-04"
 input_file_high_noise = "displacements_withNoise4e-04.csv"
 input_file_low_noise = "displacements_withNoise2e-04.csv"
-use_random_walk_metropolis_hasting = True
-use_hamiltonian = True
-use_efficient_nuts = True
+use_least_squares = False
+use_random_walk_metropolis_hasting = False
+use_hamiltonian = False
+use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
@@ -335,9 +337,17 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
     )
 
+    least_squares_config = LeastSquaresConfig(
+        initial_parameters=initial_parameters,
+        num_iterations=int(1e3),
+        ansatz=model,
+        calibration_data=data
+    )
     std_proposal_density_youngs_modulus = 1000
     std_proposal_density_poissons_ratio = 0.0015
     mcmc_config_mh = MetropolisHastingsConfig(
+        likelihood=likelihood,
+        prior=prior,
         initial_parameters=initial_parameters,
         num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
@@ -354,6 +364,8 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         ),
     )
     mcmc_config_h = HamiltonianConfig(
+        likelihood=likelihood,
+        prior=prior,
         initial_parameters=initial_parameters,
         num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
@@ -361,17 +373,26 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
     )
     mcmc_config_enuts = EfficientNUTSConfig(
+        likelihood=likelihood,
+        prior=prior,        
         initial_parameters=initial_parameters,
         num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
         max_tree_depth=8,
         leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
     )
+    if use_least_squares:
+        start = perf_counter()
+        identified_parameters_ls, loss_hist_ls = calibrate(
+            calibration_config=least_squares_config,
+            device=device,
+        )
+        end = perf_counter()
+        time = end - start
+        print(f"Run time least squares: {time}")   
     if use_random_walk_metropolis_hasting:
         start = perf_counter()
         posterior_moments_mh, samples_mh = calibrate(
-            likelihood=likelihood,
-            prior=prior,
             calibration_config=mcmc_config_mh,
             device=device,
         )
@@ -390,8 +411,6 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
     if use_hamiltonian:
         start = perf_counter()
         posterior_moments_h, samples_h = calibrate(
-            likelihood=likelihood,
-            prior=prior,
             calibration_config=mcmc_config_h,
             device=device,
         )
@@ -410,8 +429,6 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
     if use_efficient_nuts:
         start = perf_counter()
         posterior_moments_enuts, samples_enuts = calibrate(
-            likelihood=likelihood,
-            prior=prior,
             calibration_config=mcmc_config_enuts,
             device=device,
         )
