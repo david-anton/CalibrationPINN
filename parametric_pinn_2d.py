@@ -16,6 +16,7 @@ from parametricpinn.calibration import (
     CalibrationData,
     EfficientNUTSConfig,
     HamiltonianConfig,
+    LeastSquaresConfig,
     MetropolisHastingsConfig,
     calibrate,
 )
@@ -83,6 +84,7 @@ num_points_valid = 1024
 batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.1
 # Calibration
+use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = True
 use_efficient_nuts = True
@@ -345,10 +347,8 @@ def calibration_step() -> None:
 
     prior_mean_youngs_modulus = 210000
     prior_std_youngs_modulus = 10000
-    std_proposal_density_youngs_modulus = 1000
     prior_mean_poissons_ratio = 0.3
     prior_std_poissons_ratio = 0.015
-    std_proposal_density_poissons_ratio = 0.0015
     prior_means = torch.tensor([prior_mean_youngs_modulus, prior_mean_poissons_ratio])
     prior_standard_deviations = torch.tensor(
         [prior_std_youngs_modulus, prior_std_poissons_ratio]
@@ -363,6 +363,14 @@ def calibration_step() -> None:
         [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
     )
 
+    least_squares_config = LeastSquaresConfig(
+        initial_parameters=initial_parameters,
+        num_iterations=100,
+        ansatz=model,
+        calibration_data=data,
+    )
+    std_proposal_density_youngs_modulus = 1000
+    std_proposal_density_poissons_ratio = 0.0015
     mcmc_config_mh = MetropolisHastingsConfig(
         likelihood=likelihood,
         prior=prior,
@@ -399,6 +407,16 @@ def calibration_step() -> None:
         max_tree_depth=8,
         leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
     )
+    if use_least_squares:
+        start = perf_counter()
+        identified_parameters, _ = calibrate(
+            calibration_config=least_squares_config,
+            device=device,
+        )
+        end = perf_counter()
+        time = end - start
+        print(f"Identified parameter: {identified_parameters}")
+        print(f"Run time least squares: {time}")
     if use_random_walk_metropolis_hasting:
         start = perf_counter()
         posterior_moments_mh, samples_mh = calibrate(

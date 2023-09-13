@@ -12,6 +12,7 @@ from parametricpinn.calibration import (
     CalibrationData,
     EfficientNUTSConfig,
     HamiltonianConfig,
+    LeastSquaresConfig,
     MetropolisHastingsConfig,
     calibrate,
 )
@@ -64,8 +65,9 @@ valid_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
+use_least_squares = True
 use_random_walk_metropolis_hasting = True
-use_hamiltonian = True
+use_hamiltonian = False
 use_efficient_nuts = True
 # Output
 current_date = date.today().strftime("%Y%m%d")
@@ -227,6 +229,12 @@ def calibration_step() -> None:
     true_parameters = (exact_youngs_modulus,)
     initial_parameters = torch.tensor([prior_mean_youngs_modulus], device=device)
 
+    least_squares_config = LeastSquaresConfig(
+        initial_parameters=initial_parameters,
+        num_iterations=100,
+        ansatz=model,
+        calibration_data=data,
+    )
     mcmc_config_mh = MetropolisHastingsConfig(
         likelihood=likelihood,
         prior=prior,
@@ -253,6 +261,16 @@ def calibration_step() -> None:
         max_tree_depth=8,
         leapfrog_step_sizes=torch.tensor(10.0, device=device),
     )
+    if use_least_squares:
+        start = perf_counter()
+        identified_parameters, _ = calibrate(
+            calibration_config=least_squares_config,
+            device=device,
+        )
+        end = perf_counter()
+        time = end - start
+        print(f"Identified parameter: {identified_parameters}")
+        print(f"Run time least squares: {time}")
     if use_random_walk_metropolis_hasting:
         start = perf_counter()
         posterior_moments_mh, samples_mh = calibrate(
