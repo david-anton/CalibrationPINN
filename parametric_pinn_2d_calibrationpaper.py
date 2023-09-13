@@ -219,6 +219,10 @@ def create_ansatz() -> StandardAnsatz:
         max_displacement_y = float(np.amax(simulation_results.displacements_y))
         min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
         max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
+        print(f"min_inputs: {min_inputs}")
+        print(f"max_inputs: {max_inputs}")
+        print(f"min_outputs: {min_outputs}")
+        print(f"max_outputs: {max_outputs}")
         return {
             "min_inputs": min_inputs.to(device),
             "max_inputs": max_inputs.to(device),
@@ -339,7 +343,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
 
     least_squares_config = LeastSquaresConfig(
         initial_parameters=initial_parameters,
-        num_iterations=int(1e3),
+        num_iterations=int(1e2),
         ansatz=model,
         calibration_data=data,
     )

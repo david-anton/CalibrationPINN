@@ -46,9 +46,9 @@ class ModelClosure(nn.Module):
         self._model = ansatz
         freeze_model(self._model)
         self._parameter_inputs = nn.Parameter(
-            initial_parameters.type(torch.float64), requires_grad=True
+            initial_parameters.type(torch.float64).to(device), requires_grad=True
         )
-        self._fixed_inputs = calibration_data.inputs.detach()
+        self._fixed_inputs = calibration_data.inputs.detach().to(device)
         self._num_data_points = calibration_data.num_data_points
         self._device = device
 
@@ -78,7 +78,7 @@ def least_squares(
 ) -> LeastSquaresOutput:
     preprocessed_data = preprocess_calibration_data(calibration_data)
     model_closure = ModelClosure(ansatz, initial_parameters, preprocessed_data, device)
-    outputs = preprocessed_data.outputs.detach()
+    outputs = preprocessed_data.outputs.detach().to(device)
     loss_metric = torch.nn.MSELoss()
     loss_weight = 1e6
 
@@ -109,6 +109,8 @@ def least_squares(
         optimizer.step(loss_func_closure)
         loss_hist.append(float(loss.detach().cpu().item()))
 
-    identified_parameters = model_closure.get_parameters_as_tensor().detach().cpu().numpy()
+    identified_parameters = (
+        model_closure.get_parameters_as_tensor().detach().cpu().numpy()
+    )
 
     return identified_parameters, loss_hist
