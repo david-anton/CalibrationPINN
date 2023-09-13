@@ -52,7 +52,7 @@ from parametricpinn.training.training_standard_2d import (
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 material_model = "plane stress"
 edge_length = 10.0
@@ -77,7 +77,7 @@ weight_pde_loss = 1.0
 weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20230912_validation_data_E_180k_240k_nu_02_04_calibration_paper"
 num_samples_valid = 32
 validation_interval = 1
@@ -92,13 +92,13 @@ input_subdir_high_noise = "with_noise_4e-04"
 input_subdir_low_noise = "with_noise_2e-04"
 input_file_high_noise = "displacements_withNoise4e-04.csv"
 input_file_low_noise = "displacements_withNoise2e-04.csv"
-use_least_squares = False
-use_random_walk_metropolis_hasting = False
-use_hamiltonian = False
-use_efficient_nuts = False
+use_least_squares = True
+use_random_walk_metropolis_hasting = True
+use_hamiltonian = True
+use_efficient_nuts = True
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = 20230912
 output_subdirectory = f"{output_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_32_col_64_bc_32_full_batch_neurons_4_32_calibration_paper"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
@@ -341,7 +341,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         initial_parameters=initial_parameters,
         num_iterations=int(1e3),
         ansatz=model,
-        calibration_data=data
+        calibration_data=data,
     )
     std_proposal_density_youngs_modulus = 1000
     std_proposal_density_poissons_ratio = 0.0015
@@ -374,7 +374,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
     )
     mcmc_config_enuts = EfficientNUTSConfig(
         likelihood=likelihood,
-        prior=prior,        
+        prior=prior,
         initial_parameters=initial_parameters,
         num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
@@ -389,7 +389,8 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         )
         end = perf_counter()
         time = end - start
-        print(f"Run time least squares: {time}")   
+        print(f"Identified parameter: {identified_parameters_ls}")
+        print(f"Run time least squares: {time}")
     if use_random_walk_metropolis_hasting:
         start = perf_counter()
         posterior_moments_mh, samples_mh = calibrate(
