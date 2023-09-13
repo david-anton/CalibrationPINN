@@ -20,8 +20,10 @@ class PPINNLikelihood:
         data: PreprocessedCalibrationData,
         device: Device,
     ):
-        self._model = ansatz
+        self._model = ansatz.to(device)
         self._data = data
+        self._data.inputs.detach().to(device)
+        self._data.outputs.detach().to(device)
         self._num_flattened_outputs = self._data.num_data_points * data.dim_outputs
         self._device = device
         self._likelihood = self._initialize_likelihood()
@@ -46,6 +48,7 @@ class PPINNLikelihood:
         return torch.exp(self._log_prob(parameters))
 
     def _log_prob(self, parameters: Tensor) -> Tensor:
+        parameters.to(self._device)
         residuals = self._calculate_residuals(parameters)
         return self._likelihood.log_prob(residuals)
 
@@ -71,20 +74,20 @@ class PPINNLikelihood:
             device=self._device,
         )
 
-    def _calculate_flattened_model_outputs(self, parameters: Tensor) -> Tensor:
-        model_inputs = torch.concat(
-            (
-                self._data.inputs.detach(),
-                parameters.repeat((self._data.num_data_points, 1)),
-            ),
-            dim=1,
-        ).to(self._device)
-        model_output = self._model(model_inputs)
-        return model_output.ravel()
-
     def _calculate_residuals(self, parameters: Tensor) -> Tensor:
         flattened_model_outputs = self._calculate_flattened_model_outputs(parameters)
         return flattened_model_outputs - self._data.outputs.ravel()
+
+    def _calculate_flattened_model_outputs(self, parameters: Tensor) -> Tensor:
+        model_inputs = torch.concat(
+            (
+                self._data.inputs,
+                parameters.repeat((self._data.num_data_points, 1)),
+            ),
+            dim=1,
+        )
+        model_output = self._model(model_inputs)
+        return model_output.ravel()
 
 
 def create_ppinn_likelihood(
