@@ -52,7 +52,7 @@ from parametricpinn.training.training_standard_2d import (
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 material_model = "plane stress"
 edge_length = 10.0
@@ -98,7 +98,7 @@ use_hamiltonian = True
 use_efficient_nuts = True
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = 20230912
+output_date = current_date
 output_subdirectory = f"{output_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_32_col_64_bc_32_full_batch_neurons_4_32_calibration_paper"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
@@ -271,8 +271,10 @@ def training_step() -> None:
             ansatz=ansatz,
             youngs_modulus_and_poissons_ratio_list=[
                 (210000, 0.3),
-                (183000, 0.27),
-                (238000, 0.38),
+                (180000, 0.2),
+                (180000, 0.4),
+                (240000, 0.2),
+                (240000, 0.4),
             ],
             model=material_model,
             edge_length=edge_length,
@@ -301,8 +303,8 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         input_subdir_path = os.path.join(input_dir_calibration_data, input_subdir)
         data_reader = CSVDataReader(project_directory)
         data = torch.from_numpy(data_reader.read(input_file_name, input_subdir_path))
-        coordinates = data[:, :2]
-        noisy_displacements = data[:, 2:]
+        coordinates = data[:, :2].to(device)
+        noisy_displacements = data[:, 2:].to(device)
 
         return coordinates, noisy_displacements
 
