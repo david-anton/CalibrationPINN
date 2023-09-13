@@ -34,7 +34,7 @@ class LeastSquaresConfig(CalibrationConfig):
     calibration_data: CalibrationData
 
 
-class Predictor(nn.Module):
+class ModelClosure(nn.Module):
     def __init__(
         self,
         ansatz: StandardAnsatz,
@@ -62,7 +62,7 @@ class Predictor(nn.Module):
         model_inputs = torch.concat(
             (
                 self._fixed_inputs,
-                self._parameter_inputs.expand(self._num_data_points, 1),
+                self._parameter_inputs.repeat((self._num_data_points, 1)),
             ),
             dim=1,
         ).to(self._device)
@@ -77,13 +77,13 @@ def least_squares(
     device: Device,
 ) -> LeastSquaresOutput:
     preprocessed_data = preprocess_calibration_data(calibration_data)
-    predictor = Predictor(ansatz, initial_parameters, preprocessed_data, device)
+    model_closure = ModelClosure(ansatz, initial_parameters, preprocessed_data, device)
     outputs = preprocessed_data.outputs.detach()
     loss_metric = torch.nn.MSELoss()
     loss_weight = 1e6
 
     optimizer = torch.optim.LBFGS(
-        params=predictor.parameters(),
+        params=model_closure.parameters(),
         lr=1.0,
         max_iter=20,
         max_eval=25,
@@ -94,7 +94,7 @@ def least_squares(
     )
 
     def loss_func() -> Tensor:
-        model_outputs = predictor()
+        model_outputs = model_closure()
         return loss_weight * loss_metric(model_outputs, outputs)
 
     def loss_func_closure() -> float:
@@ -106,10 +106,9 @@ def least_squares(
     loss_hist = []
     for _ in range(num_iterations):
         loss = loss_func()
-        print(f"{_}: {loss}")
         optimizer.step(loss_func_closure)
         loss_hist.append(float(loss.detach().cpu().item()))
 
-    identified_parameters = predictor.get_parameters_as_tensor().detach().cpu().numpy()
+    identified_parameters = model_closure.get_parameters_as_tensor().detach().cpu().numpy()
 
     return identified_parameters, loss_hist
