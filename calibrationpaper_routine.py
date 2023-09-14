@@ -1,14 +1,24 @@
+############################################################
+# TO DO
+############################################################
+# 1) Copy model parameters in input/Paper_Calibration.
+# 2) Set project directory pathin settings object.
+############################################################
+############################################################
+
 import os
 import sys
+from pathlib import Path
 
 import pandas as pd
 import torch
 
 from parametricpinn.ansatz import create_standard_normalized_hbc_ansatz_2D
+from parametricpinn.calibration.utility import load_model
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader, PandasDataWriter
 from parametricpinn.network import FFNN
-from parametricpinn.settings import Settings, get_device
+from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
 from parametricpinn.types import Module, Tensor
 
 ### Configuration
@@ -20,6 +30,7 @@ min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
+name_model_parameters_file = "model_parameters"
 # Input paths
 input_dir_calibration_data = "Paper_Calibration"
 input_subdir_high_noise = "with_noise_4e-04"
@@ -34,17 +45,20 @@ output_file_name = "displacements"
 
 
 settings = Settings()
+settings.PROJECT_DIR = Path("/workspaces/app")
 settings.INPUT_SUBDIR = "input"
 settings.OUTPUT_SUBDIR = "output"
 project_directory = ProjectDirectory(settings)
 device = get_device()
+set_default_dtype(torch.float64)
+set_seed(0)
 data_writer = PandasDataWriter(project_directory)
 
 
 min_inputs = torch.tensor([-edge_length, 0.0, min_youngs_modulus, min_poissons_ratio])
 max_inputs = torch.tensor([0.0, edge_length, max_youngs_modulus, max_poissons_ratio])
-min_outputs = torch.tensor([0.0, 0.0])
-max_outputs = torch.tensor([0.0, 0.0])
+min_outputs = torch.tensor([-0.0102, -0.0045])
+max_outputs = torch.tensor([0.0, 9.3976e-08])
 
 
 def create_ansatz() -> Module:
@@ -60,7 +74,18 @@ def create_ansatz() -> Module:
     ).to(device)
 
 
-def load_calibration_data() -> tuple[Tensor, Tensor]:
+def load_parameters(ansatz: Module) -> Module:
+    return load_model(
+        model=ansatz,
+        name_model_parameters_file=name_model_parameters_file,
+        input_subdir=input_dir_calibration_data,
+        project_directory=project_directory,
+        device=device, 
+        load_from_output_dir=False
+    )
+
+
+def load_coordinates_data() -> Tensor:
     noise_level = str(sys.argv[3])
     if noise_level == "low":
         input_subdir = input_subdir_low_noise
@@ -75,9 +100,12 @@ def load_calibration_data() -> tuple[Tensor, Tensor]:
     data_reader = CSVDataReader(project_directory)
     data = torch.from_numpy(data_reader.read(input_file_name, input_subdir_path))
     coordinates = data[:, :2]
-    noisy_displacements = data[:, 2:]
 
-    return coordinates, noisy_displacements
+    return coordinates
+
+
+def modifiy_coordinates(coordinates: Tensor) -> Tensor:
+    return coordinates - torch.tensor([edge_length, 0.0], dtype=torch.float64).repeat((num_data_points, 1))
 
 
 youngs_modulus = float(sys.argv[1])
@@ -87,9 +115,12 @@ parameters = torch.tensor(
 )
 
 ansatz = create_ansatz()
+ansatz = load_parameters(ansatz)
 
-coordinates, _ = load_calibration_data()
+coordinates = load_coordinates_data()
 num_data_points = coordinates.size()[0]
+coordinates = modifiy_coordinates(coordinates)
+
 model_inputs = torch.concat(
     (
         coordinates,
