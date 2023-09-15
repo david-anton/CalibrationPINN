@@ -85,8 +85,8 @@ num_points_valid = 1024
 batch_size_valid = num_samples_valid
 fem_mesh_resolution = 0.01
 # Calibration
-std_high_noise = 4e-04
-std_low_noise = 2e-04
+std_high_noise = 4 * 1e-04
+std_low_noise = 2 * 1e-04
 input_dir_calibration_data = "Paper_Calibration"
 input_subdir_high_noise = "with_noise_4e-04"
 input_subdir_low_noise = "with_noise_2e-04"
@@ -362,7 +362,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         likelihood=likelihood,
         prior=prior,
         initial_parameters=initial_parameters,
-        num_iterations=int(1e3),
+        num_iterations=int(1e4),
         num_burn_in_iterations=int(1e3),
         cov_proposal_density=torch.diag(
             torch.tensor(
@@ -383,7 +383,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
         num_leabfrog_steps=256,
-        leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
+        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
     )
     mcmc_config_enuts = EfficientNUTSConfig(
         likelihood=likelihood,
@@ -392,7 +392,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
         max_tree_depth=8,
-        leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
+        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
     )
     output_subdirectory_calibration = str(
         os.path.join(output_subdirectory, input_subdir)
