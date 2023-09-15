@@ -394,7 +394,9 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         max_tree_depth=8,
         leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
     )
-    output_subdirectory_calibration = str(os.path.join(output_subdirectory, input_subdir))
+    output_subdirectory_calibration = str(
+        os.path.join(output_subdirectory, input_subdir)
+    )
     if use_least_squares:
         start = perf_counter()
         identified_parameters_ls, loss_hist_ls = calibrate(

@@ -9,7 +9,11 @@ from parametricpinn.bayesian.distributions import (
     IndependentMultivariateNormalDistributon,
     create_independent_multivariate_normal_distribution,
 )
-from parametricpinn.calibration import EfficientNUTSConfig, calibrate
+from parametricpinn.calibration import (
+    EfficientNUTSConfig,
+    MetropolisHastingsConfig,
+    calibrate,
+)
 from parametricpinn.calibration.bayesianinference.mcmc import MCMCOutput
 from parametricpinn.data import (
     TrainingData1DPDE,
@@ -172,16 +176,28 @@ def train_parametric_pinn(
     initial_parameters = prior.sample().to(device)
     leapfrog_step_sizes = torch.full(parameters_shape, 1e-6, device=device)
 
-    mcmc_config = EfficientNUTSConfig(
+    # mcmc_config = EfficientNUTSConfig(
+    #     initial_parameters=initial_parameters,
+    #     num_iterations=number_mcmc_iterations,
+    #     likelihood=likelihood,
+    #     prior=prior,
+    #     num_burn_in_iterations=int(2e3),
+    #     leapfrog_step_sizes=leapfrog_step_sizes,
+    #     max_tree_depth=10,  # = 1024 steps
+    # )
+    mcmc_config = MetropolisHastingsConfig(
         initial_parameters=initial_parameters,
         num_iterations=number_mcmc_iterations,
-        num_burn_in_iterations=int(2e3),
-        leapfrog_step_sizes=leapfrog_step_sizes,
-        max_tree_depth=10,  # = 1024 steps
+        likelihood=likelihood,
+        prior=prior,
+        num_burn_in_iterations=int(5e3),
+        cov_proposal_density=torch.pow(
+            torch.ones_like(initial_parameters, dtype=torch.float64, device=device), 2
+        ),
     )
 
     start = perf_counter()
-    posterior_moments, samples = calibrate(likelihood, prior, mcmc_config, device)
+    posterior_moments, samples = calibrate(mcmc_config, device)
     end = perf_counter()
     time = end - start
     print(f"Sampling time: {time}")
