@@ -311,7 +311,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
     def modifiy_coordinates(coordinates: Tensor) -> Tensor:
         num_data_points = coordinates.size()[0]
         return coordinates - torch.tensor(
-            [edge_length, 0.0], dtype=torch.float64
+            [edge_length, 0.0], dtype=torch.float64, device=device
         ).repeat((num_data_points, 1))
 
     name_model_parameters_file = "model_parameters"
