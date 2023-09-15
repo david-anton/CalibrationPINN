@@ -394,7 +394,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         max_tree_depth=8,
         leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
     )
-    output_subdirectory = str(os.path.join(output_subdirectory, input_subdir))
+    output_subdirectory_calibration = str(os.path.join(output_subdirectory, input_subdir))
     if use_least_squares:
         start = perf_counter()
         identified_parameters_ls, loss_hist_ls = calibrate(
@@ -420,7 +420,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
             moments=posterior_moments_mh,
             samples=samples_mh,
             mcmc_algorithm="metropolis_hastings",
-            output_subdir=output_subdirectory,
+            output_subdir=output_subdirectory_calibration,
             project_directory=project_directory,
         )
     if use_hamiltonian:
@@ -438,7 +438,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
             moments=posterior_moments_h,
             samples=samples_h,
             mcmc_algorithm="hamiltonian",
-            output_subdir=output_subdirectory,
+            output_subdir=output_subdirectory_calibration,
             project_directory=project_directory,
         )
     if use_efficient_nuts:
@@ -456,7 +456,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
             moments=posterior_moments_enuts,
             samples=samples_enuts,
             mcmc_algorithm="efficient_nuts",
-            output_subdir=output_subdirectory,
+            output_subdir=output_subdirectory_calibration,
             project_directory=project_directory,
         )
     print("Calibration finished.")
