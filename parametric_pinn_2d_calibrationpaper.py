@@ -52,7 +52,7 @@ from parametricpinn.training.training_standard_2d import (
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 material_model = "plane stress"
 edge_length = 10.0
@@ -77,7 +77,7 @@ weight_pde_loss = 1.0
 weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20230914_validation_data_E_180k_240k_nu_02_04_calibration_paper"
 num_samples_valid = 32
 validation_interval = 1
@@ -98,7 +98,7 @@ use_hamiltonian = True
 use_efficient_nuts = True
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = 20230914
 output_subdirectory = f"{output_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_32_col_64_bc_32_full_batch_neurons_4_32_calibration_paper"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
@@ -299,7 +299,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
     exact_youngs_modulus = 210000.0
     exact_poissons_ratio = 0.3
 
-    def generate_calibration_data() -> tuple[Tensor, Tensor]:
+    def load_calibration_data() -> tuple[Tensor, Tensor]:
         input_subdir_path = os.path.join(input_dir_calibration_data, input_subdir)
         data_reader = CSVDataReader(project_directory)
         data = torch.from_numpy(data_reader.read(input_file_name, input_subdir_path))
@@ -307,6 +307,12 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         noisy_displacements = data[:, 2:].to(device)
 
         return coordinates, noisy_displacements
+
+    def modifiy_coordinates(coordinates: Tensor) -> Tensor:
+        num_data_points = coordinates.size()[0]
+        return coordinates - torch.tensor(
+            [edge_length, 0.0], dtype=torch.float64
+        ).repeat((num_data_points, 1))
 
     name_model_parameters_file = "model_parameters"
     model = load_model(
@@ -317,7 +323,8 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         device=device,
     )
 
-    coordinates, noisy_displacements = generate_calibration_data()
+    coordinates, noisy_displacements = load_calibration_data()
+    coordinates = modifiy_coordinates(coordinates)
     data = CalibrationData(
         inputs=coordinates,
         outputs=noisy_displacements,
@@ -387,6 +394,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
         max_tree_depth=8,
         leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
     )
+    output_subdirectory = str(os.path.join(output_subdirectory, input_subdir))
     if use_least_squares:
         start = perf_counter()
         identified_parameters_ls, loss_hist_ls = calibrate(

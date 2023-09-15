@@ -80,8 +80,8 @@ def load_parameters(ansatz: Module) -> Module:
         name_model_parameters_file=name_model_parameters_file,
         input_subdir=input_dir_calibration_data,
         project_directory=project_directory,
-        device=device, 
-        load_from_output_dir=False
+        device=device,
+        load_from_output_dir=False,
     )
 
 
@@ -105,7 +105,9 @@ def load_coordinates_data() -> Tensor:
 
 
 def modifiy_coordinates(coordinates: Tensor) -> Tensor:
-    return coordinates - torch.tensor([edge_length, 0.0], dtype=torch.float64).repeat((num_data_points, 1))
+    return coordinates - torch.tensor([edge_length, 0.0], dtype=torch.float64).repeat(
+        (num_data_points, 1)
+    )
 
 
 youngs_modulus = float(sys.argv[1])
