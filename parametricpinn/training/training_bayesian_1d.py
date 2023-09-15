@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 from time import perf_counter
 from typing import NamedTuple
@@ -193,7 +194,7 @@ def train_parametric_pinn(
         num_burn_in_iterations=int(5e3),
         cov_proposal_density=torch.diag(
             torch.pow(
-                torch.full_like(initial_parameters, 0.01, dtype=torch.float64, device=device),
+                torch.full_like(initial_parameters, math.sqrt(0.1), dtype=torch.float64, device=device),
                 2,
             )
         ),

@@ -43,7 +43,7 @@ std_bias = 1.0
 num_samples_train = 128
 num_points_pde = 128
 training_batch_size = num_samples_train
-number_mcmc_iterations = int(1e3)
+number_mcmc_iterations = int(1e4)
 # Data
 std_pde = 0.01
 std_stress_bc = 0.01
