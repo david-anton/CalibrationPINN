@@ -35,8 +35,10 @@ name_model_parameters_file = "model_parameters"
 input_dir_calibration_data = "Paper_Calibration"
 input_subdir_high_noise = "with_noise_4e-04"
 input_subdir_low_noise = "with_noise_2e-04"
+input_subdir_clean = "without_noise"
 input_file_high_noise = "displacements_withNoise4e-04.csv"
 input_file_low_noise = "displacements_withNoise2e-04.csv"
+input_file_clean = "displacements_withoutNoise.csv"
 # Output path
 label_ux = "u_x"
 label_uy = "u_y"
@@ -50,7 +52,11 @@ noise_level = str(sys.argv[3])
 
 
 settings = Settings()
+######################################################
+######################################################
 settings.PROJECT_DIR = Path("/workspaces/app")
+######################################################
+######################################################
 settings.INPUT_SUBDIR = "input"
 settings.OUTPUT_SUBDIR = "output"
 project_directory = ProjectDirectory(settings)
@@ -97,6 +103,9 @@ def load_coordinates_data() -> Tensor:
     elif noise_level == "high":
         input_subdir = input_subdir_high_noise
         input_file_name = input_file_high_noise
+    elif noise_level == "clean":
+        input_subdir = input_subdir_clean
+        input_file_name = input_file_clean
     else:
         raise SystemExit("Passed noise level not defined.")
 

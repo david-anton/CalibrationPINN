@@ -90,12 +90,14 @@ std_low_noise = 2 * 1e-04
 input_dir_calibration_data = "Paper_Calibration"
 input_subdir_high_noise = "with_noise_4e-04"
 input_subdir_low_noise = "with_noise_2e-04"
+input_subdir_clean = "without_noise"
 input_file_high_noise = "displacements_withNoise4e-04.csv"
 input_file_low_noise = "displacements_withNoise2e-04.csv"
+input_file_clean = "displacements_withoutNoise.csv"
 use_least_squares = True
-use_random_walk_metropolis_hasting = True
-use_hamiltonian = True
-use_efficient_nuts = True
+use_random_walk_metropolis_hasting = False
+use_hamiltonian = False
+use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = 20230914
@@ -347,7 +349,7 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
     parameter_names = ("Youngs modulus", "Poissons ratio")
     true_parameters = (exact_youngs_modulus, exact_poissons_ratio)
     initial_parameters = torch.tensor(
-        [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
+        [min_youngs_modulus, min_poissons_ratio], device=device
     )
 
     least_squares_config = LeastSquaresConfig(
@@ -467,13 +469,21 @@ def calibration_step(input_subdir: str, input_file_name: str, std_noise: float) 
 if retrain_parametric_pinn:
     training_dataset, validation_dataset = create_datasets()
     training_step()
+print("Clean data:")
 calibration_step(
-    input_subdir=input_subdir_high_noise,
-    input_file_name=input_file_high_noise,
-    std_noise=std_high_noise,
+    input_subdir=input_subdir_clean,
+    input_file_name=input_file_clean,
+    std_noise=1e-8 #Dummy value because 0.0 causes error,
 )
+print("Low noise:")
 calibration_step(
     input_subdir=input_subdir_low_noise,
     input_file_name=input_file_low_noise,
     std_noise=std_low_noise,
+)
+print("High noise:")
+calibration_step(
+    input_subdir=input_subdir_high_noise,
+    input_file_name=input_file_high_noise,
+    std_noise=std_high_noise,
 )
