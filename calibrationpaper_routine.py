@@ -2,7 +2,7 @@
 # TO DO
 ############################################################
 # 1) Copy model parameters in input/Paper_Calibration.
-# 2) Set project directory pathin settings object.
+# 2) Set project directory path in settings object.
 ############################################################
 ############################################################
 
@@ -42,6 +42,11 @@ label_ux = "u_x"
 label_uy = "u_y"
 output_subdir_name = "Paper_Calibration"
 output_file_name = "displacements"
+
+
+youngs_modulus = float(sys.argv[1])
+poissons_ratio = float(sys.argv[2])
+noise_level = str(sys.argv[3])
 
 
 settings = Settings()
@@ -86,7 +91,6 @@ def load_parameters(ansatz: Module) -> Module:
 
 
 def load_coordinates_data() -> Tensor:
-    noise_level = str(sys.argv[3])
     if noise_level == "low":
         input_subdir = input_subdir_low_noise
         input_file_name = input_file_low_noise
@@ -110,8 +114,18 @@ def modifiy_coordinates(coordinates: Tensor) -> Tensor:
     )
 
 
-youngs_modulus = float(sys.argv[1])
-poissons_ratio = float(sys.argv[2])
+def write_displacements(displacements: Tensor) -> None:
+    displacements_pdf = pd.DataFrame(
+        data=displacements.detach().cpu().numpy(), columns=[label_ux, label_uy]
+    )
+    data_writer.write(
+        displacements_pdf,
+        subdir_name=output_subdir_name,
+        file_name=output_file_name,
+        header=True,
+    )
+
+
 parameters = torch.tensor(
     [youngs_modulus, poissons_ratio], dtype=torch.float64, device=device
 )
@@ -132,12 +146,5 @@ model_inputs = torch.concat(
 ).to(device)
 
 displacements = ansatz(model_inputs)
-displacements_pdf = pd.DataFrame(
-    data=displacements.detach().cpu().numpy(), columns=[label_ux, label_uy]
-)
-data_writer.write(
-    displacements_pdf,
-    subdir_name=output_subdir_name,
-    file_name=output_file_name,
-    header=True,
-)
+write_displacements(displacements)
+
