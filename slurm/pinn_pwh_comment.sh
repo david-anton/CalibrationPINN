@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --partition=gpu_irmb_full
+#SBATCH --partition=gpu_irmb
 #SBATCH --nodes=1
 #SBATCH --time=48:00:00
 #SBATCH --job-name=PINNPWH
