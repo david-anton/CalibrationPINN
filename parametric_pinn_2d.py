@@ -71,7 +71,7 @@ num_samples_per_parameter = 32
 num_collocation_points = 64
 number_points_per_bc = 32
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 20000
+number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
@@ -89,7 +89,7 @@ fem_mesh_resolution = 0.1
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = True
-use_efficient_nuts = False
+use_efficient_nuts = True
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = 20230915
@@ -261,8 +261,10 @@ def training_step() -> None:
             ansatz=ansatz,
             youngs_modulus_and_poissons_ratio_list=[
                 (210000, 0.3),
-                (183000, 0.27),
-                (238000, 0.38),
+                (180000, 0.2),
+                (180000, 0.4),
+                (240000, 0.2),
+                (240000, 0.4),
             ],
             model=material_model,
             edge_length=edge_length,
@@ -398,7 +400,7 @@ def calibration_step() -> None:
         num_iterations=int(5e3),
         num_burn_in_iterations=int(1e3),
         num_leabfrog_steps=256,
-        leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
+        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
     )
     mcmc_config_enuts = EfficientNUTSConfig(
         likelihood=likelihood,
@@ -407,7 +409,7 @@ def calibration_step() -> None:
         num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
         max_tree_depth=8,
-        leapfrog_step_sizes=torch.tensor([10, 0.01], device=device),
+        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
     )
     if use_least_squares:
         start = perf_counter()
