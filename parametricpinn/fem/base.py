@@ -1,5 +1,6 @@
+import os
 from pathlib import Path
-from typing import Any, Callable, TypeAlias, Union
+from typing import Any, TypeAlias, Union
 
 import dolfinx
 import gmsh
@@ -44,3 +45,7 @@ def join_output_path(
     return project_directory.create_output_file_path(
         file_name=file_name, subdir_name=output_subdir
     )
+
+
+def join_simulation_output_subdir(simulation_name: str, output_subdir: str) -> str:
+    return os.path.join(output_subdir, simulation_name)

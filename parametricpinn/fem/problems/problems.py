@@ -4,7 +4,7 @@ from parametricpinn.errors import FEMProblemConfigError
 from parametricpinn.fem.base import (
     DConstant,
     DFunction,
-    PETSProblem,
+    DMesh,
     UFLTestFunction,
     UFLTrialFunction,
 )
@@ -14,6 +14,7 @@ from parametricpinn.fem.problems.linearelasticity import (
     LinearElasticityProblem,
     LinearElasticityResults,
 )
+from parametricpinn.io import ProjectDirectory
 
 MaterialModel: TypeAlias = LinearElasticityModel
 SimulationResults: TypeAlias = LinearElasticityResults
@@ -21,6 +22,23 @@ SimulationResults: TypeAlias = LinearElasticityResults
 
 class Problem(Protocol):
     def solve(self) -> DFunction:
+        pass
+
+    def compile_results(
+        self,
+        mesh: DMesh,
+        approximate_solution: DFunction,
+        material_model: MaterialModel,
+    ) -> SimulationResults:
+        pass
+
+    def save_results(
+        self,
+        results: SimulationResults,
+        output_subdir: str,
+        project_directory: ProjectDirectory,
+        save_to_input_dir: bool = False,
+    ) -> None:
         pass
 
 

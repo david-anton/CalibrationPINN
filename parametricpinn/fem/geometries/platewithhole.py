@@ -1,18 +1,12 @@
 from dataclasses import dataclass
-from typing import Any, Callable, TypeAlias, Union
+from typing import TypeAlias
 
-import dolfinx
 import gmsh
 import numpy as np
 import numpy.typing as npt
-import petsc4py
-import ufl
 from dolfinx.fem import Constant
-from dolfinx.io.gmshio import model_to_mesh
-from dolfinx.mesh import Mesh, locate_entities_boundary, meshtags
-from mpi4py import MPI
+from dolfinx.mesh import locate_entities_boundary, meshtags
 from petsc4py.PETSc import ScalarType
-from ufl import TrialFunction
 
 from parametricpinn.fem.base import (
     DFunctionSpace,

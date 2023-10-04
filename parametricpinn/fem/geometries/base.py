@@ -3,7 +3,7 @@ from dolfinx.io import XDMFFile
 from dolfinx.io.gmshio import model_to_mesh
 from mpi4py import MPI
 
-from parametricpinn.fem.base import DFunction, DMesh, GMesh, join_output_path
+from parametricpinn.fem.base import DMesh, DMeshTags, GMesh, join_output_path
 from parametricpinn.io import ProjectDirectory
 
 
@@ -25,17 +25,18 @@ def load_mesh_from_gmsh_model(gmesh: GMesh, geometric_dim: int) -> DMesh:
     return mesh
 
 
-def save_results_as_xdmf(
+def save_boundary_tags_as_xdmf(
+    boundary_tags: DMeshTags,
     mesh: DMesh,
-    uh: DFunction,
     output_subdir: str,
     project_directory: ProjectDirectory,
     save_to_input_dir: bool = False,
 ) -> None:
-    file_name = "displacements.xdmf"
+    file_name = "boundary_tags.xdmf"
     output_path = join_output_path(
         project_directory, file_name, output_subdir, save_to_input_dir
     )
+    mesh.topology.create_connectivity(mesh.topology.dim - 1, mesh.topology.dim)
     with XDMFFile(mesh.comm, output_path, "w") as xdmf:
         xdmf.write_mesh(mesh)
-        xdmf.write_function(uh)
+        xdmf.write_meshtags(boundary_tags)
