@@ -156,4 +156,3 @@ model_inputs = torch.concat(
 
 displacements = ansatz(model_inputs)
 write_displacements(displacements)
-

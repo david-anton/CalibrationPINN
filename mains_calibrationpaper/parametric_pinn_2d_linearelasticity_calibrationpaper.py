@@ -473,7 +473,7 @@ print("Clean data:")
 calibration_step(
     input_subdir=input_subdir_clean,
     input_file_name=input_file_clean,
-    std_noise=1e-8 #Dummy value because 0.0 causes error,
+    std_noise=1e-8,  # Dummy value because 0.0 causes error,
 )
 print("Low noise:")
 calibration_step(

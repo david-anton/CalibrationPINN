@@ -14,7 +14,15 @@ from mpi4py import MPI
 from petsc4py.PETSc import ScalarType
 from ufl import TrialFunction
 
-from parametricpinn.fem.base import DFunctionSpace, DMesh, DMeshTags, GGeometry, GMesh
+from parametricpinn.fem.base import (
+    DFunctionSpace,
+    DMesh,
+    DMeshTags,
+    GGeometry,
+    GMesh,
+    UFLMeasure,
+    UFLTestFunction,
+)
 from parametricpinn.fem.boundaryconditions import (
     BoundaryConditions,
     DirichletBC,
@@ -22,6 +30,8 @@ from parametricpinn.fem.boundaryconditions import (
 )
 from parametricpinn.fem.geometries.base import load_mesh_from_gmsh_model, save_gmesh
 from parametricpinn.io import ProjectDirectory
+
+FacetsDim: TypeAlias = int
 
 
 @dataclass
@@ -34,11 +44,11 @@ class PlateWithHoleGeometryConfig:
     element_degree: int
     mesh_resolution: float
 
+
 Config: TypeAlias = PlateWithHoleGeometryConfig
 
 
-
-class PlateWithHoleGeometry():
+class PlateWithHoleGeometry:
     def __init__(self, config: Config):
         self.config = config
         self._geometric_dim = 2
@@ -65,9 +75,12 @@ class PlateWithHoleGeometry():
         return mesh
 
     def tag_boundaries(self, mesh: DMesh) -> DMeshTags:
+        bc_facets_dim = self._get_bc_facets_dim(mesh)
         locate_right_facet = lambda x: np.isclose(x[0], 0.0)
         locate_bottom_facet = lambda x: np.isclose(x[1], 0.0)
-        locate_left_facet = lambda x: np.logical_and(np.isclose(x[0], -self.config.edge_length), x[1] > 0.0)
+        locate_left_facet = lambda x: np.logical_and(
+            np.isclose(x[0], -self.config.edge_length), x[1] > 0.0
+        )
         boundaries = [
             (self._tag_right, locate_right_facet),
             (self._tag_bottom, locate_bottom_facet),
@@ -92,15 +105,25 @@ class PlateWithHoleGeometry():
             facet_tags[sorted_facet_indices],
         )
 
-
-    def define_boundary_conditions(self, mesh: DMesh, boundary_tags: DMeshTags, func_space: DFunctionSpace) -> BoundaryConditions:
-        traction_left = Constant(mesh, (ScalarType((self.config.traction_left_x, self.config.traction_left_y))))
+    def define_boundary_conditions(
+        self,
+        mesh: DMesh,
+        boundary_tags: DMeshTags,
+        function_space: DFunctionSpace,
+        measure: UFLMeasure,
+        test_function: UFLTestFunction,
+    ) -> BoundaryConditions:
+        bc_facets_dim = self._get_bc_facets_dim(mesh)
+        traction_left = Constant(
+            mesh,
+            (ScalarType((self.config.traction_left_x, self.config.traction_left_y))),
+        )
         return [
             DirichletBC(
                 tag=self._tag_right,
                 value=self._u_x_right,
                 dim=0,
-                func_space=func_space,
+                function_space=function_space,
                 boundary_tags=boundary_tags,
                 bc_facets_dim=bc_facets_dim,
             ),
@@ -108,11 +131,16 @@ class PlateWithHoleGeometry():
                 tag=self._tag_bottom,
                 value=self._u_y_bottom,
                 dim=1,
-                func_space=func_space,
+                function_space=function_space,
                 boundary_tags=boundary_tags,
                 bc_facets_dim=bc_facets_dim,
             ),
-            NeumannBC(tag=self._tag_left, value=traction_left, measure=ds, test_func=w),
+            NeumannBC(
+                tag=self._tag_left,
+                value=traction_left,
+                measure=measure,
+                test_function=test_function,
+            ),
         ]
 
     def _generate_gmesh(self) -> GMesh:
@@ -134,7 +162,9 @@ class PlateWithHoleGeometry():
             def tag_solid_surface() -> None:
                 surface = geometry_kernel.getEntities(dim=2)
                 assert surface == geometry[0]
-                gmsh.model.addPhysicalGroup(surface[0][0], [surface[0][1]], solid_marker)
+                gmsh.model.addPhysicalGroup(
+                    surface[0][0], [surface[0][1]], solid_marker
+                )
                 gmsh.model.setPhysicalName(surface[0][0], solid_marker, "Solid")
 
             tag_solid_surface()
@@ -157,5 +187,6 @@ class PlateWithHoleGeometry():
         generate_mesh()
 
         return gmsh.model
-    
-    def _get_bc_facets_dim(self, mesh: DMesh) ->
+
+    def _get_bc_facets_dim(self, mesh: DMesh) -> FacetsDim:
+        return mesh.topology.dim - 1

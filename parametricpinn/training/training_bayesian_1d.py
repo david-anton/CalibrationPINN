@@ -194,7 +194,12 @@ def train_parametric_pinn(
         num_burn_in_iterations=int(1e6),
         cov_proposal_density=torch.diag(
             torch.pow(
-                torch.full_like(initial_parameters, math.sqrt(0.01), dtype=torch.float64, device=device),
+                torch.full_like(
+                    initial_parameters,
+                    math.sqrt(0.01),
+                    dtype=torch.float64,
+                    device=device,
+                ),
                 2,
             )
         ),

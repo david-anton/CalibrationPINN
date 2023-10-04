@@ -17,11 +17,6 @@ class FileNotFoundError(Error):
         super().__init__(self._message)
 
 
-class FEMConfigurationError(Error):
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
-
-
 class TestConfigurationError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
@@ -57,6 +52,16 @@ class BayesianNNError(Error):
         super().__init__(message)
 
 
-class GeometryConfigError(Error):
+class FEMConfigurationError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
+class FEMGeometryConfigError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
+class FEMProblemConfigError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)

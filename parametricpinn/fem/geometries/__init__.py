@@ -1,10 +1,9 @@
-from .geometries import Geometry, create_geometry
-from .platewithhole import PlateWithHoleGeometry, PlateWithHoleGeometryConfig
+from .geometries import Geometry, GeometryConfig, create_geometry
+from .platewithhole import PlateWithHoleGeometryConfig
 
 __all__ = [
     "Geometry",
+    "GeometryConfig",
     "create_geometry",
-    "PlateWithHoleGeometry",
-    "PlateWithHoleGeometryConfig"
-
+    "PlateWithHoleGeometryConfig",
 ]
