@@ -7,7 +7,7 @@ from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
 from scipy.interpolate import griddata
 
-from parametricpinn.fem.platewithhole import run_simulation
+from parametricpinn.fem.platewithhole_main import run_simulation
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, Module, NPArray, PLTAxes, PLTFigure
 

@@ -1,31 +1,17 @@
 import os
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Callable, TypeAlias, Union
+from typing import TypeAlias, Union
 
-import dolfinx
-import gmsh
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-import petsc4py
-import ufl
-from dolfinx.fem import (
-    Constant,
-    Function,
-    FunctionSpace,
-    dirichletbc,
-    locate_dofs_topological,
-)
+from dolfinx.fem import Constant, FunctionSpace
 from dolfinx.fem.petsc import LinearProblem
 from dolfinx.io import XDMFFile
-from dolfinx.io.gmshio import model_to_mesh
-from dolfinx.mesh import Mesh, locate_entities, locate_entities_boundary, meshtags
-from mpi4py import MPI
+from dolfinx.mesh import Mesh, locate_entities_boundary, meshtags
 from petsc4py.PETSc import ScalarType
 from ufl import (
     Measure,
-    SpatialCoordinate,
     TestFunction,
     TrialFunction,
     VectorElement,
@@ -36,34 +22,14 @@ from ufl import (
     dx,
     inner,
     inv,
-    lhs,
     nabla_grad,
-    rhs,
 )
 
 from parametricpinn.errors import FEMConfigurationError
+from parametricpinn.fem.geometries import Geometry
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import DataclassWriter, PandasDataWriter
-from parametricpinn.settings import Settings
 from parametricpinn.types import NPArray
-
-GMesh: TypeAlias = gmsh.model
-GOutDimAndTags: TypeAlias = list[tuple[int, int]]
-GOutDimAndTagsMap: TypeAlias = list[Union[GOutDimAndTags, list[Any]]]
-GGeometry: TypeAlias = tuple[GOutDimAndTags, GOutDimAndTagsMap]
-DMesh: TypeAlias = dolfinx.mesh.Mesh
-DFunction: TypeAlias = dolfinx.fem.Function
-DFunctionSpace: TypeAlias = dolfinx.fem.FunctionSpace
-DTestFunction: TypeAlias = ufl.TestFunction
-DConstant: TypeAlias = dolfinx.fem.Constant
-DDofs: TypeAlias = npt.NDArray[np.int32]
-DMeshTags: TypeAlias = Any  # dolfinx.mesh.MeshTags
-DDirichletBC: TypeAlias = dolfinx.fem.DirichletBCMetaClass
-UFLOperator: TypeAlias = ufl.core.operator.Operator
-UFLMeasure: TypeAlias = ufl.Measure
-UFLSigmaFunc: TypeAlias = Callable[[TrialFunction], UFLOperator]
-UFLEpsilonFunc: TypeAlias = Callable[[TrialFunction], UFLOperator]
-PETScScalarType: TypeAlias = petsc4py.PETSc.ScalarType
 
 
 @dataclass
@@ -95,8 +61,6 @@ class SimulationResults:
     displacements_x: NPArray
     displacements_y: NPArray
 
-
-geometric_dim = 2
 
 
 def run_simulation(
@@ -227,112 +191,9 @@ def _join_simulation_output_subdir(simulation_name: str, output_subdir: str) -> 
     return os.path.join(output_subdir, simulation_name)
 
 
-def _generate_mesh(
-    config: Config,
-    save_mesh: bool,
-    output_subdir: str,
-    project_directory: ProjectDirectory,
-    save_to_input_dir: bool = False,
-) -> DMesh:
-    print("Generate mesh for FEM simulation ...")
-    gmsh.initialize()
-    gmesh = _generate_gmesh(config)
-    if save_mesh:
-        _save_gmesh(output_subdir, save_to_input_dir, project_directory)
-    mesh = _load_mesh_from_gmsh_model(gmesh)
-    gmsh.finalize()
-    return mesh
-
-
-def _generate_gmesh(config: Config) -> GMesh:
-    length = config.edge_length
-    radius = config.radius
-    resolution = config.mesh_resolution
-    geometry_kernel = gmsh.model.occ
-    solid_marker = 1
-
-    def create_geometry() -> GGeometry:
-        gmsh.model.add("domain")
-        plate = geometry_kernel.add_rectangle(0, 0, 0, -length, length)
-        hole = geometry_kernel.add_disk(0, 0, 0, radius, radius)
-        return geometry_kernel.cut([(2, plate)], [(2, hole)])
-
-    def tag_physical_enteties(geometry: GGeometry) -> None:
-        geometry_kernel.synchronize()
-
-        def tag_solid_surface() -> None:
-            surface = geometry_kernel.getEntities(dim=2)
-            assert surface == geometry[0]
-            gmsh.model.addPhysicalGroup(surface[0][0], [surface[0][1]], solid_marker)
-            gmsh.model.setPhysicalName(surface[0][0], solid_marker, "Solid")
-
-        tag_solid_surface()
-
-    def configure_mesh() -> None:
-        gmsh.model.mesh.setSizeCallback(mesh_size_callback)
-
-    def mesh_size_callback(
-        dim: int, tag: int, x: float, y: float, z: float, lc: float
-    ) -> float:
-        return resolution
-
-    def generate_mesh() -> None:
-        geometry_kernel.synchronize()
-        gmsh.model.mesh.generate(geometric_dim)
-
-    geometry = create_geometry()
-    tag_physical_enteties(geometry)
-    configure_mesh()
-    generate_mesh()
-
-    return gmsh.model
-
-
-def _save_gmesh(
-    output_subdir: str, save_to_input_dir: bool, project_directory: ProjectDirectory
-) -> None:
-    file_name = "mesh.msh"
-    output_path = _join_output_path(
-        project_directory, file_name, output_subdir, save_to_input_dir
-    )
-    gmsh.write(str(output_path))
-
-
-def _load_mesh_from_gmsh_model(gmesh: GMesh) -> Mesh:
-    mpi_rank = 0
-    mesh, cell_tags, facet_tags = model_to_mesh(
-        gmesh, MPI.COMM_WORLD, mpi_rank, gdim=geometric_dim
-    )
-    return mesh
-
-
-class NeumannBC:
-    def __init__(
-        self, tag: int, value: BCValue, measure: UFLMeasure, test_func: DTestFunction
-    ) -> None:
-        self.bc = dot(value, test_func) * measure(tag)
-
-
-class DirichletBC:
-    def __init__(
-        self,
-        tag: int,
-        value: BCValue,
-        dim: int,
-        func_space: DFunctionSpace,
-        boundary_tags: DMeshTags,
-        bc_facets_dim: int,
-    ) -> None:
-        facet = boundary_tags.find(tag)
-        dofs = locate_dofs_topological(func_space.sub(dim), bc_facets_dim, facet)
-        self.bc = dirichletbc(value, dofs, func_space.sub(dim))
-
-
-BoundaryConditions: TypeAlias = list[Union[DirichletBC, NeumannBC]]
-
-
 def _simulate_once(
     mesh: Mesh,
+    geometry: Geometry,
     config: Config,
     save_metadata: bool,
     output_subdir: str,
@@ -513,7 +374,7 @@ def _simulate_once(
     u = TrialFunction(func_space)
     w = TestFunction(func_space)
 
-    boundary_tags = tag_boundaries()
+    boundary_tags = geometry.tag_boundaries(mesh)
     ds = Measure("ds", domain=mesh, subdomain_data=boundary_tags)
 
     boundary_conditions = define_boundary_conditions(boundary_tags)
@@ -626,16 +487,4 @@ def _save_simulation_config(
     )
 
 
-def _join_output_path(
-    project_directory: ProjectDirectory,
-    file_name: str,
-    output_subdir: str,
-    save_to_input_dir: bool,
-) -> Path:
-    if save_to_input_dir:
-        return project_directory.create_input_file_path(
-            file_name=file_name, subdir_name=output_subdir
-        )
-    return project_directory.create_output_file_path(
-        file_name=file_name, subdir_name=output_subdir
-    )
+

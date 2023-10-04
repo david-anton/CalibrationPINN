@@ -55,3 +55,8 @@ class MixedDistributionError(Error):
 class BayesianNNError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
+
+
+class GeometryConfigError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)

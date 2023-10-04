@@ -33,10 +33,10 @@ from parametricpinn.data import (
     create_training_dataset_2D,
     create_validation_dataset_2D,
 )
-from parametricpinn.fem.platewithhole import (
+from parametricpinn.fem.platewithhole_main import (
     generate_validation_data as generate_validation_data,
 )
-from parametricpinn.fem.platewithhole import run_simulation
+from parametricpinn.fem.platewithhole_main import run_simulation
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN
 from parametricpinn.postprocessing.plot import (
