@@ -9,7 +9,7 @@
 ## Build command
 ## singularity build --fakeroot --force parametricpinn.sif app/.devcontainer/container.def
 
-SCRIPT=parametric_pinn_2d.py
+SCRIPT=mains_calibrationpaper/parametric_pinn_2d_linearelasticity_calibrationpaper.py
 
 srun singularity exec \
  --cleanenv \

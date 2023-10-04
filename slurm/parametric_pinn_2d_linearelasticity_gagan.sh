@@ -2,14 +2,14 @@
 #SBATCH --partition=gpu_irmb
 #SBATCH --nodes=1
 #SBATCH --time=96:00:00
-#SBATCH --job-name=BPPINN1D
+#SBATCH --job-name=PPINN2D
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:ampere:1
 
 ## Build command
 ## singularity build --fakeroot --force parametricpinn.sif app/.devcontainer/container.def
 
-SCRIPT=parametric_pinn_bayesian_1d.py
+SCRIPT=mains_others/parametric_pinn_2d_linearelasticity_gagan.py
 
 srun singularity exec \
  --cleanenv \
