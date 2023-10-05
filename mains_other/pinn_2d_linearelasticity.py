@@ -20,7 +20,13 @@ from parametricpinn.data import (
     create_training_dataset_2D,
     create_validation_dataset_2D,
 )
-from parametricpinn.fem.simulation import generate_validation_data, run_simulation
+from parametricpinn.fem import (
+    LinearElasticityModel,
+    PlateWithHoleDomainConfig,
+    SimulationConfig,
+    generate_validation_data,
+    run_simulation,
+)
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN
 from parametricpinn.postprocessing.plot import (
@@ -43,7 +49,7 @@ from parametricpinn.types import Tensor
 
 ### Configuration
 # Set up
-model = "plane stress"
+material_model_state = "plane stress"
 edge_length = 100.0
 radius = 10.0
 traction_left_x = -100.0
@@ -74,6 +80,9 @@ num_samples_valid = 1
 valid_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
+# FEM
+fem_element_family = "Lagrange"
+fem_element_degree = 1
 fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
@@ -91,12 +100,25 @@ set_seed(0)
 device = get_device()
 
 
+def create_fem_domain_config() -> PlateWithHoleDomainConfig:
+    return PlateWithHoleDomainConfig(
+        edge_length=edge_length,
+        radius=radius,
+        traction_left_x=traction_left_x,
+        traction_left_y=traction_left_y,
+        element_family=fem_element_family,
+        element_degree=fem_element_degree,
+        mesh_resolution=fem_mesh_resolution,
+    )
+
+
+
 ### Loss function
-momentum_equation_func = momentum_equation_func_factory(model)
-stress_func = stress_func_factory(model)
-traction_func = traction_func_factory(model)
-strain_energy_func = strain_energy_func_factory(model)
-traction_energy_func = traction_energy_func_factory(model)
+momentum_equation_func = momentum_equation_func_factory(material_model_state)
+stress_func = stress_func_factory(material_model_state)
+traction_func = traction_func_factory(material_model_state)
+strain_energy_func = strain_energy_func_factory(material_model_state)
+traction_energy_func = traction_energy_func_factory(material_model_state)
 traction_left = torch.tensor([traction_left_x, traction_left_y])
 volume_force = torch.tensor([volume_force_x, volume_force_y])
 
@@ -237,19 +259,26 @@ def _generate_validation_data() -> None:
     poissons_ratios = _generate_random_parameter_list(
         num_samples_valid, min_poissons_ratio, max_poissons_ratio
     )
+    domain_config = create_fem_domain_config()
+    material_models = []
+    for i in range(num_samples_valid):
+        material_models.append(
+            LinearElasticityModel(
+                model=material_model_state,
+                youngs_modulus=youngs_moduli[i],
+                poissons_ratio=poissons_ratios[i],
+            )
+        )
     generate_validation_data(
-        model=model,
-        youngs_moduli=youngs_moduli,
-        poissons_ratios=poissons_ratios,
-        edge_length=edge_length,
-        radius=radius,
+        domain_config=domain_config,
+        material_models=material_models,
         volume_force_x=volume_force_x,
         volume_force_y=volume_force_y,
-        traction_left_x=traction_left_x,
-        traction_left_y=traction_left_y,
         save_metadata=save_metadata,
         output_subdir=input_subdir_valid,
         project_directory=project_directory,
+        element_family=fem_element_family,
+        element_degree=fem_element_degree,
         mesh_resolution=fem_mesh_resolution,
     )
 
@@ -271,22 +300,29 @@ def determine_normalization_values() -> dict[str, Tensor]:
     _output_subdir = os.path.join(
         output_subdir_preprocessing, "results_for_determining_normalization_values"
     )
-    simulation_results = run_simulation(
-        model=model,
+    domain_config = create_fem_domain_config()
+    material_model = LinearElasticityModel(
+        model=material_model_state,
         youngs_modulus=min_youngs_modulus,
         poissons_ratio=max_poissons_ratio,
-        edge_length=edge_length,
-        radius=radius,
+    )
+    simulation_config = SimulationConfig(
+        domain_config=domain_config,
+        material_model=material_model,
         volume_force_x=volume_force_x,
         volume_force_y=volume_force_y,
-        traction_left_x=traction_left_x,
-        traction_left_y=traction_left_y,
+        element_family=fem_element_family,
+        element_degree=fem_element_degree,
+        mesh_resolution=fem_mesh_resolution,
+    )
+    simulation_results = run_simulation(
+        simulation_config=simulation_config,
         save_results=False,
         save_metadata=False,
         output_subdir=_output_subdir,
         project_directory=project_directory,
-        mesh_resolution=fem_mesh_resolution,
     )
+    
     min_displacement_x = float(np.amin(simulation_results.displacements_x))
     max_displacement_x = float(np.amax(simulation_results.displacements_x))
     min_displacement_y = float(np.amin(simulation_results.displacements_y))
@@ -477,7 +513,7 @@ if __name__ == "__main__":
     plot_displacements_pwh(
         ansatz=ansatz,
         youngs_modulus_and_poissons_ratio_list=[(210000, 0.3)],
-        model=model,
+        model=material_model_state,
         edge_length=edge_length,
         radius=radius,
         volume_force_x=volume_force_x,
