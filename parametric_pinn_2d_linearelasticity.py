@@ -236,7 +236,7 @@ def create_ansatz() -> StandardAnsatz:
             simulation_config=simulation_config,
             save_results=False,
             save_metadata=False,
-            output_subdir=output_subdirectory,
+            output_subdir=_output_subdir,
             project_directory=project_directory,
         )
 
