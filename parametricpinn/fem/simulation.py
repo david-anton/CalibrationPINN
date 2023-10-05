@@ -120,8 +120,8 @@ def _simulate_once(
     problem_config = simulation_config.problem_config
     volume_force_x = simulation_config.volume_force_x
     volume_force_y = simulation_config.volume_force_y
-    element_family = simulation_config.element_family
-    element_degree = simulation_config.element_degree
+    element_family = simulation_config.domain_config.element_family
+    element_degree = simulation_config.domain_config.element_degree
 
     volume_force = Constant(mesh, (PETSc.ScalarType((volume_force_x, volume_force_y))))
 

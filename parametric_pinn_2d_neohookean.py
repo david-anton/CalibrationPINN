@@ -79,7 +79,7 @@ weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = ("20231005_validation_data_neo_hookean")
+input_subdir_valid = "20231005_validation_data_neo_hookean"
 num_samples_valid = 2
 validation_interval = 1
 num_points_valid = 1024

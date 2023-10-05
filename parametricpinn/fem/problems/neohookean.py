@@ -55,6 +55,7 @@ class NeoHookeanProblem:
         self._mesh = domain.mesh
         self._function_space = function_space
         self._volume_force = volume_force
+        self._quadrature_degree = 4
         self._problem, self._solution_function = self._define()
 
     def solve(self) -> DFunction:
@@ -75,7 +76,7 @@ class NeoHookeanProblem:
         return self._solution_function
 
     def compile_results(self, approximate_solution: DFunction) -> NeoHookeanResults:
-        coordinates = self._mesh.geometry.x
+        coordinates = self._function_space.tabulate_dof_coordinates()
         coordinates_x = coordinates[:, 0].reshape((-1, 1))
         coordinates_y = coordinates[:, 1].reshape((-1, 1))
 
@@ -136,7 +137,7 @@ class NeoHookeanProblem:
         P = ufl.diff(psi, F)
 
         # Define variational form
-        metadata = {"quadrature_degree": 4}
+        metadata = {"quadrature_degree": self._quadrature_degree}
         boundary_tags = self._domain.boundary_tags
         ds = ufl.Measure("ds", domain=self._mesh, subdomain_data=boundary_tags, metadata=metadata)
         dx = ufl.Measure("dx", domain=self._mesh, metadata=metadata)
