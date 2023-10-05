@@ -52,20 +52,20 @@ class PlateWithHoleDomain:
         save_to_input_dir: bool = False,
     ):
         self.config = config
+        self._geometric_dim = 2
+        self._u_x_right = ScalarType(0.0)
+        self._u_y_bottom = ScalarType(0.0)
+        self._tag_right = 0
+        self._tag_bottom = 1
+        self._tag_left = 2
         self.mesh = self._generate_mesh(
             save_mesh=save_mesh,
             output_subdir=output_subdir,
             project_directory=project_directory,
             save_to_input_dir=save_to_input_dir,
         )
-        self.boundary_tags = self._tag_boundaries()
-        self._geometric_dim = 2
         self._bc_facets_dim = self.mesh.topology.dim - 1
-        self._u_x_right = ScalarType(0.0)
-        self._u_y_bottom = ScalarType(0.0)
-        self._tag_right = 0
-        self._tag_bottom = 1
-        self._tag_left = 2
+        self.boundary_tags = self._tag_boundaries()
 
     def define_boundary_conditions(
         self,

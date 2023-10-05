@@ -171,7 +171,7 @@ def _simulate_once(
             save_metadata=save_metadata,
             output_subdir=output_subdir,
             project_directory=project_directory,
-            save_to_input_dir=save_to_input_dir
+            save_to_input_dir=save_to_input_dir,
         )
 
     return results

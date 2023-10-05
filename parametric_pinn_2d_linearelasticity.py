@@ -33,10 +33,13 @@ from parametricpinn.data import (
     create_training_dataset_2D,
     create_validation_dataset_2D,
 )
-from parametricpinn.fem.simulation import (
-    generate_validation_data as generate_validation_data,
+from parametricpinn.fem import (
+    LinearElasticityModel,
+    PlateWithHoleDomainConfig,
+    SimulationConfig,
+    generate_validation_data,
+    run_simulation,
 )
-from parametricpinn.fem.simulation import run_simulation
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN
 from parametricpinn.postprocessing.plot import (
@@ -51,9 +54,9 @@ from parametricpinn.training.training_standard_2d import (
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
-material_model = "plane stress"
+material_model_state = "plane stress"
 edge_length = 100.0
 radius = 10.0
 traction_left_x = -100.0
@@ -76,23 +79,26 @@ weight_pde_loss = 1.0
 weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = False
+regenerate_valid_data = True
 input_subdir_valid = (
-    "20230915_validation_data_E_180k_240k_nu_02_04_edge_100_radius_10_traction_100"
+    "20231005_validation_data_E_180k_240k_nu_02_04_edge_100_radius_10_traction_100"
 )
 num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
-fem_mesh_resolution = 0.1
 # Calibration
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
-use_hamiltonian = True
-use_efficient_nuts = True
+use_hamiltonian = False
+use_efficient_nuts = False
+# FEM
+fem_element_family = "Lagrange"
+fem_element_degree = 1
+fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = 20230915
+output_date = current_date
 output_subdirectory = f"{output_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_32_col_64_bc_32_full_batch_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
@@ -104,6 +110,18 @@ project_directory = ProjectDirectory(settings)
 device = get_device()
 set_default_dtype(torch.float64)
 set_seed(0)
+
+
+def create_fem_domain_config() -> PlateWithHoleDomainConfig:
+    return PlateWithHoleDomainConfig(
+        edge_length=edge_length,
+        radius=radius,
+        traction_left_x=traction_left_x,
+        traction_left_y=traction_left_y,
+        element_family=fem_element_family,
+        element_degree=fem_element_degree,
+        mesh_resolution=fem_mesh_resolution,
+    )
 
 
 def create_datasets() -> tuple[TrainingDataset2D, ValidationDataset2D]:
@@ -139,19 +157,27 @@ def create_datasets() -> tuple[TrainingDataset2D, ValidationDataset2D]:
             poissons_ratios = _generate_random_parameter_list(
                 num_samples_valid, min_poissons_ratio, max_poissons_ratio
             )
+            domain_config = create_fem_domain_config()
+            material_models = []
+            for i in range(num_samples_valid):
+                material_models.append(
+                    LinearElasticityModel(
+                        model=material_model_state,
+                        youngs_modulus=youngs_moduli[i],
+                        poissons_ratio=poissons_ratios[i],
+                    )
+                )
+
             generate_validation_data(
-                model=material_model,
-                youngs_moduli=youngs_moduli,
-                poissons_ratios=poissons_ratios,
-                edge_length=edge_length,
-                radius=radius,
+                domain_config=domain_config,
+                material_models=material_models,
                 volume_force_x=volume_force_x,
                 volume_force_y=volume_force_y,
-                traction_left_x=traction_left_x,
-                traction_left_y=traction_left_y,
                 save_metadata=save_metadata,
                 output_subdir=input_subdir_valid,
                 project_directory=project_directory,
+                element_family=fem_element_family,
+                element_degree=fem_element_degree,
                 mesh_resolution=fem_mesh_resolution,
             )
 
@@ -191,22 +217,29 @@ def create_ansatz() -> StandardAnsatz:
             "results_for_determining_normalization_values",
         )
         print("Run FE simulation to determine normalization values ...")
-        simulation_results = run_simulation(
-            model=material_model,
+        domain_config = create_fem_domain_config()
+        material_model = LinearElasticityModel(
+            model=material_model_state,
             youngs_modulus=min_youngs_modulus,
             poissons_ratio=max_poissons_ratio,
-            edge_length=edge_length,
-            radius=radius,
+        )
+        simulation_config = SimulationConfig(
+            domain_config=domain_config,
+            material_model=material_model,
             volume_force_x=volume_force_x,
             volume_force_y=volume_force_y,
-            traction_left_x=traction_left_x,
-            traction_left_y=traction_left_y,
-            save_results=False,
-            save_metadata=False,
-            output_subdir=_output_subdir,
-            project_directory=project_directory,
+            element_family=fem_element_family,
+            element_degree=fem_element_degree,
             mesh_resolution=fem_mesh_resolution,
         )
+        simulation_results = run_simulation(
+            simulation_config=simulation_config,
+            save_results=False,
+            save_metadata=False,
+            output_subdir=output_subdirectory,
+            project_directory=project_directory,
+        )
+
         min_displacement_x = float(np.amin(simulation_results.displacements_x))
         max_displacement_x = float(np.amax(simulation_results.displacements_x))
         min_displacement_y = float(np.amin(simulation_results.displacements_y))
@@ -239,7 +272,7 @@ ansatz = create_ansatz()
 def training_step() -> None:
     train_config = TrainingConfiguration(
         ansatz=ansatz,
-        material_model=material_model,
+        material_model=material_model_state,
         number_points_per_bc=number_points_per_bc,
         weight_pde_loss=weight_pde_loss,
         weight_symmetry_bc_loss=weight_symmetry_bc_loss,
@@ -266,7 +299,7 @@ def training_step() -> None:
                 (240000, 0.2),
                 (240000, 0.4),
             ],
-            model=material_model,
+            model=material_model_state,
             edge_length=edge_length,
             radius=radius,
             volume_force_x=volume_force_x,
@@ -292,21 +325,27 @@ def calibration_step() -> None:
     std_noise = 5 * 1e-4
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
-        simulation_results = run_simulation(
-            model=material_model,
+        domain_config = create_fem_domain_config()
+        material_model = LinearElasticityModel(
+            model=material_model_state,
             youngs_modulus=exact_youngs_modulus,
             poissons_ratio=exact_poissons_ratio,
-            edge_length=edge_length,
-            radius=radius,
+        )
+        simulation_config = SimulationConfig(
+            domain_config=domain_config,
+            material_model=material_model,
             volume_force_x=volume_force_x,
             volume_force_y=volume_force_y,
-            traction_left_x=traction_left_x,
-            traction_left_y=traction_left_y,
+            element_family=fem_element_family,
+            element_degree=fem_element_degree,
+            mesh_resolution=fem_mesh_resolution,
+        )
+        simulation_results = run_simulation(
+            simulation_config=simulation_config,
             save_results=False,
             save_metadata=False,
             output_subdir=output_subdirectory,
             project_directory=project_directory,
-            mesh_resolution=0.1,
         )
         total_size_data = simulation_results.coordinates_x.shape[0]
         random_indices = torch.randint(
