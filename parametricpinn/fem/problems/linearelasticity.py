@@ -60,12 +60,16 @@ class LinearElasticityProblem:
         solution_function = self._problem.solve()
         return solution_function
 
-    def compile_results(self, approximate_solution: DFunction) -> LinearElasticityResults:
+    def compile_results(
+        self, approximate_solution: DFunction
+    ) -> LinearElasticityResults:
         coordinates = self._function_space.tabulate_dof_coordinates()
         coordinates_x = coordinates[:, 0].reshape((-1, 1))
         coordinates_y = coordinates[:, 1].reshape((-1, 1))
 
-        displacements = approximate_solution.x.array.reshape((-1, self._mesh.geometry.dim))
+        displacements = approximate_solution.x.array.reshape(
+            (-1, self._mesh.geometry.dim)
+        )
         displacements_x = displacements[:, 0].reshape((-1, 1))
         displacements_y = displacements[:, 1].reshape((-1, 1))
 

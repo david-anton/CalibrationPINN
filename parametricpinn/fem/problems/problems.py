@@ -15,7 +15,9 @@ from parametricpinn.fem.problems.neohookean import (
 )
 from parametricpinn.io import ProjectDirectory
 
-ProblemConfigs: TypeAlias = Union[LinearElasticityProblemConfig, NeoHookeanProblemConfig]
+ProblemConfigs: TypeAlias = Union[
+    LinearElasticityProblemConfig, NeoHookeanProblemConfig
+]
 SimulationResults: TypeAlias = Union[LinearElasticityResults, NeoHookeanResults]
 
 
@@ -41,7 +43,6 @@ def define_problem(
     domain: Domain,
     function_space: DFunctionSpace,
     volume_force: DConstant,
-
 ) -> Problem:
     if isinstance(problem_config, LinearElasticityProblemConfig):
         return LinearElasticityProblem(

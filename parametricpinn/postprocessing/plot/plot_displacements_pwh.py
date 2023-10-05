@@ -7,7 +7,13 @@ from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
 from scipy.interpolate import griddata
 
-from parametricpinn.fem import LinearElasticityProblemConfig, PlateWithHoleDomainConfig
+from parametricpinn.errors import PlottingConfigError
+from parametricpinn.fem import (
+    LinearElasticityProblemConfig,
+    NeoHookeanProblemConfig,
+    PlateWithHoleDomainConfig,
+    ProblemConfigs,
+)
 from parametricpinn.fem import SimulationConfig as FEMSimulationConfig
 from parametricpinn.fem import run_simulation
 from parametricpinn.io import ProjectDirectory
@@ -51,18 +57,13 @@ class DisplacementsPlotterConfigPWH:
 SimulationConfig = namedtuple(
     "SimulationConfig",
     [
-        "youngs_modulus",
-        "poissons_ratio",
-        "model",
-        "edge_length",
-        "radius",
+        "domain_config",
+        "problem_config",
         "volume_force_x",
         "volume_force_y",
-        "traction_left_x",
-        "traction_left_y",
-        "mesh_resolution",
     ],
 )
+
 
 SimulationResults = namedtuple(
     "SimulationResults",
@@ -81,35 +82,22 @@ SimulationResults = namedtuple(
 
 def plot_displacements_pwh(
     ansatz: Module,
-    youngs_modulus_and_poissons_ratio_list: list[tuple[float, float]],
-    model: str,
-    edge_length: float,
-    radius: float,
+    domain_config: PlateWithHoleDomainConfig,
+    problem_configs: list[ProblemConfigs],
     volume_force_x: float,
     volume_force_y: float,
-    traction_left_x: float,
-    traction_left_y: float,
     output_subdir: str,
     project_directory: ProjectDirectory,
     plot_config: DisplacementsPlotterConfigPWH,
     device: Device,
-    mesh_resolution=0.5,
 ) -> None:
     ansatz.eval()
-    for parameters in youngs_modulus_and_poissons_ratio_list:
-        youngs_modulus = parameters[0]
-        poissons_ratio = parameters[1]
+    for problem_config in problem_configs:
         simulation_config = SimulationConfig(
-            youngs_modulus=youngs_modulus,
-            poissons_ratio=poissons_ratio,
-            model=model,
-            edge_length=edge_length,
-            radius=radius,
+            domain_config=domain_config,
+            problem_config=problem_config,
             volume_force_x=volume_force_x,
             volume_force_y=volume_force_y,
-            traction_left_x=traction_left_x,
-            traction_left_y=traction_left_y,
-            mesh_resolution=mesh_resolution,
         )
         _plot_one_simulation(
             ansatz,
@@ -180,26 +168,11 @@ def _run_simulation(
     output_subdir: str,
     project_directory: ProjectDirectory,
 ) -> tuple[NPArray, NPArray, NPArray, NPArray]:
-    domain_config = PlateWithHoleDomainConfig(
-        edge_length=simulation_config.edge_length,
-        radius=simulation_config.radius,
-        traction_left_x=simulation_config.traction_left_x,
-        traction_left_y=simulation_config.traction_left_y,
-        element_family="Lagrange",
-        element_degree=1,
-        mesh_resolution=simulation_config.mesh_resolution,
-    )
-    problem_config = LinearElasticityProblemConfig(
-        model=simulation_config.model,
-        youngs_modulus=simulation_config.youngs_modulus,
-        poissons_ratio=simulation_config.poissons_ratio,
-    )
     fem_simulation_config = FEMSimulationConfig(
-        domain_config=domain_config,
-        problem_config=problem_config,
+        domain_config=simulation_config.domain_config,
+        problem_config=simulation_config.problem_config,
         volume_force_x=simulation_config.volume_force_x,
         volume_force_y=simulation_config.volume_force_y,
-
     )
     results = run_simulation(
         simulation_config=fem_simulation_config,
@@ -223,16 +196,14 @@ def _run_prametric_pinn(
     coordinates_y: NPArray,
     device: Device,
 ) -> tuple[NPArray, NPArray]:
-    youngs_modulus = simulation_config.youngs_modulus
-    poissons_ratio = simulation_config.poissons_ratio
+    parameters = _get_parameters_from_problem(simulation_config.problem_config)
     coordinates = torch.concat(
         (torch.from_numpy(coordinates_x), torch.from_numpy(coordinates_y)), dim=1
     )
     inputs = torch.concat(
         (
             coordinates,
-            torch.tensor(youngs_modulus).repeat(coordinates.size(dim=0), 1),
-            torch.tensor(poissons_ratio).repeat(coordinates.size(dim=0), 1),
+            torch.from_numpy(parameters).repeat(coordinates.size(dim=0), 1),
         ),
         dim=1,
     ).to(device)
@@ -360,10 +331,15 @@ def _plot_simulation_and_prediction(
         plot_config,
         simulation_config,
     )
-    youngs_modulus = round(simulation_config.youngs_modulus, 2)
-    poissons_ratio = round(simulation_config.poissons_ratio, 4)
-    file_name_pinn = f"plot_{file_name_identifier}_PINN_E_{youngs_modulus}_nu_{poissons_ratio}.{plot_config.file_format}"
-    file_name_fem = f"plot_{file_name_identifier}_FEM_E_{youngs_modulus}_nu_{poissons_ratio}.{plot_config.file_format}"
+    parameter_prefix = _get_file_name_parameter_prefix_from_problem(
+        simulation_config.problem_config
+    )
+    file_name_pinn = (
+        f"plot_{file_name_identifier}_PINN_{parameter_prefix}.{plot_config.file_format}"
+    )
+    file_name_fem = (
+        f"plot_{file_name_identifier}_FEM_{parameter_prefix}.{plot_config.file_format}"
+    )
     _save_plot(
         figure_pinn, file_name_pinn, output_subdir, project_directory, plot_config
     )
@@ -403,9 +379,12 @@ def _plot_errors(
         plot_config,
         simulation_config,
     )
-    youngs_modulus = round(simulation_config.youngs_modulus, 2)
-    poissons_ratio = round(simulation_config.poissons_ratio, 4)
-    file_name = f"plot_{file_name_identifier}_E_{youngs_modulus}_nu_{poissons_ratio}.{plot_config.file_format}"
+    parameter_prefix = _get_file_name_parameter_prefix_from_problem(
+        simulation_config.problem_config
+    )
+    file_name = (
+        f"plot_{file_name_identifier}_{parameter_prefix}.{plot_config.file_format}"
+    )
     _save_plot(figure, file_name, output_subdir, project_directory, plot_config)
 
 
@@ -440,13 +419,13 @@ def _generate_coordinate_grid(
     plot_config: DisplacementsPlotterConfigPWH,
 ) -> list[NPArray]:
     grid_coordinates_x = np.linspace(
-        -simulation_config.edge_length,
+        -simulation_config.domain_config.edge_length,
         0.0,
         num=plot_config.num_points_per_edge,
     )
     grid_coordinates_y = np.linspace(
         0.0,
-        simulation_config.edge_length,
+        simulation_config.domain_config.edge_length,
         num=plot_config.num_points_per_edge,
     )
     return np.meshgrid(grid_coordinates_x, grid_coordinates_y)
@@ -516,7 +495,7 @@ def _plot_once(
     def _add_hole(axes: PLTAxes) -> None:
         hole = plt.Circle(
             (0.0, 0.0),
-            radius=simulation_config.radius,
+            radius=simulation_config.domain_config.radius,
             color="white",
         )
         axes.add_patch(hole)
@@ -554,3 +533,33 @@ def _save_plot(
         bbox_inches="tight",
         dpi=plot_config.dpi,
     )
+
+
+def _get_parameters_from_problem(problem_config: ProblemConfigs) -> NPArray:
+    if isinstance(problem_config, LinearElasticityProblemConfig):
+        return np.concatenate(
+            (problem_config.youngs_modulus, problem_config.poissons_ratio), axis=0
+        )
+    elif isinstance(problem_config, NeoHookeanProblemConfig):
+        return np.concatenate(
+            (problem_config.youngs_modulus, problem_config.poissons_ratio), axis=0
+        )
+    else:
+        raise PlottingConfigError(
+            f"There is no implementation for the requested FEM problem config {problem_config}."
+        )
+
+
+def _get_file_name_parameter_prefix_from_problem(problem_config: ProblemConfigs) -> str:
+    if isinstance(problem_config, LinearElasticityProblemConfig):
+        youngs_modulus = round(problem_config.youngs_modulus, 2)
+        poissons_ratio = round(problem_config.poissons_ratio, 4)
+        return f"E_{youngs_modulus}_nu_{poissons_ratio}"
+    elif isinstance(problem_config, NeoHookeanProblemConfig):
+        youngs_modulus = round(problem_config.youngs_modulus, 2)
+        poissons_ratio = round(problem_config.poissons_ratio, 4)
+        return f"E_{youngs_modulus}_nu_{poissons_ratio}"
+    else:
+        raise PlottingConfigError(
+            f"There is no implementation for the requested FEM problem config {problem_config}."
+        )

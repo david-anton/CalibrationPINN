@@ -65,12 +65,12 @@ class NeoHookeanProblem:
         solver.atol = 1e-8
         solver.rtol = 1e-8
         solver.convergence_criterion = "incremental"
-        
+
         solver.report = True
         dolfinx.log.set_log_level(dolfinx.log.LogLevel.INFO)
-        
+
         num_iterations, converged = solver.solve(self._solution_function)
-        assert(converged)
+        assert converged
         print(f"Number of interations: {num_iterations}")
 
         return self._solution_function
@@ -80,7 +80,9 @@ class NeoHookeanProblem:
         coordinates_x = coordinates[:, 0].reshape((-1, 1))
         coordinates_y = coordinates[:, 1].reshape((-1, 1))
 
-        displacements = approximate_solution.x.array.reshape((-1, self._mesh.geometry.dim))
+        displacements = approximate_solution.x.array.reshape(
+            (-1, self._mesh.geometry.dim)
+        )
         displacements_x = displacements[:, 0].reshape((-1, 1))
         displacements_y = displacements[:, 1].reshape((-1, 1))
 
@@ -117,21 +119,21 @@ class NeoHookeanProblem:
         I = ufl.variable(ufl.Identity(spatial_dim))
 
         # Deformation tensors
-        F = ufl.variable(I + ufl.grad(solution_function)) #Deformation gradient
-        C = ufl.variable(F.T * F) #Right Cauchy-Green tensor
+        F = ufl.variable(I + ufl.grad(solution_function))  # Deformation gradient
+        C = ufl.variable(F.T * F)  # Right Cauchy-Green tensor
 
         # Invariants of deformation tensors
         I_c = ufl.variable(ufl.tr(C))
-        J  = ufl.variable(ufl.det(F))
+        J = ufl.variable(ufl.det(F))
 
         # Material parameters
         E = PETSc.ScalarType(self._config.youngs_modulus)
         nu = PETSc.ScalarType(self._config.poissons_ratio)
         mu_ = fem.Constant(self._mesh, E / 2 * (1 + nu))
-        lambda_ = fem.Constant(self._mesh, E * nu / (1 + nu) * (1 - 2*nu))
+        lambda_ = fem.Constant(self._mesh, E * nu / (1 + nu) * (1 - 2 * nu))
 
         # Strain energy
-        psi = (mu_ / 2) * (I_c - 2 - 2*ufl.ln(J)) + (lambda_ / 2) * (J - 1)**2
+        psi = (mu_ / 2) * (I_c - 2 - 2 * ufl.ln(J)) + (lambda_ / 2) * (J - 1) ** 2
 
         # Stress (1. Piola-Kirchoff stress tensor)
         P = ufl.diff(psi, F)
@@ -139,10 +141,12 @@ class NeoHookeanProblem:
         # Define variational form
         metadata = {"quadrature_degree": self._quadrature_degree}
         boundary_tags = self._domain.boundary_tags
-        ds = ufl.Measure("ds", domain=self._mesh, subdomain_data=boundary_tags, metadata=metadata)
+        ds = ufl.Measure(
+            "ds", domain=self._mesh, subdomain_data=boundary_tags, metadata=metadata
+        )
         dx = ufl.Measure("dx", domain=self._mesh, metadata=metadata)
-        lhs = ufl.inner(ufl.grad(test_function), P)*dx 
-        rhs = ufl.inner(test_function, self._volume_force)*dx
+        lhs = ufl.inner(ufl.grad(test_function), P) * dx
+        rhs = ufl.inner(test_function, self._volume_force) * dx
 
         # Apply boundary confitions
         boundary_conditions = self._domain.define_boundary_conditions(
@@ -154,7 +158,9 @@ class NeoHookeanProblem:
 
         # Define problem
         residual_form = lhs - rhs
-        problem = fem.petsc.NonlinearProblem(residual_form, solution_function, dirichlet_bcs)
+        problem = fem.petsc.NonlinearProblem(
+            residual_form, solution_function, dirichlet_bcs
+        )
         return problem, solution_function
 
     def _save_parameters(

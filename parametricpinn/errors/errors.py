@@ -65,3 +65,8 @@ class FEMDomainConfigError(Error):
 class FEMProblemConfigError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
+
+
+class PlottingConfigError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)

@@ -298,28 +298,36 @@ def training_step() -> None:
 
     def _plot_exemplary_displacement_fields() -> None:
         displacements_plotter_config = DisplacementsPlotterConfigPWH()
+        youngs_modulus_and_poissons_ratio_list = [
+            (210000, 0.3),
+            (180000, 0.2),
+            (180000, 0.4),
+            (240000, 0.2),
+            (240000, 0.4),
+        ]
+        youngs_moduli, poissons_ratios = zip(*youngs_modulus_and_poissons_ratio_list)
+
+        domain_config = create_fem_domain_config()
+        problem_configs = []
+        for i in range(num_samples_valid):
+            problem_configs.append(
+                LinearElasticityProblemConfig(
+                    model=material_model,
+                    youngs_modulus=youngs_moduli[i],
+                    poissons_ratio=poissons_ratios[i],
+                )
+            )
 
         plot_displacements_pwh(
             ansatz=ansatz,
-            youngs_modulus_and_poissons_ratio_list=[
-                (210000, 0.3),
-                (180000, 0.2),
-                (180000, 0.4),
-                (240000, 0.2),
-                (240000, 0.4),
-            ],
-            model=material_model,
-            edge_length=edge_length,
-            radius=radius,
+            domain_config=domain_config,
+            problem_configs=problem_configs,
             volume_force_x=volume_force_x,
             volume_force_y=volume_force_y,
-            traction_left_x=traction_left_x,
-            traction_left_y=traction_left_y,
             output_subdir=output_subdirectory,
             project_directory=project_directory,
             plot_config=displacements_plotter_config,
             device=device,
-            mesh_resolution=0.01,
         )
 
     train_parametric_pinn(train_config=train_config)

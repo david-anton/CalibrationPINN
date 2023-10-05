@@ -112,7 +112,6 @@ def create_fem_domain_config() -> PlateWithHoleDomainConfig:
     )
 
 
-
 ### Loss function
 momentum_equation_func = momentum_equation_func_factory(material_model)
 stress_func = stress_func_factory(material_model)
@@ -319,7 +318,7 @@ def determine_normalization_values() -> dict[str, Tensor]:
         output_subdir=_output_subdir,
         project_directory=project_directory,
     )
-    
+
     min_displacement_x = float(np.amin(simulation_results.displacements_x))
     max_displacement_x = float(np.amax(simulation_results.displacements_x))
     min_displacement_y = float(np.amin(simulation_results.displacements_y))
@@ -507,19 +506,30 @@ if __name__ == "__main__":
 
     displacements_plotter_config = DisplacementsPlotterConfigPWH()
 
-    plot_displacements_pwh(
-        ansatz=ansatz,
-        youngs_modulus_and_poissons_ratio_list=[(210000, 0.3)],
-        model=material_model,
+    domain_config = PlateWithHoleDomainConfig(
         edge_length=edge_length,
         radius=radius,
-        volume_force_x=volume_force_x,
-        volume_force_y=volume_force_y,
         traction_left_x=traction_left_x,
         traction_left_y=traction_left_y,
+        element_family=fem_element_family,
+        element_degree=fem_element_degree,
+        mesh_resolution=fem_mesh_resolution,
+    )
+
+    problem_config = LinearElasticityProblemConfig(
+        model=material_model,
+        youngs_modulus=210000,
+        poissons_ratio=0.3,
+    )
+
+    plot_displacements_pwh(
+        ansatz=ansatz,
+        domain_config=domain_config,
+        problem_configs=[problem_config],
+        volume_force_x=volume_force_x,
+        volume_force_y=volume_force_y,
         output_subdir=output_subdir,
         project_directory=project_directory,
         plot_config=displacements_plotter_config,
         device=device,
-        mesh_resolution=0.5,
     )
