@@ -57,7 +57,7 @@ class FEMConfigurationError(Error):
         super().__init__(message)
 
 
-class FEMGeometryConfigError(Error):
+class FEMDomainConfigError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
 

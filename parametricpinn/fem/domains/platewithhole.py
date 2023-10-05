@@ -22,14 +22,14 @@ from parametricpinn.fem.boundaryconditions import (
     DirichletBC,
     NeumannBC,
 )
-from parametricpinn.fem.geometries.base import load_mesh_from_gmsh_model, save_gmesh
+from parametricpinn.fem.domains.base import load_mesh_from_gmsh_model, save_gmesh
 from parametricpinn.io import ProjectDirectory
 
 FacetsDim: TypeAlias = int
 
 
 @dataclass
-class PlateWithHoleGeometryConfig:
+class PlateWithHoleDomainConfig:
     edge_length: float
     radius: float
     traction_left_x: float
@@ -39,25 +39,75 @@ class PlateWithHoleGeometryConfig:
     mesh_resolution: float
 
 
-Config: TypeAlias = PlateWithHoleGeometryConfig
+Config: TypeAlias = PlateWithHoleDomainConfig
 
 
-class PlateWithHoleGeometry:
-    def __init__(self, config: Config):
+class PlateWithHoleDomain:
+    def __init__(
+        self,
+        config: Config,
+        save_mesh: bool,
+        output_subdir: str,
+        project_directory: ProjectDirectory,
+        save_to_input_dir: bool = False,
+    ):
         self.config = config
+        self.mesh = self._generate_mesh(
+            save_mesh=save_mesh,
+            output_subdir=output_subdir,
+            project_directory=project_directory,
+            save_to_input_dir=save_to_input_dir,
+        )
+        self.boundary_tags = self._tag_boundaries()
         self._geometric_dim = 2
+        self._bc_facets_dim = self.mesh.topology.dim - 1
         self._u_x_right = ScalarType(0.0)
         self._u_y_bottom = ScalarType(0.0)
         self._tag_right = 0
         self._tag_bottom = 1
         self._tag_left = 2
 
-    def generate_mesh(
+    def define_boundary_conditions(
+        self,
+        function_space: DFunctionSpace,
+        measure: UFLMeasure,
+        test_function: UFLTestFunction,
+    ) -> BoundaryConditions:
+        traction_left = Constant(
+            self.mesh,
+            (ScalarType((self.config.traction_left_x, self.config.traction_left_y))),
+        )
+        return [
+            DirichletBC(
+                tag=self._tag_right,
+                value=self._u_x_right,
+                dim=0,
+                function_space=function_space,
+                boundary_tags=self.boundary_tags,
+                bc_facets_dim=self._bc_facets_dim,
+            ),
+            DirichletBC(
+                tag=self._tag_bottom,
+                value=self._u_y_bottom,
+                dim=1,
+                function_space=function_space,
+                boundary_tags=self.boundary_tags,
+                bc_facets_dim=self._bc_facets_dim,
+            ),
+            NeumannBC(
+                tag=self._tag_left,
+                value=traction_left,
+                measure=measure,
+                test_function=test_function,
+            ),
+        ]
+
+    def _generate_mesh(
         self,
         save_mesh: bool,
         output_subdir: str,
         project_directory: ProjectDirectory,
-        save_to_input_dir: bool = False,
+        save_to_input_dir: bool,
     ) -> DMesh:
         print("Generate FEM mesh ...")
         gmsh.initialize()
@@ -67,75 +117,6 @@ class PlateWithHoleGeometry:
         mesh = load_mesh_from_gmsh_model(gmesh, self._geometric_dim)
         gmsh.finalize()
         return mesh
-
-    def tag_boundaries(self, mesh: DMesh) -> DMeshTags:
-        bc_facets_dim = self._get_bc_facets_dim(mesh)
-        locate_right_facet = lambda x: np.isclose(x[0], 0.0)
-        locate_bottom_facet = lambda x: np.isclose(x[1], 0.0)
-        locate_left_facet = lambda x: np.logical_and(
-            np.isclose(x[0], -self.config.edge_length), x[1] > 0.0
-        )
-        boundaries = [
-            (self._tag_right, locate_right_facet),
-            (self._tag_bottom, locate_bottom_facet),
-            (self._tag_left, locate_left_facet),
-        ]
-
-        facet_indices_list: list[npt.NDArray[np.int32]] = []
-        facet_tags_list: list[npt.NDArray[np.int32]] = []
-        for tag, locator_func in boundaries:
-            located_facet_indices = locate_entities_boundary(
-                mesh, bc_facets_dim, locator_func
-            )
-            facet_indices_list.append(located_facet_indices)
-            facet_tags_list.append(np.full_like(located_facet_indices, tag))
-        facet_indices = np.hstack(facet_indices_list).astype(np.int32)
-        facet_tags = np.hstack(facet_tags_list).astype(np.int32)
-        sorted_facet_indices = np.argsort(facet_indices)
-        return meshtags(
-            mesh,
-            bc_facets_dim,
-            facet_indices[sorted_facet_indices],
-            facet_tags[sorted_facet_indices],
-        )
-
-    def define_boundary_conditions(
-        self,
-        mesh: DMesh,
-        boundary_tags: DMeshTags,
-        function_space: DFunctionSpace,
-        measure: UFLMeasure,
-        test_function: UFLTestFunction,
-    ) -> BoundaryConditions:
-        bc_facets_dim = self._get_bc_facets_dim(mesh)
-        traction_left = Constant(
-            mesh,
-            (ScalarType((self.config.traction_left_x, self.config.traction_left_y))),
-        )
-        return [
-            DirichletBC(
-                tag=self._tag_right,
-                value=self._u_x_right,
-                dim=0,
-                function_space=function_space,
-                boundary_tags=boundary_tags,
-                bc_facets_dim=bc_facets_dim,
-            ),
-            DirichletBC(
-                tag=self._tag_bottom,
-                value=self._u_y_bottom,
-                dim=1,
-                function_space=function_space,
-                boundary_tags=boundary_tags,
-                bc_facets_dim=bc_facets_dim,
-            ),
-            NeumannBC(
-                tag=self._tag_left,
-                value=traction_left,
-                measure=measure,
-                test_function=test_function,
-            ),
-        ]
 
     def _generate_gmesh(self) -> GMesh:
         length = self.config.edge_length
@@ -182,5 +163,32 @@ class PlateWithHoleGeometry:
 
         return gmsh.model
 
-    def _get_bc_facets_dim(self, mesh: DMesh) -> FacetsDim:
-        return mesh.topology.dim - 1
+    def _tag_boundaries(self) -> DMeshTags:
+        locate_right_facet = lambda x: np.isclose(x[0], 0.0)
+        locate_bottom_facet = lambda x: np.isclose(x[1], 0.0)
+        locate_left_facet = lambda x: np.logical_and(
+            np.isclose(x[0], -self.config.edge_length), x[1] > 0.0
+        )
+        boundaries = [
+            (self._tag_right, locate_right_facet),
+            (self._tag_bottom, locate_bottom_facet),
+            (self._tag_left, locate_left_facet),
+        ]
+
+        facet_indices_list: list[npt.NDArray[np.int32]] = []
+        facet_tags_list: list[npt.NDArray[np.int32]] = []
+        for tag, locator_func in boundaries:
+            located_facet_indices = locate_entities_boundary(
+                self.mesh, self._bc_facets_dim, locator_func
+            )
+            facet_indices_list.append(located_facet_indices)
+            facet_tags_list.append(np.full_like(located_facet_indices, tag))
+        facet_indices = np.hstack(facet_indices_list).astype(np.int32)
+        facet_tags = np.hstack(facet_tags_list).astype(np.int32)
+        sorted_facet_indices = np.argsort(facet_indices)
+        return meshtags(
+            self.mesh,
+            self._bc_facets_dim,
+            facet_indices[sorted_facet_indices],
+            facet_tags[sorted_facet_indices],
+        )

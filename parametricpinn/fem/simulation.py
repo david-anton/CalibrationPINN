@@ -4,15 +4,21 @@ from dolfinx.fem import Constant, FunctionSpace
 from petsc4py.PETSc import ScalarType
 from ufl import Measure, TestFunction, TrialFunction, VectorElement
 
-from parametricpinn.fem.base import DMesh, join_simulation_output_subdir
-from parametricpinn.fem.geometries import (
-    Geometry,
-    GeometryConfig,
-    create_geometry,
+from parametricpinn.fem.base import (
+    DFunction,
+    DMesh,
+    DMeshTags,
+    join_simulation_output_subdir,
+)
+from parametricpinn.fem.domains import (
+    Domain,
+    DomainConfig,
+    create_domain,
     save_boundary_tags_as_xdmf,
 )
 from parametricpinn.fem.problems import (
     MaterialModel,
+    Problem,
     SimulationResults,
     define_problem,
     save_results_as_xdmf,
@@ -23,7 +29,7 @@ from parametricpinn.io.readerswriters import DataclassWriter
 
 @dataclass
 class SimulationConfig:
-    geometry_config: GeometryConfig
+    domain_config: DomainConfig
     material_model: MaterialModel
     volume_force_x: float
     volume_force_y: float
@@ -40,8 +46,8 @@ def run_simulation(
     project_directory: ProjectDirectory,
     save_to_input_dir: bool = False,
 ) -> SimulationResults:
-    geometry = create_geometry(simulation_config.geometry_config)
-    mesh = geometry.generate_mesh(
+    domain = create_domain(
+        domain_config=simulation_config.domain_config,
         save_mesh=save_results,
         output_subdir=output_subdir,
         project_directory=project_directory,
@@ -49,8 +55,7 @@ def run_simulation(
     )
     simulation_results = _simulate_once(
         simulation_config=simulation_config,
-        geometry=geometry,
-        mesh=mesh,
+        domain=domain,
         save_results=save_results,
         save_metadata=save_metadata,
         output_subdir=output_subdir,
@@ -61,7 +66,7 @@ def run_simulation(
 
 
 def generate_validation_data(
-    geometry_config: GeometryConfig,
+    domain_config: DomainConfig,
     material_models: list[MaterialModel],
     volume_force_x: float,
     volume_force_y: float,
@@ -75,8 +80,8 @@ def generate_validation_data(
     save_results = True
     save_to_input_dir = True
     num_simulations = len(material_models)
-    geometry = create_geometry(geometry_config)
-    mesh = geometry.generate_mesh(
+    domain = create_domain(
+        domain_config=domain_config,
         save_mesh=save_results,
         output_subdir=output_subdir,
         project_directory=project_directory,
@@ -85,7 +90,7 @@ def generate_validation_data(
     for simulation_count, material_model in enumerate(material_models):
         print(f"Run FEM simulation {simulation_count + 1}/{num_simulations} ...")
         simulation_config = SimulationConfig(
-            geometry_config=geometry_config,
+            domain_config=domain_config,
             material_model=material_model,
             volume_force_x=volume_force_x,
             volume_force_y=volume_force_y,
@@ -99,8 +104,7 @@ def generate_validation_data(
         )
         simulation_results = _simulate_once(
             simulation_config=simulation_config,
-            geometry=geometry,
-            mesh=mesh,
+            domain=domain,
             save_results=save_results,
             save_metadata=save_metadata,
             output_subdir=simulation_output_subdir,
@@ -111,14 +115,14 @@ def generate_validation_data(
 
 def _simulate_once(
     simulation_config: SimulationConfig,
-    geometry: Geometry,
-    mesh: DMesh,
+    domain: Domain,
     save_results: bool,
     save_metadata: bool,
     output_subdir: str,
     project_directory: ProjectDirectory,
     save_to_input_dir: bool = False,
 ) -> SimulationResults:
+    mesh = domain.mesh
     material_model = simulation_config.material_model
     volume_force_x = simulation_config.volume_force_x
     volume_force_y = simulation_config.volume_force_y
@@ -132,12 +136,10 @@ def _simulate_once(
     trial_function = TrialFunction(func_space)
     test_function = TestFunction(func_space)
 
-    boundary_tags = geometry.tag_boundaries(mesh)
+    boundary_tags = domain.boundary_tags
     ds_measure = Measure("ds", domain=mesh, subdomain_data=boundary_tags)
 
-    boundary_conditions = geometry.define_boundary_conditions(
-        mesh=mesh,
-        boundary_tags=boundary_tags,
+    boundary_conditions = domain.define_boundary_conditions(
         function_space=func_space,
         measure=ds_measure,
         test_function=test_function,
@@ -159,18 +161,46 @@ def _simulate_once(
     )
 
     if save_results:
-        problem.save_results(
-            results=results,
-            output_subdir=output_subdir,
-            project_directory=project_directory,
-            save_to_input_dir=save_to_input_dir,
-        )
-        save_simulation_config(
+        _save_simulation_results(
             simulation_config=simulation_config,
+            results=results,
+            approximate_solution=approximate_solution,
+            mesh=mesh,
+            problem=problem,
+            boundary_tags=boundary_tags,
+            save_metadata=save_metadata,
             output_subdir=output_subdir,
             project_directory=project_directory,
-            save_to_input_dir=save_to_input_dir,
+            save_to_input_dir=save_to_input_dir
         )
+
+    return results
+
+
+def _save_simulation_results(
+    simulation_config: SimulationConfig,
+    results: SimulationResults,
+    approximate_solution: DFunction,
+    mesh: DMesh,
+    problem: Problem,
+    boundary_tags: DMeshTags,
+    save_metadata: bool,
+    output_subdir: str,
+    project_directory: ProjectDirectory,
+    save_to_input_dir: bool,
+) -> None:
+    problem.save_results(
+        results=results,
+        output_subdir=output_subdir,
+        project_directory=project_directory,
+        save_to_input_dir=save_to_input_dir,
+    )
+    save_simulation_config(
+        simulation_config=simulation_config,
+        output_subdir=output_subdir,
+        project_directory=project_directory,
+        save_to_input_dir=save_to_input_dir,
+    )
 
     if save_metadata:
         save_boundary_tags_as_xdmf(
@@ -187,8 +217,6 @@ def _simulate_once(
             project_directory=project_directory,
             save_to_input_dir=save_to_input_dir,
         )
-
-    return results
 
 
 def save_simulation_config(
