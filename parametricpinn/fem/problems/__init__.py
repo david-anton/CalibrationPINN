@@ -1,11 +1,13 @@
 from .base import save_results_as_xdmf
-from .linearelasticity import LinearElasticityModel
-from .problems import MaterialModel, Problem, SimulationResults, define_problem
+from .linearelasticity import LinearElasticityProblemConfig
+from .neohookean import NeoHookeanProblemConfig
+from .problems import Problem, ProblemConfigs, SimulationResults, define_problem
 
 __all__ = [
     "save_results_as_xdmf",
-    "LinearElasticityModel",
-    "MaterialModel",
+    "LinearElasticityProblemConfig",
+    "NeoHookeanProblemConfig",
+    "ProblemConfigs",
     "Problem",
     "SimulationResults",
     "define_problem",

@@ -7,7 +7,9 @@ from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
 from scipy.interpolate import griddata
 
-from parametricpinn.fem.simulation import run_simulation
+from parametricpinn.fem import LinearElasticityProblemConfig, PlateWithHoleDomainConfig
+from parametricpinn.fem import SimulationConfig as FEMSimulationConfig
+from parametricpinn.fem import run_simulation
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, Module, NPArray, PLTAxes, PLTFigure
 
@@ -178,22 +180,35 @@ def _run_simulation(
     output_subdir: str,
     project_directory: ProjectDirectory,
 ) -> tuple[NPArray, NPArray, NPArray, NPArray]:
-    results = run_simulation(
+    domain_config = PlateWithHoleDomainConfig(
+        edge_length=simulation_config.edge_length,
+        radius=simulation_config.radius,
+        traction_left_x=simulation_config.traction_left_x,
+        traction_left_y=simulation_config.traction_left_y,
+        element_family="Lagrange",
+        element_degree=1,
+        mesh_resolution=simulation_config.mesh_resolution,
+    )
+    problem_config = LinearElasticityProblemConfig(
         model=simulation_config.model,
         youngs_modulus=simulation_config.youngs_modulus,
         poissons_ratio=simulation_config.poissons_ratio,
-        edge_length=simulation_config.edge_length,
-        radius=simulation_config.radius,
+    )
+    fem_simulation_config = FEMSimulationConfig(
+        domain_config=domain_config,
+        problem_config=problem_config,
         volume_force_x=simulation_config.volume_force_x,
         volume_force_y=simulation_config.volume_force_y,
-        traction_left_x=simulation_config.traction_left_x,
-        traction_left_y=simulation_config.traction_left_y,
+
+    )
+    results = run_simulation(
+        simulation_config=fem_simulation_config,
         save_results=False,
         save_metadata=False,
         output_subdir=output_subdir,
         project_directory=project_directory,
-        mesh_resolution=simulation_config.mesh_resolution,
     )
+
     coordinates_x = results.coordinates_x
     coordinates_y = results.coordinates_y
     displacements_x = results.displacements_x

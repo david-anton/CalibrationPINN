@@ -21,7 +21,7 @@ from parametricpinn.data import (
     create_validation_dataset_2D,
 )
 from parametricpinn.fem import (
-    LinearElasticityModel,
+    LinearElasticityProblemConfig,
     PlateWithHoleDomainConfig,
     SimulationConfig,
     generate_validation_data,
@@ -49,7 +49,7 @@ from parametricpinn.types import Tensor
 
 ### Configuration
 # Set up
-material_model_state = "plane stress"
+material_model = "plane stress"
 edge_length = 100.0
 radius = 10.0
 traction_left_x = -100.0
@@ -114,11 +114,11 @@ def create_fem_domain_config() -> PlateWithHoleDomainConfig:
 
 
 ### Loss function
-momentum_equation_func = momentum_equation_func_factory(material_model_state)
-stress_func = stress_func_factory(material_model_state)
-traction_func = traction_func_factory(material_model_state)
-strain_energy_func = strain_energy_func_factory(material_model_state)
-traction_energy_func = traction_energy_func_factory(material_model_state)
+momentum_equation_func = momentum_equation_func_factory(material_model)
+stress_func = stress_func_factory(material_model)
+traction_func = traction_func_factory(material_model)
+strain_energy_func = strain_energy_func_factory(material_model)
+traction_energy_func = traction_energy_func_factory(material_model)
 traction_left = torch.tensor([traction_left_x, traction_left_y])
 volume_force = torch.tensor([volume_force_x, volume_force_y])
 
@@ -260,18 +260,18 @@ def _generate_validation_data() -> None:
         num_samples_valid, min_poissons_ratio, max_poissons_ratio
     )
     domain_config = create_fem_domain_config()
-    material_models = []
+    problem_configs = []
     for i in range(num_samples_valid):
-        material_models.append(
-            LinearElasticityModel(
-                model=material_model_state,
+        problem_configs.append(
+            LinearElasticityProblemConfig(
+                model=material_model,
                 youngs_modulus=youngs_moduli[i],
                 poissons_ratio=poissons_ratios[i],
             )
         )
     generate_validation_data(
         domain_config=domain_config,
-        material_models=material_models,
+        problem_configs=problem_configs,
         volume_force_x=volume_force_x,
         volume_force_y=volume_force_y,
         save_metadata=save_metadata,
@@ -301,19 +301,16 @@ def determine_normalization_values() -> dict[str, Tensor]:
         output_subdir_preprocessing, "results_for_determining_normalization_values"
     )
     domain_config = create_fem_domain_config()
-    material_model = LinearElasticityModel(
-        model=material_model_state,
+    problem_config = LinearElasticityProblemConfig(
+        model=material_model,
         youngs_modulus=min_youngs_modulus,
         poissons_ratio=max_poissons_ratio,
     )
     simulation_config = SimulationConfig(
         domain_config=domain_config,
-        material_model=material_model,
+        problem_config=problem_config,
         volume_force_x=volume_force_x,
         volume_force_y=volume_force_y,
-        element_family=fem_element_family,
-        element_degree=fem_element_degree,
-        mesh_resolution=fem_mesh_resolution,
     )
     simulation_results = run_simulation(
         simulation_config=simulation_config,
@@ -513,7 +510,7 @@ if __name__ == "__main__":
     plot_displacements_pwh(
         ansatz=ansatz,
         youngs_modulus_and_poissons_ratio_list=[(210000, 0.3)],
-        model=material_model_state,
+        model=material_model,
         edge_length=edge_length,
         radius=radius,
         volume_force_x=volume_force_x,

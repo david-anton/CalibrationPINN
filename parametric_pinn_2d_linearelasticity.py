@@ -34,7 +34,7 @@ from parametricpinn.data import (
     create_validation_dataset_2D,
 )
 from parametricpinn.fem import (
-    LinearElasticityModel,
+    LinearElasticityProblemConfig,
     PlateWithHoleDomainConfig,
     SimulationConfig,
     generate_validation_data,
@@ -56,7 +56,7 @@ from parametricpinn.types import Tensor
 ### Configuration
 retrain_parametric_pinn = True
 # Set up
-material_model_state = "plane stress"
+material_model = "plane stress"
 edge_length = 100.0
 radius = 10.0
 traction_left_x = -100.0
@@ -158,11 +158,11 @@ def create_datasets() -> tuple[TrainingDataset2D, ValidationDataset2D]:
                 num_samples_valid, min_poissons_ratio, max_poissons_ratio
             )
             domain_config = create_fem_domain_config()
-            material_models = []
+            problem_configs = []
             for i in range(num_samples_valid):
-                material_models.append(
-                    LinearElasticityModel(
-                        model=material_model_state,
+                problem_configs.append(
+                    LinearElasticityProblemConfig(
+                        model=material_model,
                         youngs_modulus=youngs_moduli[i],
                         poissons_ratio=poissons_ratios[i],
                     )
@@ -170,7 +170,7 @@ def create_datasets() -> tuple[TrainingDataset2D, ValidationDataset2D]:
 
             generate_validation_data(
                 domain_config=domain_config,
-                material_models=material_models,
+                problem_configs=problem_configs,
                 volume_force_x=volume_force_x,
                 volume_force_y=volume_force_y,
                 save_metadata=save_metadata,
@@ -218,19 +218,16 @@ def create_ansatz() -> StandardAnsatz:
         )
         print("Run FE simulation to determine normalization values ...")
         domain_config = create_fem_domain_config()
-        material_model = LinearElasticityModel(
-            model=material_model_state,
+        problem_config = LinearElasticityProblemConfig(
+            model=material_model,
             youngs_modulus=min_youngs_modulus,
             poissons_ratio=max_poissons_ratio,
         )
         simulation_config = SimulationConfig(
             domain_config=domain_config,
-            material_model=material_model,
+            problem_config=problem_config,
             volume_force_x=volume_force_x,
             volume_force_y=volume_force_y,
-            element_family=fem_element_family,
-            element_degree=fem_element_degree,
-            mesh_resolution=fem_mesh_resolution,
         )
         simulation_results = run_simulation(
             simulation_config=simulation_config,
@@ -272,7 +269,7 @@ ansatz = create_ansatz()
 def training_step() -> None:
     train_config = TrainingConfiguration(
         ansatz=ansatz,
-        material_model=material_model_state,
+        material_model=material_model,
         number_points_per_bc=number_points_per_bc,
         weight_pde_loss=weight_pde_loss,
         weight_symmetry_bc_loss=weight_symmetry_bc_loss,
@@ -299,7 +296,7 @@ def training_step() -> None:
                 (240000, 0.2),
                 (240000, 0.4),
             ],
-            model=material_model_state,
+            model=material_model,
             edge_length=edge_length,
             radius=radius,
             volume_force_x=volume_force_x,
@@ -326,19 +323,16 @@ def calibration_step() -> None:
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
         domain_config = create_fem_domain_config()
-        material_model = LinearElasticityModel(
-            model=material_model_state,
+        problem_config = LinearElasticityProblemConfig(
+            model=material_model,
             youngs_modulus=exact_youngs_modulus,
             poissons_ratio=exact_poissons_ratio,
         )
         simulation_config = SimulationConfig(
             domain_config=domain_config,
-            material_model=material_model,
+            problem_config=problem_config,
             volume_force_x=volume_force_x,
             volume_force_y=volume_force_y,
-            element_family=fem_element_family,
-            element_degree=fem_element_degree,
-            mesh_resolution=fem_mesh_resolution,
         )
         simulation_results = run_simulation(
             simulation_config=simulation_config,

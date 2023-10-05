@@ -1,35 +1,29 @@
-from typing import Protocol, TypeAlias
+from typing import Protocol, TypeAlias, Union
 
 from parametricpinn.errors import FEMProblemConfigError
-from parametricpinn.fem.base import (
-    DConstant,
-    DFunction,
-    DMesh,
-    UFLTestFunction,
-    UFLTrialFunction,
-)
-from parametricpinn.fem.boundaryconditions import BoundaryConditions
+from parametricpinn.fem.base import DConstant, DFunction, DFunctionSpace, DMesh
+from parametricpinn.fem.domains import Domain
 from parametricpinn.fem.problems.linearelasticity import (
-    LinearElasticityModel,
     LinearElasticityProblem,
+    LinearElasticityProblemConfig,
     LinearElasticityResults,
+)
+from parametricpinn.fem.problems.neohookean import (
+    NeoHookeanProblem,
+    NeoHookeanProblemConfig,
+    NeoHookeanResults,
 )
 from parametricpinn.io import ProjectDirectory
 
-MaterialModel: TypeAlias = LinearElasticityModel
-SimulationResults: TypeAlias = LinearElasticityResults
+ProblemConfigs: TypeAlias = Union[LinearElasticityProblemConfig, NeoHookeanProblemConfig]
+SimulationResults: TypeAlias = Union[LinearElasticityResults, NeoHookeanResults]
 
 
 class Problem(Protocol):
     def solve(self) -> DFunction:
         pass
 
-    def compile_results(
-        self,
-        mesh: DMesh,
-        approximate_solution: DFunction,
-        material_model: MaterialModel,
-    ) -> SimulationResults:
+    def compile_results(self, approximate_solution: DFunction) -> SimulationResults:
         pass
 
     def save_results(
@@ -43,21 +37,27 @@ class Problem(Protocol):
 
 
 def define_problem(
-    material_model: MaterialModel,
-    trial_function: UFLTrialFunction,
-    test_function: UFLTestFunction,
+    problem_config: ProblemConfigs,
+    domain: Domain,
+    function_space: DFunctionSpace,
     volume_force: DConstant,
-    boundary_conditions: BoundaryConditions,
+
 ) -> Problem:
-    if isinstance(material_model, LinearElasticityModel):
+    if isinstance(problem_config, LinearElasticityProblemConfig):
         return LinearElasticityProblem(
-            material_model,
-            trial_function,
-            test_function,
-            volume_force,
-            boundary_conditions,
+            config=problem_config,
+            domain=domain,
+            function_space=function_space,
+            volume_force=volume_force,
+        )
+    elif isinstance(problem_config, NeoHookeanProblemConfig):
+        return NeoHookeanProblem(
+            config=problem_config,
+            domain=domain,
+            function_space=function_space,
+            volume_force=volume_force,
         )
     else:
         raise FEMProblemConfigError(
-            f"There is no implementation for the requested FEM problem {material_model}."
+            f"There is no implementation for the requested FEM problem {problem_config}."
         )
