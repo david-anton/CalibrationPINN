@@ -56,6 +56,10 @@ class NormalizedHBCAnsatzStrategy2D:
         norm_y = self._boundary_data_func() + (
             self._distance_func(x_coor) * network(norm_x)
         )
+        print("############################")
+        print("Ansatz output")
+        print(self._hbc_ansatz_output_renormalizer(norm_y))
+        print("############################")
         return self._hbc_ansatz_output_renormalizer(norm_y)
 
 
