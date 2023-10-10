@@ -48,7 +48,7 @@ from parametricpinn.postprocessing.plot import (
     plot_displacements_pwh,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.training_standard_2d import (
+from parametricpinn.training.training_standard_linearelasticity_2d import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
