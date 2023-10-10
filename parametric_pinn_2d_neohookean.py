@@ -242,6 +242,8 @@ def create_ansatz() -> StandardAnsatz:
         print("###########################")
         print(f"Min inputs {min_inputs}")
         print(f"Max inputs {max_inputs}")
+        print(f"Min outputs {min_outputs}")
+        print(f"Max outputs {max_outputs}")
         print("###########################")
         return {
             "min_inputs": min_inputs.to(device),
