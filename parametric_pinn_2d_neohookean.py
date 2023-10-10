@@ -64,14 +64,14 @@ traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-min_youngs_modulus = 2400.0
-max_youngs_modulus = min_youngs_modulus
-min_poissons_ratio = 0.35
-max_poissons_ratio = min_poissons_ratio
+min_youngs_modulus = 2300.0
+max_youngs_modulus = 2500.0
+min_poissons_ratio = 0.30
+max_poissons_ratio = 0.40
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Training
-num_samples_per_parameter = 1  # 32
+num_samples_per_parameter = 2  # 32
 num_collocation_points = 4096  # 64
 number_points_per_bc = 128  # 32
 training_batch_size = num_samples_per_parameter**2
