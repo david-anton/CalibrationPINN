@@ -77,6 +77,7 @@ def _divergence_stress_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) ->
     stress_yy_y = torch.unsqueeze(
         grad(_stress_func, argnums=1)(x_coor[0], x_coor[1], 1, 1), dim=0
     )
+    print(torch.concat((stress_xx_x + stress_xy_y, stress_xy_x + stress_yy_y), dim=0))
     return torch.concat((stress_xx_x + stress_xy_y, stress_xy_x + stress_yy_y), dim=0)
 
 
@@ -97,8 +98,7 @@ def _first_piola_stress_tensor(
     free_energy_func = lambda deformation_gradient: _free_energy_func(
         deformation_gradient, x_param
     )
-    stress_tensor = grad(free_energy_func)(F)
-    return stress_tensor
+    return grad(free_energy_func)(F)
 
 
 def _free_energy_func(deformation_gradient: Tensor, x_param: Tensor) -> Tensor:

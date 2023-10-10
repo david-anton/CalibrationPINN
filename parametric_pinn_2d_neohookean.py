@@ -64,10 +64,10 @@ traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-min_youngs_modulus = 2300.0
-max_youngs_modulus = 2500.0
-min_poissons_ratio = 0.30
-max_poissons_ratio = 0.40
+min_youngs_modulus = 2400.0
+max_youngs_modulus = min_youngs_modulus
+min_poissons_ratio = 0.35
+max_poissons_ratio = min_poissons_ratio
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Training
