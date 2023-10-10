@@ -158,7 +158,7 @@ def _deformation_gradient_func(
     ansatz: TModule, x_coor: Tensor, x_param: Tensor
 ) -> Tensor:
     jac_u = _jacobian_displacement_func(ansatz, x_coor, x_param)
-    I = torch.eye(n=2)
+    I = torch.eye(n=2, device=jac_u.device)
     return jac_u + I
 
 
