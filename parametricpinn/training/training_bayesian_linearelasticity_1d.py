@@ -16,7 +16,7 @@ from parametricpinn.calibration import (
     calibrate,
 )
 from parametricpinn.calibration.bayesianinference.mcmc import MCMCOutput
-from parametricpinn.data import (
+from parametricpinn.data.trainingdata_linearelasticity_1d import (
     TrainingData1DPDE,
     TrainingData1DStressBC,
     TrainingDataset1D,

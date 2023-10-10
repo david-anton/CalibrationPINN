@@ -3,7 +3,9 @@ import numpy as np
 import torch
 
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
-from parametricpinn.data import calculate_displacements_solution_1D
+from parametricpinn.data.validationdata_linearelasticity_1d import (
+    calculate_displacements_solution_1D,
+)
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, NPArray, Tensor
 

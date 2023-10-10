@@ -1,4 +1,5 @@
 from collections import namedtuple
+from typing import TypeAlias, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,6 +19,10 @@ from parametricpinn.fem import SimulationConfig as FEMSimulationConfig
 from parametricpinn.fem import run_simulation
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, Module, NPArray, PLTAxes, PLTFigure
+
+ProblemConfigLists: TypeAlias = Union[
+    list[LinearElasticityProblemConfig], list[NeoHookeanProblemConfig]
+]
 
 
 class DisplacementsPlotterConfigPWH:
@@ -83,7 +88,7 @@ SimulationResults = namedtuple(
 def plot_displacements_pwh(
     ansatz: Module,
     domain_config: PlateWithHoleDomainConfig,
-    problem_configs: list[ProblemConfigs],
+    problem_configs: ProblemConfigLists,
     volume_force_x: float,
     volume_force_y: float,
     output_subdir: str,

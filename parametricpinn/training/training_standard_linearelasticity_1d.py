@@ -5,12 +5,14 @@ import torch
 from torch.utils.data import DataLoader
 
 from parametricpinn.ansatz import StandardAnsatz
-from parametricpinn.data import (
+from parametricpinn.data.trainingdata_linearelasticity_1d import (
     TrainingData1DPDE,
     TrainingData1DStressBC,
     TrainingDataset1D,
-    ValidationDataset1D,
     collate_training_data_1D,
+)
+from parametricpinn.data.validationdata_linearelasticity_1d import (
+    ValidationDataset1D,
     collate_validation_data_1D,
 )
 from parametricpinn.io import ProjectDirectory

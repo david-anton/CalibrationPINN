@@ -47,7 +47,7 @@ from parametricpinn.postprocessing.plot import (
     plot_displacements_pwh,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.training_standard_linearelasticity_2d import (
+from parametricpinn.training.training_standard_neohookean_2d import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
@@ -62,10 +62,10 @@ traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-min_youngs_modulus = 180000.0
-max_youngs_modulus = 240000.0
-min_poissons_ratio = 0.2
-max_poissons_ratio = 0.4
+min_youngs_modulus = 2400.0
+max_youngs_modulus = 2400.0
+min_poissons_ratio = 0.35
+max_poissons_ratio = 0.35
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Training
@@ -193,5 +193,326 @@ def create_datasets() -> tuple[TrainingDataset2D, ValidationDataset2D]:
     return training_dataset, validation_dataset
 
 
+def create_ansatz() -> StandardAnsatz:
+    def _determine_normalization_values() -> dict[str, Tensor]:
+        min_coordinate_x = -edge_length
+        max_coordinate_x = 0.0
+        min_coordinate_y = 0.0
+        max_coordinate_y = edge_length
+        min_coordinates = torch.tensor([min_coordinate_x, min_coordinate_y])
+        max_coordinates = torch.tensor([max_coordinate_x, max_coordinate_y])
+
+        min_parameters = torch.tensor([min_youngs_modulus, min_poissons_ratio])
+        max_parameters = torch.tensor([max_youngs_modulus, max_poissons_ratio])
+
+        min_inputs = torch.concat((min_coordinates, min_parameters))
+        max_inputs = torch.concat((max_coordinates, max_parameters))
+
+        _output_subdir = os.path.join(
+            output_subdirectory_preprocessing,
+            "results_for_determining_normalization_values",
+        )
+        print("Run FE simulation to determine normalization values ...")
+        domain_config = create_fem_domain_config()
+        problem_config = NeoHookeanProblemConfig(
+            youngs_modulus=min_youngs_modulus,
+            poissons_ratio=max_poissons_ratio,
+        )
+        simulation_config = SimulationConfig(
+            domain_config=domain_config,
+            problem_config=problem_config,
+            volume_force_x=volume_force_x,
+            volume_force_y=volume_force_y,
+        )
+        simulation_results = run_simulation(
+            simulation_config=simulation_config,
+            save_results=False,
+            save_metadata=False,
+            output_subdir=_output_subdir,
+            project_directory=project_directory,
+        )
+
+        min_displacement_x = float(np.amin(simulation_results.displacements_x))
+        max_displacement_x = float(np.amax(simulation_results.displacements_x))
+        min_displacement_y = float(np.amin(simulation_results.displacements_y))
+        max_displacement_y = float(np.amax(simulation_results.displacements_y))
+        min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
+        max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
+        return {
+            "min_inputs": min_inputs.to(device),
+            "max_inputs": max_inputs.to(device),
+            "min_outputs": min_outputs.to(device),
+            "max_outputs": max_outputs.to(device),
+        }
+
+    normalization_values = _determine_normalization_values()
+    network = FFNN(layer_sizes=layer_sizes)
+    return create_standard_normalized_hbc_ansatz_2D(
+        displacement_x_right=torch.tensor(0.0).to(device),
+        displacement_y_bottom=torch.tensor(0.0).to(device),
+        min_inputs=normalization_values["min_inputs"],
+        max_inputs=normalization_values["max_inputs"],
+        min_outputs=normalization_values["min_outputs"],
+        max_outputs=normalization_values["max_outputs"],
+        network=network,
+    ).to(device)
+
+
+ansatz = create_ansatz()
+
+
+def training_step() -> None:
+    train_config = TrainingConfiguration(
+        ansatz=ansatz,
+        number_points_per_bc=number_points_per_bc,
+        weight_pde_loss=weight_pde_loss,
+        weight_symmetry_bc_loss=weight_symmetry_bc_loss,
+        weight_traction_bc_loss=weight_traction_bc_loss,
+        training_dataset=training_dataset,
+        number_training_epochs=number_training_epochs,
+        training_batch_size=training_batch_size,
+        validation_dataset=validation_dataset,
+        validation_interval=validation_interval,
+        output_subdirectory=output_subdirectory,
+        project_directory=project_directory,
+        device=device,
+    )
+
+    def _plot_exemplary_displacement_fields() -> None:
+        displacements_plotter_config = DisplacementsPlotterConfigPWH()
+        youngs_modulus_and_poissons_ratio_list = [
+            (min_youngs_modulus, min_poissons_ratio),
+            # (210000, 0.3),
+            # (180000, 0.2),
+            # (180000, 0.4),
+            # (240000, 0.2),
+            # (240000, 0.4),
+        ]
+        youngs_moduli, poissons_ratios = zip(*youngs_modulus_and_poissons_ratio_list)
+
+        domain_config = create_fem_domain_config()
+        problem_configs = []
+        for i in range(num_samples_valid):
+            problem_configs.append(
+                NeoHookeanProblemConfig(
+                    youngs_modulus=youngs_moduli[i],
+                    poissons_ratio=poissons_ratios[i],
+                )
+            )
+
+        plot_displacements_pwh(
+            ansatz=ansatz,
+            domain_config=domain_config,
+            problem_configs=problem_configs,
+            volume_force_x=volume_force_x,
+            volume_force_y=volume_force_y,
+            output_subdir=output_subdirectory,
+            project_directory=project_directory,
+            plot_config=displacements_plotter_config,
+            device=device,
+        )
+
+    train_parametric_pinn(train_config=train_config)
+    _plot_exemplary_displacement_fields()
+
+
+def calibration_step() -> None:
+    print("Start calibration ...")
+    exact_youngs_modulus = 2400
+    exact_poissons_ratio = 0.35
+    num_data_points = 128
+    std_noise = 5 * 1e-4
+
+    def generate_calibration_data() -> tuple[Tensor, Tensor]:
+        domain_config = create_fem_domain_config()
+        problem_config = NeoHookeanProblemConfig(
+            youngs_modulus=exact_youngs_modulus,
+            poissons_ratio=exact_poissons_ratio,
+        )
+        simulation_config = SimulationConfig(
+            domain_config=domain_config,
+            problem_config=problem_config,
+            volume_force_x=volume_force_x,
+            volume_force_y=volume_force_y,
+        )
+        simulation_results = run_simulation(
+            simulation_config=simulation_config,
+            save_results=False,
+            save_metadata=False,
+            output_subdir=output_subdirectory,
+            project_directory=project_directory,
+        )
+        total_size_data = simulation_results.coordinates_x.shape[0]
+        random_indices = torch.randint(
+            low=0, high=total_size_data + 1, size=(num_data_points,)
+        )
+        coordinates_x = torch.tensor(simulation_results.coordinates_x)[random_indices]
+        coordinates_y = torch.tensor(simulation_results.coordinates_y)[random_indices]
+        coordinates = torch.concat((coordinates_x, coordinates_y), dim=1).to(device)
+        clean_displacements_x = torch.tensor(simulation_results.displacements_x)[
+            random_indices
+        ]
+        clean_displacements_y = torch.tensor(simulation_results.displacements_y)[
+            random_indices
+        ]
+        noisy_displacements_x = clean_displacements_x + torch.normal(
+            mean=0.0, std=std_noise, size=clean_displacements_x.size()
+        )
+        noisy_displacements_y = clean_displacements_y + torch.normal(
+            mean=0.0, std=std_noise, size=clean_displacements_y.size()
+        )
+        noisy_displacements = torch.concat(
+            (noisy_displacements_x, noisy_displacements_y), dim=1
+        ).to(device)
+        return coordinates, noisy_displacements
+
+    name_model_parameters_file = "model_parameters"
+    model = load_model(
+        model=ansatz,
+        name_model_parameters_file=name_model_parameters_file,
+        input_subdir=output_subdirectory,
+        project_directory=project_directory,
+        device=device,
+    )
+
+    coordinates, noisy_displacements = generate_calibration_data()
+    data = CalibrationData(
+        inputs=coordinates,
+        outputs=noisy_displacements,
+        std_noise=std_noise,
+    )
+    likelihood = create_ppinn_likelihood(ansatz=model, data=data, device=device)
+
+    prior_mean_youngs_modulus = 2400
+    prior_std_youngs_modulus = 100
+    prior_mean_poissons_ratio = 0.35
+    prior_std_poissons_ratio = 0.015
+    prior_means = torch.tensor([prior_mean_youngs_modulus, prior_mean_poissons_ratio])
+    prior_standard_deviations = torch.tensor(
+        [prior_std_youngs_modulus, prior_std_poissons_ratio]
+    )
+    prior = create_independent_multivariate_normal_distributed_prior(
+        means=prior_means, standard_deviations=prior_standard_deviations, device=device
+    )
+
+    parameter_names = ("Youngs modulus", "Poissons ratio")
+    true_parameters = (exact_youngs_modulus, exact_poissons_ratio)
+    initial_parameters = torch.tensor(
+        [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
+    )
+
+    least_squares_config = LeastSquaresConfig(
+        initial_parameters=initial_parameters,
+        num_iterations=100,
+        ansatz=model,
+        calibration_data=data,
+    )
+    std_proposal_density_youngs_modulus = 10
+    std_proposal_density_poissons_ratio = 0.0015
+    mcmc_config_mh = MetropolisHastingsConfig(
+        likelihood=likelihood,
+        prior=prior,
+        initial_parameters=initial_parameters,
+        num_iterations=int(1e4),
+        num_burn_in_iterations=int(2e3),
+        cov_proposal_density=torch.diag(
+            torch.tensor(
+                [
+                    std_proposal_density_youngs_modulus,
+                    std_proposal_density_poissons_ratio,
+                ],
+                dtype=torch.float64,
+                device=device,
+            )
+            ** 2
+        ),
+    )
+    mcmc_config_h = HamiltonianConfig(
+        likelihood=likelihood,
+        prior=prior,
+        initial_parameters=initial_parameters,
+        num_iterations=int(5e3),
+        num_burn_in_iterations=int(1e3),
+        num_leabfrog_steps=256,
+        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
+    )
+    mcmc_config_enuts = EfficientNUTSConfig(
+        likelihood=likelihood,
+        prior=prior,
+        initial_parameters=initial_parameters,
+        num_iterations=int(1e3),
+        num_burn_in_iterations=int(1e3),
+        max_tree_depth=8,
+        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
+    )
+    if use_least_squares:
+        start = perf_counter()
+        identified_parameters, _ = calibrate(
+            calibration_config=least_squares_config,
+            device=device,
+        )
+        end = perf_counter()
+        time = end - start
+        print(f"Identified parameter: {identified_parameters}")
+        print(f"Run time least squares: {time}")
+    if use_random_walk_metropolis_hasting:
+        start = perf_counter()
+        posterior_moments_mh, samples_mh = calibrate(
+            calibration_config=mcmc_config_mh,
+            device=device,
+        )
+        end = perf_counter()
+        time = end - start
+        print(f"Run time Metropolis-Hasting: {time}")
+        plot_posterior_normal_distributions(
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            moments=posterior_moments_mh,
+            samples=samples_mh,
+            mcmc_algorithm="metropolis_hastings",
+            output_subdir=output_subdirectory,
+            project_directory=project_directory,
+        )
+    if use_hamiltonian:
+        start = perf_counter()
+        posterior_moments_h, samples_h = calibrate(
+            calibration_config=mcmc_config_h,
+            device=device,
+        )
+        end = perf_counter()
+        time = end - start
+        print(f"Run time Hamiltonian: {time}")
+        plot_posterior_normal_distributions(
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            moments=posterior_moments_h,
+            samples=samples_h,
+            mcmc_algorithm="hamiltonian",
+            output_subdir=output_subdirectory,
+            project_directory=project_directory,
+        )
+    if use_efficient_nuts:
+        start = perf_counter()
+        posterior_moments_enuts, samples_enuts = calibrate(
+            calibration_config=mcmc_config_enuts,
+            device=device,
+        )
+        end = perf_counter()
+        time = end - start
+        print(f"Run time efficient NUTS: {time}")
+        plot_posterior_normal_distributions(
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            moments=posterior_moments_enuts,
+            samples=samples_enuts,
+            mcmc_algorithm="efficient_nuts",
+            output_subdir=output_subdirectory,
+            project_directory=project_directory,
+        )
+    print("Calibration finished.")
+
+
 if retrain_parametric_pinn:
     training_dataset, validation_dataset = create_datasets()
+    training_step()
+calibration_step()
