@@ -1,7 +1,7 @@
 from typing import Protocol, TypeAlias, Union
 
 from parametricpinn.errors import FEMProblemConfigError
-from parametricpinn.fem.base import DConstant, DFunction, DFunctionSpace, DMesh
+from parametricpinn.fem.base import DConstant, DFunction, DFunctionSpace
 from parametricpinn.fem.domains import Domain
 from parametricpinn.fem.problems.linearelasticity import (
     LinearElasticityProblem,

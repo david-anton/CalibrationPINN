@@ -278,9 +278,6 @@ def _generate_validation_data() -> None:
         save_metadata=save_metadata,
         output_subdir=input_subdir_valid,
         project_directory=project_directory,
-        element_family=fem_element_family,
-        element_degree=fem_element_degree,
-        mesh_resolution=fem_mesh_resolution,
     )
 
 

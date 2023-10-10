@@ -101,6 +101,20 @@ set_seed(0)
 device = get_device()
 
 
+# Domain
+def create_fem_domain_config() -> PlateWithHoleDomainConfig:
+    return PlateWithHoleDomainConfig(
+        edge_length=edge_length,
+        radius=radius,
+        traction_left_x=traction_left_x,
+        traction_left_y=traction_left_y,
+        element_family=fem_element_family,
+        element_degree=fem_element_degree,
+        mesh_resolution=fem_mesh_resolution,
+    )
+
+
+
 ### Loss function
 momentum_equation_func = momentum_equation_func_factory(material_model)
 stress_func = stress_func_factory(material_model)
@@ -247,20 +261,25 @@ def _generate_validation_data() -> None:
     poissons_ratios = _generate_random_parameter_list(
         num_samples_valid, min_poissons_ratio, max_poissons_ratio
     )
+    domain_config = create_fem_domain_config()
+    problem_configs = []
+    for i in range(num_samples_valid):
+        problem_configs.append(
+            LinearElasticityProblemConfig(
+                    model=material_model,
+                    youngs_modulus=youngs_moduli[i],
+                    poissons_ratio=poissons_ratios[i],
+            )
+        )
+
     generate_validation_data(
-        model=material_model,
-        youngs_moduli=youngs_moduli,
-        poissons_ratios=poissons_ratios,
-        edge_length=edge_length,
-        radius=radius,
+        domain_config=domain_config,
+        problem_configs=problem_configs,
         volume_force_x=volume_force_x,
         volume_force_y=volume_force_y,
-        traction_left_x=traction_left_x,
-        traction_left_y=traction_left_y,
         save_metadata=save_metadata,
         output_subdir=input_subdir_valid,
         project_directory=project_directory,
-        mesh_resolution=fem_mesh_resolution,
     )
 
 

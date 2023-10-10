@@ -75,7 +75,7 @@ num_samples_per_parameter = 1  # 32
 num_collocation_points = 4096  # 64
 number_points_per_bc = 128  # 32
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 10000
+number_training_epochs = 10  # 10000
 weight_pde_loss = 1.0
 weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
@@ -175,10 +175,7 @@ def create_datasets() -> tuple[TrainingDataset2D, ValidationDataset2D]:
                 volume_force_y=volume_force_y,
                 save_metadata=save_metadata,
                 output_subdir=input_subdir_valid,
-                project_directory=project_directory,
-                element_family=fem_element_family,
-                element_degree=fem_element_degree,
-                mesh_resolution=fem_mesh_resolution,
+                project_directory=project_directory
             )
 
         print("Load validation data ...")
@@ -242,6 +239,10 @@ def create_ansatz() -> StandardAnsatz:
         max_displacement_y = float(np.amax(simulation_results.displacements_y))
         min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
         max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
+        print("###########################")
+        print(f"Min inputs {min_inputs}")
+        print(f"Max inputs {max_inputs}")
+        print("###########################")
         return {
             "min_inputs": min_inputs.to(device),
             "max_inputs": max_inputs.to(device),

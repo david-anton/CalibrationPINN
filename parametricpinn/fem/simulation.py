@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import TypeAlias, Union
 
 from dolfinx.fem import Constant, FunctionSpace
 from petsc4py import PETSc
@@ -17,6 +18,8 @@ from parametricpinn.fem.domains import (
     save_boundary_tags_as_xdmf,
 )
 from parametricpinn.fem.problems import (
+    LinearElasticityProblemConfig,
+    NeoHookeanProblemConfig,
     Problem,
     ProblemConfigs,
     SimulationResults,
@@ -25,6 +28,10 @@ from parametricpinn.fem.problems import (
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import DataclassWriter
+
+ProblemConfigList: TypeAlias = Union[
+    list[LinearElasticityProblemConfig], list[NeoHookeanProblemConfig]
+]
 
 
 @dataclass
@@ -64,15 +71,12 @@ def run_simulation(
 
 def generate_validation_data(
     domain_config: DomainConfig,
-    problem_configs: list[ProblemConfigs],
+    problem_configs: ProblemConfigList,
     volume_force_x: float,
     volume_force_y: float,
     save_metadata: bool,
     output_subdir: str,
     project_directory: ProjectDirectory,
-    element_family: str = "Lagrange",
-    element_degree: int = 1,
-    mesh_resolution: float = 1,
 ) -> None:
     save_results = True
     save_to_input_dir = True
