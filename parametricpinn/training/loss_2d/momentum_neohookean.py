@@ -97,50 +97,43 @@ def _first_piola_stress_tensor(
     free_energy_func = lambda _deformation_gradient: _free_energy_func(
         _deformation_gradient, x_param
     )
-    print("###############################")
-    print("###############################")
-    print("Piola stress tensor:")
-    print(grad(free_energy_func)(F))
-    print("###############################")
-    print("###############################")
     return grad(free_energy_func)(F)
 
 
 def _free_energy_func(deformation_gradient: Tensor, x_param: Tensor) -> Tensor:
-    # Formulation for plane stress
+    # Plane stress assumed
     F = deformation_gradient
     J = _calculate_determinant(F)
-    I_c = _right_cuachy_green_tensor_func(F)
-    lambda_ = _first_lame_constant_lambda(x_param)
-    mu_ = _second_lame_constant_mu(x_param)
-    C = mu_ / 2
-    D = lambda_ / 2
-    free_energy = C * (I_c - 2 - 2 * torch.log(J)) + D * (J - 1) ** 2
-    print("###############################")
-    print("###############################")
-    print("Free energy:")
-    print(torch.squeeze(free_energy, 0))
-    print("###############################")
-    print("###############################")
+    C = _calculate_right_cuachy_green_tensor(F)
+    I_c = _calculate_first_invariant(C)
+    param_lambda = _calculate_first_lame_constant_lambda(x_param)
+    param_mu = _calculate_second_lame_constant_mu(x_param)
+    param_C = param_mu / 2
+    param_D = param_lambda / 2
+    free_energy = param_C * (I_c - 2 - 2 * torch.log(J)) + param_D * (J - 1) ** 2
     return torch.squeeze(free_energy, 0)
 
 
 def _calculate_determinant(tensor: Tensor) -> Tensor:
-    return torch.unsqueeze(torch.det(tensor), dim=0)
+    determinant = torch.det(tensor)
+    return torch.unsqueeze(determinant, dim=0)
 
 
-def _right_cuachy_green_tensor_func(deformation_gradient: Tensor) -> Tensor:
+def _calculate_right_cuachy_green_tensor(deformation_gradient: Tensor) -> Tensor:
     F = deformation_gradient
     return torch.matmul(F.T, F)
 
 
-def _first_lame_constant_lambda(x_param: Tensor) -> Tensor:
+def _calculate_first_invariant(tensor: Tensor) -> Tensor:
+    invariant = torch.trace(tensor)
+    return torch.unsqueeze(invariant, dim=0)
+
+
+def _calculate_first_lame_constant_lambda(x_param: Tensor) -> Tensor:
     E = _extract_youngs_modulus(x_param)
     nu = _extract_poissons_ratio(x_param)
-    return (
-        E
-        * nu
-        / (torch.tensor([1.0]).to(x_param.device) + nu)
+    return (E * nu) / (
+        (torch.tensor([1.0]).to(x_param.device) + nu)
         * (
             torch.tensor([1.0]).to(x_param.device)
             - torch.tensor([2.0]).to(x_param.device) * nu
@@ -148,12 +141,11 @@ def _first_lame_constant_lambda(x_param: Tensor) -> Tensor:
     )
 
 
-def _second_lame_constant_mu(x_param: Tensor) -> Tensor:
+def _calculate_second_lame_constant_mu(x_param: Tensor) -> Tensor:
     E = _extract_youngs_modulus(x_param)
     nu = _extract_poissons_ratio(x_param)
-    return (
-        E
-        / torch.tensor([2.0]).to(x_param.device)
+    return E / (
+        torch.tensor([2.0]).to(x_param.device)
         * (torch.tensor([1.0]).to(x_param.device) + nu)
     )
 

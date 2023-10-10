@@ -129,8 +129,8 @@ class NeoHookeanProblem:
         # Material parameters
         E = PETSc.ScalarType(self._config.youngs_modulus)
         nu = PETSc.ScalarType(self._config.poissons_ratio)
-        mu_ = fem.Constant(self._mesh, E / 2 * (1 + nu))
-        lambda_ = fem.Constant(self._mesh, E * nu / (1 + nu) * (1 - 2 * nu))
+        mu_ = fem.Constant(self._mesh, E / (2 * (1 + nu)))
+        lambda_ = fem.Constant(self._mesh, (E * nu) / ((1 + nu) * (1 - 2 * nu)))
 
         # Strain energy
         psi = (mu_ / 2) * (I_c - 2 - 2 * ufl.ln(J)) + (lambda_ / 2) * (J - 1) ** 2
