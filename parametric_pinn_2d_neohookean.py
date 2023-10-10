@@ -65,15 +65,15 @@ traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
 min_youngs_modulus = 2400.0
-max_youngs_modulus = 2400.0
+max_youngs_modulus = min_youngs_modulus
 min_poissons_ratio = 0.35
-max_poissons_ratio = 0.35
+max_poissons_ratio = min_poissons_ratio
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Training
-num_samples_per_parameter = 32
-num_collocation_points = 64
-number_points_per_bc = 32
+num_samples_per_parameter = 1 #32
+num_collocation_points = 4096 #64
+number_points_per_bc = 128 #32
 training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 10000
 weight_pde_loss = 1.0
@@ -81,8 +81,10 @@ weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20231005_validation_data_neo_hookean"
-num_samples_valid = 2
+input_subdir_valid = (
+    "20231010_validation_data_neohookean_E_240_nu_035_edge_100_radius_10_traction_100"
+)
+num_samples_valid = 1 #32
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
@@ -94,11 +96,11 @@ use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
-fem_mesh_resolution = 1
+fem_mesh_resolution = 0.5
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neo_hookean"
+output_subdirectory = f"{output_date}_pinn_neohookean_E_240_nu_035_col_4096_bc_128_full_batch_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
