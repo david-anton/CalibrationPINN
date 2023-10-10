@@ -8,10 +8,12 @@ from parametricpinn.ansatz import (
     StandardAnsatz,
     create_standard_normalized_hbc_ansatz_2D,
 )
-from parametricpinn.data import (
+from parametricpinn.data.trainingdata_elasticity_2d import (
     TrainingDataset2D,
-    ValidationDataset2D,
     create_training_dataset_2D,
+)
+from parametricpinn.data.validationdata_elasticity_2d import (
+    ValidationDataset2D,
     create_validation_dataset_2D,
 )
 from parametricpinn.fem import (

@@ -27,10 +27,12 @@ from parametricpinn.calibration.bayesianinference.plot import (
     plot_posterior_normal_distributions,
 )
 from parametricpinn.calibration.utility import load_model
-from parametricpinn.data import (
+from parametricpinn.data.trainingdata_elasticity_2d import (
     TrainingDataset2D,
-    ValidationDataset2D,
     create_training_dataset_2D,
+)
+from parametricpinn.data.validationdata_elasticity_2d import (
+    ValidationDataset2D,
     create_validation_dataset_2D,
 )
 from parametricpinn.fem import (

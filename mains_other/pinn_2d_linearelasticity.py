@@ -11,13 +11,15 @@ from parametricpinn.ansatz import (
     StandardAnsatz,
     create_standard_normalized_hbc_ansatz_2D,
 )
-from parametricpinn.data import (
+from parametricpinn.data.trainingdata_elasticity_2d import (
     TrainingData2DCollocation,
     TrainingData2DSymmetryBC,
     TrainingData2DTractionBC,
     collate_training_data_2D,
-    collate_validation_data_2D,
     create_training_dataset_2D,
+)
+from parametricpinn.data.validationdata_elasticity_2d import (
+    collate_validation_data_2D,
     create_validation_dataset_2D,
 )
 from parametricpinn.fem import (
@@ -37,7 +39,7 @@ from parametricpinn.postprocessing.plot import (
     plot_valid_history,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.loss_2d import (
+from parametricpinn.training.loss_2d.momentum_linearelasticity import (
     momentum_equation_func_factory,
     strain_energy_func_factory,
     stress_func_factory,
