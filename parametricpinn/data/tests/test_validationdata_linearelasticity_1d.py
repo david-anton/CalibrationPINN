@@ -1,12 +1,12 @@
 import pytest
 import torch
 
-from parametricpinn.data import (
+from parametricpinn.data.tests.testdoubles import FakeGeometry1D
+from parametricpinn.data.validationdata_linearelasticity_1d import (
     ValidationDataset1D,
     calculate_displacements_solution_1D,
     collate_validation_data_1D,
 )
-from parametricpinn.data.tests.testdoubles import FakeGeometry1D
 from parametricpinn.settings import set_seed
 from parametricpinn.types import Tensor
 

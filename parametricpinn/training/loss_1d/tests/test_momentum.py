@@ -2,7 +2,10 @@ import pytest
 import torch
 import torch.nn as nn
 
-from parametricpinn.training.loss_1d import momentum_equation_func, traction_func
+from parametricpinn.training.loss_1d.momentum_linearelasticity import (
+    momentum_equation_func,
+    traction_func,
+)
 from parametricpinn.types import Module, Tensor
 
 youngs_modulus = 1.0

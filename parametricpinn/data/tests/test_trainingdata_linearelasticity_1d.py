@@ -1,13 +1,13 @@
 import pytest
 import torch
 
-from parametricpinn.data import (
+from parametricpinn.data.tests.testdoubles import FakeGeometry1D
+from parametricpinn.data.trainingdata_linearelasticity_1d import (
     TrainingData1DPDE,
     TrainingData1DStressBC,
     TrainingDataset1D,
     collate_training_data_1D,
 )
-from parametricpinn.data.tests.testdoubles import FakeGeometry1D
 from parametricpinn.types import Tensor
 
 length = 0.0

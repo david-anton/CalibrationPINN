@@ -2,7 +2,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from parametricpinn.training.loss_2d import (
+from parametricpinn.training.loss_2d.momentum_linearelasticity import (
     momentum_equation_func_factory,
     strain_energy_func_factory,
     stress_func_factory,

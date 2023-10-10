@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 import torch
 
-from parametricpinn.data import (
+from parametricpinn.data.validationdata_elasticity_2d import (
     ValidationDataset2D,
     collate_validation_data_2D,
     create_validation_dataset_2D,

@@ -5,14 +5,14 @@ import pytest
 import torch
 from shapely.geometry import Point, Polygon, box
 
-from parametricpinn.data import (
+from parametricpinn.data.geometry import PlateWithHole
+from parametricpinn.data.trainingdata_elasticity_2d import (
     TrainingData2DCollocation,
     TrainingData2DSymmetryBC,
     TrainingData2DTractionBC,
     TrainingDataset2D,
     collate_training_data_2D,
 )
-from parametricpinn.data.geometry import PlateWithHole
 from parametricpinn.types import Tensor
 
 edge_length = 10.0
