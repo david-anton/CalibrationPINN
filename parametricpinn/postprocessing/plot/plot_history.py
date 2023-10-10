@@ -1,9 +1,6 @@
 import matplotlib.pyplot as plt
-import torch
 
-from parametricpinn.data import calculate_displacements_solution_1D
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.types import Module
 
 
 class HistoryPlotterConfig:

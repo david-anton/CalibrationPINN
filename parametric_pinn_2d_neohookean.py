@@ -71,9 +71,9 @@ max_poissons_ratio = min_poissons_ratio
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Training
-num_samples_per_parameter = 1 #32
-num_collocation_points = 4096 #64
-number_points_per_bc = 128 #32
+num_samples_per_parameter = 1  # 32
+num_collocation_points = 4096  # 64
+number_points_per_bc = 128  # 32
 training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 10000
 weight_pde_loss = 1.0
@@ -84,7 +84,7 @@ regenerate_valid_data = True
 input_subdir_valid = (
     "20231010_validation_data_neohookean_E_240_nu_035_edge_100_radius_10_traction_100"
 )
-num_samples_valid = 1 #32
+num_samples_valid = 1  # 32
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
