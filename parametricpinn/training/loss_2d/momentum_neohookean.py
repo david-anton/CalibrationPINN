@@ -77,7 +77,9 @@ def _divergence_stress_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) ->
     stress_yy_y = torch.unsqueeze(
         grad(_stress_func, argnums=1)(x_coor[0], x_coor[1], 1, 1), dim=0
     )
-    return torch.concat((stress_xx_x + stress_xy_y, stress_xy_x + stress_yy_y), dim=0)
+    divergence_stress = torch.concat((stress_xx_x + stress_xy_y, stress_xy_x + stress_yy_y), dim=0)
+    print(f"Div sigma: {divergence_stress}")
+    return divergence_stress
 
 
 def _traction_func(
@@ -94,20 +96,23 @@ def _first_piola_stress_tensor(
     ansatz: TModule, x_coor: Tensor, x_param: Tensor
 ) -> Tensor:
     F = _deformation_gradient_func(ansatz, x_coor, x_param)
+    print(f"F: {F}")
     free_energy_func = lambda deformation_gradient: _free_energy_func(
         deformation_gradient, x_param
     )
+    print(f"Psi: {free_energy_func}")
     return grad(free_energy_func)(F)
 
 
 def _free_energy_func(deformation_gradient: Tensor, x_param: Tensor) -> Tensor:
     # Plane stress assumed
     F = deformation_gradient
-    print(f"F: {F}")
     J = _calculate_determinant(F)
     print(f"J: {J}")
     C = _calculate_right_cuachy_green_tensor(F)
+    print(f"C: {C}")
     I_c = _calculate_first_invariant(C)
+    print(f"I_c: {I_c}")
     param_lambda = _calculate_first_lame_constant_lambda(x_param)
     param_mu = _calculate_second_lame_constant_mu(x_param)
     param_C = param_mu / 2
@@ -164,6 +169,7 @@ def _deformation_gradient_func(
     ansatz: TModule, x_coor: Tensor, x_param: Tensor
 ) -> Tensor:
     jac_u = _jacobian_displacement_func(ansatz, x_coor, x_param)
+    print(f"jac_u: {jac_u}")
     I = torch.eye(n=2, device=jac_u.device)
     return jac_u + I
 
