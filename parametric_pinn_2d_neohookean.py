@@ -96,7 +96,7 @@ use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
-fem_mesh_resolution = 0.5
+fem_mesh_resolution = 1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
