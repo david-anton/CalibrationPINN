@@ -13,17 +13,13 @@ class InputNormalizer(nn.Module):
         self._atol = torch.tensor([1e-7]).to(self._input_ranges.device)
 
     def forward(self, x: Tensor) -> Tensor:
-        normalized_input = (
+        return (
             (
                 ((x - self._min_inputs) + self._atol)
                 / (self._input_ranges + 2 * self._atol)
             )
             * 2.0
         ) - 1.0
-        print("########################")
-        print(f"Normalized input: {normalized_input}")
-        print("########################")
-        return normalized_input
 
 
 class OutputRenormalizer(nn.Module):
