@@ -101,6 +101,7 @@ def _first_piola_stress_tensor(
 
 
 def _free_energy_func(deformation_gradient: Tensor, x_param: Tensor) -> Tensor:
+    # Formulation for plane stress
     F = deformation_gradient
     J = _calculate_determinant(F)
     I_c = _right_cuachy_green_tensor_func(F)

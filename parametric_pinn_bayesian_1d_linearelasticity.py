@@ -18,7 +18,7 @@ from parametricpinn.postprocessing.plot import (
     plot_bayesian_displacements_1D,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.training_bayesian_linearelasticity1d import (
+from parametricpinn.training.training_bayesian_linearelasticity_1d import (
     MeasurementsStds,
     ParameterPriorStds,
     TrainingConfiguration,

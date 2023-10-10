@@ -24,7 +24,10 @@ from parametricpinn.data import (
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import ParameterPriorStds
-from parametricpinn.training.loss_1d import momentum_equation_func, traction_func
+from parametricpinn.training.loss_1d.momentum_linearelasticity import (
+    momentum_equation_func,
+    traction_func,
+)
 from parametricpinn.types import Device, Tensor
 
 
@@ -177,33 +180,33 @@ def train_parametric_pinn(
     initial_parameters = prior.sample().to(device)
     leapfrog_step_sizes = torch.full(parameters_shape, 1e-6, device=device)
 
-    # mcmc_config = EfficientNUTSConfig(
-    #     initial_parameters=initial_parameters,
-    #     num_iterations=number_mcmc_iterations,
-    #     likelihood=likelihood,
-    #     prior=prior,
-    #     num_burn_in_iterations=int(2e3),
-    #     leapfrog_step_sizes=leapfrog_step_sizes,
-    #     max_tree_depth=10,  # = 1024 steps
-    # )
-    mcmc_config = MetropolisHastingsConfig(
+    mcmc_config = EfficientNUTSConfig(
         initial_parameters=initial_parameters,
         num_iterations=number_mcmc_iterations,
         likelihood=likelihood,
         prior=prior,
-        num_burn_in_iterations=int(1e6),
-        cov_proposal_density=torch.diag(
-            torch.pow(
-                torch.full_like(
-                    initial_parameters,
-                    math.sqrt(0.01),
-                    dtype=torch.float64,
-                    device=device,
-                ),
-                2,
-            )
-        ),
+        num_burn_in_iterations=int(2e3),
+        leapfrog_step_sizes=leapfrog_step_sizes,
+        max_tree_depth=10,  # = 1024 steps
     )
+    # mcmc_config = MetropolisHastingsConfig(
+    #     initial_parameters=initial_parameters,
+    #     num_iterations=number_mcmc_iterations,
+    #     likelihood=likelihood,
+    #     prior=prior,
+    #     num_burn_in_iterations=int(1e6),
+    #     cov_proposal_density=torch.diag(
+    #         torch.pow(
+    #             torch.full_like(
+    #                 initial_parameters,
+    #                 math.sqrt(0.01),
+    #                 dtype=torch.float64,
+    #                 device=device,
+    #             ),
+    #             2,
+    #         )
+    #     ),
+    # )
 
     start = perf_counter()
     posterior_moments, samples = calibrate(mcmc_config, device)

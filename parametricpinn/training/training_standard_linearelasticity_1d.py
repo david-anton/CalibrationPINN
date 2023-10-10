@@ -20,7 +20,10 @@ from parametricpinn.postprocessing.plot import (
     plot_loss_history,
     plot_valid_history,
 )
-from parametricpinn.training.loss_1d import momentum_equation_func, traction_func
+from parametricpinn.training.loss_1d.momentum_linearelasticity import (
+    momentum_equation_func,
+    traction_func,
+)
 from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm
 from parametricpinn.types import Device, Tensor
 
