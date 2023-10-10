@@ -6,10 +6,12 @@ from parametricpinn.ansatz import (
     BayesianAnsatz,
     create_bayesian_normalized_hbc_ansatz_1D,
 )
-from parametricpinn.data import (
+from parametricpinn.data.trainingdata_linearelasticity_1d import (
     TrainingDataset1D,
-    calculate_displacements_solution_1D,
     create_training_dataset_1D,
+)
+from parametricpinn.data.validationdata_linearelasticity_1d import (
+    calculate_displacements_solution_1D,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import BFFNN

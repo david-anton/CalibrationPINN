@@ -23,11 +23,13 @@ from parametricpinn.calibration.bayesianinference.plot import (
     plot_posterior_normal_distributions,
 )
 from parametricpinn.calibration.utility import load_model
-from parametricpinn.data import (
+from parametricpinn.data.trainingdata_linearelasticity_1d import (
     TrainingDataset1D,
+    create_training_dataset_1D,
+)
+from parametricpinn.data.validationdata_linearelasticity_1d import (
     ValidationDataset1D,
     calculate_displacements_solution_1D,
-    create_training_dataset_1D,
     create_validation_dataset_1D,
 )
 from parametricpinn.io import ProjectDirectory

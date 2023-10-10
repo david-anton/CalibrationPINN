@@ -31,6 +31,7 @@ class ValidationDataset1D(Dataset):
         num_points: int,
         num_samples: int,
     ) -> None:
+        super().__init__()
         self._geometry = geometry
         self._traction = traction
         self._volume_force = volume_force
