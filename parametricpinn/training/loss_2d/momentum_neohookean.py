@@ -120,7 +120,8 @@ def _free_energy_func(deformation_gradient: Tensor, x_param: Tensor) -> Tensor:
     param_mu = _calculate_second_lame_constant_mu(x_param)
     param_C = param_mu / 2
     param_D = param_lambda / 2
-    free_energy = I_c 
+    print(f"Determinat: {torch.isfinite(J)}")
+    free_energy = J 
     # free_energy = param_C * (I_c - 2 - 2 * torch.log(J)) + param_D * (J - 1) ** 2
     return torch.squeeze(free_energy, 0)
 
