@@ -78,7 +78,7 @@ def _divergence_stress_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) ->
         grad(_stress_func, argnums=1)(x_coor[0], x_coor[1], 1, 1), dim=0
     )
     divergence_stress = torch.concat((stress_xx_x + stress_xy_y, stress_xy_x + stress_yy_y), dim=0)
-    print(f"Div sigma: {divergence_stress}")
+    # print(f"Div sigma: {divergence_stress}")
     return divergence_stress
 
 
@@ -96,11 +96,11 @@ def _first_piola_stress_tensor(
     ansatz: TModule, x_coor: Tensor, x_param: Tensor
 ) -> Tensor:
     F = _deformation_gradient_func(ansatz, x_coor, x_param)
-    print(f"F: {F}")
+    # print(f"F: {F}")
     free_energy_func = lambda deformation_gradient: _free_energy_func(
         deformation_gradient, x_param
     )
-    print(f"Psi: {free_energy_func(F)}")
+    # print(f"Psi: {free_energy_func(F)}")
     return grad(free_energy_func)(F)
 
 
@@ -108,11 +108,11 @@ def _free_energy_func(deformation_gradient: Tensor, x_param: Tensor) -> Tensor:
     # Plane stress assumed
     F = deformation_gradient
     J = _calculate_determinant(F)
-    print(f"J: {J}")
+    # print(f"J: {J}")
     C = _calculate_right_cuachy_green_tensor(F)
-    print(f"C: {C}")
+    # print(f"C: {C}")
     I_c = _calculate_first_invariant(C)
-    print(f"I_c: {I_c}")
+    # print(f"I_c: {I_c}")
     param_lambda = _calculate_first_lame_constant_lambda(x_param)
     param_mu = _calculate_second_lame_constant_mu(x_param)
     param_C = param_mu / 2
@@ -182,6 +182,7 @@ def _jacobian_displacement_func(
 
 
 def _displacement_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
+    print(f"Is displacement nan or inf: {torch.all(torch.isfinite(ansatz(x_coor, x_param)))}")
     return ansatz(x_coor, x_param)
 
 
