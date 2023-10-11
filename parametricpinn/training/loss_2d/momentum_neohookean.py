@@ -100,7 +100,6 @@ def _first_piola_stress_tensor(
     free_energy_func = lambda deformation_gradient: _free_energy_func(
         deformation_gradient, x_param
     )
-    print(f"Psi: {free_energy_func}")
     return grad(free_energy_func)(F)
 
 
@@ -117,7 +116,8 @@ def _free_energy_func(deformation_gradient: Tensor, x_param: Tensor) -> Tensor:
     param_mu = _calculate_second_lame_constant_mu(x_param)
     param_C = param_mu / 2
     param_D = param_lambda / 2
-    free_energy = param_C * (I_c - 2 - 2 * torch.log(J)) + param_D * (J - 1) ** 2
+    free_energy = J
+    # free_energy = param_C * (I_c - 2 - 2 * torch.log(J)) + param_D * (J - 1) ** 2
     return torch.squeeze(free_energy, 0)
 
 
