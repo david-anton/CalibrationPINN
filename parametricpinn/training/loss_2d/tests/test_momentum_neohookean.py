@@ -60,7 +60,10 @@ def calculate_second_lame_constant_mu(x_parameters: Tensor) -> Tensor:
 #     free_energy = param_C * (I_c - 2 - 2 * torch.log(J)) + param_D * (J - 1) ** 2
 #     return torch.squeeze(free_energy, 0)
 
-def calculate_first_piola_stress_tensor(deformation_gradient: Tensor, x_parameters: Tensor) -> Tensor:
+
+def calculate_first_piola_stress_tensor(
+    deformation_gradient: Tensor, x_parameters: Tensor
+) -> Tensor:
     # Plane stress assumed
     F = deformation_gradient
     T_inv_F = torch.transpose(torch.inverse(F), 0, 1)
@@ -200,6 +203,7 @@ def test_calculate_determinant() -> None:
 #     expected = calculate_free_energy(deformation_gradient, x_parameters)
 #     torch.testing.assert_close(actual, expected)
 
+
 @pytest.mark.parametrize(
     ("x_coordinates", "x_parameters"),
     [
@@ -217,7 +221,9 @@ def test_calculate_determinant() -> None:
         ),
     ],
 )
-def test_first_piola_stress_tensor_func(fake_ansatz: Module, x_coordinates: Tensor, x_parameters: Tensor) -> None:
+def test_first_piola_stress_tensor_func(
+    fake_ansatz: Module, x_coordinates: Tensor, x_parameters: Tensor
+) -> None:
     sut = _first_piola_stress_tensor_func
 
     actual = sut(fake_ansatz, x_coordinates, x_parameters)
