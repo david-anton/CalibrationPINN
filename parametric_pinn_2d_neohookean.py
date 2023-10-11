@@ -64,43 +64,43 @@ traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-min_youngs_modulus = 2400.0
-max_youngs_modulus = min_youngs_modulus
-min_poissons_ratio = 0.35
-max_poissons_ratio = min_poissons_ratio
+min_youngs_modulus = 1000.0
+max_youngs_modulus = 3000.0
+min_poissons_ratio = 0.2
+max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Training
-num_samples_per_parameter = 1  # 32
-num_collocation_points = 4  # 64
-number_points_per_bc = 2  # 32
+num_samples_per_parameter = 32
+num_collocation_points = 64
+number_points_per_bc = 32
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 10  # 10000
+number_training_epochs = 20000
 weight_pde_loss = 1.0
 weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
 input_subdir_valid = (
-    "20231010_validation_data_neohookean_E_240_nu_035_edge_100_radius_10_traction_100"
+    "20231011_validation_data_neohookean_E_1000_3000_nu_02_04_edge_100_radius_10_traction_100"
 )
-num_samples_valid = 1  # 32
+num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
-use_hamiltonian = False
-use_efficient_nuts = False
+use_hamiltonian = True
+use_efficient_nuts = True
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
-fem_mesh_resolution = 1
+fem_mesh_resolution = 0.5
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_neohookean_E_240_nu_035_col_4096_bc_128_full_batch_neurons_4_32"
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_64_bc_32_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -289,11 +289,10 @@ def training_step() -> None:
         displacements_plotter_config = DisplacementsPlotterConfigPWH()
         youngs_modulus_and_poissons_ratio_list = [
             (min_youngs_modulus, min_poissons_ratio),
-            # (210000, 0.3),
-            # (180000, 0.2),
-            # (180000, 0.4),
-            # (240000, 0.2),
-            # (240000, 0.4),
+            (min_youngs_modulus, max_poissons_ratio),
+            (max_youngs_modulus, min_poissons_ratio),
+            (max_youngs_modulus, max_poissons_ratio),
+            (2000, 0.3),
         ]
         youngs_moduli, poissons_ratios = zip(*youngs_modulus_and_poissons_ratio_list)
 
@@ -325,8 +324,8 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    exact_youngs_modulus = 2100
-    exact_poissons_ratio = 0.37
+    exact_youngs_modulus = 1700
+    exact_poissons_ratio = 0.34
     num_data_points = 128
     std_noise = 5 * 1e-4
 
@@ -383,10 +382,6 @@ def calibration_step() -> None:
     )
 
     coordinates, noisy_displacements = generate_calibration_data()
-    print(f"Coordinates: {coordinates}")
-    print(f"Noisy displacements: {noisy_displacements}")
-    print(f"Coordinates: {torch.all(torch.isfinite(coordinates))}")
-    print(f"Noisy displacements: {torch.all(torch.isfinite(noisy_displacements))}")
     data = CalibrationData(
         inputs=coordinates,
         outputs=noisy_displacements,
@@ -394,9 +389,9 @@ def calibration_step() -> None:
     )
     likelihood = create_ppinn_likelihood(ansatz=model, data=data, device=device)
 
-    prior_mean_youngs_modulus = 2400
+    prior_mean_youngs_modulus = 2000
     prior_std_youngs_modulus = 100
-    prior_mean_poissons_ratio = 0.35
+    prior_mean_poissons_ratio = 0.3
     prior_std_poissons_ratio = 0.015
     prior_means = torch.tensor([prior_mean_youngs_modulus, prior_mean_poissons_ratio])
     prior_standard_deviations = torch.tensor(
