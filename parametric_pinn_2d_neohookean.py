@@ -71,7 +71,7 @@ max_poissons_ratio = min_poissons_ratio
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Training
-num_samples_per_parameter = 2  # 32
+num_samples_per_parameter = 1  # 32
 num_collocation_points = 4096  # 64
 number_points_per_bc = 128  # 32
 training_batch_size = num_samples_per_parameter**2
