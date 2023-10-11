@@ -104,7 +104,6 @@ def _first_piola_stress_tensor(
     )
     stress = free_energy_func(F)
     # stress = grad(free_energy_func)(F)
-    print(f"Sigma: {stress}")
     return stress
 
 
