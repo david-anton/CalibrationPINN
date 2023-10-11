@@ -78,7 +78,7 @@ def _divergence_stress_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) ->
         grad(_stress_func, argnums=1)(x_coor[0], x_coor[1], 1, 1), dim=0
     )
     divergence_stress = torch.concat((stress_xx_x + stress_xy_y, stress_xy_x + stress_yy_y), dim=0)
-    # print(f"Div sigma: {divergence_stress}")
+    print(f"Div sigma: {divergence_stress}")
     return divergence_stress
 
 
@@ -89,7 +89,9 @@ def _traction_func(
     normal: Tensor,
 ) -> Tensor:
     stress = _first_piola_stress_tensor(ansatz, x_coor, x_param)
-    return torch.matmul(stress, normal)
+    traction = torch.matmul(stress, normal)
+    # print(f"Traction: {traction}")
+    return traction
 
 
 def _first_piola_stress_tensor(
@@ -100,7 +102,9 @@ def _first_piola_stress_tensor(
     free_energy_func = lambda deformation_gradient: _free_energy_func(
         deformation_gradient, x_param
     )
-    return grad(free_energy_func)(F)
+    stress = grad(free_energy_func)(F)
+    print(f"Sigma: {stress}")
+    return stress
 
 
 def _free_energy_func(deformation_gradient: Tensor, x_param: Tensor) -> Tensor:
@@ -169,7 +173,7 @@ def _deformation_gradient_func(
     ansatz: TModule, x_coor: Tensor, x_param: Tensor
 ) -> Tensor:
     jac_u = _jacobian_displacement_func(ansatz, x_coor, x_param)
-    print(f"jac_u: {jac_u}")
+    # print(f"jac_u: {jac_u}")
     I = torch.eye(n=2, device=jac_u.device)
     return jac_u + I
 
@@ -182,7 +186,7 @@ def _jacobian_displacement_func(
 
 
 def _displacement_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
-    print(f"Is displacement finite: {torch.isfinite(ansatz(x_coor, x_param))}")
+    # print(f"Is displacement finite: {torch.isfinite(ansatz(x_coor, x_param))}")
     return ansatz(x_coor, x_param)
 
 
