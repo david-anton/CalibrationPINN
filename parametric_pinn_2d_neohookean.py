@@ -321,9 +321,6 @@ def training_step() -> None:
 
     train_parametric_pinn(train_config=train_config)
     _plot_exemplary_displacement_fields()
-    print("Traines model")
-    for params in ansatz.parameters():
-        print(torch.all(torch.isfinite(params)))
 
 
 def calibration_step() -> None:
@@ -384,11 +381,12 @@ def calibration_step() -> None:
         project_directory=project_directory,
         device=device,
     )
-    print("Loaded model")
-    for params in model.parameters():
-        print(torch.all(torch.isfinite(params)))
 
     coordinates, noisy_displacements = generate_calibration_data()
+    print(f"Coordinates: {coordinates}")
+    print(f"Noisy displacements: {noisy_displacements}")
+    print(f"Coordinates: {torch.all(torch.isfinite(coordinates))}")
+    print(f"Noisy displacements: {torch.all(torch.isfinite(noisy_displacements))}")
     data = CalibrationData(
         inputs=coordinates,
         outputs=noisy_displacements,
