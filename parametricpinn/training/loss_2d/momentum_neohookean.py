@@ -102,7 +102,8 @@ def _first_piola_stress_tensor(
     free_energy_func = lambda deformation_gradient: _free_energy_func(
         deformation_gradient, x_param
     )
-    stress = grad(free_energy_func)(F)
+    stress = free_energy_func(F)
+    # stress = grad(free_energy_func)(F)
     print(f"Sigma: {stress}")
     return stress
 
@@ -110,9 +111,7 @@ def _first_piola_stress_tensor(
 def _free_energy_func(deformation_gradient: Tensor, x_param: Tensor) -> Tensor:
     # Plane stress assumed
     F = deformation_gradient
-    log_J = _calculate_log_determinant(F)
     J = _calculate_determinant(F)
-    # print(f"J: {J}")
     C = _calculate_right_cuachy_green_tensor(F)
     # print(f"C: {C}")
     I_c = _calculate_first_invariant(C)
@@ -122,14 +121,8 @@ def _free_energy_func(deformation_gradient: Tensor, x_param: Tensor) -> Tensor:
     param_C = param_mu / 2
     param_D = param_lambda / 2
     print(f"Determinat: {J}")
-    free_energy = param_C * (I_c - 2 - 2 * log_J) + param_D * (torch.exp(J) - 1) ** 2
-    #free_energy = param_C * (I_c - 2 - 2 * torch.log(J)) + param_D * (J - 1) ** 2
+    free_energy = param_C * (I_c - 2 - 2 * torch.log(J)) + param_D * (J - 1) ** 2
     return torch.squeeze(free_energy, 0)
-
-
-def _calculate_log_determinant(tensor: Tensor) -> Tensor:
-    determinant = torch.logdet(tensor)
-    return torch.unsqueeze(determinant, dim=0)
 
 
 def _calculate_determinant(tensor: Tensor) -> Tensor:
