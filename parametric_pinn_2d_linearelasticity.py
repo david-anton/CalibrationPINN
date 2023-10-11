@@ -83,7 +83,7 @@ weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
 input_subdir_valid = (
-    "20231005_validation_data_E_180k_240k_nu_02_04_edge_100_radius_10_traction_100"
+    "20231011_validation_data_E_180k_240k_nu_02_04_edge_100_radius_10_traction_100"
 )
 num_samples_valid = 32
 validation_interval = 1
@@ -92,8 +92,8 @@ batch_size_valid = num_samples_valid
 # Calibration
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
-use_hamiltonian = False
-use_efficient_nuts = False
+use_hamiltonian = True
+use_efficient_nuts = True
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
@@ -101,7 +101,7 @@ fem_mesh_resolution = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_32_col_64_bc_32_full_batch_neurons_4_32"
+output_subdirectory = f"{output_date}_parametric_pinn_E_180k_240k_nu_02_04_samples_32_col_64_bc_32_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
