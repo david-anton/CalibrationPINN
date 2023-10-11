@@ -1,25 +1,27 @@
 from typing import Callable, TypeAlias
 
 import torch
+from torch.func import vmap
 
 from parametricpinn.training.loss_2d.momentumbase import (
     MomentumFunc,
-    StrainEnergyFunc,
     StressFunc,
     StressFuncSingle,
     TModule,
     TractionEnergyFunc,
     TractionFunc,
-    _strain_func,
+    _transform_ansatz,
+    jacobian_displacement_func,
     momentum_equation_func,
-    strain_energy_func,
     stress_func,
     traction_energy_func,
     traction_func,
 )
-from parametricpinn.types import Tensor
+from parametricpinn.types import Module, Tensor
 
 VoigtMaterialTensorFunc: TypeAlias = Callable[[Tensor], Tensor]
+StrainFunc: TypeAlias = Callable[[TModule, Tensor, Tensor], Tensor]
+StrainEnergyFunc: TypeAlias = Callable[[Module, Tensor, Tensor, Tensor], Tensor]
 
 
 def momentum_equation_func_factory(model: str) -> MomentumFunc:
@@ -45,6 +47,21 @@ def strain_energy_func_factory(model: str) -> StrainEnergyFunc:
 def traction_energy_func_factory(model: str) -> TractionEnergyFunc:
     stress_func_single_input = _get_stress_func(model)
     return traction_energy_func(stress_func_single_input)
+
+
+def strain_energy_func(stress_func: StressFuncSingle) -> StrainEnergyFunc:
+    def _func(
+        ansatz: Module, x_coors: Tensor, x_params: Tensor, area: Tensor
+    ) -> Tensor:
+        _ansatz = _transform_ansatz(ansatz)
+        vmap_func = lambda _x_coor, _x_param: _strain_energy_func(
+            _ansatz, _x_coor, _x_param, stress_func
+        )
+        strain_energies = vmap(vmap_func)(x_coors, x_params)
+        num_collocation_points = x_coors.size(dim=0)
+        return 1 / 2 * (area / num_collocation_points) * torch.sum(strain_energies)
+
+    return _func
 
 
 def _get_stress_func(model: str) -> StressFuncSingle:
@@ -147,3 +164,19 @@ def _voigt_strain_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tens
     strain_yy = torch.unsqueeze(strain[1, 1], dim=0)
     strain_xy = torch.unsqueeze(strain[0, 1], dim=0)
     return torch.concat((strain_xx, strain_yy, 2 * strain_xy), dim=0)
+
+
+def _strain_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
+    jac_u = jacobian_displacement_func(ansatz, x_coor, x_param)
+    return 1 / 2 * (jac_u + torch.transpose(jac_u, 0, 1))
+
+
+def _strain_energy_func(
+    ansatz: TModule,
+    x_coor: Tensor,
+    x_param: Tensor,
+    stress_func: StressFuncSingle,
+) -> Tensor:
+    stress = stress_func(ansatz, x_coor, x_param)
+    strain = _strain_func(ansatz, x_coor, x_param)
+    return torch.unsqueeze(torch.einsum("ij,ij", stress, strain), dim=0)

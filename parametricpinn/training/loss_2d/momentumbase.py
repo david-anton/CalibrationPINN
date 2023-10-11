@@ -7,11 +7,9 @@ from parametricpinn.types import Module, Tensor
 
 TModule: TypeAlias = Callable[[Tensor, Tensor], Tensor]
 StressFuncSingle: TypeAlias = Callable[[TModule, Tensor, Tensor], Tensor]
-StrainFunc: TypeAlias = Callable[[TModule, Tensor, Tensor], Tensor]
 MomentumFunc: TypeAlias = Callable[[Module, Tensor, Tensor, Tensor], Tensor]
 StressFunc: TypeAlias = Callable[[Module, Tensor, Tensor], Tensor]
 TractionFunc: TypeAlias = Callable[[Module, Tensor, Tensor, Tensor], Tensor]
-StrainEnergyFunc: TypeAlias = Callable[[Module, Tensor, Tensor, Tensor], Tensor]
 TractionEnergyFunc: TypeAlias = Callable[
     [Module, Tensor, Tensor, Tensor, Tensor], Tensor
 ]
@@ -48,21 +46,6 @@ def traction_func(stress_func: StressFuncSingle) -> TractionFunc:
             _ansatz, _x_coor, _x_param, _normal, stress_func
         )
         return vmap(vmap_func)(x_coors, x_params, normals)
-
-    return _func
-
-
-def strain_energy_func(stress_func: StressFuncSingle) -> StrainEnergyFunc:
-    def _func(
-        ansatz: Module, x_coors: Tensor, x_params: Tensor, area: Tensor
-    ) -> Tensor:
-        _ansatz = _transform_ansatz(ansatz)
-        vmap_func = lambda _x_coor, _x_param: _strain_energy_func(
-            _ansatz, _x_coor, _x_param, stress_func
-        )
-        strain_energies = vmap(vmap_func)(x_coors, x_params)
-        num_collocation_points = x_coors.size(dim=0)
-        return 1 / 2 * (area / num_collocation_points) * torch.sum(strain_energies)
 
     return _func
 
@@ -107,17 +90,6 @@ def _traction_func(
     return torch.matmul(stress, normal)
 
 
-def _strain_energy_func(
-    ansatz: TModule,
-    x_coor: Tensor,
-    x_param: Tensor,
-    stress_func: StressFuncSingle,
-) -> Tensor:
-    stress = stress_func(ansatz, x_coor, x_param)
-    strain = _strain_func(ansatz, x_coor, x_param)
-    return torch.unsqueeze(torch.einsum("ij,ij", stress, strain), dim=0)
-
-
 def _traction_energy_func(
     ansatz: TModule,
     x_coor: Tensor,
@@ -155,12 +127,7 @@ def _divergence_stress_func(
     return torch.concat((stress_xx_x + stress_xy_y, stress_xy_x + stress_yy_y), dim=0)
 
 
-def _strain_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
-    jac_u = _jacobian_displacement_func(ansatz, x_coor, x_param)
-    return 1 / 2 * (jac_u + torch.transpose(jac_u, 0, 1))
-
-
-def _jacobian_displacement_func(
+def jacobian_displacement_func(
     ansatz: TModule, x_coor: Tensor, x_param: Tensor
 ) -> Tensor:
     displacement_func = lambda _x_coor: _displacement_func(ansatz, _x_coor, x_param)
