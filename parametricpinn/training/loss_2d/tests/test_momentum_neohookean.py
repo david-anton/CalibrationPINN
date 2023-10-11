@@ -3,12 +3,10 @@ import torch
 
 from parametricpinn.training.loss_2d.momentum_neohookean import (
     _calculate_determinant,
-    _calculate_first_invariant,
     _calculate_first_lame_constant_lambda,
-    _calculate_right_cuachy_green_tensor,
     _calculate_second_lame_constant_mu,
     _deformation_gradient_func,
-    _free_energy_func,
+    _first_piola_stress_tensor_func,
 )
 from parametricpinn.training.loss_2d.tests.testdoubles import TransformedFakeAnsatz
 from parametricpinn.types import Module, Tensor
@@ -22,9 +20,9 @@ def fake_ansatz() -> Module:
     return TransformedFakeAnsatz(constant_displacement_x, constant_displacement_y)
 
 
-def calculate_single_deformation_gradient(x_coordinate: Tensor) -> Tensor:
-    coordinate_x = x_coordinate[0]
-    coordinate_y = x_coordinate[1]
+def calculate_single_deformation_gradient(x_coordinates: Tensor) -> Tensor:
+    coordinate_x = x_coordinates[0]
+    coordinate_y = x_coordinates[1]
     identity = torch.eye(n=2)
     jacobian_displacement = torch.tensor(
         [
@@ -49,18 +47,29 @@ def calculate_second_lame_constant_mu(x_parameters: Tensor) -> Tensor:
     return torch.unsqueeze(mu_, dim=0)
 
 
-def calculate_free_energy(deformation_gradient: Tensor, x_param: Tensor) -> Tensor:
+# def calculate_free_energy(deformation_gradient: Tensor, x_param: Tensor) -> Tensor:
+#     # Plane stress assumed
+#     F = deformation_gradient
+#     J = torch.det(F)
+#     C = torch.matmul(F.T, F)
+#     I_c = torch.trace(C)
+#     param_lambda = calculate_first_lame_constant_lambda(x_param)
+#     param_mu = calculate_second_lame_constant_mu(x_param)
+#     param_C = param_mu / 2
+#     param_D = param_lambda / 2
+#     free_energy = param_C * (I_c - 2 - 2 * torch.log(J)) + param_D * (J - 1) ** 2
+#     return torch.squeeze(free_energy, 0)
+
+def calculate_first_piola_stress_tensor(deformation_gradient: Tensor, x_parameters: Tensor) -> Tensor:
     # Plane stress assumed
     F = deformation_gradient
-    J = torch.det(F)
-    C = torch.matmul(F.T, F)
-    I_c = torch.trace(C)
-    param_lambda = calculate_first_lame_constant_lambda(x_param)
-    param_mu = calculate_second_lame_constant_mu(x_param)
+    T_inv_F = torch.transpose(torch.inverse(F), 0, 1)
+    det_F = _calculate_determinant(F)
+    param_lambda = calculate_first_lame_constant_lambda(x_parameters)
+    param_mu = calculate_second_lame_constant_mu(x_parameters)
     param_C = param_mu / 2
     param_D = param_lambda / 2
-    free_energy = param_C * (I_c - 2 - 2 * torch.log(J)) + param_D * (J - 1) ** 2
-    return torch.squeeze(free_energy, 0)
+    return 2 * param_C * (F - T_inv_F) + 2 * param_D * (det_F - 1) * T_inv_F
 
 
 @pytest.mark.parametrize(
@@ -123,20 +132,20 @@ def test_calculate_second_lame_constant_mu(
     torch.testing.assert_close(actual, expected)
 
 
-def test_calculate_right_cuachy_green_tensor() -> None:
-    a = 1.0
-    b = 2.0
-    c = 3.0
-    d = 4.0
-    deformation_gradient = torch.tensor([[a, b], [c, d]])
-    sut = _calculate_right_cuachy_green_tensor
+# def test_calculate_right_cuachy_green_tensor() -> None:
+#     a = 1.0
+#     b = 2.0
+#     c = 3.0
+#     d = 4.0
+#     deformation_gradient = torch.tensor([[a, b], [c, d]])
+#     sut = _calculate_right_cuachy_green_tensor
 
-    actual = sut(deformation_gradient)
+#     actual = sut(deformation_gradient)
 
-    expected = torch.tensor(
-        [[a * a + c * c, b * a + d * c], [a * b + c * d, b * b + d * d]]
-    )
-    torch.testing.assert_close(actual, expected)
+#     expected = torch.tensor(
+#         [[a * a + c * c, b * a + d * c], [a * b + c * d, b * b + d * d]]
+#     )
+#     torch.testing.assert_close(actual, expected)
 
 
 def test_calculate_determinant() -> None:
@@ -153,40 +162,66 @@ def test_calculate_determinant() -> None:
     torch.testing.assert_close(actual, expected)
 
 
-def test_calculate_first_invariant() -> None:
-    a = 1.0
-    b = 2.0
-    c = 3.0
-    d = 4.0
-    tensor = torch.tensor([[a, b], [c, d]])
-    sut = _calculate_first_invariant
+# def test_calculate_first_invariant() -> None:
+#     a = 1.0
+#     b = 2.0
+#     c = 3.0
+#     d = 4.0
+#     tensor = torch.tensor([[a, b], [c, d]])
+#     sut = _calculate_first_invariant
 
-    actual = sut(tensor)
+#     actual = sut(tensor)
 
-    expected = torch.tensor([a + d])
-    torch.testing.assert_close(actual, expected)
+#     expected = torch.tensor([a + d])
+#     torch.testing.assert_close(actual, expected)
 
+
+# @pytest.mark.parametrize(
+#     ("deformation_gradient", "x_parameters"),
+#     [
+#         (
+#             torch.tensor([[1.0, 0.0], [0.0, 1.0]]),
+#             torch.tensor([1.0, 1.0]),
+#         ),
+#         (
+#             torch.tensor([[1.0, 0.5], [0.5, 1.0]]),
+#             torch.tensor([1.0, 1.0]),
+#         ),
+#         (
+#             torch.tensor([[2.0, 1.0], [0.0, 1.0]]),
+#             torch.tensor([1.0, 1.0]),
+#         ),
+#     ],
+# )
+# def test_free_energy_func(deformation_gradient: Tensor, x_parameters: Tensor) -> None:
+#     sut = _free_energy_func
+
+#     actual = sut(deformation_gradient, x_parameters)
+#     expected = calculate_free_energy(deformation_gradient, x_parameters)
+#     torch.testing.assert_close(actual, expected)
 
 @pytest.mark.parametrize(
-    ("deformation_gradient", "x_parameters"),
+    ("x_coordinates", "x_parameters"),
     [
         (
-            torch.tensor([[1.0, 0.0], [0.0, 1.0]]),
-            torch.tensor([1.0, 1.0]),
+            torch.tensor([2.0, 2.0]),
+            torch.tensor([1.0, 2.0]),
         ),
         (
-            torch.tensor([[1.0, 0.5], [0.5, 1.0]]),
-            torch.tensor([1.0, 1.0]),
+            torch.tensor([0.0, 0.0]),
+            torch.tensor([1.0, 2.0]),
         ),
         (
-            torch.tensor([[2.0, 1.0], [0.0, 1.0]]),
-            torch.tensor([1.0, 1.0]),
+            torch.tensor([-2.0, -2.0]),
+            torch.tensor([1.0, 2.0]),
         ),
     ],
 )
-def test_free_energy_func(deformation_gradient: Tensor, x_parameters: Tensor) -> None:
-    sut = _free_energy_func
+def test_first_piola_stress_tensor_func(fake_ansatz: Module, x_coordinates: Tensor, x_parameters: Tensor) -> None:
+    sut = _first_piola_stress_tensor_func
 
-    actual = sut(deformation_gradient, x_parameters)
-    expected = calculate_free_energy(deformation_gradient, x_parameters)
+    actual = sut(fake_ansatz, x_coordinates, x_parameters)
+
+    deformation_gradient = calculate_single_deformation_gradient(x_coordinates)
+    expected = calculate_first_piola_stress_tensor(deformation_gradient, x_parameters)
     torch.testing.assert_close(actual, expected)

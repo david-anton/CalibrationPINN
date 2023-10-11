@@ -542,13 +542,9 @@ def _save_plot(
 
 def _get_parameters_from_problem(problem_config: ProblemConfigs) -> NPArray:
     if isinstance(problem_config, LinearElasticityProblemConfig):
-        return np.array(
-            [problem_config.youngs_modulus, problem_config.poissons_ratio]
-        )
+        return np.array([problem_config.youngs_modulus, problem_config.poissons_ratio])
     elif isinstance(problem_config, NeoHookeanProblemConfig):
-        return np.array(
-            [problem_config.youngs_modulus, problem_config.poissons_ratio]
-        )
+        return np.array([problem_config.youngs_modulus, problem_config.poissons_ratio])
     else:
         raise PlottingConfigError(
             f"There is no implementation for the requested FEM problem config {problem_config}."

@@ -27,7 +27,7 @@ def momentum_equation_func_factory() -> MomentumFunc:
 def stress_func_factory() -> StressFunc:
     def _func(ansatz: Module, x_coors: Tensor, x_params: Tensor) -> Tensor:
         _ansatz = _transform_ansatz(ansatz)
-        vmap_func = lambda _x_coor, _x_param: _first_piola_stress_tensor(
+        vmap_func = lambda _x_coor, _x_param: _first_piola_stress_tensor_func(
             _ansatz, _x_coor, _x_param
         )
         return vmap(vmap_func)(x_coors, x_params)
@@ -59,7 +59,7 @@ def _momentum_equation_func(
 
 def _divergence_stress_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
     def _stress_func(x: Tensor, y: Tensor, idx_i: int, idx_j: int):
-        return _first_piola_stress_tensor(
+        return _first_piola_stress_tensor_func(
             ansatz,
             torch.concat((torch.unsqueeze(x, dim=0), torch.unsqueeze(y, dim=0))),
             x_param,
@@ -77,8 +77,10 @@ def _divergence_stress_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) ->
     stress_yy_y = torch.unsqueeze(
         grad(_stress_func, argnums=1)(x_coor[0], x_coor[1], 1, 1), dim=0
     )
-    divergence_stress = torch.concat((stress_xx_x + stress_xy_y, stress_xy_x + stress_yy_y), dim=0)
-    print(f"Div sigma: {divergence_stress}")
+    divergence_stress = torch.concat(
+        (stress_xx_x + stress_xy_y, stress_xy_x + stress_yy_y), dim=0
+    )
+    print(f"div sigma: {divergence_stress}")
     return divergence_stress
 
 
@@ -88,40 +90,46 @@ def _traction_func(
     x_param: Tensor,
     normal: Tensor,
 ) -> Tensor:
-    stress = _first_piola_stress_tensor(ansatz, x_coor, x_param)
-    traction = torch.matmul(stress, normal)
-    # print(f"Traction: {traction}")
-    return traction
+    stress = _first_piola_stress_tensor_func(ansatz, x_coor, x_param)
+    return torch.matmul(stress, normal)
 
 
-def _first_piola_stress_tensor(
+def _first_piola_stress_tensor_func(
     ansatz: TModule, x_coor: Tensor, x_param: Tensor
 ) -> Tensor:
-    F = _deformation_gradient_func(ansatz, x_coor, x_param)
-    # print(f"F: {F}")
-    free_energy_func = lambda deformation_gradient: _free_energy_func(
-        deformation_gradient, x_param
-    )
-    stress = torch.unsqueeze(free_energy_func(F), dim=0).repeat(2,2)
-    # stress = grad(free_energy_func)(F)
-    return stress
-
-
-def _free_energy_func(deformation_gradient: Tensor, x_param: Tensor) -> Tensor:
     # Plane stress assumed
-    F = deformation_gradient
-    J = _calculate_determinant(F)
-    C = _calculate_right_cuachy_green_tensor(F)
-    # print(f"C: {C}")
-    I_c = _calculate_first_invariant(C)
-    # print(f"I_c: {I_c}")
+    F = _deformation_gradient_func(ansatz, x_coor, x_param)
+    T_inv_F = torch.transpose(torch.inverse(F), 0, 1)
+    det_F = _calculate_determinant(F)
     param_lambda = _calculate_first_lame_constant_lambda(x_param)
     param_mu = _calculate_second_lame_constant_mu(x_param)
     param_C = param_mu / 2
     param_D = param_lambda / 2
-    print(f"Determinat: {J}")
-    free_energy = param_C * (I_c - 2 - 2 * torch.log(J)) + param_D * (J - 1) ** 2
-    return torch.squeeze(free_energy, 0)
+    return 2 * param_C * (F - T_inv_F) + 2 * param_D * (det_F - 1) * T_inv_F
+
+
+# def _first_piola_stress_tensor_func(
+#     ansatz: TModule, x_coor: Tensor, x_param: Tensor
+# ) -> Tensor:
+#     F = _deformation_gradient_func(ansatz, x_coor, x_param)
+#     free_energy_func = lambda deformation_gradient: _free_energy_func(
+#         deformation_gradient, x_param
+#     )
+#     return grad(free_energy_func)(F)
+
+
+# def _free_energy_func(deformation_gradient: Tensor, x_param: Tensor) -> Tensor:
+#     # Plane stress assumed
+#     F = deformation_gradient
+#     J = _calculate_determinant(F)
+#     C = _calculate_right_cuachy_green_tensor(F)
+#     I_c = _calculate_first_invariant(C)
+#     param_lambda = _calculate_first_lame_constant_lambda(x_param)
+#     param_mu = _calculate_second_lame_constant_mu(x_param)
+#     param_C = param_mu / 2
+#     param_D = param_lambda / 2
+#     free_energy = param_C * (I_c - 2 - 2 * torch.log(J)) + param_D * (J - 1) ** 2
+#     return torch.squeeze(free_energy, 0)
 
 
 def _calculate_determinant(tensor: Tensor) -> Tensor:
@@ -129,35 +137,31 @@ def _calculate_determinant(tensor: Tensor) -> Tensor:
     return torch.unsqueeze(determinant, dim=0)
 
 
-def _calculate_right_cuachy_green_tensor(deformation_gradient: Tensor) -> Tensor:
-    F = deformation_gradient
-    return torch.matmul(F.T, F)
+# def _calculate_right_cuachy_green_tensor(deformation_gradient: Tensor) -> Tensor:
+#     F = deformation_gradient
+#     return torch.matmul(F.T, F)
 
 
-def _calculate_first_invariant(tensor: Tensor) -> Tensor:
-    invariant = torch.trace(tensor)
-    return torch.unsqueeze(invariant, dim=0)
+# def _calculate_first_invariant(tensor: Tensor) -> Tensor:
+#     invariant = torch.trace(tensor)
+#     return torch.unsqueeze(invariant, dim=0)
 
 
 def _calculate_first_lame_constant_lambda(x_param: Tensor) -> Tensor:
+    device = x_param.device
     E = _extract_youngs_modulus(x_param)
     nu = _extract_poissons_ratio(x_param)
     return (E * nu) / (
-        (torch.tensor([1.0]).to(x_param.device) + nu)
-        * (
-            torch.tensor([1.0]).to(x_param.device)
-            - torch.tensor([2.0]).to(x_param.device) * nu
-        )
+        (torch.tensor([1.0]).to(device) + nu)
+        * (torch.tensor([1.0]).to(device) - torch.tensor([2.0]).to(device) * nu)
     )
 
 
 def _calculate_second_lame_constant_mu(x_param: Tensor) -> Tensor:
+    device = x_param.device
     E = _extract_youngs_modulus(x_param)
     nu = _extract_poissons_ratio(x_param)
-    return E / (
-        torch.tensor([2.0]).to(x_param.device)
-        * (torch.tensor([1.0]).to(x_param.device) + nu)
-    )
+    return E / (torch.tensor([2.0]).to(device) * (torch.tensor([1.0]).to(device) + nu))
 
 
 def _extract_youngs_modulus(x_param: Tensor) -> Tensor:
@@ -172,7 +176,6 @@ def _deformation_gradient_func(
     ansatz: TModule, x_coor: Tensor, x_param: Tensor
 ) -> Tensor:
     jac_u = _jacobian_displacement_func(ansatz, x_coor, x_param)
-    # print(f"jac_u: {jac_u}")
     I = torch.eye(n=2, device=jac_u.device)
     return jac_u + I
 
@@ -185,7 +188,6 @@ def _jacobian_displacement_func(
 
 
 def _displacement_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
-    # print(f"Is displacement finite: {torch.isfinite(ansatz(x_coor, x_param))}")
     return ansatz(x_coor, x_param)
 
 

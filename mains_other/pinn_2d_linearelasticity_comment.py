@@ -114,7 +114,6 @@ def create_fem_domain_config() -> PlateWithHoleDomainConfig:
     )
 
 
-
 ### Loss function
 momentum_equation_func = momentum_equation_func_factory(material_model)
 stress_func = stress_func_factory(material_model)
@@ -266,9 +265,9 @@ def _generate_validation_data() -> None:
     for i in range(num_samples_valid):
         problem_configs.append(
             LinearElasticityProblemConfig(
-                    model=material_model,
-                    youngs_modulus=youngs_moduli[i],
-                    poissons_ratio=poissons_ratios[i],
+                model=material_model,
+                youngs_modulus=youngs_moduli[i],
+                poissons_ratio=poissons_ratios[i],
             )
         )
 

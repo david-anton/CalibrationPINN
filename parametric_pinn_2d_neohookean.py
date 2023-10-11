@@ -175,7 +175,7 @@ def create_datasets() -> tuple[TrainingDataset2D, ValidationDataset2D]:
                 volume_force_y=volume_force_y,
                 save_metadata=save_metadata,
                 output_subdir=input_subdir_valid,
-                project_directory=project_directory
+                project_directory=project_directory,
             )
 
         print("Load validation data ...")
