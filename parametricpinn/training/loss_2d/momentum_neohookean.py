@@ -182,7 +182,7 @@ def _jacobian_displacement_func(
 
 
 def _displacement_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
-    print(f"Is displacement nan or inf: {torch.all(torch.isfinite(ansatz(x_coor, x_param)))}")
+    print(f"Is displacement nan or inf: {torch.isfinite(ansatz(x_coor, x_param))}")
     return ansatz(x_coor, x_param)
 
 
