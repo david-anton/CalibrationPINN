@@ -321,12 +321,15 @@ def training_step() -> None:
 
     train_parametric_pinn(train_config=train_config)
     _plot_exemplary_displacement_fields()
+    print("Traines model")
+    for params in ansatz.parameters():
+        print(torch.all(torch.isfinite(params)))
 
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    exact_youngs_modulus = 2400
-    exact_poissons_ratio = 0.35
+    exact_youngs_modulus = 2100
+    exact_poissons_ratio = 0.37
     num_data_points = 128
     std_noise = 5 * 1e-4
 
@@ -381,6 +384,9 @@ def calibration_step() -> None:
         project_directory=project_directory,
         device=device,
     )
+    print("Loaded model")
+    for params in model.parameters():
+        print(torch.all(torch.isfinite(params)))
 
     coordinates, noisy_displacements = generate_calibration_data()
     data = CalibrationData(
@@ -410,7 +416,7 @@ def calibration_step() -> None:
 
     least_squares_config = LeastSquaresConfig(
         initial_parameters=initial_parameters,
-        num_iterations=100,
+        num_iterations=1000,
         ansatz=model,
         calibration_data=data,
     )
