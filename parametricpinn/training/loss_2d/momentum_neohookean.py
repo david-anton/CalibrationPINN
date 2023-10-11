@@ -100,7 +100,7 @@ def _first_piola_stress_tensor(
     free_energy_func = lambda deformation_gradient: _free_energy_func(
         deformation_gradient, x_param
     )
-    # print(f"Psi: {free_energy_func(F)}")
+    print(f"Psi: {free_energy_func(F)}")
     return grad(free_energy_func)(F)
 
 
@@ -182,7 +182,7 @@ def _jacobian_displacement_func(
 
 
 def _displacement_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
-    print(f"Is displacement nan or inf: {torch.isfinite(ansatz(x_coor, x_param))}")
+    print(f"Is displacement finite: {torch.isfinite(ansatz(x_coor, x_param))}")
     return ansatz(x_coor, x_param)
 
 
