@@ -100,7 +100,7 @@ def _first_piola_stress_tensor(
     free_energy_func = lambda deformation_gradient: _free_energy_func(
         deformation_gradient, x_param
     )
-    print(f"Psi: {free_energy_func}")
+    print(f"Psi: {free_energy_func(F)}")
     return grad(free_energy_func)(F)
 
 
