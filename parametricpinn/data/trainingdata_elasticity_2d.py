@@ -3,7 +3,7 @@ from collections import namedtuple
 import torch
 
 from parametricpinn.data.dataset import Dataset
-from parametricpinn.data.geometry import PlateWithHole
+from parametricpinn.data.geometry import QuarterPlateWithHole
 from parametricpinn.types import Tensor
 
 TrainingData2DCollocation = namedtuple(
@@ -21,7 +21,7 @@ TrainingData2DTractionBC = namedtuple(
 class TrainingDataset2D(Dataset):
     def __init__(
         self,
-        geometry: PlateWithHole,
+        geometry: QuarterPlateWithHole,
         traction_left: Tensor,
         volume_force: Tensor,
         min_youngs_modulus: float,
@@ -296,7 +296,7 @@ def create_training_dataset_2D(
     num_points_per_bc: int,
     num_samples_per_parameter: int,
 ):
-    geometry = PlateWithHole(edge_length=edge_length, radius=radius)
+    geometry = QuarterPlateWithHole(edge_length=edge_length, radius=radius)
     return TrainingDataset2D(
         geometry=geometry,
         traction_left=traction_left,

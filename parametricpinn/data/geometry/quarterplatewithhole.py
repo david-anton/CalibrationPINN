@@ -6,7 +6,7 @@ from shapely.geometry import Point, Polygon, box
 from parametricpinn.types import Tensor
 
 
-class PlateWithHole:
+class QuarterPlateWithHole:
     def __init__(self, edge_length: float, radius: float) -> None:
         self.edge_length = edge_length
         self.radius = radius

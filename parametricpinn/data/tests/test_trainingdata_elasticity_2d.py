@@ -5,7 +5,7 @@ import pytest
 import torch
 from shapely.geometry import Point, Polygon, box
 
-from parametricpinn.data.geometry import PlateWithHole
+from parametricpinn.data.geometry import QuarterPlateWithHole
 from parametricpinn.data.trainingdata_elasticity_2d import (
     TrainingData2DCollocation,
     TrainingData2DSymmetryBC,
@@ -46,7 +46,7 @@ def _create_plate_with_hole_shape() -> Polygon:
     return plate.difference(hole)
 
 
-geometry = PlateWithHole(edge_length=edge_length, radius=radius)
+geometry = QuarterPlateWithHole(edge_length=edge_length, radius=radius)
 shape = _create_plate_with_hole_shape()
 
 
