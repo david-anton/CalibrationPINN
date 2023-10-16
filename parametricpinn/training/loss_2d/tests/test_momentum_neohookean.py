@@ -72,7 +72,7 @@ def calculate_first_piola_stress_tensor(
     param_mu = calculate_second_lame_constant_mu(x_parameters)
     param_C = param_mu / 2
     param_D = param_lambda / 2
-    return 2 * param_C * (F - T_inv_F) + 2 * param_D * (det_F - 1) * T_inv_F
+    return 2 * param_C * (F - T_inv_F) + 2 * param_D * (det_F - 1) * det_F * T_inv_F
 
 
 @pytest.mark.parametrize(
