@@ -82,9 +82,7 @@ weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = False
-input_subdir_valid = (
-    "20231011_validation_data_linearelasticity_E_180k_240k_nu_02_04_edge_100_radius_10_traction_100"
-)
+input_subdir_valid = "20231011_validation_data_linearelasticity_E_180k_240k_nu_02_04_edge_100_radius_10_traction_100"
 num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024

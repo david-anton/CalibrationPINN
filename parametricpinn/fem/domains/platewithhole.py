@@ -30,20 +30,21 @@ from parametricpinn.io import ProjectDirectory
 
 
 @dataclass
-class QuarterPlateWithHoleDomainConfig:
-    edge_length: float
-    radius: float
-    traction_left_x: float
-    traction_left_y: float
+class PlateWithHoleDomainConfig:
+    plate_length: float
+    plate_height: float
+    hole_radius: float
+    traction_right_x: float
+    traction_right_y: float
     element_family: str
     element_degree: int
     mesh_resolution: float
 
 
-Config: TypeAlias = QuarterPlateWithHoleDomainConfig
+Config: TypeAlias = PlateWithHoleDomainConfig
 
 
-class QuarterPlateWithHoleDomain:
+class PlateWithHoleDomain:
     def __init__(
         self,
         config: Config,
@@ -54,11 +55,9 @@ class QuarterPlateWithHoleDomain:
     ):
         self.config = config
         self._geometric_dim = 2
-        self._u_x_right = ScalarType(0.0)
-        self._u_y_bottom = ScalarType(0.0)
-        self._tag_right = 0
-        self._tag_bottom = 1
-        self._tag_left = 2
+        self._u_x_left = ScalarType(0.0)
+        self._tag_left = 0
+        self._tag_right = 1
         self.mesh = self._generate_mesh(
             save_mesh=save_mesh,
             output_subdir=output_subdir,
@@ -74,30 +73,22 @@ class QuarterPlateWithHoleDomain:
         measure: UFLMeasure,
         test_function: UFLTestFunction,
     ) -> BoundaryConditions:
-        traction_left = Constant(
+        traction_right = Constant(
             self.mesh,
-            (ScalarType((self.config.traction_left_x, self.config.traction_left_y))),
+            (ScalarType((self.config.traction_right_x, self.config.traction_right_y))),
         )
         return [
             DirichletBC(
-                tag=self._tag_right,
-                value=self._u_x_right,
+                tag=self._tag_left,
+                value=self._u_x_left,
                 dim=0,
                 function_space=function_space,
                 boundary_tags=self.boundary_tags,
                 bc_facets_dim=self._bc_facets_dim,
             ),
-            DirichletBC(
-                tag=self._tag_bottom,
-                value=self._u_y_bottom,
-                dim=1,
-                function_space=function_space,
-                boundary_tags=self.boundary_tags,
-                bc_facets_dim=self._bc_facets_dim,
-            ),
             NeumannBC(
-                tag=self._tag_left,
-                value=traction_left,
+                tag=self._tag_right,
+                value=traction_right,
                 measure=measure,
                 test_function=test_function,
             ),
@@ -120,16 +111,17 @@ class QuarterPlateWithHoleDomain:
         return mesh
 
     def _generate_gmesh(self) -> GMesh:
-        length = self.config.edge_length
-        radius = self.config.radius
+        length = self.config.plate_length
+        height = self.config.plate_height
+        radius = self.config.hole_radius
         resolution = self.config.mesh_resolution
         geometry_kernel = gmsh.model.occ
         solid_marker = 1
 
         def create_geometry() -> GGeometry:
             gmsh.model.add("domain")
-            plate = geometry_kernel.add_rectangle(0, 0, 0, -length, length)
-            hole = geometry_kernel.add_disk(0, 0, 0, radius, radius)
+            plate = geometry_kernel.add_rectangle(0, 0, 0, length, height)
+            hole = geometry_kernel.add_disk(length / 2, height / 2, 0, radius, radius)
             return geometry_kernel.cut([(2, plate)], [(2, hole)])
 
         def tag_physical_enteties(geometry: GGeometry) -> None:
@@ -165,15 +157,11 @@ class QuarterPlateWithHoleDomain:
         return gmsh.model
 
     def _tag_boundaries(self) -> DMeshTags:
-        locate_right_facet = lambda x: np.isclose(x[0], 0.0)
-        locate_bottom_facet = lambda x: np.isclose(x[1], 0.0)
-        locate_left_facet = lambda x: np.logical_and(
-            np.isclose(x[0], -self.config.edge_length), x[1] > 0.0
-        )
+        locate_left_facet = lambda x: np.isclose(x[0], 0.0)
+        locate_right_facet = lambda x: np.isclose(x[0], self.config.plate_length)
         boundaries = [
-            (self._tag_right, locate_right_facet),
-            (self._tag_bottom, locate_bottom_facet),
             (self._tag_left, locate_left_facet),
+            (self._tag_right, locate_right_facet),
         ]
         sorted_facet_indices, sorted_facet_tags = list_sorted_facet_indices_and_tags(
             boundaries=boundaries, mesh=self.mesh, bc_facets_dim=self._bc_facets_dim
