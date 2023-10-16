@@ -24,7 +24,7 @@ from parametricpinn.data.validationdata_elasticity_2d import (
 )
 from parametricpinn.fem import (
     LinearElasticityProblemConfig,
-    PlateWithHoleDomainConfig,
+    QuarterPlateWithHoleDomainConfig,
     generate_validation_data,
     run_simulation,
 )
@@ -102,8 +102,8 @@ device = get_device()
 
 
 # Domain
-def create_fem_domain_config() -> PlateWithHoleDomainConfig:
-    return PlateWithHoleDomainConfig(
+def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
+    return QuarterPlateWithHoleDomainConfig(
         edge_length=edge_length,
         radius=radius,
         traction_left_x=traction_left_x,
@@ -520,7 +520,7 @@ if __name__ == "__main__":
 
     displacements_plotter_config = DisplacementsPlotterConfigPWH()
 
-    domain_config = PlateWithHoleDomainConfig(
+    domain_config = QuarterPlateWithHoleDomainConfig(
         edge_length=edge_length,
         radius=radius,
         traction_left_x=traction_left_x,

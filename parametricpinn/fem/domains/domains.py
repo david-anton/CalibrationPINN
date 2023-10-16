@@ -9,13 +9,13 @@ from parametricpinn.fem.base import (
     UFLTestFunction,
 )
 from parametricpinn.fem.boundaryconditions import BoundaryConditions
-from parametricpinn.fem.domains.platewithhole import (
-    PlateWithHoleDomain,
-    PlateWithHoleDomainConfig,
+from parametricpinn.fem.domains.quarterplatewithhole import (
+    QuarterPlateWithHoleDomain,
+    QuarterPlateWithHoleDomainConfig,
 )
 from parametricpinn.io import ProjectDirectory
 
-DomainConfig: TypeAlias = PlateWithHoleDomainConfig
+DomainConfig: TypeAlias = QuarterPlateWithHoleDomainConfig
 
 
 class Domain(Protocol):
@@ -38,9 +38,9 @@ def create_domain(
     output_subdir: str,
     project_directory: ProjectDirectory,
     save_to_input_dir: bool = False,
-):
-    if isinstance(domain_config, PlateWithHoleDomainConfig):
-        return PlateWithHoleDomain(
+) -> Domain:
+    if isinstance(domain_config, QuarterPlateWithHoleDomainConfig):
+        return QuarterPlateWithHoleDomain(
             config=domain_config,
             save_mesh=save_mesh,
             output_subdir=output_subdir,

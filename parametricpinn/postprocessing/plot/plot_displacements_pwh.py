@@ -12,8 +12,8 @@ from parametricpinn.errors import PlottingConfigError
 from parametricpinn.fem import (
     LinearElasticityProblemConfig,
     NeoHookeanProblemConfig,
-    PlateWithHoleDomainConfig,
     ProblemConfigs,
+    QuarterPlateWithHoleDomainConfig,
 )
 from parametricpinn.fem import SimulationConfig as FEMSimulationConfig
 from parametricpinn.fem import run_simulation
@@ -87,7 +87,7 @@ SimulationResults = namedtuple(
 
 def plot_displacements_pwh(
     ansatz: Module,
-    domain_config: PlateWithHoleDomainConfig,
+    domain_config: QuarterPlateWithHoleDomainConfig,
     problem_configs: ProblemConfigLists,
     volume_force_x: float,
     volume_force_y: float,

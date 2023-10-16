@@ -37,7 +37,7 @@ from parametricpinn.data.validationdata_elasticity_2d import (
 )
 from parametricpinn.fem import (
     NeoHookeanProblemConfig,
-    PlateWithHoleDomainConfig,
+    QuarterPlateWithHoleDomainConfig,
     SimulationConfig,
     generate_validation_data,
     run_simulation,
@@ -113,8 +113,8 @@ set_default_dtype(torch.float64)
 set_seed(0)
 
 
-def create_fem_domain_config() -> PlateWithHoleDomainConfig:
-    return PlateWithHoleDomainConfig(
+def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
+    return QuarterPlateWithHoleDomainConfig(
         edge_length=edge_length,
         radius=radius,
         traction_left_x=traction_left_x,

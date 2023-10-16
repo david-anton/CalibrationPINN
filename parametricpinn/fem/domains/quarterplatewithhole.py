@@ -29,7 +29,7 @@ FacetsDim: TypeAlias = int
 
 
 @dataclass
-class PlateWithHoleDomainConfig:
+class QuarterPlateWithHoleDomainConfig:
     edge_length: float
     radius: float
     traction_left_x: float
@@ -39,10 +39,10 @@ class PlateWithHoleDomainConfig:
     mesh_resolution: float
 
 
-Config: TypeAlias = PlateWithHoleDomainConfig
+Config: TypeAlias = QuarterPlateWithHoleDomainConfig
 
 
-class PlateWithHoleDomain:
+class QuarterPlateWithHoleDomain:
     def __init__(
         self,
         config: Config,

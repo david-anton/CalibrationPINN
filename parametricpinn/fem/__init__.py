@@ -1,4 +1,4 @@
-from .domains import PlateWithHoleDomainConfig
+from .domains import QuarterPlateWithHoleDomainConfig
 from .problems import (
     LinearElasticityProblemConfig,
     NeoHookeanProblemConfig,
@@ -7,7 +7,7 @@ from .problems import (
 from .simulation import SimulationConfig, generate_validation_data, run_simulation
 
 __all__ = [
-    "PlateWithHoleDomainConfig",
+    "QuarterPlateWithHoleDomainConfig",
     "LinearElasticityProblemConfig",
     "NeoHookeanProblemConfig",
     "ProblemConfigs",
