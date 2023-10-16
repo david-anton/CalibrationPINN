@@ -39,7 +39,7 @@ def _first_piola_stress_tensor_func(
     param_mu = _calculate_second_lame_constant_mu(x_param)
     param_C = param_mu / 2
     param_D = param_lambda / 2
-    return 2 * param_C * (F - T_inv_F) + 2 * param_D * (det_F - 1) * T_inv_F
+    return 2 * param_C * (F - T_inv_F) + 2 * param_D * (det_F - 1) * det_F * T_inv_F
 
 
 def _calculate_determinant(tensor: Tensor) -> Tensor:
