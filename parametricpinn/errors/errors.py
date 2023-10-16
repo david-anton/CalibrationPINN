@@ -22,6 +22,11 @@ class TestConfigurationError(Error):
         super().__init__(message)
 
 
+class DatasetConfigError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
 class UnvalidCalibrationDataError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)

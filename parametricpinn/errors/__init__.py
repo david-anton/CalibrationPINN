@@ -1,6 +1,7 @@
 from .errors import (
     BayesianNNError,
     CalibrationConfigError,
+    DatasetConfigError,
     DirectoryNotFoundError,
     FEMConfigurationError,
     FEMDomainConfigError,
@@ -17,6 +18,7 @@ from .errors import (
 __all__ = [
     "BayesianNNError",
     "CalibrationConfigError",
+    "DatasetConfigError",
     "DirectoryNotFoundError",
     "FEMConfigurationError",
     "FileNotFoundError",

@@ -123,7 +123,11 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
     )
 
 
-def create_datasets() -> tuple[QuarterPlateWithHoleTrainingDataset2D, QuarterPlateWithHoleValidationDataset2D]:
+def create_datasets() -> (
+    tuple[
+        QuarterPlateWithHoleTrainingDataset2D, QuarterPlateWithHoleValidationDataset2D
+    ]
+):
     def _create_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         traction_left = torch.tensor([traction_left_x, traction_left_y])

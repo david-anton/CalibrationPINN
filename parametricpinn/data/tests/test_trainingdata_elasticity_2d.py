@@ -101,7 +101,9 @@ def test_len(sut: QuarterPlateWithHoleTrainingDataset2D) -> None:
 
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
-def test_sample_pde__x_coordinates(sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int) -> None:
+def test_sample_pde__x_coordinates(
+    sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int
+) -> None:
     sample_pde, _, _ = sut[idx_sample]
 
     actual = sample_pde.x_coor
@@ -138,7 +140,9 @@ def test_sample_pde__x_poissons_ratio(
 
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
-def test_sample_pde__volume_force(sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int) -> None:
+def test_sample_pde__volume_force(
+    sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int
+) -> None:
     sample_pde, _, _ = sut[idx_sample]
 
     actual = sample_pde.f
@@ -256,7 +260,9 @@ def test_sample_traction_bc__x_poissons_ratio(
 
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
-def test_sample_traction_bc__normal(sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int) -> None:
+def test_sample_traction_bc__normal(
+    sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int
+) -> None:
     _, _, sample_traction_bc = sut[idx_sample]
 
     actual = sample_traction_bc.normal
@@ -312,7 +318,9 @@ def test_sample_traction_bc__area_fractions(
 
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
-def test_sample_traction_bc__y_true(sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int) -> None:
+def test_sample_traction_bc__y_true(
+    sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int
+) -> None:
     _, _, sample_traction_bc = sut[idx_sample]
 
     actual = sample_traction_bc.y_true

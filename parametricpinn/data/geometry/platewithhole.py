@@ -93,8 +93,8 @@ class PlateWithHole:
         coordinates_x = self._x_center - delta_x
         coordinates_y = self._y_center + delta_y
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
-        normals_x = - delta_x
-        normals_y = - delta_y
+        normals_x = -delta_x
+        normals_y = -delta_y
         normals = torch.concat((normals_x, normals_y), dim=1) / self.radius
         return coordinates, normals
 
