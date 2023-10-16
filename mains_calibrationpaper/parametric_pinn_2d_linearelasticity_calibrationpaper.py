@@ -298,17 +298,17 @@ def training_step() -> None:
     def _plot_exemplary_displacement_fields() -> None:
         displacements_plotter_config = DisplacementsPlotterConfigPWH()
         youngs_modulus_and_poissons_ratio_list = [
+            (min_youngs_modulus, min_poissons_ratio),
+            (min_youngs_modulus, max_poissons_ratio),
+            (max_youngs_modulus, min_poissons_ratio),
+            (max_youngs_modulus, max_poissons_ratio),
             (210000, 0.3),
-            (180000, 0.2),
-            (180000, 0.4),
-            (240000, 0.2),
-            (240000, 0.4),
         ]
         youngs_moduli, poissons_ratios = zip(*youngs_modulus_and_poissons_ratio_list)
 
         domain_config = create_fem_domain_config()
         problem_configs = []
-        for i in range(num_samples_valid):
+        for i in range(len(youngs_modulus_and_poissons_ratio_list)):
             problem_configs.append(
                 LinearElasticityProblemConfig(
                     model=material_model,

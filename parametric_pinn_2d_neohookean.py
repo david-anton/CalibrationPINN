@@ -298,7 +298,7 @@ def training_step() -> None:
 
         domain_config = create_fem_domain_config()
         problem_configs = []
-        for i in range(num_samples_valid):
+        for i in range(len(youngs_modulus_and_poissons_ratio_list)):
             problem_configs.append(
                 NeoHookeanProblemConfig(
                     youngs_modulus=youngs_moduli[i],
