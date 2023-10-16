@@ -6,14 +6,14 @@ from torch.utils.data import DataLoader
 
 from parametricpinn.ansatz import StandardAnsatz
 from parametricpinn.data.trainingdata_elasticity_2d import (
+    QuarterPlateWithHoleTrainingDataset2D,
     TrainingData2DCollocation,
     TrainingData2DSymmetryBC,
     TrainingData2DTractionBC,
-    TrainingDataset2D,
     collate_training_data_2D,
 )
 from parametricpinn.data.validationdata_elasticity_2d import (
-    ValidationDataset2D,
+    QuarterPlateWithHoleValidationDataset2D,
     collate_validation_data_2D,
 )
 from parametricpinn.io import ProjectDirectory
@@ -40,10 +40,10 @@ class TrainingConfiguration:
     weight_pde_loss: float
     weight_symmetry_bc_loss: float
     weight_traction_bc_loss: float
-    training_dataset: TrainingDataset2D
+    training_dataset: QuarterPlateWithHoleTrainingDataset2D
     number_training_epochs: int
     training_batch_size: int
-    validation_dataset: ValidationDataset2D
+    validation_dataset: QuarterPlateWithHoleValidationDataset2D
     validation_interval: int
     output_subdirectory: str
     project_directory: ProjectDirectory

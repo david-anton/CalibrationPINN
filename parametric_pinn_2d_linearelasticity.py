@@ -28,11 +28,11 @@ from parametricpinn.calibration.bayesianinference.plot import (
 )
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.data.trainingdata_elasticity_2d import (
-    TrainingDataset2D,
+    QuarterPlateWithHoleTrainingDataset2D,
     create_training_dataset_2D,
 )
 from parametricpinn.data.validationdata_elasticity_2d import (
-    ValidationDataset2D,
+    QuarterPlateWithHoleValidationDataset2D,
     create_validation_dataset_2D,
 )
 from parametricpinn.fem import (
@@ -124,8 +124,8 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
     )
 
 
-def create_datasets() -> tuple[TrainingDataset2D, ValidationDataset2D]:
-    def _create_training_dataset() -> TrainingDataset2D:
+def create_datasets() -> tuple[QuarterPlateWithHoleTrainingDataset2D, QuarterPlateWithHoleValidationDataset2D]:
+    def _create_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         traction_left = torch.tensor([traction_left_x, traction_left_y])
         volume_force = torch.tensor([volume_force_x, volume_force_y])
@@ -143,7 +143,7 @@ def create_datasets() -> tuple[TrainingDataset2D, ValidationDataset2D]:
             num_samples_per_parameter=num_samples_per_parameter,
         )
 
-    def _create_validation_dataset() -> ValidationDataset2D:
+    def _create_validation_dataset() -> QuarterPlateWithHoleValidationDataset2D:
         def _generate_validation_data() -> None:
             def _generate_random_parameter_list(
                 size: int, min_value: float, max_value: float

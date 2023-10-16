@@ -7,10 +7,10 @@ from shapely.geometry import Point, Polygon, box
 
 from parametricpinn.data.geometry import QuarterPlateWithHole
 from parametricpinn.data.trainingdata_elasticity_2d import (
+    QuarterPlateWithHoleTrainingDataset2D,
     TrainingData2DCollocation,
     TrainingData2DSymmetryBC,
     TrainingData2DTractionBC,
-    TrainingDataset2D,
     collate_training_data_2D,
 )
 from parametricpinn.types import Tensor
@@ -51,9 +51,9 @@ shape = _create_plate_with_hole_shape()
 
 
 @pytest.fixture
-def sut() -> TrainingDataset2D:
+def sut() -> QuarterPlateWithHoleTrainingDataset2D:
     fake_geometry = geometry
-    return TrainingDataset2D(
+    return QuarterPlateWithHoleTrainingDataset2D(
         geometry=fake_geometry,
         traction_left=traction_left,
         volume_force=volume_foce,
@@ -93,7 +93,7 @@ def generate_expected_x_poissons_ratio(num_points: int):
     ]
 
 
-def test_len(sut: TrainingDataset2D) -> None:
+def test_len(sut: QuarterPlateWithHoleTrainingDataset2D) -> None:
     actual = len(sut)
 
     expected = num_samples
@@ -101,7 +101,7 @@ def test_len(sut: TrainingDataset2D) -> None:
 
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
-def test_sample_pde__x_coordinates(sut: TrainingDataset2D, idx_sample: int) -> None:
+def test_sample_pde__x_coordinates(sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int) -> None:
     sample_pde, _, _ = sut[idx_sample]
 
     actual = sample_pde.x_coor
@@ -114,7 +114,7 @@ def test_sample_pde__x_coordinates(sut: TrainingDataset2D, idx_sample: int) -> N
     generate_expected_x_youngs_modulus(num_collocation_points),
 )
 def test_sample_pde__x_youngs_modulus(
-    sut: TrainingDataset2D, idx_sample: int, expected: Tensor
+    sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int, expected: Tensor
 ) -> None:
     sample_pde, _, _ = sut[idx_sample]
 
@@ -128,7 +128,7 @@ def test_sample_pde__x_youngs_modulus(
     generate_expected_x_poissons_ratio(num_collocation_points),
 )
 def test_sample_pde__x_poissons_ratio(
-    sut: TrainingDataset2D, idx_sample: int, expected: Tensor
+    sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int, expected: Tensor
 ) -> None:
     sample_pde, _, _ = sut[idx_sample]
 
@@ -138,7 +138,7 @@ def test_sample_pde__x_poissons_ratio(
 
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
-def test_sample_pde__volume_force(sut: TrainingDataset2D, idx_sample: int) -> None:
+def test_sample_pde__volume_force(sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int) -> None:
     sample_pde, _, _ = sut[idx_sample]
 
     actual = sample_pde.f
@@ -149,7 +149,7 @@ def test_sample_pde__volume_force(sut: TrainingDataset2D, idx_sample: int) -> No
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
 def test_sample_symmetry_bc__x_coordinates(
-    sut: TrainingDataset2D, idx_sample: int
+    sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int
 ) -> None:
     _, sample_symmetry_bc, _ = sut[idx_sample]
 
@@ -173,7 +173,7 @@ def test_sample_symmetry_bc__x_coordinates(
     generate_expected_x_youngs_modulus(num_points_symmetry_bcs),
 )
 def test_sample_symmetry_bc__x_youngs_modulus(
-    sut: TrainingDataset2D, idx_sample: int, expected: Tensor
+    sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int, expected: Tensor
 ) -> None:
     _, sample_symmetry_bc, _ = sut[idx_sample]
 
@@ -187,7 +187,7 @@ def test_sample_symmetry_bc__x_youngs_modulus(
     generate_expected_x_poissons_ratio(num_points_symmetry_bcs),
 )
 def test_sample_symmetry_bc__x_poissons_ratio(
-    sut: TrainingDataset2D, idx_sample: int, expected: Tensor
+    sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int, expected: Tensor
 ) -> None:
     _, sample_symmetry_bc, _ = sut[idx_sample]
 
@@ -197,7 +197,7 @@ def test_sample_symmetry_bc__x_poissons_ratio(
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
 def test_sample_traction_bc__x_coordinates(
-    sut: TrainingDataset2D, idx_sample: int
+    sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int
 ) -> None:
     _, _, sample_traction_bc = sut[idx_sample]
 
@@ -233,7 +233,7 @@ def test_sample_traction_bc__x_coordinates(
     generate_expected_x_youngs_modulus(num_points_traction_bcs),
 )
 def test_sample_traction_bc__x_youngs_modulus(
-    sut: TrainingDataset2D, idx_sample: int, expected: Tensor
+    sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int, expected: Tensor
 ) -> None:
     _, _, sample_traction_bc = sut[idx_sample]
 
@@ -247,7 +247,7 @@ def test_sample_traction_bc__x_youngs_modulus(
     generate_expected_x_poissons_ratio(num_points_traction_bcs),
 )
 def test_sample_traction_bc__x_poissons_ratio(
-    sut: TrainingDataset2D, idx_sample: int, expected: Tensor
+    sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int, expected: Tensor
 ) -> None:
     _, _, sample_traction_bc = sut[idx_sample]
 
@@ -256,7 +256,7 @@ def test_sample_traction_bc__x_poissons_ratio(
 
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
-def test_sample_traction_bc__normal(sut: TrainingDataset2D, idx_sample: int) -> None:
+def test_sample_traction_bc__normal(sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int) -> None:
     _, _, sample_traction_bc = sut[idx_sample]
 
     actual = sample_traction_bc.normal
@@ -288,7 +288,7 @@ def test_sample_traction_bc__normal(sut: TrainingDataset2D, idx_sample: int) -> 
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
 def test_sample_traction_bc__area_fractions(
-    sut: TrainingDataset2D, idx_sample: int
+    sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int
 ) -> None:
     _, _, sample_traction_bc = sut[idx_sample]
 
@@ -312,7 +312,7 @@ def test_sample_traction_bc__area_fractions(
 
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
-def test_sample_traction_bc__y_true(sut: TrainingDataset2D, idx_sample: int) -> None:
+def test_sample_traction_bc__y_true(sut: QuarterPlateWithHoleTrainingDataset2D, idx_sample: int) -> None:
     _, _, sample_traction_bc = sut[idx_sample]
 
     actual = sample_traction_bc.y_true

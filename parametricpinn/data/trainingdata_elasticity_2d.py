@@ -1,8 +1,9 @@
 from collections import namedtuple
 
 import torch
+from torch.utils.data import Dataset
 
-from parametricpinn.data.dataset import Dataset
+from parametricpinn.data.base import repeat_tensor
 from parametricpinn.data.geometry import QuarterPlateWithHole
 from parametricpinn.types import Tensor
 
@@ -18,7 +19,7 @@ TrainingData2DTractionBC = namedtuple(
 )
 
 
-class TrainingDataset2D(Dataset):
+class QuarterPlateWithHoleTrainingDataset2D(Dataset):
     def __init__(
         self,
         geometry: QuarterPlateWithHole,
@@ -86,9 +87,9 @@ class TrainingDataset2D(Dataset):
     ) -> None:
         shape = (self._num_collocation_points, 1)
         x_coor = self._geometry.create_random_points(self._num_collocation_points)
-        x_E = self._repeat_tensor(torch.tensor([youngs_modulus]), shape)
-        x_nu = self._repeat_tensor(torch.tensor([poissons_ratio]), shape)
-        f = self._repeat_tensor(self._volume_force, shape)
+        x_E = repeat_tensor(torch.tensor([youngs_modulus]), shape)
+        x_nu = repeat_tensor(torch.tensor([poissons_ratio]), shape)
+        f = repeat_tensor(self._volume_force, shape)
         sample = TrainingData2DCollocation(
             x_coor=x_coor.detach(), x_E=x_E.detach(), x_nu=x_nu.detach(), f=f.detach()
         )
@@ -179,8 +180,8 @@ class TrainingDataset2D(Dataset):
         self, youngs_modulus: float, poissons_ratio: float, num_bcs: int
     ) -> tuple[Tensor, Tensor]:
         shape = (num_bcs * self._num_points_per_bc, 1)
-        x_E = self._repeat_tensor(torch.tensor([youngs_modulus]), shape)
-        x_nu = self._repeat_tensor(torch.tensor([poissons_ratio]), shape)
+        x_E = repeat_tensor(torch.tensor([youngs_modulus]), shape)
+        x_nu = repeat_tensor(torch.tensor([poissons_ratio]), shape)
         return x_E, x_nu
 
     def _create_tractions_for_traction_bcs(self) -> Tensor:
@@ -297,7 +298,7 @@ def create_training_dataset_2D(
     num_samples_per_parameter: int,
 ):
     geometry = QuarterPlateWithHole(edge_length=edge_length, radius=radius)
-    return TrainingDataset2D(
+    return QuarterPlateWithHoleTrainingDataset2D(
         geometry=geometry,
         traction_left=traction_left,
         volume_force=volume_force,

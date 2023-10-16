@@ -1,8 +1,9 @@
 from collections import namedtuple
 
 import torch
+from torch.utils.data import Dataset
 
-from parametricpinn.data.dataset import Dataset
+from parametricpinn.data.base import repeat_tensor
 from parametricpinn.data.geometry import StretchedRod
 
 TrainingData1DPDE = namedtuple("TrainingData1DPDE", ["x_coor", "x_E", "f", "y_true"])
@@ -51,8 +52,8 @@ class TrainingDataset1D(Dataset):
     def _add_pde_sample(self, youngs_modulus: float) -> None:
         shape = (self._num_points_pde, 1)
         x_coor = self._geometry.create_uniform_points(self._num_points_pde)
-        x_E = self._repeat_tensor(torch.tensor([youngs_modulus]), shape)
-        f = self._repeat_tensor(torch.tensor([self._volume_force]), shape)
+        x_E = repeat_tensor(torch.tensor([youngs_modulus]), shape)
+        f = repeat_tensor(torch.tensor([self._volume_force]), shape)
         y_true = torch.zeros(shape)
         sample = TrainingData1DPDE(
             x_coor=x_coor.detach(),
@@ -65,8 +66,8 @@ class TrainingDataset1D(Dataset):
     def _add_stress_bc_sample(self, youngs_modulus: float) -> None:
         shape = (self._num_points_stress_bc, 1)
         x_coor = self._geometry.create_point_at_free_end()
-        x_E = self._repeat_tensor(torch.tensor([youngs_modulus]), shape)
-        y_true = self._repeat_tensor(torch.tensor([self._traction]), shape)
+        x_E = repeat_tensor(torch.tensor([youngs_modulus]), shape)
+        y_true = repeat_tensor(torch.tensor([self._traction]), shape)
         sample = TrainingData1DStressBC(
             x_coor=x_coor.detach(), x_E=x_E.detach(), y_true=y_true.detach()
         )

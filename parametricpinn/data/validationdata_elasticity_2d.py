@@ -1,14 +1,15 @@
 import os
 
 import torch
+from torch.utils.data import Dataset
 
-from parametricpinn.data.dataset import Dataset
+from parametricpinn.data.base import repeat_tensor
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader
 from parametricpinn.types import NPArray, Tensor
 
 
-class ValidationDataset2D(Dataset):
+class QuarterPlateWithHoleValidationDataset2D(Dataset):
     def __init__(
         self,
         input_subdir: str,
@@ -51,7 +52,7 @@ class ValidationDataset2D(Dataset):
     ) -> None:
         x_coor_all = displacements[:, self._slice_coordinates]
         x_coor = x_coor_all[random_indices, :]
-        x_params = self._repeat_tensor(parameters, (self._num_points, 1))
+        x_params = repeat_tensor(parameters, (self._num_points, 1))
         x = torch.concat((x_coor, x_params), dim=1)
         self._samples_x.append(x)
 
@@ -90,7 +91,7 @@ def create_validation_dataset_2D(
     num_samples: int,
     project_directory: ProjectDirectory,
 ):
-    return ValidationDataset2D(
+    return QuarterPlateWithHoleValidationDataset2D(
         input_subdir=input_subdir,
         num_points=num_points,
         num_samples=num_samples,

@@ -3,7 +3,7 @@ from typing import cast
 import torch
 from torch.utils.data import Dataset
 
-from parametricpinn.data.dataset import Dataset
+from parametricpinn.data.base import repeat_tensor
 from parametricpinn.data.geometry import StretchedRod
 from parametricpinn.types import Tensor
 
@@ -61,7 +61,7 @@ class ValidationDataset1D(Dataset):
 
     def _add_input_sample(self, coordinates: Tensor, youngs_modulus: Tensor) -> None:
         x_coor = coordinates
-        x_E = self._repeat_tensor(youngs_modulus, (self._num_points, 1))
+        x_E = repeat_tensor(youngs_modulus, (self._num_points, 1))
         x = torch.concat((x_coor, x_E), dim=1)
         self._samples_x.append(x)
 
