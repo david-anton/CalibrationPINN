@@ -1,11 +1,11 @@
 import pytest
 import torch
 
-from parametricpinn.data.tests.testdoubles import FakeGeometry1D
 from parametricpinn.data.validationdata_linearelasticity_1d import (
-    ValidationDataset1D,
-    calculate_displacements_solution_1D,
-    collate_validation_data_1D,
+    StretchedRodValidationDataset1D,
+    StretchedRodValidationDataset1DConfig,
+    calculate_displacements_solution,
+    create_validation_dataset,
 )
 from parametricpinn.settings import set_seed
 from parametricpinn.types import Tensor
@@ -20,7 +20,7 @@ num_samples = 3
 random_seed = 0
 
 
-### Test calculate_displacement_solution_1D()
+### Test calculate_displacement_solution()
 @pytest.mark.parametrize(
     ("coordinate", "expected"),
     [
@@ -29,10 +29,8 @@ random_seed = 0
         (torch.tensor([[2.0]]), torch.tensor([[18.0]])),
     ],
 )
-def test_calculate_displacements_solution_1D(
-    coordinate: Tensor, expected: Tensor
-) -> None:
-    sut = calculate_displacements_solution_1D
+def test_calculate_displacements_solution(coordinate: Tensor, expected: Tensor) -> None:
+    sut = calculate_displacements_solution
     length = 4.0
     youngs_modulus = 1.0
     traction = 3.0
@@ -48,13 +46,12 @@ def test_calculate_displacements_solution_1D(
     torch.testing.assert_close(actual, expected)
 
 
-### Test ValidationDataset1D()
+### Test ValidationDataset
 @pytest.fixture
-def sut() -> ValidationDataset1D:
+def sut() -> StretchedRodValidationDataset1D:
     set_seed(random_seed)
-    fake_geometry = FakeGeometry1D(length=length)
-    return ValidationDataset1D(
-        geometry=fake_geometry,
+    config = StretchedRodValidationDataset1DConfig(
+        length=length,
         traction=traction,
         volume_force=volume_force,
         min_youngs_modulus=min_youngs_modulus,
@@ -62,6 +59,7 @@ def sut() -> ValidationDataset1D:
         num_points=num_points,
         num_samples=num_samples,
     )
+    return create_validation_dataset(config=config)
 
 
 @pytest.fixture
@@ -76,12 +74,12 @@ def expected_input_sample() -> tuple[list[Tensor], list[Tensor]]:
             + torch.rand((1)) * (max_youngs_modulus - min_youngs_modulus)
         ).repeat(num_points, 1)
         youngs_modulus_list.append(youngs_modulus)
-        coordinates = torch.tensor([[0.0], [5.0], [10.0]])
+        coordinates = torch.rand((num_points, 1), requires_grad=True) * length
         coordinates_list.append(coordinates)
     return coordinates_list, youngs_modulus_list
 
 
-def test_len(sut: ValidationDataset1D) -> None:
+def test_len(sut: StretchedRodValidationDataset1D) -> None:
     actual = len(sut)
 
     expected = num_samples
@@ -90,7 +88,7 @@ def test_len(sut: ValidationDataset1D) -> None:
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
 def test_input_sample(
-    sut: ValidationDataset1D,
+    sut: StretchedRodValidationDataset1D,
     expected_input_sample: tuple[list[Tensor], list[Tensor]],
     idx_sample: int,
 ) -> None:
@@ -104,12 +102,12 @@ def test_input_sample(
 
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
-def test_output_sample(sut: ValidationDataset1D, idx_sample: int) -> None:
+def test_output_sample(sut: StretchedRodValidationDataset1D, idx_sample: int) -> None:
     input, actual = sut[idx_sample]
 
     x_coordinates = input[:, 0].view((num_points, 1))
     x_youngs_modulus = input[:, 1].view((num_points, 1))
-    expected = calculate_displacements_solution_1D(
+    expected = calculate_displacements_solution(
         coordinates=x_coordinates,
         length=length,
         youngs_modulus=x_youngs_modulus,
@@ -119,7 +117,7 @@ def test_output_sample(sut: ValidationDataset1D, idx_sample: int) -> None:
     torch.testing.assert_close(actual, expected)
 
 
-### Test collate_validation_data_1D()
+# ### Test collate_func()
 @pytest.fixture
 def fake_batch() -> list[tuple[Tensor, Tensor]]:
     sample_x_0 = torch.tensor([[1.0, 1.1]])
@@ -129,19 +127,23 @@ def fake_batch() -> list[tuple[Tensor, Tensor]]:
     return [(sample_x_0, sample_y_true_0), (sample_x_1, sample_y_true_1)]
 
 
-def test_batch_pde__x(fake_batch: list[tuple[Tensor, Tensor]]):
-    sut = collate_validation_data_1D
+def test_batch_pde__x(
+    sut: StretchedRodValidationDataset1D, fake_batch: list[tuple[Tensor, Tensor]]
+):
+    collate_func = sut.get_collate_func()
 
-    actual, _ = sut(fake_batch)
+    actual, _ = collate_func(fake_batch)
 
     expected = torch.tensor([[1.0, 1.1], [10.0, 10.1]])
     torch.testing.assert_close(actual, expected)
 
 
-def test_batch_pde__y_true(fake_batch: list[tuple[Tensor, Tensor]]):
-    sut = collate_validation_data_1D
+def test_batch_pde__y_true(
+    sut: StretchedRodValidationDataset1D, fake_batch: list[tuple[Tensor, Tensor]]
+):
+    collate_func = sut.get_collate_func()
 
-    _, actual = sut(fake_batch)
+    _, actual = collate_func(fake_batch)
 
     expected = torch.tensor([[2.0], [20.0]])
     torch.testing.assert_close(actual, expected)

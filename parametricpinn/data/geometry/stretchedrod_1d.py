@@ -3,7 +3,7 @@ import torch
 from parametricpinn.types import Tensor
 
 
-class StretchedRod:
+class StretchedRod1D:
     def __init__(
         self,
         length: float,

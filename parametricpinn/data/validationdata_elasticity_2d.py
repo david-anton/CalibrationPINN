@@ -1,21 +1,18 @@
 from typing import TypeAlias
 
-from parametricpinn.data.dataset.dataset import ValidationDataset
-from parametricpinn.data.dataset.quarterplatewithholedatasets import (
-    QuarterPlateWithHoleValidationDataset,
-    QuarterPlateWithHoleValidationDatasetConfig,
+from parametricpinn.data.dataset.quarterplatewithholedatasets_2d import (
+    QuarterPlateWithHoleValidationDataset2D,
+    QuarterPlateWithHoleValidationDataset2DConfig,
 )
 from parametricpinn.errors import DatasetConfigError
 
-ValidationDatasetConfig: TypeAlias = QuarterPlateWithHoleValidationDatasetConfig
+ValidationDatasetConfig: TypeAlias = QuarterPlateWithHoleValidationDataset2DConfig
+ValidationDataset: TypeAlias = QuarterPlateWithHoleValidationDataset2D
 
 
-def create_validation_dataset_2D(
-    validation_dataset_config: ValidationDatasetConfig,
-) -> ValidationDataset:
-    config = validation_dataset_config
-    if isinstance(config, QuarterPlateWithHoleValidationDatasetConfig):
-        return QuarterPlateWithHoleValidationDataset(
+def create_validation_dataset(config: ValidationDatasetConfig) -> ValidationDataset:
+    if isinstance(config, QuarterPlateWithHoleValidationDataset2DConfig):
+        return QuarterPlateWithHoleValidationDataset2D(
             input_subdir=config.input_subdir,
             num_points=config.num_points,
             num_samples=config.num_samples,

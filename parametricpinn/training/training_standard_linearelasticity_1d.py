@@ -9,7 +9,7 @@ from parametricpinn.data.trainingdata_linearelasticity_1d import (
     TrainingData1DPDE,
     TrainingData1DStressBC,
     TrainingDataset1D,
-    collate_training_data_1D,
+    collate_training_data,
 )
 from parametricpinn.data.validationdata_linearelasticity_1d import (
     ValidationDataset1D,
@@ -113,7 +113,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         batch_size=train_batch_size,
         shuffle=False,
         drop_last=False,
-        collate_fn=collate_training_data_1D,
+        collate_fn=collate_training_data,
     )
 
     valid_dataloader = DataLoader(

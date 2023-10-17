@@ -10,8 +10,8 @@ import torch
 
 from parametricpinn.data.validationdata_elasticity_2d import (
     QuarterPlateWithHoleValidationDataset2D,
-    collate_validation_data_2D,
-    create_validation_dataset_2D,
+    QuarterPlateWithHoleValidationDataset2DConfig,
+    create_validation_dataset,
 )
 from parametricpinn.errors import TestConfigurationError
 from parametricpinn.io import ProjectDirectory
@@ -111,7 +111,7 @@ def write_input_data() -> None:
     )
 
 
-### Test ValidationDataset2D()
+### Test ValidationDataset
 @pytest.fixture
 def sut() -> Iterator[QuarterPlateWithHoleValidationDataset2D]:
     set_seed(random_seed)
@@ -119,12 +119,13 @@ def sut() -> Iterator[QuarterPlateWithHoleValidationDataset2D]:
     if not Path.is_dir(input_subdir_path):
         os.mkdir(input_subdir_path)
     write_input_data()
-    yield create_validation_dataset_2D(
+    config = QuarterPlateWithHoleValidationDataset2DConfig(
         input_subdir=input_subdir,
         num_points=num_points,
         num_samples=num_samples,
         project_directory=project_directory,
     )
+    yield create_validation_dataset(config=config)
     shutil.rmtree(input_subdir_path)
 
 
@@ -183,7 +184,7 @@ def test_output_sample(
     torch.testing.assert_close(actual, expected)
 
 
-## Test collate_validation_data_2D()
+## Test collate_func()
 @pytest.fixture
 def fake_batch() -> list[tuple[Tensor, Tensor]]:
     sample_x_0 = torch.concat((coordinates_all, parameters_0_all), dim=1)
@@ -193,10 +194,13 @@ def fake_batch() -> list[tuple[Tensor, Tensor]]:
     return [(sample_x_0, sample_y_true_0), (sample_x_1, sample_y_true_1)]
 
 
-def test_batch_pde__x(fake_batch: list[tuple[Tensor, Tensor]]):
-    sut = collate_validation_data_2D
+def test_batch_pde__x(
+    sut: QuarterPlateWithHoleValidationDataset2D,
+    fake_batch: list[tuple[Tensor, Tensor]],
+):
+    collate_func = sut.get_collate_func()
 
-    actual, _ = sut(fake_batch)
+    actual, _ = collate_func(fake_batch)
 
     sample_0 = torch.concat((coordinates_all, parameters_0_all), dim=1)
     sample_1 = torch.concat((coordinates_all, parameters_1_all), dim=1)
@@ -204,10 +208,13 @@ def test_batch_pde__x(fake_batch: list[tuple[Tensor, Tensor]]):
     torch.testing.assert_close(actual, expected)
 
 
-def test_batch_pde__y_true(fake_batch: list[tuple[Tensor, Tensor]]):
-    sut = collate_validation_data_2D
+def test_batch_pde__y_true(
+    sut: QuarterPlateWithHoleValidationDataset2D,
+    fake_batch: list[tuple[Tensor, Tensor]],
+):
+    collate_func = sut.get_collate_func()
 
-    _, actual = sut(fake_batch)
+    _, actual = collate_func(fake_batch)
 
     sample_0 = displacements_0_all
     sample_1 = displacements_1_all

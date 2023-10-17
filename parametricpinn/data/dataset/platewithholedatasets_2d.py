@@ -13,7 +13,7 @@ from parametricpinn.data.dataset.dataset import (
     ValidationBatchList,
     ValidationCollateFunc,
 )
-from parametricpinn.data.geometry import QuarterPlateWithHole
+from parametricpinn.data.geometry import QuarterPlateWithHole2D
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader
 from parametricpinn.types import Tensor

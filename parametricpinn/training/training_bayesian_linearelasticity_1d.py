@@ -20,7 +20,7 @@ from parametricpinn.data.trainingdata_linearelasticity_1d import (
     TrainingData1DPDE,
     TrainingData1DStressBC,
     TrainingDataset1D,
-    collate_training_data_1D,
+    collate_training_data,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import ParameterPriorStds
@@ -121,7 +121,7 @@ class TrainigLikelihood:
             (sample_pde, sample_stress_bc)
             for sample_pde, sample_stress_bc in iter(training_dataset)
         ]
-        data_pde, data_stress_bc = collate_training_data_1D(training_data)
+        data_pde, data_stress_bc = collate_training_data(training_data)
         return data_pde, data_stress_bc
 
     def _assemble_flattened_true_outputs(self) -> Tensor:

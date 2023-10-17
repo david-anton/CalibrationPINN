@@ -1,25 +1,22 @@
 from typing import TypeAlias
 
-from parametricpinn.data.dataset.dataset import TrainingDataset
-from parametricpinn.data.dataset.quarterplatewithholedatasets import (
-    QuarterPlateWithHoleTrainingDataset,
-    QuarterPlateWithHoleTrainingDatasetConfig,
+from parametricpinn.data.dataset.quarterplatewithholedatasets_2d import (
+    QuarterPlateWithHoleTrainingDataset2D,
+    QuarterPlateWithHoleTrainingDataset2DConfig,
 )
-from parametricpinn.data.geometry import PlateWithHole, QuarterPlateWithHole
+from parametricpinn.data.geometry import PlateWithHole2D, QuarterPlateWithHole2D
 from parametricpinn.errors import DatasetConfigError
 
-TrainingDatasetConfig: TypeAlias = QuarterPlateWithHoleTrainingDatasetConfig
+TrainingDatasetConfig: TypeAlias = QuarterPlateWithHoleTrainingDataset2DConfig
+TrainingDataset: TypeAlias = QuarterPlateWithHoleTrainingDataset2D
 
 
-def create_training_dataset_2D(
-    training_dataset_config: TrainingDatasetConfig,
-) -> TrainingDataset:
-    config = training_dataset_config
-    if isinstance(config, QuarterPlateWithHoleTrainingDatasetConfig):
-        geometry = QuarterPlateWithHole(
+def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
+    if isinstance(config, QuarterPlateWithHoleTrainingDataset2DConfig):
+        geometry = QuarterPlateWithHole2D(
             edge_length=config.edge_length, radius=config.radius
         )
-        return QuarterPlateWithHoleTrainingDataset(
+        return QuarterPlateWithHoleTrainingDataset2D(
             geometry=geometry,
             traction_left=config.traction_left,
             volume_force=config.volume_force,

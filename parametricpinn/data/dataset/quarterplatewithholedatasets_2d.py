@@ -14,7 +14,7 @@ from parametricpinn.data.dataset.dataset import (
     ValidationBatchList,
     ValidationCollateFunc,
 )
-from parametricpinn.data.geometry import QuarterPlateWithHole
+from parametricpinn.data.geometry import QuarterPlateWithHole2D
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader
 from parametricpinn.types import Tensor
@@ -29,7 +29,7 @@ TrainingCollateFunc: TypeAlias = Callable[[TrainingBatchList], TrainingBatch]
 
 
 @dataclass
-class QuarterPlateWithHoleTrainingDatasetConfig:
+class QuarterPlateWithHoleTrainingDataset2DConfig:
     edge_length: float
     radius: float
     traction_left: Tensor
@@ -43,10 +43,10 @@ class QuarterPlateWithHoleTrainingDatasetConfig:
     num_samples_per_parameter: int
 
 
-class QuarterPlateWithHoleTrainingDataset(Dataset):
+class QuarterPlateWithHoleTrainingDataset2D(Dataset):
     def __init__(
         self,
-        geometry: QuarterPlateWithHole,
+        geometry: QuarterPlateWithHole2D,
         traction_left: Tensor,
         volume_force: Tensor,
         min_youngs_modulus: float,
@@ -301,14 +301,14 @@ class QuarterPlateWithHoleTrainingDataset(Dataset):
 
 
 @dataclass
-class QuarterPlateWithHoleValidationDatasetConfig:
+class QuarterPlateWithHoleValidationDataset2DConfig:
     input_subdir: str
     num_points: int
     num_samples: int
     project_directory: ProjectDirectory
 
 
-class QuarterPlateWithHoleValidationDataset(Dataset):
+class QuarterPlateWithHoleValidationDataset2D(Dataset):
     def __init__(
         self,
         input_subdir: str,

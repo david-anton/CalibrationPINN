@@ -4,7 +4,7 @@ import torch
 
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
 from parametricpinn.data.validationdata_linearelasticity_1d import (
-    calculate_displacements_solution_1D,
+    calculate_displacements_solution,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, NPArray, Tensor
@@ -74,7 +74,7 @@ def _plot_one_displacements_1D(
     num_points = 1000
     x_coor = torch.linspace(0.0, length, num_points).view((num_points, 1))
     solution = (
-        calculate_displacements_solution_1D(
+        calculate_displacements_solution(
             coordinates=x_coor,
             length=length,
             youngs_modulus=youngs_modulus,
@@ -155,7 +155,7 @@ def _plot_one_bayesian_displacements_1D(
     num_points = 1000
     x_coor = torch.linspace(0.0, length, num_points).view((num_points, 1))
     solution = (
-        calculate_displacements_solution_1D(
+        calculate_displacements_solution(
             coordinates=x_coor,
             length=length,
             youngs_modulus=youngs_modulus,

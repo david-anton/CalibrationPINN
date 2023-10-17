@@ -1,17 +1,18 @@
 import math
 
-import numpy as np
 import pytest
 import torch
 from shapely.geometry import Point, Polygon, box
 
-from parametricpinn.data.geometry import QuarterPlateWithHole
-from parametricpinn.data.trainingdata_elasticity_2d import (
-    QuarterPlateWithHoleTrainingDataset2D,
+from parametricpinn.data.dataset import (
     TrainingData2DCollocation,
     TrainingData2DSymmetryBC,
     TrainingData2DTractionBC,
-    collate_training_data_2D,
+)
+from parametricpinn.data.trainingdata_elasticity_2d import (
+    QuarterPlateWithHoleTrainingDataset2D,
+    QuarterPlateWithHoleTrainingDataset2DConfig,
+    create_training_dataset,
 )
 from parametricpinn.types import Tensor
 
@@ -39,22 +40,21 @@ num_traction_bcs = 3
 num_points_traction_bcs = num_traction_bcs * num_points_per_bc
 
 
-### Test TrainingDataset2D
+### Test TrainingDataset
 def _create_plate_with_hole_shape() -> Polygon:
     plate = box(x_min, x_max, y_min, y_max)
     hole = Point(0, 0).buffer(radius)
     return plate.difference(hole)
 
 
-geometry = QuarterPlateWithHole(edge_length=edge_length, radius=radius)
 shape = _create_plate_with_hole_shape()
 
 
 @pytest.fixture
 def sut() -> QuarterPlateWithHoleTrainingDataset2D:
-    fake_geometry = geometry
-    return QuarterPlateWithHoleTrainingDataset2D(
-        geometry=fake_geometry,
+    config = QuarterPlateWithHoleTrainingDataset2DConfig(
+        edge_length=edge_length,
+        radius=radius,
         traction_left=traction_left,
         volume_force=volume_foce,
         min_youngs_modulus=min_youngs_modulus,
@@ -65,6 +65,7 @@ def sut() -> QuarterPlateWithHoleTrainingDataset2D:
         num_points_per_bc=num_points_per_bc,
         num_samples_per_parameter=num_samples_per_parameter,
     )
+    return create_training_dataset(config=config)
 
 
 def assert_if_coordinates_are_inside_shape(coordinates: Tensor) -> bool:
@@ -342,7 +343,7 @@ def test_sample_traction_bc__y_true(
     torch.testing.assert_close(actual, expected)
 
 
-### Test collate_training_data_2D()
+### Test collate_func()
 @pytest.fixture
 def fake_batch() -> (
     list[
@@ -398,17 +399,18 @@ def fake_batch() -> (
 
 
 def test_batch_pde__x_coordinate(
+    sut: QuarterPlateWithHoleTrainingDataset2D,
     fake_batch: list[
         tuple[
             TrainingData2DCollocation,
             TrainingData2DSymmetryBC,
             TrainingData2DTractionBC,
         ]
-    ]
+    ],
 ):
-    sut = collate_training_data_2D
+    collate_func = sut.get_collate_func()
 
-    batch_pde, _, _ = sut(fake_batch)
+    batch_pde, _, _ = collate_func(fake_batch)
     actual = batch_pde.x_coor
 
     expected = torch.tensor([[1.0, 1.0], [10.0, 10.0]])
@@ -416,17 +418,18 @@ def test_batch_pde__x_coordinate(
 
 
 def test_batch_pde__x_youngs_modulus(
+    sut: QuarterPlateWithHoleTrainingDataset2D,
     fake_batch: list[
         tuple[
             TrainingData2DCollocation,
             TrainingData2DSymmetryBC,
             TrainingData2DTractionBC,
         ]
-    ]
+    ],
 ):
-    sut = collate_training_data_2D
+    collate_func = sut.get_collate_func()
 
-    batch_pde, _, _ = sut(fake_batch)
+    batch_pde, _, _ = collate_func(fake_batch)
     actual = batch_pde.x_E
 
     expected = torch.tensor([[1.1], [10.1]])
@@ -434,17 +437,18 @@ def test_batch_pde__x_youngs_modulus(
 
 
 def test_batch_pde__x_poissons_ratio(
+    sut: QuarterPlateWithHoleTrainingDataset2D,
     fake_batch: list[
         tuple[
             TrainingData2DCollocation,
             TrainingData2DSymmetryBC,
             TrainingData2DTractionBC,
         ]
-    ]
+    ],
 ):
-    sut = collate_training_data_2D
+    collate_func = sut.get_collate_func()
 
-    batch_pde, _, _ = sut(fake_batch)
+    batch_pde, _, _ = collate_func(fake_batch)
     actual = batch_pde.x_nu
 
     expected = torch.tensor([[1.2], [10.2]])
@@ -452,17 +456,18 @@ def test_batch_pde__x_poissons_ratio(
 
 
 def test_batch_pde__volume_force(
+    sut: QuarterPlateWithHoleTrainingDataset2D,
     fake_batch: list[
         tuple[
             TrainingData2DCollocation,
             TrainingData2DSymmetryBC,
             TrainingData2DTractionBC,
         ]
-    ]
+    ],
 ):
-    sut = collate_training_data_2D
+    collate_func = sut.get_collate_func()
 
-    batch_pde, _, _ = sut(fake_batch)
+    batch_pde, _, _ = collate_func(fake_batch)
     actual = batch_pde.f
 
     expected = torch.tensor([[1.3], [10.3]])
@@ -470,17 +475,18 @@ def test_batch_pde__volume_force(
 
 
 def test_batch_symmetry_bc__x_coordinate(
+    sut: QuarterPlateWithHoleTrainingDataset2D,
     fake_batch: list[
         tuple[
             TrainingData2DCollocation,
             TrainingData2DSymmetryBC,
             TrainingData2DTractionBC,
         ]
-    ]
+    ],
 ):
-    sut = collate_training_data_2D
+    collate_func = sut.get_collate_func()
 
-    _, batch_symmetry_bc, _ = sut(fake_batch)
+    _, batch_symmetry_bc, _ = collate_func(fake_batch)
     actual = batch_symmetry_bc.x_coor
 
     expected = torch.tensor([[2.0, 2.0], [20.0, 20.0]])
@@ -488,17 +494,18 @@ def test_batch_symmetry_bc__x_coordinate(
 
 
 def test_batch_symmetry_bc__x_youngs_modulus(
+    sut: QuarterPlateWithHoleTrainingDataset2D,
     fake_batch: list[
         tuple[
             TrainingData2DCollocation,
             TrainingData2DSymmetryBC,
             TrainingData2DTractionBC,
         ]
-    ]
+    ],
 ):
-    sut = collate_training_data_2D
+    collate_func = sut.get_collate_func()
 
-    _, batch_symmetry_bc, _ = sut(fake_batch)
+    _, batch_symmetry_bc, _ = collate_func(fake_batch)
     actual = batch_symmetry_bc.x_E
 
     expected = torch.tensor([[2.1], [20.1]])
@@ -506,17 +513,18 @@ def test_batch_symmetry_bc__x_youngs_modulus(
 
 
 def test_batch_symmetry_bc__x_poissons_ratio(
+    sut: QuarterPlateWithHoleTrainingDataset2D,
     fake_batch: list[
         tuple[
             TrainingData2DCollocation,
             TrainingData2DSymmetryBC,
             TrainingData2DTractionBC,
         ]
-    ]
+    ],
 ):
-    sut = collate_training_data_2D
+    collate_func = sut.get_collate_func()
 
-    _, batch_symmetry_bc, _ = sut(fake_batch)
+    _, batch_symmetry_bc, _ = collate_func(fake_batch)
     actual = batch_symmetry_bc.x_nu
 
     expected = torch.tensor([[2.2], [20.2]])
@@ -524,17 +532,18 @@ def test_batch_symmetry_bc__x_poissons_ratio(
 
 
 def test_batch_traction_bc__x_coordinate(
+    sut: QuarterPlateWithHoleTrainingDataset2D,
     fake_batch: list[
         tuple[
             TrainingData2DCollocation,
             TrainingData2DSymmetryBC,
             TrainingData2DTractionBC,
         ]
-    ]
+    ],
 ):
-    sut = collate_training_data_2D
+    collate_func = sut.get_collate_func()
 
-    _, _, batch_traction_bc = sut(fake_batch)
+    _, _, batch_traction_bc = collate_func(fake_batch)
     actual = batch_traction_bc.x_coor
 
     expected = torch.tensor([[3.0, 3.0], [30.0, 30.0]])
@@ -542,17 +551,18 @@ def test_batch_traction_bc__x_coordinate(
 
 
 def test_batch_traction_bc__x_youngs_modulus(
+    sut: QuarterPlateWithHoleTrainingDataset2D,
     fake_batch: list[
         tuple[
             TrainingData2DCollocation,
             TrainingData2DSymmetryBC,
             TrainingData2DTractionBC,
         ]
-    ]
+    ],
 ):
-    sut = collate_training_data_2D
+    collate_func = sut.get_collate_func()
 
-    _, _, batch_traction_bc = sut(fake_batch)
+    _, _, batch_traction_bc = collate_func(fake_batch)
     actual = batch_traction_bc.x_E
 
     expected = torch.tensor([[3.1], [30.1]])
@@ -560,17 +570,18 @@ def test_batch_traction_bc__x_youngs_modulus(
 
 
 def test_batch_traction_bc__x_poissons_ratio(
+    sut: QuarterPlateWithHoleTrainingDataset2D,
     fake_batch: list[
         tuple[
             TrainingData2DCollocation,
             TrainingData2DSymmetryBC,
             TrainingData2DTractionBC,
         ]
-    ]
+    ],
 ):
-    sut = collate_training_data_2D
+    collate_func = sut.get_collate_func()
 
-    _, _, batch_traction_bc = sut(fake_batch)
+    _, _, batch_traction_bc = collate_func(fake_batch)
     actual = batch_traction_bc.x_nu
 
     expected = torch.tensor([[3.2], [30.2]])
@@ -578,17 +589,18 @@ def test_batch_traction_bc__x_poissons_ratio(
 
 
 def test_batch_traction_bc__normal(
+    sut: QuarterPlateWithHoleTrainingDataset2D,
     fake_batch: list[
         tuple[
             TrainingData2DCollocation,
             TrainingData2DSymmetryBC,
             TrainingData2DTractionBC,
         ]
-    ]
+    ],
 ):
-    sut = collate_training_data_2D
+    collate_func = sut.get_collate_func()
 
-    _, _, batch_traction_bc = sut(fake_batch)
+    _, _, batch_traction_bc = collate_func(fake_batch)
     actual = batch_traction_bc.normal
 
     expected = torch.tensor([[3.3, 3.3], [30.3, 30.3]])
@@ -596,17 +608,18 @@ def test_batch_traction_bc__normal(
 
 
 def test_batch_traction_bc__area_fraction(
+    sut: QuarterPlateWithHoleTrainingDataset2D,
     fake_batch: list[
         tuple[
             TrainingData2DCollocation,
             TrainingData2DSymmetryBC,
             TrainingData2DTractionBC,
         ]
-    ]
+    ],
 ):
-    sut = collate_training_data_2D
+    collate_func = sut.get_collate_func()
 
-    _, _, batch_traction_bc = sut(fake_batch)
+    _, _, batch_traction_bc = collate_func(fake_batch)
     actual = batch_traction_bc.area_frac
 
     expected = torch.tensor([[3.4], [30.4]])
@@ -614,17 +627,18 @@ def test_batch_traction_bc__area_fraction(
 
 
 def test_batch_traction_bc__y_true(
+    sut: QuarterPlateWithHoleTrainingDataset2D,
     fake_batch: list[
         tuple[
             TrainingData2DCollocation,
             TrainingData2DSymmetryBC,
             TrainingData2DTractionBC,
         ]
-    ]
+    ],
 ):
-    sut = collate_training_data_2D
+    collate_func = sut.get_collate_func()
 
-    _, _, batch_traction_bc = sut(fake_batch)
+    _, _, batch_traction_bc = collate_func(fake_batch)
     actual = batch_traction_bc.y_true
 
     expected = torch.tensor([[3.5, 3.5], [30.5, 30.5]])
