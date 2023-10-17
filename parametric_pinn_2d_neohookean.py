@@ -58,7 +58,7 @@ from parametricpinn.training.training_standard_neohookean_quarterplatewithhole i
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 edge_length = 100.0
 radius = 10.0
@@ -91,15 +91,15 @@ batch_size_valid = num_samples_valid
 # Calibration
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
-use_hamiltonian = False
-use_efficient_nuts = False
+use_hamiltonian = True
+use_efficient_nuts = True
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
 fem_mesh_resolution = 0.5
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = 20231016
 output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_64_bc_32_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
@@ -419,8 +419,8 @@ def calibration_step() -> None:
         ansatz=model,
         calibration_data=data,
     )
-    std_proposal_density_youngs_modulus = 10
-    std_proposal_density_poissons_ratio = 0.0015
+    std_proposal_density_youngs_modulus = 100
+    std_proposal_density_poissons_ratio = 0.015
     mcmc_config_mh = MetropolisHastingsConfig(
         likelihood=likelihood,
         prior=prior,
