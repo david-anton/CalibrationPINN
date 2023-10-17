@@ -24,13 +24,15 @@ from parametricpinn.calibration.bayesianinference.plot import (
 )
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.data.trainingdata_linearelasticity_1d import (
-    TrainingDataset1D,
-    create_training_dataset_1D,
+    StretchedRodTrainingDataset1D,
+    StretchedRodTrainingDataset1DConfig,
+    create_training_dataset,
 )
 from parametricpinn.data.validationdata_linearelasticity_1d import (
-    ValidationDataset1D,
-    calculate_displacements_solution_1D,
-    create_validation_dataset_1D,
+    StretchedRodValidationDataset1D,
+    StretchedRodValidationDataset1DConfig,
+    calculate_displacements_solution,
+    create_validation_dataset,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN
@@ -39,7 +41,7 @@ from parametricpinn.postprocessing.plot import (
     plot_displacements_1D,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.training_standard_linearelasticity_1d import (
+from parametricpinn.training.training_standard_linearelasticity_stretchedrod import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
@@ -85,8 +87,8 @@ set_default_dtype(torch.float64)
 set_seed(0)
 
 
-def create_datasets() -> tuple[TrainingDataset1D, ValidationDataset1D]:
-    train_dataset = create_training_dataset_1D(
+def create_datasets() -> tuple[StretchedRodTrainingDataset1D, StretchedRodValidationDataset1D]:
+    config_training_dataset = StretchedRodTrainingDataset1DConfig(
         length=length,
         traction=traction,
         volume_force=volume_force,
@@ -95,7 +97,8 @@ def create_datasets() -> tuple[TrainingDataset1D, ValidationDataset1D]:
         num_points_pde=num_points_pde,
         num_samples=num_samples_train,
     )
-    valid_dataset = create_validation_dataset_1D(
+    train_dataset = create_training_dataset(config_training_dataset)
+    config_validation_dataset = StretchedRodValidationDataset1DConfig(
         length=length,
         min_youngs_modulus=min_youngs_modulus,
         max_youngs_modulus=max_youngs_modulus,
@@ -104,6 +107,7 @@ def create_datasets() -> tuple[TrainingDataset1D, ValidationDataset1D]:
         num_points=num_points_valid,
         num_samples=num_samples_valid,
     )
+    valid_dataset = create_validation_dataset(config_validation_dataset)
     return train_dataset, valid_dataset
 
 
@@ -114,7 +118,7 @@ def create_ansatz() -> StandardAnsatz:
         min_inputs = torch.tensor([min_coordinate, min_youngs_modulus])
         max_inputs = torch.tensor([max_coordinate, max_youngs_modulus])
         min_displacement = displacement_left
-        max_displacement = calculate_displacements_solution_1D(
+        max_displacement = calculate_displacements_solution(
             coordinates=max_coordinate,
             length=length,
             youngs_modulus=min_youngs_modulus,
@@ -183,7 +187,7 @@ def calibration_step() -> None:
     std_noise = 5 * 1e-4
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
-        calibration_dataset = create_validation_dataset_1D(
+        calibration_dataset = create_validation_dataset(
             length=length,
             min_youngs_modulus=exact_youngs_modulus,
             max_youngs_modulus=exact_youngs_modulus,

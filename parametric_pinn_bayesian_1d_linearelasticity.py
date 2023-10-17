@@ -7,11 +7,12 @@ from parametricpinn.ansatz import (
     create_bayesian_normalized_hbc_ansatz_1D,
 )
 from parametricpinn.data.trainingdata_linearelasticity_1d import (
-    TrainingDataset1D,
-    create_training_dataset_1D,
+    StretchedRodTrainingDataset1D,
+    StretchedRodTrainingDataset1DConfig,
+    create_training_dataset,
 )
 from parametricpinn.data.validationdata_linearelasticity_1d import (
-    calculate_displacements_solution_1D,
+    calculate_displacements_solution,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import BFFNN
@@ -20,7 +21,7 @@ from parametricpinn.postprocessing.plot import (
     plot_bayesian_displacements_1D,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.training_bayesian_linearelasticity_1d import (
+from parametricpinn.training.training_bayesian_linearelasticity_stretchedrod import (
     MeasurementsStds,
     ParameterPriorStds,
     TrainingConfiguration,
@@ -63,8 +64,8 @@ set_default_dtype(torch.float64)
 set_seed(0)
 
 
-def create_datasets() -> TrainingDataset1D:
-    train_dataset = create_training_dataset_1D(
+def create_datasets() -> StretchedRodTrainingDataset1D:
+    config_training_dataset = StretchedRodTrainingDataset1DConfig(
         length=length,
         traction=traction,
         volume_force=volume_force,
@@ -73,6 +74,7 @@ def create_datasets() -> TrainingDataset1D:
         num_points_pde=num_points_pde,
         num_samples=num_samples_train,
     )
+    train_dataset = create_training_dataset(config_training_dataset)
     return train_dataset
 
 
@@ -83,7 +85,7 @@ def create_ansatz() -> BayesianAnsatz:
         min_inputs = torch.tensor([min_coordinate, min_youngs_modulus])
         max_inputs = torch.tensor([max_coordinate, max_youngs_modulus])
         min_displacement = displacement_left
-        max_displacement = calculate_displacements_solution_1D(
+        max_displacement = calculate_displacements_solution(
             coordinates=max_coordinate,
             length=length,
             youngs_modulus=min_youngs_modulus,

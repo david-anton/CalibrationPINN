@@ -11,16 +11,20 @@ from parametricpinn.ansatz import (
     StandardAnsatz,
     create_standard_normalized_hbc_ansatz_2D,
 )
-from parametricpinn.data.trainingdata_elasticity_2d import (
+from parametricpinn.data.dataset import (
     TrainingData2DCollocation,
     TrainingData2DSymmetryBC,
     TrainingData2DTractionBC,
-    collate_training_data_2D,
-    create_training_dataset_2D,
+)
+from parametricpinn.data.trainingdata_elasticity_2d import (
+    QuarterPlateWithHoleTrainingDataset2D,
+    QuarterPlateWithHoleTrainingDataset2DConfig,
+    create_training_dataset,
 )
 from parametricpinn.data.validationdata_elasticity_2d import (
-    collate_validation_data_2D,
-    create_validation_dataset_2D,
+    QuarterPlateWithHoleValidationDataset2D,
+    QuarterPlateWithHoleValidationDataset2DConfig,
+    create_validation_dataset,
 )
 from parametricpinn.fem import (
     LinearElasticityProblemConfig,
@@ -332,7 +336,7 @@ def determine_normalization_values() -> dict[str, Tensor]:
 ####################################################################################################
 if __name__ == "__main__":
     print("Generate training data ...")
-    train_dataset = create_training_dataset_2D(
+    config_train_dataset = QuarterPlateWithHoleTrainingDataset2DConfig(
         edge_length=edge_length,
         radius=radius,
         traction_left=traction_left,
@@ -345,12 +349,13 @@ if __name__ == "__main__":
         num_points_per_bc=num_points_per_bc,
         num_samples_per_parameter=num_samples_per_parameter,
     )
+    train_dataset = create_training_dataset(config_train_dataset)
     train_dataloader = DataLoader(
         dataset=train_dataset,
         batch_size=batch_size_train,
         shuffle=True,
         drop_last=False,
-        collate_fn=collate_training_data_2D,
+        collate_fn=train_dataset.get_collate_func(),
     )
 
     print("Load validation data ...")
@@ -358,18 +363,19 @@ if __name__ == "__main__":
         print("Run FE simulations to generate validation data ...")
         _generate_validation_data()
 
-    valid_dataset = create_validation_dataset_2D(
+    config_valid_dataset = QuarterPlateWithHoleValidationDataset2DConfig(
         input_subdir=input_subdir_valid,
         num_points=num_points_valid,
         num_samples=num_samples_valid,
         project_directory=project_directory,
     )
+    valid_dataset = create_validation_dataset(config_valid_dataset)
     valid_dataloader = DataLoader(
         dataset=valid_dataset,
         batch_size=batch_size_valid,
         shuffle=False,
         drop_last=False,
-        collate_fn=collate_validation_data_2D,
+        collate_fn=valid_dataset.get_collate_func(),
     )
 
     print("Run FE simulation to determine normalization values ...")

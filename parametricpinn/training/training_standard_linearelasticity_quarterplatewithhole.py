@@ -5,16 +5,16 @@ import torch
 from torch.utils.data import DataLoader
 
 from parametricpinn.ansatz import StandardAnsatz
-from parametricpinn.data.trainingdata_elasticity_2d import (
-    QuarterPlateWithHoleTrainingDataset2D,
+from parametricpinn.data.dataset import (
     TrainingData2DCollocation,
     TrainingData2DSymmetryBC,
     TrainingData2DTractionBC,
-    collate_training_data_2D,
+)
+from parametricpinn.data.trainingdata_elasticity_2d import (
+    QuarterPlateWithHoleTrainingDataset2D,
 )
 from parametricpinn.data.validationdata_elasticity_2d import (
     QuarterPlateWithHoleValidationDataset2D,
-    collate_validation_data_2D,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.loaderssavers import PytorchModelSaver
@@ -201,7 +201,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         batch_size=train_batch_size,
         shuffle=True,
         drop_last=False,
-        collate_fn=collate_training_data_2D,
+        collate_fn=train_dataset.get_collate_func(),
     )
 
     valid_dataloader = DataLoader(
@@ -209,7 +209,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         batch_size=valid_batch_size,
         shuffle=False,
         drop_last=False,
-        collate_fn=collate_validation_data_2D,
+        collate_fn=valid_dataset.get_collate_func(),
     )
 
     optimizer = torch.optim.LBFGS(

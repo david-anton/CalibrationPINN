@@ -29,11 +29,13 @@ from parametricpinn.calibration.bayesianinference.plot import (
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.data.trainingdata_elasticity_2d import (
     QuarterPlateWithHoleTrainingDataset2D,
-    create_training_dataset_2D,
+    QuarterPlateWithHoleTrainingDataset2DConfig,
+    create_training_dataset,
 )
 from parametricpinn.data.validationdata_elasticity_2d import (
     QuarterPlateWithHoleValidationDataset2D,
-    create_validation_dataset_2D,
+    QuarterPlateWithHoleValidationDataset2DConfig,
+    create_validation_dataset,
 )
 from parametricpinn.fem import (
     NeoHookeanProblemConfig,
@@ -49,7 +51,7 @@ from parametricpinn.postprocessing.plot import (
     plot_displacements_pwh,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.training_standard_neohookean_2d import (
+from parametricpinn.training.training_standard_neohookean_quarterplatewithhole import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
@@ -132,7 +134,7 @@ def create_datasets() -> (
         print("Generate training data ...")
         traction_left = torch.tensor([traction_left_x, traction_left_y])
         volume_force = torch.tensor([volume_force_x, volume_force_y])
-        return create_training_dataset_2D(
+        config_training_data = QuarterPlateWithHoleTrainingDataset2DConfig(
             edge_length=edge_length,
             radius=radius,
             traction_left=traction_left,
@@ -145,6 +147,7 @@ def create_datasets() -> (
             num_points_per_bc=number_points_per_bc,
             num_samples_per_parameter=num_samples_per_parameter,
         )
+        return create_training_dataset(config_training_data)
 
     def _create_validation_dataset() -> QuarterPlateWithHoleValidationDataset2D:
         def _generate_validation_data() -> None:
@@ -184,12 +187,13 @@ def create_datasets() -> (
         if regenerate_valid_data:
             print("Run FE simulations to generate validation data ...")
             _generate_validation_data()
-        return create_validation_dataset_2D(
+        config_validation_data = QuarterPlateWithHoleValidationDataset2DConfig(
             input_subdir=input_subdir_valid,
             num_points=num_points_valid,
             num_samples=num_samples_valid,
             project_directory=project_directory,
         )
+        return create_validation_dataset(config_validation_data)
 
     training_dataset = _create_training_dataset()
     validation_dataset = _create_validation_dataset()

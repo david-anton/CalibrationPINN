@@ -16,11 +16,12 @@ from parametricpinn.calibration import (
     calibrate,
 )
 from parametricpinn.calibration.bayesianinference.mcmc import MCMCOutput
+from parametricpinn.data.dataset import (
+    TrainingData1DCollocation,
+    TrainingData1DTractionBC,
+)
 from parametricpinn.data.trainingdata_linearelasticity_1d import (
-    TrainingData1DPDE,
-    TrainingData1DStressBC,
-    TrainingDataset1D,
-    collate_training_data,
+    StretchedRodTrainingDataset1D,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import ParameterPriorStds
@@ -40,7 +41,7 @@ class MeasurementsStds(NamedTuple):
 class TrainingConfiguration:
     ansatz: BayesianAnsatz
     parameter_prior_stds: ParameterPriorStds
-    training_dataset: TrainingDataset1D
+    training_dataset: StretchedRodTrainingDataset1D
     measurements_standard_deviations: MeasurementsStds
     number_mcmc_iterations: int
     output_subdirectory: str
@@ -52,7 +53,7 @@ class TrainigLikelihood:
     def __init__(
         self,
         ansatz: BayesianAnsatz,
-        training_dataset: TrainingDataset1D,
+        training_dataset: StretchedRodTrainingDataset1D,
         measurements_standard_deviations: MeasurementsStds,
         device: Device,
     ) -> None:
@@ -115,12 +116,13 @@ class TrainigLikelihood:
         return torch.concat([y_pde, y_stress_bc], dim=0)
 
     def _unpack_training_dataset(
-        self, training_dataset: TrainingDataset1D
-    ) -> tuple[TrainingData1DPDE, TrainingData1DStressBC]:
+        self, training_dataset: StretchedRodTrainingDataset1D
+    ) -> tuple[TrainingData1DCollocation, TrainingData1DTractionBC]:
         training_data = [
             (sample_pde, sample_stress_bc)
             for sample_pde, sample_stress_bc in iter(training_dataset)
         ]
+        collate_training_data = training_dataset.get_collate_func()
         data_pde, data_stress_bc = collate_training_data(training_data)
         return data_pde, data_stress_bc
 

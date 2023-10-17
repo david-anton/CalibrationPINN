@@ -5,15 +5,15 @@ import torch
 from torch.utils.data import DataLoader
 
 from parametricpinn.ansatz import StandardAnsatz
+from parametricpinn.data.dataset import (
+    TrainingData1DCollocation,
+    TrainingData1DTractionBC,
+)
 from parametricpinn.data.trainingdata_linearelasticity_1d import (
-    TrainingData1DPDE,
-    TrainingData1DStressBC,
-    TrainingDataset1D,
-    collate_training_data,
+    StretchedRodTrainingDataset1D,
 )
 from parametricpinn.data.validationdata_linearelasticity_1d import (
-    ValidationDataset1D,
-    collate_validation_data_1D,
+    StretchedRodValidationDataset1D,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.loaderssavers import PytorchModelSaver
@@ -33,10 +33,10 @@ from parametricpinn.types import Device, Tensor
 @dataclass
 class TrainingConfiguration:
     ansatz: StandardAnsatz
-    training_dataset: TrainingDataset1D
+    training_dataset: StretchedRodTrainingDataset1D
     number_training_epochs: int
     training_batch_size: int
-    validation_dataset: ValidationDataset1D
+    validation_dataset: StretchedRodValidationDataset1D
     output_subdirectory: str
     project_directory: ProjectDirectory
     device: Device
@@ -58,11 +58,11 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     ### Loss function
     def loss_func(
         ansatz: StandardAnsatz,
-        pde_data: TrainingData1DPDE,
-        stress_bc_data: TrainingData1DStressBC,
+        pde_data: TrainingData1DCollocation,
+        stress_bc_data: TrainingData1DTractionBC,
     ) -> tuple[Tensor, Tensor]:
         def loss_func_pde(
-            ansatz: StandardAnsatz, pde_data: TrainingData1DPDE
+            ansatz: StandardAnsatz, pde_data: TrainingData1DCollocation
         ) -> Tensor:
             x_coor = pde_data.x_coor.to(device)
             x_E = pde_data.x_E.to(device)
@@ -72,7 +72,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             return loss_metric(y_true, y)
 
         def loss_func_stress_bc(
-            ansatz: StandardAnsatz, stress_bc_data: TrainingData1DStressBC
+            ansatz: StandardAnsatz, stress_bc_data: TrainingData1DTractionBC
         ) -> Tensor:
             x_coor = stress_bc_data.x_coor.to(device)
             x_E = stress_bc_data.x_E.to(device)
@@ -113,7 +113,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         batch_size=train_batch_size,
         shuffle=False,
         drop_last=False,
-        collate_fn=collate_training_data,
+        collate_fn=train_dataset.get_collate_func(),
     )
 
     valid_dataloader = DataLoader(
@@ -121,7 +121,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         batch_size=valid_batch_size,
         shuffle=False,
         drop_last=False,
-        collate_fn=collate_validation_data_1D,
+        collate_fn=valid_dataset.get_collate_func(),
     )
 
     optimizer = torch.optim.LBFGS(
