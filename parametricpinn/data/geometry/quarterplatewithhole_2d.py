@@ -72,11 +72,13 @@ class QuarterPlateWithHole2D:
         angles = torch.linspace(self._angle_min, self._angle_max, num_points).view(
             num_points, 1
         )
-        coordinates_x = self._x_center - torch.cos(torch.deg2rad(angles)) * self.radius
-        coordinates_y = self._y_center + torch.sin(torch.deg2rad(angles)) * self.radius
+        delta_x = torch.cos(torch.deg2rad(angles)) * self.radius
+        delta_y = torch.sin(torch.deg2rad(angles)) * self.radius
+        coordinates_x = self._x_center - delta_x
+        coordinates_y = self._y_center + delta_y
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
-        normals_x = -coordinates_x
-        normals_y = -coordinates_y
+        normals_x = delta_x
+        normals_y = -delta_y
         normals = torch.concat((normals_x, normals_y), dim=1) / self.radius
         return coordinates, normals
 
@@ -122,7 +124,7 @@ class QuarterPlateWithHole2D:
         return self._shape.contains(Point(_point[0], _point[1]))
 
     def _create_shape(self) -> Polygon:
-        plate = box(self._x_min, self._x_max, self._y_min, self._y_max)
+        plate = box(self._x_min, self._y_min, self._x_max, self._y_max)
         hole = Point(0, 0).buffer(self.radius)
         plate_with_hole = plate.difference(hole)
         return plate_with_hole

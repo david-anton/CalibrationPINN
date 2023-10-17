@@ -85,15 +85,16 @@ class PlateWithHole2D:
         self, num_points: int
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
-        angles = torch.linspace(self._angle_min, self._angle_max, num_points).view(
-            num_points, 1
-        )
+        extended_num_points = num_points + 1
+        angles = torch.linspace(
+            self._angle_min, self._angle_max, extended_num_points
+        ).view(extended_num_points, 1)[:-1, :]
         delta_x = torch.cos(torch.deg2rad(angles)) * self.radius
         delta_y = torch.sin(torch.deg2rad(angles)) * self.radius
         coordinates_x = self._x_center - delta_x
         coordinates_y = self._y_center + delta_y
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
-        normals_x = -delta_x
+        normals_x = delta_x
         normals_y = -delta_y
         normals = torch.concat((normals_x, normals_y), dim=1) / self.radius
         return coordinates, normals
@@ -128,7 +129,7 @@ class PlateWithHole2D:
         return self._shape.contains(Point(_point[0], _point[1]))
 
     def _create_shape(self) -> Polygon:
-        plate = box(self._x_min, self._x_max, self._y_min, self._y_max)
+        plate = box(self._x_min, self._y_min, self._x_max, self._y_max)
         hole = Point(self._x_center, self._y_center).buffer(self.radius)
         plate_with_hole = plate.difference(hole)
         return plate_with_hole

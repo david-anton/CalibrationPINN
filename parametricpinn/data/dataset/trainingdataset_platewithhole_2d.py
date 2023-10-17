@@ -183,7 +183,7 @@ class PlateWithHoleTrainingDataset2D(Dataset):
         (
             x_coor_right,
             normal_right,
-        ) = self._geometry.create_uniform_points_on_left_boundary(num_points)
+        ) = self._geometry.create_uniform_points_on_right_boundary(num_points)
         (
             x_coor_top_complete_boundary,
             normal_top_complete_boundary,

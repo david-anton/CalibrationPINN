@@ -1,24 +1,48 @@
-from typing import TypeAlias
+from typing import TypeAlias, Union
 
 from parametricpinn.data.dataset import (
+    PlateWithHoleTrainingDataset2D,
+    PlateWithHoleTrainingDataset2DConfig,
     QuarterPlateWithHoleTrainingDataset2D,
     QuarterPlateWithHoleTrainingDataset2DConfig,
 )
 from parametricpinn.data.geometry import PlateWithHole2D, QuarterPlateWithHole2D
 from parametricpinn.errors import DatasetConfigError
 
-TrainingDatasetConfig: TypeAlias = QuarterPlateWithHoleTrainingDataset2DConfig
-TrainingDataset: TypeAlias = QuarterPlateWithHoleTrainingDataset2D
+TrainingDatasetConfig: TypeAlias = Union[
+    QuarterPlateWithHoleTrainingDataset2DConfig, PlateWithHoleTrainingDataset2DConfig
+]
+TrainingDataset: TypeAlias = Union[
+    QuarterPlateWithHoleTrainingDataset2D, PlateWithHoleTrainingDataset2D
+]
 
 
 def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
     if isinstance(config, QuarterPlateWithHoleTrainingDataset2DConfig):
-        geometry = QuarterPlateWithHole2D(
+        geometry_quarter_pwh = QuarterPlateWithHole2D(
             edge_length=config.edge_length, radius=config.radius
         )
         return QuarterPlateWithHoleTrainingDataset2D(
-            geometry=geometry,
+            geometry=geometry_quarter_pwh,
             traction_left=config.traction_left,
+            volume_force=config.volume_force,
+            min_youngs_modulus=config.min_youngs_modulus,
+            max_youngs_modulus=config.max_youngs_modulus,
+            min_poissons_ratio=config.min_poissons_ratio,
+            max_poissons_ratio=config.max_poissons_ratio,
+            num_collocation_points=config.num_collocation_points,
+            num_points_per_bc=config.num_points_per_bc,
+            num_samples_per_parameter=config.num_samples_per_parameter,
+        )
+    elif isinstance(config, PlateWithHoleTrainingDataset2DConfig):
+        geometry_pwh = PlateWithHole2D(
+            plate_length=config.plate_length,
+            plate_height=config.plate_height,
+            hole_radius=config.hole_radius,
+        )
+        return PlateWithHoleTrainingDataset2D(
+            geometry=geometry_pwh,
+            traction_right=config.traction_right,
             volume_force=config.volume_force,
             min_youngs_modulus=config.min_youngs_modulus,
             max_youngs_modulus=config.max_youngs_modulus,
