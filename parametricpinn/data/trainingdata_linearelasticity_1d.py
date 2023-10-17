@@ -1,6 +1,6 @@
 from typing import TypeAlias
 
-from parametricpinn.data.dataset.stretchedrod_1d import (
+from parametricpinn.data.dataset import (
     StretchedRodTrainingDataset1D,
     StretchedRodTrainingDataset1DConfig,
 )

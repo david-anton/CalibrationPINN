@@ -9,8 +9,8 @@ import pytest
 import torch
 
 from parametricpinn.data.validationdata_elasticity_2d import (
-    QuarterPlateWithHoleValidationDataset2D,
-    QuarterPlateWithHoleValidationDataset2DConfig,
+    ValidationDataset2D,
+    ValidationDataset2DConfig,
     create_validation_dataset,
 )
 from parametricpinn.errors import TestConfigurationError
@@ -113,13 +113,13 @@ def write_input_data() -> None:
 
 ### Test ValidationDataset
 @pytest.fixture
-def sut() -> Iterator[QuarterPlateWithHoleValidationDataset2D]:
+def sut() -> Iterator[ValidationDataset2D]:
     set_seed(random_seed)
     input_subdir_path = settings.PROJECT_DIR / settings.INPUT_SUBDIR
     if not Path.is_dir(input_subdir_path):
         os.mkdir(input_subdir_path)
     write_input_data()
-    config = QuarterPlateWithHoleValidationDataset2DConfig(
+    config = ValidationDataset2DConfig(
         input_subdir=input_subdir,
         num_points=num_points,
         num_samples=num_samples,
@@ -155,7 +155,7 @@ def expected_sample(idx_sample: int) -> tuple[Tensor, Tensor]:
         raise TestConfigurationError(f"Sample index {idx_sample} not specified.")
 
 
-def test_len(sut: QuarterPlateWithHoleValidationDataset2D) -> None:
+def test_len(sut: ValidationDataset2D) -> None:
     actual = len(sut)
 
     expected = num_samples
@@ -164,7 +164,7 @@ def test_len(sut: QuarterPlateWithHoleValidationDataset2D) -> None:
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
 def test_input_sample(
-    sut: QuarterPlateWithHoleValidationDataset2D,
+    sut: ValidationDataset2D,
     idx_sample: int,
 ) -> None:
     actual, _ = sut[idx_sample]
@@ -175,7 +175,7 @@ def test_input_sample(
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
 def test_output_sample(
-    sut: QuarterPlateWithHoleValidationDataset2D,
+    sut: ValidationDataset2D,
     idx_sample: int,
 ) -> None:
     _, actual = sut[idx_sample]
@@ -195,7 +195,7 @@ def fake_batch() -> list[tuple[Tensor, Tensor]]:
 
 
 def test_batch_pde__x(
-    sut: QuarterPlateWithHoleValidationDataset2D,
+    sut: ValidationDataset2D,
     fake_batch: list[tuple[Tensor, Tensor]],
 ):
     collate_func = sut.get_collate_func()
@@ -209,7 +209,7 @@ def test_batch_pde__x(
 
 
 def test_batch_pde__y_true(
-    sut: QuarterPlateWithHoleValidationDataset2D,
+    sut: ValidationDataset2D,
     fake_batch: list[tuple[Tensor, Tensor]],
 ):
     collate_func = sut.get_collate_func()

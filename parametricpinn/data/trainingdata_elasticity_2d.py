@@ -1,6 +1,6 @@
 from typing import TypeAlias
 
-from parametricpinn.data.dataset.quarterplatewithholedatasets_2d import (
+from parametricpinn.data.dataset import (
     QuarterPlateWithHoleTrainingDataset2D,
     QuarterPlateWithHoleTrainingDataset2DConfig,
 )

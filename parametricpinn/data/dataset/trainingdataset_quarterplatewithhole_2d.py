@@ -1,4 +1,3 @@
-import os
 from dataclasses import dataclass
 from typing import Callable, TypeAlias
 
@@ -6,17 +5,13 @@ import torch
 from torch.utils.data import Dataset
 
 from parametricpinn.data.base import repeat_tensor
+from parametricpinn.data.dataset.base import generate_uniform_parameter_list
 from parametricpinn.data.dataset.dataset import (
     TrainingData2DCollocation,
     TrainingData2DSymmetryBC,
     TrainingData2DTractionBC,
-    ValidationBatch,
-    ValidationBatchList,
-    ValidationCollateFunc,
 )
 from parametricpinn.data.geometry import QuarterPlateWithHole2D
-from parametricpinn.io import ProjectDirectory
-from parametricpinn.io.readerswriters import CSVDataReader
 from parametricpinn.types import Tensor
 
 TrainingBatch: TypeAlias = tuple[
@@ -73,6 +68,7 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         self._num_collocation_points = num_collocation_points
         self._num_points_per_bc = num_points_per_bc
         self._num_samples_per_parameter = num_samples_per_parameter
+        self._total_num_samples = num_samples_per_parameter**self._num_parameters
         self._samples_collocation: list[TrainingData2DCollocation] = []
         self._samples_symmetry_bc: list[TrainingData2DSymmetryBC] = []
         self._samples_traction_bc: list[TrainingData2DTractionBC] = []
@@ -147,11 +143,15 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         return collate_func
 
     def _generate_samples(self) -> None:
-        youngs_moduli_list = self._generate_uniform_parameter_list(
-            self._min_youngs_modulus, self._max_youngs_modulus
+        youngs_moduli_list = generate_uniform_parameter_list(
+            self._min_youngs_modulus,
+            self._max_youngs_modulus,
+            self._num_samples_per_parameter,
         )
-        poissons_ratios_list = self._generate_uniform_parameter_list(
-            self._min_poissons_ratio, self._max_poissons_ratio
+        poissons_ratios_list = generate_uniform_parameter_list(
+            self._min_poissons_ratio,
+            self._max_poissons_ratio,
+            self._num_samples_per_parameter,
         )
         for i in range(self._num_samples_per_parameter):
             for j in range(self._num_samples_per_parameter):
@@ -161,17 +161,9 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
                 self._add_symmetry_bc_sample(youngs_modulus, poissons_ratio)
                 self._add_traction_bc_sample(youngs_modulus, poissons_ratio)
                 num_sample = i * self._num_samples_per_parameter + j
-                total_num_samples = (
-                    self._num_samples_per_parameter**self._num_parameters
+                print(
+                    f"Add training sample {num_sample + 1} / {self._total_num_samples}"
                 )
-                print(f"Add training sample {num_sample + 1} / {total_num_samples}")
-
-    def _generate_uniform_parameter_list(
-        self, min_parameter: float, max_parameter: float
-    ) -> list[float]:
-        return torch.linspace(
-            min_parameter, max_parameter, self._num_samples_per_parameter
-        ).tolist()
 
     def _add_collocation_sample(
         self, youngs_modulus: float, poissons_ratio: float
@@ -227,28 +219,23 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         self._samples_traction_bc.append(sample)
 
     def _create_coordinates_and_normals_for_traction_bcs(self) -> tuple[Tensor, Tensor]:
+        num_points = self._num_points_per_bc
         (
             x_coor_left_complete_boundary,
             normal_left_complete_boundary,
-        ) = self._geometry.create_uniform_points_on_left_boundary(
-            self._num_points_per_bc + 1
-        )
+        ) = self._geometry.create_uniform_points_on_left_boundary(num_points + 1)
         x_coor_left = x_coor_left_complete_boundary[1:, :]
         normal_left = normal_left_complete_boundary[1:, :]
         (
             x_coor_top_complete_boundary,
             normal_top_complete_boundary,
-        ) = self._geometry.create_uniform_points_on_top_boundary(
-            self._num_points_per_bc + 2
-        )
+        ) = self._geometry.create_uniform_points_on_top_boundary(num_points + 2)
         x_coor_top = x_coor_top_complete_boundary[1:-1, :]
         normal_top = normal_top_complete_boundary[1:-1, :]
         (
             x_coor_hole_complete_boundary,
             normal_hole_complete_boundary,
-        ) = self._geometry.create_uniform_points_on_hole_boundary(
-            self._num_points_per_bc + 2
-        )
+        ) = self._geometry.create_uniform_points_on_hole_boundary(num_points + 2)
         x_coor_hole = x_coor_hole_complete_boundary[1:-1, :]
         normal_hole = normal_hole_complete_boundary[1:-1, :]
         x_coor = torch.concat((x_coor_left, x_coor_top, x_coor_hole), dim=0)
@@ -298,87 +285,3 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         sample_symmetry_bc = self._samples_symmetry_bc[idx]
         sample_traction_bc = self._samples_traction_bc[idx]
         return sample_collocation, sample_symmetry_bc, sample_traction_bc
-
-
-@dataclass
-class QuarterPlateWithHoleValidationDataset2DConfig:
-    input_subdir: str
-    num_points: int
-    num_samples: int
-    project_directory: ProjectDirectory
-
-
-class QuarterPlateWithHoleValidationDataset2D(Dataset):
-    def __init__(
-        self,
-        input_subdir: str,
-        num_points: int,
-        num_samples: int,
-        project_directory: ProjectDirectory,
-    ) -> None:
-        self._input_subdir = input_subdir
-        self._num_points = num_points
-        self._num_samples = num_samples
-        self._data_reader = CSVDataReader(project_directory)
-        self._file_name_displacements = "displacements"
-        self._file_name_parameters = "parameters"
-        self._slice_coordinates = slice(0, 2)
-        self._slice_displacements = slice(2, 4)
-        self._samples_x: list[Tensor] = []
-        self._samples_y_true: list[Tensor] = []
-
-        self._load_samples()
-
-    def get_collate_func(self) -> ValidationCollateFunc:
-        def collate_func(batch: ValidationBatchList) -> ValidationBatch:
-            x_batch = []
-            y_true_batch = []
-
-            for sample_x, sample_y_true in batch:
-                x_batch.append(sample_x)
-                y_true_batch.append(sample_y_true)
-
-            batch_x = torch.concat(x_batch, dim=0)
-            batch_y_true = torch.concat(y_true_batch, dim=0)
-            return batch_x, batch_y_true
-
-        return collate_func
-
-    def _load_samples(self) -> None:
-        for idx_sample in range(self._num_samples):
-            displacements = self._read_data(self._file_name_displacements, idx_sample)
-            parameters = self._read_data(self._file_name_parameters, idx_sample)
-            random_indices = self._generate_random_indices(displacements.size(dim=0))
-            self._add_input_sample(displacements, parameters, random_indices)
-            self._add_output_sample(displacements, random_indices)
-
-    def _read_data(self, file_name, idx_sample) -> Tensor:
-        sample_subdir = f"sample_{idx_sample}"
-        input_subdir = os.path.join(self._input_subdir, sample_subdir)
-        data = self._data_reader.read(file_name, input_subdir)
-        return torch.tensor(data, dtype=torch.get_default_dtype())
-
-    def _generate_random_indices(self, max_index: int):
-        return torch.randperm(max_index)[: self._num_points]
-
-    def _add_input_sample(
-        self, displacements: Tensor, parameters: Tensor, random_indices: Tensor
-    ) -> None:
-        x_coor_all = displacements[:, self._slice_coordinates]
-        x_coor = x_coor_all[random_indices, :]
-        x_params = repeat_tensor(parameters, (self._num_points, 1))
-        x = torch.concat((x_coor, x_params), dim=1)
-        self._samples_x.append(x)
-
-    def _add_output_sample(self, displacements: Tensor, random_indices: Tensor) -> None:
-        y_true_all = displacements[:, self._slice_displacements]
-        y_true = y_true_all[random_indices, :]
-        self._samples_y_true.append(y_true)
-
-    def __len__(self) -> int:
-        return self._num_samples
-
-    def __getitem__(self, idx: int) -> tuple[Tensor, Tensor]:
-        sample_x = self._samples_x[idx]
-        sample_y_true = self._samples_y_true[idx]
-        return sample_x, sample_y_true

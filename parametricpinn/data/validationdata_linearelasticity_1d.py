@@ -1,8 +1,10 @@
 from typing import TypeAlias
 
-from parametricpinn.data.dataset.stretchedrod_1d import (
+from parametricpinn.data.dataset import (
     StretchedRodValidationDataset1D,
     StretchedRodValidationDataset1DConfig,
+)
+from parametricpinn.data.dataset.validationdataset_stretchedrod_1d import (
     calculate_displacements_solution,
 )
 from parametricpinn.data.geometry import StretchedRod1D

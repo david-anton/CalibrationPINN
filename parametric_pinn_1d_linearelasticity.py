@@ -87,7 +87,9 @@ set_default_dtype(torch.float64)
 set_seed(0)
 
 
-def create_datasets() -> tuple[StretchedRodTrainingDataset1D, StretchedRodValidationDataset1D]:
+def create_datasets() -> (
+    tuple[StretchedRodTrainingDataset1D, StretchedRodValidationDataset1D]
+):
     config_training_dataset = StretchedRodTrainingDataset1DConfig(
         length=length,
         traction=traction,
