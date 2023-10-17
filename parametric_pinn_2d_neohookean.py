@@ -446,7 +446,7 @@ def calibration_step() -> None:
         num_iterations=int(5e3),
         num_burn_in_iterations=int(1e3),
         num_leabfrog_steps=256,
-        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
+        leapfrog_step_sizes=torch.tensor([1, 0.01], device=device),
     )
     mcmc_config_enuts = EfficientNUTSConfig(
         likelihood=likelihood,
@@ -455,7 +455,7 @@ def calibration_step() -> None:
         num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
         max_tree_depth=8,
-        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
+        leapfrog_step_sizes=torch.tensor([1, 0.01], device=device),
     )
     if use_least_squares:
         start = perf_counter()
