@@ -23,6 +23,7 @@ class BaseSimulationResults:
     coordinates_y: NPArray
     displacements_x: NPArray
     displacements_y: NPArray
+    function: DFunction
 
 
 def apply_boundary_conditions(
