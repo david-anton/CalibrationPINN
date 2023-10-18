@@ -9,7 +9,7 @@
 ## Build command
 ## singularity build --fakeroot --force parametricpinn.sif app/.devcontainer/container.def
 
-SCRIPT=parametricpinn/fem/tests/convergence_neohookean_quarterplatewithhole.py
+SCRIPT=convergence_neohookean_quarterplatewithhole.py
 
 srun singularity exec \
  --cleanenv \
