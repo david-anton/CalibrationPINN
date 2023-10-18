@@ -8,7 +8,7 @@ from dolfinx import fem
 from mpi4py import MPI
 
 from parametricpinn.fem import (
-    NeoHookeanProblemConfig,
+    LinearElasticityProblemConfig,
     QuarterPlateWithHoleDomainConfig,
     SimulationConfig,
     run_simulation,
@@ -21,6 +21,7 @@ from parametricpinn.types import NPArray
 
 ### Configuration
 # Set up
+material_model = "plane stress"
 edge_length = 100.0
 radius = 10.0
 traction_left_x = -100.0
@@ -31,8 +32,8 @@ youngs_modulus = 2000.0
 poissons_ratio = 0.3
 # FEM
 fem_element_family = "Lagrange"
-fem_element_degree = 2
-fem_mesh_resolution_reference = 0.5
+fem_element_degree = 1
+fem_mesh_resolution_reference = 0.1
 fem_mesh_resolution_factors = np.array([8, 4, 2, 1])
 fem_mesh_resolution_tests = list(
     fem_mesh_resolution_factors * fem_mesh_resolution_reference
@@ -65,7 +66,8 @@ def create_fem_domain_config(
 
 def calculate_approximate_solution(mesh_resolution) -> SimulationResults:
     domain_config = create_fem_domain_config(mesh_resolution)
-    problem_config = NeoHookeanProblemConfig(
+    problem_config = LinearElasticityProblemConfig(
+        model=material_model,
         youngs_modulus=youngs_modulus,
         poissons_ratio=poissons_ratio,
     )

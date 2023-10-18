@@ -80,7 +80,7 @@ class LinearElasticityProblem:
             poissons_ratio=self._config.poissons_ratio,
             displacements_x=displacements_x,
             displacements_y=displacements_y,
-            function=approximate_solution
+            function=approximate_solution,
         )
 
         return results
