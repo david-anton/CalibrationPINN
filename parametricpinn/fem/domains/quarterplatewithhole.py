@@ -3,9 +3,9 @@ from typing import TypeAlias
 
 import gmsh
 import numpy as np
+from dolfinx import default_scalar_type
 from dolfinx.fem import Constant
 from dolfinx.mesh import meshtags
-from petsc4py.PETSc import ScalarType
 
 from parametricpinn.fem.base import (
     DFunctionSpace,
@@ -54,8 +54,8 @@ class QuarterPlateWithHoleDomain:
     ):
         self.config = config
         self._geometric_dim = 2
-        self._u_x_right = ScalarType(0.0)
-        self._u_y_bottom = ScalarType(0.0)
+        self._u_x_right = default_scalar_type(0.0)
+        self._u_y_bottom = default_scalar_type(0.0)
         self._tag_right = 0
         self._tag_bottom = 1
         self._tag_left = 2
@@ -76,12 +76,14 @@ class QuarterPlateWithHoleDomain:
     ) -> BoundaryConditions:
         traction_left = Constant(
             self.mesh,
-            (ScalarType((self.config.traction_left_x, self.config.traction_left_y))),
+            (default_scalar_type((self.config.traction_left_x, self.config.traction_left_y))),
         )
+        u_x_right = Constant(self.mesh, self._u_x_right)
+        u_y_bottom = Constant(self.mesh, self._u_y_bottom)
         return [
             DirichletBC(
                 tag=self._tag_right,
-                value=self._u_x_right,
+                value=u_x_right,
                 dim=0,
                 function_space=function_space,
                 boundary_tags=self.boundary_tags,
@@ -89,7 +91,7 @@ class QuarterPlateWithHoleDomain:
             ),
             DirichletBC(
                 tag=self._tag_bottom,
-                value=self._u_y_bottom,
+                value=u_y_bottom,
                 dim=1,
                 function_space=function_space,
                 boundary_tags=self.boundary_tags,

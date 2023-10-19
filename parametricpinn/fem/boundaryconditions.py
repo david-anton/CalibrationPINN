@@ -7,12 +7,11 @@ from parametricpinn.fem.base import (
     DConstant,
     DFunctionSpace,
     DMeshTags,
-    PETScScalarType,
     UFLMeasure,
     UFLTestFunction,
 )
 
-BCValue: TypeAlias = Union[DConstant, PETScScalarType]
+BCValue: TypeAlias = DConstant
 
 
 class NeumannBC:
