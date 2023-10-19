@@ -75,7 +75,11 @@ class PlateWithHoleDomain:
     ) -> BoundaryConditions:
         traction_right = Constant(
             self.mesh,
-            (default_scalar_type((self.config.traction_right_x, self.config.traction_right_y))),
+            (
+                default_scalar_type(
+                    (self.config.traction_right_x, self.config.traction_right_y)
+                )
+            ),
         )
         u_x_left = Constant(self.mesh, self._u_x_left)
         return [

@@ -16,13 +16,16 @@ GOutDimAndTagsMap: TypeAlias = list[Union[GOutDimAndTags, list[Any]]]
 GGeometry: TypeAlias = tuple[GOutDimAndTags, GOutDimAndTagsMap]
 DMesh: TypeAlias = dolfinx.mesh.Mesh
 DFunction: TypeAlias = dolfinx.fem.Function
-DFunctionSpace: TypeAlias = ufl.FunctionSpace # dolfinx.fem.FunctionSpace not valid as a type
+DFunctionSpace: TypeAlias = (
+    ufl.FunctionSpace
+)  # dolfinx.fem.FunctionSpace not valid as a type
 DScalarType: TypeAlias = dolfinx.default_scalar_type
 DConstant: TypeAlias = dolfinx.fem.Constant
 DDofs: TypeAlias = npt.NDArray[np.int32]
 DMeshTags: TypeAlias = Any  # dolfinx.mesh.MeshTags
 DDirichletBC: TypeAlias = dolfinx.fem.DirichletBC
 UFLOperator: TypeAlias = ufl.core.operator.Operator
+UFLExpression: TypeAlias = ufl.core.expr.Expr
 UFLTrialFunction: TypeAlias = ufl.TrialFunction
 UFLTestFunction: TypeAlias = ufl.TestFunction
 UFLMeasure: TypeAlias = ufl.Measure

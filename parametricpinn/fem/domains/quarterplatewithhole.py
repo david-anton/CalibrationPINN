@@ -76,7 +76,11 @@ class QuarterPlateWithHoleDomain:
     ) -> BoundaryConditions:
         traction_left = Constant(
             self.mesh,
-            (default_scalar_type((self.config.traction_left_x, self.config.traction_left_y))),
+            (
+                default_scalar_type(
+                    (self.config.traction_left_x, self.config.traction_left_y)
+                )
+            ),
         )
         u_x_right = Constant(self.mesh, self._u_x_right)
         u_y_bottom = Constant(self.mesh, self._u_y_bottom)

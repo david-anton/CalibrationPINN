@@ -1,6 +1,5 @@
 from datetime import date
 
-import numpy as np
 import torch
 
 from parametricpinn.fem import (
@@ -9,8 +8,8 @@ from parametricpinn.fem import (
     SimulationConfig,
     run_simulation,
 )
+from parametricpinn.fem.base import DFunction
 from parametricpinn.fem.convergence import calculate_l2_error
-from parametricpinn.fem.problems import SimulationResults
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.settings import Settings, set_default_dtype
 
@@ -26,12 +25,8 @@ youngs_modulus = 2000.0
 poissons_ratio = 0.3
 # FEM
 fem_element_family = "Lagrange"
-fem_element_degree = 2
-fem_mesh_resolution_reference = 0.5
-fem_mesh_resolution_factors = np.array([8, 4, 2, 1])
-fem_mesh_resolution_tests = list(
-    fem_mesh_resolution_factors * fem_mesh_resolution_reference
-)
+fem_element_degree = 1
+fem_mesh_resolution_tests = [3.2, 1.6, 0.8, 0.4, 0.2]
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdirectory = (
@@ -58,7 +53,7 @@ def create_fem_domain_config(
     )
 
 
-def calculate_approximate_solution(mesh_resolution) -> SimulationResults:
+def calculate_approximate_solution(mesh_resolution) -> DFunction:
     domain_config = create_fem_domain_config(mesh_resolution)
     problem_config = NeoHookeanProblemConfig(
         youngs_modulus=youngs_modulus,
@@ -70,34 +65,24 @@ def calculate_approximate_solution(mesh_resolution) -> SimulationResults:
         volume_force_x=volume_force_x,
         volume_force_y=volume_force_y,
     )
-    return run_simulation(
+    results = run_simulation(
         simulation_config=simulation_config,
         save_results=False,
         save_metadata=False,
         output_subdir=output_subdirectory,
         project_directory=project_directory,
     )
+    return results.function
 
 
-reference_solution = calculate_approximate_solution(fem_mesh_resolution_reference)
-u_exact = reference_solution.function
+u_approx = calculate_approximate_solution(fem_mesh_resolution_tests[0])
 
-
-mesh_resolution_record = []
-l2_error_record = []
-num_dofs_record = []
-for mesh_resolution in fem_mesh_resolution_tests:
-    approximate_solution = calculate_approximate_solution(mesh_resolution)
-    u_approx = approximate_solution.function
-    l2_error = calculate_l2_error(u_approx, u_exact)
-    num_dofs = approximate_solution.coordinates_x.size
-    mesh_resolution_record.append(mesh_resolution)
-    l2_error_record.append(l2_error)
-    num_dofs_record.append(num_dofs)
-
-for mesh_resolution, l2_error, num_dofs in zip(
-    mesh_resolution_record, l2_error_record, num_dofs_record
-):
+for i in range(1, len(fem_mesh_resolution_tests)):
+    u_refined = calculate_approximate_solution(fem_mesh_resolution_tests[i])
+    l2_error = calculate_l2_error(u_approx=u_approx, u_exact=u_refined)
+    num_elements = u_approx.function_space.tabulate_dof_coordinates().size
+    num_elements_refined = u_refined.function_space.tabulate_dof_coordinates().size
     print(
-        f"Mesh: resolution: {mesh_resolution} \t L2 error: {l2_error} \t Number DOFs: {num_dofs}"
+        f"{num_elements} \t -> {num_elements_refined}: \t L2 error ratio: {l2_error}"
     )
+    u_approx = u_refined
