@@ -219,8 +219,47 @@ def create_ansatz() -> StandardAnsatz:
             output_subdirectory_preprocessing,
             "results_for_determining_normalization_values",
         )
-        print("Run FE simulation to determine normalization values ...")
+        print("Run FE simulations to determine normalization values ...")
         domain_config = create_fem_domain_config()
+        # problem_config_x = NeoHookeanProblemConfig(
+        #     youngs_modulus=min_youngs_modulus,
+        #     poissons_ratio=min_poissons_ratio,
+        # )
+        # simulation_config_x = SimulationConfig(
+        #     domain_config=domain_config,
+        #     problem_config=problem_config_x,
+        #     volume_force_x=volume_force_x,
+        #     volume_force_y=volume_force_y,
+        # )
+        # simulation_results_x = run_simulation(
+        #     simulation_config=simulation_config_x,
+        #     save_results=False,
+        #     save_metadata=False,
+        #     output_subdir=_output_subdir,
+        #     project_directory=project_directory,
+        # )
+        # problem_config_y = NeoHookeanProblemConfig(
+        #     youngs_modulus=min_youngs_modulus,
+        #     poissons_ratio=max_poissons_ratio,
+        # )
+        # simulation_config_y = SimulationConfig(
+        #     domain_config=domain_config,
+        #     problem_config=problem_config_y,
+        #     volume_force_x=volume_force_x,
+        #     volume_force_y=volume_force_y,
+        # )
+        # simulation_results_y = run_simulation(
+        #     simulation_config=simulation_config_y,
+        #     save_results=False,
+        #     save_metadata=False,
+        #     output_subdir=_output_subdir,
+        #     project_directory=project_directory,
+        # )
+
+        # min_displacement_x = float(np.amin(simulation_results_x.displacements_x))
+        # max_displacement_x = float(np.amax(simulation_results_x.displacements_x))
+        # min_displacement_y = float(np.amin(simulation_results_y.displacements_y))
+        # max_displacement_y = float(np.amax(simulation_results_y.displacements_y))
         problem_config = NeoHookeanProblemConfig(
             youngs_modulus=min_youngs_modulus,
             poissons_ratio=max_poissons_ratio,
@@ -334,6 +373,8 @@ def calibration_step() -> None:
     exact_poissons_ratio = 0.34
     num_data_points = 128
     std_noise = 5 * 1e-4
+    std_model_error = 2 * 1e-2
+    std_error = std_noise + std_model_error
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
         domain_config = create_fem_domain_config()
@@ -391,7 +432,7 @@ def calibration_step() -> None:
     data = CalibrationData(
         inputs=coordinates,
         outputs=noisy_displacements,
-        std_noise=std_noise,
+        std_noise=std_error,
     )
     likelihood = create_ppinn_likelihood(ansatz=model, data=data, device=device)
 
@@ -419,8 +460,8 @@ def calibration_step() -> None:
         ansatz=model,
         calibration_data=data,
     )
-    std_proposal_density_youngs_modulus = 100
-    std_proposal_density_poissons_ratio = 0.015
+    std_proposal_density_youngs_modulus = 10
+    std_proposal_density_poissons_ratio = 0.0015
     mcmc_config_mh = MetropolisHastingsConfig(
         likelihood=likelihood,
         prior=prior,

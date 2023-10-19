@@ -82,7 +82,5 @@ for i in range(1, len(fem_mesh_resolution_tests)):
     l2_error = calculate_l2_error(u_approx=u_approx, u_exact=u_refined)
     num_elements = u_approx.function_space.tabulate_dof_coordinates().size
     num_elements_refined = u_refined.function_space.tabulate_dof_coordinates().size
-    print(
-        f"{num_elements} \t -> {num_elements_refined}: \t L2 error ratio: {l2_error}"
-    )
+    print(f"{num_elements} \t -> {num_elements_refined}: \t L2 error ratio: {l2_error}")
     u_approx = u_refined
