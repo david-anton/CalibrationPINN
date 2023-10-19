@@ -22,8 +22,8 @@ from parametricpinn.data.trainingdata_elasticity_2d import (
     create_training_dataset,
 )
 from parametricpinn.data.validationdata_elasticity_2d import (
-    QuarterPlateWithHoleValidationDataset2D,
-    QuarterPlateWithHoleValidationDataset2DConfig,
+    ValidationDataset2D,
+    ValidationDataset2DConfig,
     create_validation_dataset,
 )
 from parametricpinn.fem import (
@@ -366,7 +366,7 @@ if __name__ == "__main__":
         print("Run FE simulations to generate validation data ...")
         _generate_validation_data()
 
-    config_valid_dataset = QuarterPlateWithHoleValidationDataset2DConfig(
+    config_valid_dataset = ValidationDataset2DConfig(
         input_subdir=input_subdir_valid,
         num_points=num_points_valid,
         num_samples=num_samples_valid,
