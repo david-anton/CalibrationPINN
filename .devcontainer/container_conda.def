@@ -21,26 +21,26 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     export CONDA_DIR=/miniconda3
     export SHA256SUM=43651393236cb8bb4219dcd429b3803a60f318e5507d8d84ca00dafa0c69f1bb
     
-    mkdir -p CONDA_DIR
-    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O CONDA_DIR/miniconda.sh -q
-    echo "${SHA256SUM} CONDA_DIR/miniconda.sh" > shasum
+    mkdir -p ${CONDA_DIR}
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ${CONDA_DIR}/miniconda.sh -q
+    echo "${SHA256SUM} ${CONDA_DIR}/miniconda.sh" > shasum
     sha256sum --check --status shasum
-    bash CONDA_DIR/miniconda.sh -b -u -p CONDA_DIR
-    rm -rf CONDA_DIR/miniconda.sh shasum
+    bash ${CONDA_DIR}/miniconda.sh -b -u -p ${CONDA_DIR}
+    rm -rf ${CONDA_DIR}/miniconda.sh shasum
 
     # From https://github.com/ContinuumIO/docker-images/blob/main/miniconda3/debian/Dockerfile
-    ln -s CONDA_DIR/etc/profile.d/conda.sh /etc/profile.d/conda.sh
+    ln -s ${CONDA_DIR}/etc/profile.d/conda.sh /etc/profile.d/conda.sh
     echo ". ${CONDA_DIR}/etc/profile.d/conda.sh" >> ~/.bashrc
     echo "conda activate base" >> ~/.bashrc && \
-    find CONDA_DIR -follow -type f -name '*.a' -delete && \
-    find CONDA_DIR -follow -type f -name '*.js.map' -delete && \
-    CONDA_DIR/bin/conda clean -afy
+    find ${CONDA_DIR} -follow -type f -name '*.a' -delete && \
+    find ${CONDA_DIR} -follow -type f -name '*.js.map' -delete && \
+    ${CONDA_DIR}/bin/conda clean -afy
 
     # Create conda environment with Python requirements
-    CONDA_DIR/bin/conda update -n base conda
-    CONDA_DIR/bin/conda install -n base conda-libmamba-solver
-    CONDA_DIR/bin/conda config --set solver libmamba
-    CONDA_DIR/bin/conda env create -f /data/conda_venv.yml
+    ${CONDA_DIR}/bin/conda update -n base conda
+    ${CONDA_DIR}/bin/conda install -n base conda-libmamba-solver
+    ${CONDA_DIR}/bin/conda config --set solver libmamba
+    ${CONDA_DIR}/bin/conda env create -f /data/conda_venv.yml
 
     # Install gmsh (dependencies required by gmsh Python package)
     apt-get install -y gmsh
@@ -60,7 +60,7 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 %runscript
     #!/bin/bash
     echo "Arguments received: $*"
-    exec CONDA_DIR/envs/$(head -n 1 /data/conda_venv.yml | cut -f 2 -d ' ')/bin/"$@"
+    exec ${CONDA_DIR}/envs/$(head -n 1 /data/conda_venv.yml | cut -f 2 -d ' ')/bin/"$@"
 
 %labels
     Author d.anton@tu-braunschweig.de
