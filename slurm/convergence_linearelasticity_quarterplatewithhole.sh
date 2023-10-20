@@ -17,4 +17,4 @@ srun singularity run \
  --nv \
  --nvccli \
  parametricpinn.sif \
- python3 /home/davanton/development/ParametricPINN/app/${SCRIPT}
+ python /home/davanton/development/ParametricPINN/app/${SCRIPT}
