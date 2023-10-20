@@ -40,7 +40,9 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     CONDA_DIR/bin/conda clean -afy
 
     # Create conda environment with Python requirements
-    CONDA_DIR/bin/conda update conda
+    CONDA_DIR/bin/conda update -n base conda
+    CONDA_DIR/bin/conda install -n base conda-libmamba-solver
+    CONDA_DIR/bin/conda config --set solver libmamba
     CONDA_DIR/bin/conda env create -f /data/conda_venv.yml
 
     # Install gmsh (dependencies required by gmsh Python package)
