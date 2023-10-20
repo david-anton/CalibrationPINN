@@ -58,7 +58,7 @@ from parametricpinn.training.training_standard_neohookean_quarterplatewithhole i
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 edge_length = 100.0
 radius = 10.0
@@ -74,7 +74,7 @@ max_poissons_ratio = 0.4
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Training
 num_samples_per_parameter = 32
-num_collocation_points = 64
+num_collocation_points = 256
 number_points_per_bc = 32
 training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 20000
@@ -99,8 +99,8 @@ fem_element_degree = 2
 fem_mesh_resolution = 0.5
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = 20231016
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_64_bc_32_neurons_4_32"
+output_date = 20231020
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_256_bc_32_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
