@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import TypeAlias, Union
 
 from dolfinx.fem import Constant, FunctionSpace
-from petsc4py import PETSc
+from dolfinx import default_scalar_type
 from ufl import VectorElement
 
 from parametricpinn.fem.base import (
@@ -127,7 +127,7 @@ def _simulate_once(
     element_family = simulation_config.domain_config.element_family
     element_degree = simulation_config.domain_config.element_degree
 
-    volume_force = Constant(mesh, (PETSc.ScalarType((volume_force_x, volume_force_y))))
+    volume_force = Constant(mesh, (default_scalar_type((volume_force_x, volume_force_y))))
 
     element = VectorElement(element_family, mesh.ufl_cell(), element_degree)
     function_space = FunctionSpace(mesh, element)

@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 import ufl
 from dolfinx import default_scalar_type
+from dolfinx.fem.petsc import NonlinearProblem
 from dolfinx.nls.petsc import NewtonSolver
-from petsc4py import PETSc
 
 from parametricpinn.fem.base import (
     DConstant,
@@ -160,9 +160,7 @@ class NeoHookeanProblem:
 
         # Define problem
         residual_form = lhs - rhs
-        problem = fem.petsc.NonlinearProblem(
-            residual_form, solution_function, dirichlet_bcs
-        )
+        problem = NonlinearProblem(residual_form, solution_function, dirichlet_bcs)
         return problem, solution_function
 
     def _save_parameters(
