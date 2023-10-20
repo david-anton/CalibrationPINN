@@ -32,8 +32,8 @@ UFLExpression: TypeAlias = ufl.core.expr.Expr
 UFLTrialFunction: TypeAlias = ufl.TrialFunction
 UFLTestFunction: TypeAlias = ufl.TestFunction
 UFLMeasure: TypeAlias = ufl.Measure
-PETSLinearProblem: TypeAlias = dolfinx.fem.petsc.LinearProblem
-PETSNonlinearProblem: TypeAlias = dolfinx.fem.petsc.NonlinearProblem
+PETSLinearProblem: TypeAlias = LinearProblem
+PETSNonlinearProblem: TypeAlias = NonlinearProblem
 PETSProblem: TypeAlias = Union[PETSLinearProblem, PETSNonlinearProblem]
 MPICommunicator: TypeAlias = mpi4py.MPI.Comm
 
