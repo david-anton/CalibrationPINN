@@ -10,9 +10,6 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 # %app*
 
 %post
-    # Configure environment (only for build time)
-    export DATA_DIR=/data
-
     # Install base utilities
     apt-get update
     apt-get install -y \
@@ -56,8 +53,16 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
 %environment
     export DATA_DIR=/home/davanton/development/ParametricPINN
+    export CONDA_DIR=/miniconda3
 
-# %startscript
-# %runscript
-# %labels
+# %startscript 
+
+%runscript
+    #!/bin/zsh
+    exec CONDA_DIR/envs/$(head -n 1 /data/conda_venv.yml | cut -f 2 -d ' ')/bin/"$@"
+
+%labels
+    Author d.anton@tu-braunschweig.de
+    Version v0.0.1
+
 # %help

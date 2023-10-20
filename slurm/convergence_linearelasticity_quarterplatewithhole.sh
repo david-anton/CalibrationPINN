@@ -11,16 +11,10 @@
 
 SCRIPT=convergence_linearelasticity_quarterplatewithhole.py
 
-srun singularity exec \
+srun singularity run \
  --cleanenv \
  --env CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES \
  --nv \
- parametricpinn.sif \
- pip list
-
-srun singularity exec \
- --cleanenv \
- --env CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES \
- --nv \
+ --nvccli \
  parametricpinn.sif \
  python3 /home/davanton/development/ParametricPINN/app/${SCRIPT}

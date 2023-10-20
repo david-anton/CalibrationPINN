@@ -11,10 +11,11 @@
 
 SCRIPT=mains_others/pinn_2d_linearelasticity_comment.py
 
-srun singularity exec \
+srun singularity run \
  --cleanenv \
  --env CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES \
  --nv \
+ --nvccli \
  parametricpinn.sif \
  python3 /home/davanton/development/ParametricPINN/app/${SCRIPT}
 
