@@ -6,7 +6,8 @@ import dolfinx.fem as fem
 import numpy as np
 import pandas as pd
 import ufl
-from dolfinx import nls
+from dolfinx import default_scalar_type
+from dolfinx.nls.petsc import NewtonSolver
 from petsc4py import PETSc
 
 from parametricpinn.fem.base import (
@@ -59,7 +60,7 @@ class NeoHookeanProblem:
         self._problem, self._solution_function = self._define()
 
     def solve(self) -> DFunction:
-        solver = nls.petsc.NewtonSolver(self._mesh.comm, self._problem)
+        solver = NewtonSolver(self._mesh.comm, self._problem)
 
         # Set Newton solver options
         solver.atol = 1e-8
@@ -128,8 +129,8 @@ class NeoHookeanProblem:
         J = ufl.variable(ufl.det(F))
 
         # Material parameters
-        E = PETSc.ScalarType(self._config.youngs_modulus)
-        nu = PETSc.ScalarType(self._config.poissons_ratio)
+        E = default_scalar_type(self._config.youngs_modulus)
+        nu = default_scalar_type(self._config.poissons_ratio)
         mu_ = fem.Constant(self._mesh, E / (2 * (1 + nu)))
         lambda_ = fem.Constant(self._mesh, (E * nu) / ((1 + nu) * (1 - 2 * nu)))
 
