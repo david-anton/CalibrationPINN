@@ -6,11 +6,14 @@ from dolfinx.mesh import create_unit_square, locate_entities_boundary
 from mpi4py import MPI
 from ufl import SpatialCoordinate, TestFunction, TrialFunction, div, dx, grad, inner
 
-from parametricpinn.fem.convergence import calculate_l2_error
+from parametricpinn.fem.convergence import (
+    calculate_l2_error,
+    calculate_relative_l2_error,
+)
 
 element_family = "Lagrange"
 element_degree = 1
-num_elements_tests = [2, 4, 8, 32, 64, 128, 256, 512]
+num_elements_tests = [2, 4, 8, 32, 64, 128, 256, 512, 1024, 2048]
 degree_raise = 3
 
 
@@ -49,9 +52,10 @@ u_approx = solve_poisson(num_elements=num_elements_tests[0], degree=1)
 for i in range(1, len(num_elements_tests)):
     u_refined = solve_poisson(num_elements=num_elements_tests[i], degree=1)
     l2_error = calculate_l2_error(u_approx, u_refined)
+    relative_l2_error = calculate_relative_l2_error(u_approx, u_refined)
     num_elements = num_elements_tests[i - 1]
     num_elements_refined = num_elements_tests[i]
     print(
-        f"{num_elements} \t -> {num_elements_refined}: \t L2 error ratio: {l2_error:.4}"
+        f"{num_elements} \t -> {num_elements_refined}: \t rel L2 error ratio: {relative_l2_error:.4}"
     )
     u_approx = u_refined
