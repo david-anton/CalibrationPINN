@@ -5,13 +5,13 @@ channels:
   - pytorch
   - nvidia
 dependencies:
-  - python
-  - pytorch 
+  - python=3.11.5
+  - pytorch=2.1.0
   - pytorch-cuda=12.1
-  - fenics-dolfinx
-  - numpy
-  - pandas
-  - matplotlib
-  - scipy
-  - shapely
-  - pytest
+  - fenics-dolfinx=0.7.0
+  - numpy=1.24.2
+  - pandas=2.0.1
+  - matplotlib=3.7.0
+  - scipy=1.10.1
+  - shapely=2.0.1
+  - pytest=7.2.2
