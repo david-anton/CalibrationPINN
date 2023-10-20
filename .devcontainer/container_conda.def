@@ -16,7 +16,8 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
     # Install base utilities
     apt-get update
     apt-get install -y \
-    nano
+    nano \
+    wget
 
     # Install miniconda3
     mkdir -p ~/miniconda3
