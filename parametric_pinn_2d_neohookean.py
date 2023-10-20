@@ -126,9 +126,7 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
 
 
 def create_datasets() -> (
-    tuple[
-        QuarterPlateWithHoleTrainingDataset2D, ValidationDataset2D
-    ]
+    tuple[QuarterPlateWithHoleTrainingDataset2D, ValidationDataset2D]
 ):
     def _create_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")

@@ -4,9 +4,11 @@ from typing import Any, TypeAlias, Union
 
 import dolfinx
 import gmsh
+import mpi4py
 import numpy as np
 import numpy.typing as npt
 import ufl
+from dolfinx.fem.petsc import LinearProblem, NonlinearProblem
 
 from parametricpinn.io import ProjectDirectory
 
@@ -24,6 +26,7 @@ DConstant: TypeAlias = dolfinx.fem.Constant
 DDofs: TypeAlias = npt.NDArray[np.int32]
 DMeshTags: TypeAlias = Any  # dolfinx.mesh.MeshTags
 DDirichletBC: TypeAlias = dolfinx.fem.DirichletBC
+DForm: TypeAlias = dolfinx.fem.forms.Form
 UFLOperator: TypeAlias = ufl.core.operator.Operator
 UFLExpression: TypeAlias = ufl.core.expr.Expr
 UFLTrialFunction: TypeAlias = ufl.TrialFunction
@@ -32,6 +35,7 @@ UFLMeasure: TypeAlias = ufl.Measure
 PETSLinearProblem: TypeAlias = dolfinx.fem.petsc.LinearProblem
 PETSNonlinearProblem: TypeAlias = dolfinx.fem.petsc.NonlinearProblem
 PETSProblem: TypeAlias = Union[PETSLinearProblem, PETSNonlinearProblem]
+MPICommunicator: TypeAlias = mpi4py.MPI.Comm
 
 
 def join_output_path(
