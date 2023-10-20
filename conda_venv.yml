@@ -9,6 +9,7 @@ dependencies:
   - pytorch=2.1.0
   - pytorch-cuda=12.1
   - fenics-dolfinx=0.7.0
+  - gmsh=4.11.1
   - numpy=1.24.2
   - pandas=2.0.1
   - matplotlib=3.7.0
