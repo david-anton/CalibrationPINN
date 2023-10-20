@@ -53,7 +53,7 @@ def save_boundary_tags_as_xdmf(
     mesh.topology.create_connectivity(mesh.topology.dim - 1, mesh.topology.dim)
     with XDMFFile(mesh.comm, output_path, "w") as xdmf:
         xdmf.write_mesh(mesh)
-        xdmf.write_meshtags(boundary_tags)
+        xdmf.write_meshtags(boundary_tags, mesh.geometry)
 
 
 def list_sorted_facet_indices_and_tags(
