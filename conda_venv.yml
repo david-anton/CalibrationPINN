@@ -1,15 +1,17 @@
 name: venv
 channels:
-  - conda-forge
   - defaults
+  - conda-forge
+  - pytorch
+  - nvidia
 dependencies:
   - python=3.11.2
-  - numpy
-  - matplotlib
-  - shapely
-  - pytest
-  - mypy
-  - black
+  - pytorch 
+  - pytorch-cuda=12.1
   - fenics-dolfinx
-  - pytorch-nightly::pytorch
-  - pytorch-nightly::cpuonly
+  - numpy=1.24.2
+  - pandas=2.0.1
+  - matplotlib=3.7.0
+  - scipy=1.10.1
+  - shapely=2.0.1
+  - pytest=7.2.2
