@@ -69,6 +69,7 @@ def list_sorted_facet_indices_and_tags(
         facet_tags_list.append(np.full_like(located_facet_indices, tag))
     facet_indices = np.hstack(facet_indices_list).astype(np.int32)
     facet_tags = np.hstack(facet_tags_list).astype(np.int32)
-    sorted_facet_indices = np.argsort(facet_indices)
-    sorted_facet_tags = facet_tags[sorted_facet_indices]
+    sorting_index_array = np.argsort(facet_indices)
+    sorted_facet_indices = facet_indices[sorting_index_array]
+    sorted_facet_tags = facet_tags[sorting_index_array]
     return sorted_facet_indices, sorted_facet_tags
