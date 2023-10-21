@@ -85,8 +85,12 @@ u_approx = calculate_approximate_solution(fem_mesh_resolution_tests[0])
 for i in range(1, len(fem_mesh_resolution_tests)):
     u_refined = calculate_approximate_solution(fem_mesh_resolution_tests[i])
     l2_error = calculate_l2_error(u_approx=u_approx, u_exact=u_refined)
-    relative_l2_error = calculate_relative_l2_error(u_approx=u_approx, u_exact=u_refined)
+    relative_l2_error = calculate_relative_l2_error(
+        u_approx=u_approx, u_exact=u_refined
+    )
     num_elements = u_approx.function_space.tabulate_dof_coordinates().size
     num_elements_refined = u_refined.function_space.tabulate_dof_coordinates().size
-    print(f"{num_elements} \t -> {num_elements_refined}: \t L2 error: {l2_error:.4} \t rel. L2 error: {relative_l2_error:.4}")
+    print(
+        f"{num_elements} \t -> {num_elements_refined}: \t L2 error: {l2_error:.4} \t rel. L2 error: {relative_l2_error:.4}"
+    )
     u_approx = u_refined
