@@ -59,7 +59,6 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
 %runscript
     #!/bin/bash
-    echo "Arguments received: $*"
     exec ${CONDA_DIR}/envs/$(head -n 1 /data/conda_venv.yml | cut -f 2 -d ' ')/bin/"$@"
 
 %labels

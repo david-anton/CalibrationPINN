@@ -13,7 +13,7 @@ from parametricpinn.fem.convergence import (
 
 element_family = "Lagrange"
 element_degree = 1
-num_elements_tests = [2, 4, 8, 32, 64, 128, 256, 512, 1024, 2048]
+num_elements_tests = [2, 4, 8, 32, 64, 128, 256, 512]
 degree_raise = 3
 
 
@@ -56,6 +56,6 @@ for i in range(1, len(num_elements_tests)):
     num_elements = num_elements_tests[i - 1]
     num_elements_refined = num_elements_tests[i]
     print(
-        f"{num_elements} \t -> {num_elements_refined}: \t rel L2 error ratio: {relative_l2_error:.4}"
+        f"{num_elements} \t -> {num_elements_refined}: \t L2 error: {l2_error:.4} \t relative L2 error: {relative_l2_error:.4}"
     )
     u_approx = u_refined

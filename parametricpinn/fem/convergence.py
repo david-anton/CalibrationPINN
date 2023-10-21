@@ -70,13 +70,12 @@ def _interpolate_u_approx(u_approx: DFunction, func_space: DFunctionSpace) -> DF
 
 def _interpolate_u_exact(u_exact: UExact, func_space: DFunctionSpace) -> DFunctionSpace:
     func = Function(func_space)
-    # if isinstance(u_exact, ufl.core.expr.Expr):
-    #     interpolation_points = func_space.element.interpolation_points()
-    #     u_expression = Expression(u_exact, interpolation_points)
-    #     func.interpolate(u_expression)
-    # else:
-    #     func.interpolate(u_exact)
-    func.interpolate(u_exact)
+    if isinstance(u_exact, ufl.core.expr.Expr):
+        interpolation_points = func_space.element.interpolation_points()
+        u_expression = Expression(u_exact, interpolation_points)
+        func.interpolate(u_expression)
+    else:
+        func.interpolate(u_exact)
     return func
 
 
@@ -98,7 +97,7 @@ def _l2_error_norm(error_func: DFunction) -> DForm:
     return form(ufl.inner(error_func, error_func) * ufl.dx)
 
 
-def _relative_l2_error_norm(error_func: DFunction, u_exact: UExact) -> DForm:
+def _relative_l2_error_norm(error_func: DFunction, u_exact: DFunction) -> DForm:
     return form(
-        ufl.inner(error_func, error_func) / ufl.inner(u_exact, u_exact) * ufl.dx
+        (ufl.inner(error_func, error_func) / ufl.inner(u_exact, u_exact)) * ufl.dx
     )
