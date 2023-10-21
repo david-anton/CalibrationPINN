@@ -90,9 +90,9 @@ num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
 use_least_squares = True
-use_random_walk_metropolis_hasting = False
-use_hamiltonian = False
-use_efficient_nuts = False
+use_random_walk_metropolis_hasting = True
+use_hamiltonian = True
+use_efficient_nuts = True
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
