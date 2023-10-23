@@ -371,7 +371,7 @@ def calibration_step() -> None:
     exact_poissons_ratio = 0.34
     num_data_points = 128
     std_noise = 5 * 1e-4
-    std_model_error = 1 * 1e-1
+    std_model_error = 1 * 1e-2
     std_error = std_noise + std_model_error
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
