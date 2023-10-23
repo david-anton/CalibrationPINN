@@ -2,7 +2,8 @@ from typing import Callable, TypeAlias, Union
 
 import numpy as np
 import ufl
-from dolfinx.fem import Expression, Function, FunctionSpace, assemble_scalar, form
+from dolfinx import default_scalar_type
+from dolfinx.fem import Expression, Function, assemble_scalar, form, functionspace
 from mpi4py import MPI
 
 from parametricpinn.fem.base import (
@@ -59,13 +60,13 @@ def _create_higher_order_function_space(
     degree = u_approx.function_space.ufl_element().degree()
     family = u_approx.function_space.ufl_element().family()
     mesh = u_approx.function_space.mesh
-    # return FunctionSpace(mesh, (family, degree + degree_raise))
-    element = ufl.VectorElement(family, mesh.ufl_cell(), degree + degree_raise)
-    return FunctionSpace(mesh, element)
+    return functionspace(mesh, (family, degree + degree_raise))
+    # element = ufl.VectorElement(family, mesh.ufl_cell(), degree + degree_raise)
+    # return FunctionSpace(mesh, element)
 
 
 def _interpolate_u_approx(u_approx: DFunction, func_space: DFunctionSpace) -> DFunction:
-    func = Function(func_space)
+    func = Function(func_space, dtype=default_scalar_type)
     func.interpolate(u_approx)
     return func
 
@@ -75,20 +76,21 @@ def _get_mpi_communicator(func_space: DFunctionSpace) -> MPICommunicator:
 
 
 def _interpolate_u_exact(u_exact: UExact, func_space: DFunctionSpace) -> DFunctionSpace:
-    func = Function(func_space)
-    if isinstance(u_exact, ufl.core.expr.Expr):
-        interpolation_points = func_space.element.interpolation_points()
-        u_expression = Expression(u_exact, interpolation_points)
-        func.interpolate(u_expression)
-    else:
-        func.interpolate(u_exact)
+    func = Function(func_space, dtype=default_scalar_type)
+    # if isinstance(u_exact, ufl.core.expr.Expr):
+    #     interpolation_points = func_space.element.interpolation_points()
+    #     u_expression = Expression(u_exact, interpolation_points)
+    #     func.interpolate(u_expression)
+    # else:
+    #     func.interpolate(u_exact)
+    func.interpolate(u_exact)
     return func
 
 
 def _compute_error(
     u_approx: DFunction, u_exact: DFunction, func_space: DFunctionSpace
 ) -> DFunction:
-    func = Function(func_space)
+    func = Function(func_space, dtype=default_scalar_type)
     func.x.array[:] = u_approx.x.array - u_exact.x.array
     return func
 

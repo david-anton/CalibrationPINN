@@ -1,19 +1,26 @@
+from typing import Callable, TypeAlias, Union
+
 import numpy as np
 import ufl
-from dolfinx.fem import Function, FunctionSpace, dirichletbc, locate_dofs_topological
+from dolfinx.fem import Function, dirichletbc, functionspace, locate_dofs_topological
 from dolfinx.fem.petsc import LinearProblem
 from dolfinx.mesh import create_unit_square, locate_entities_boundary
 from mpi4py import MPI
 from ufl import SpatialCoordinate, TestFunction, TrialFunction, div, dx, grad, inner
 
+from parametricpinn.fem.base import DFunction, UFLExpression
 from parametricpinn.fem.convergence import (
     calculate_l2_error,
     calculate_relative_l2_error,
 )
+from parametricpinn.types import NPArray
+
+UExact: TypeAlias = Union[DFunction, UFLExpression, Callable[[NPArray], NPArray]]
+
 
 element_family = "Lagrange"
 element_degree = 1
-num_elements_tests = [2, 4, 8, 32, 64, 128, 256, 512]
+num_elements_tests = [4, 8, 16, 32, 64, 128, 256]
 degree_raise = 3
 
 
@@ -29,7 +36,7 @@ def solve_poisson(num_elements=10, degree=1):
     mesh = create_unit_square(MPI.COMM_WORLD, num_elements, num_elements)
     x = SpatialCoordinate(mesh)
     f = -div(grad(u_ufl(x)))
-    V = FunctionSpace(mesh, ("Lagrange", degree))
+    V = functionspace(mesh, ("Lagrange", degree))
     u = TrialFunction(V)
     v = TestFunction(V)
     a = inner(grad(u), grad(v)) * dx
@@ -47,15 +54,30 @@ def solve_poisson(num_elements=10, degree=1):
     return default_problem.solve()
 
 
-u_approx = solve_poisson(num_elements=num_elements_tests[0], degree=1)
+#u_exact = u_numpy
+u_exact = solve_poisson(num_elements=num_elements_tests[-1], degree=1)
 
-for i in range(1, len(num_elements_tests)):
-    u_refined = solve_poisson(num_elements=num_elements_tests[i], degree=1)
-    l2_error = calculate_l2_error(u_approx, u_refined)
-    relative_l2_error = calculate_relative_l2_error(u_approx, u_refined)
-    num_elements = num_elements_tests[i - 1]
-    num_elements_refined = num_elements_tests[i]
-    print(
-        f"{num_elements} \t -> {num_elements_refined}: \t L2 error: {l2_error:.4} \t relative L2 error: {relative_l2_error:.4}"
-    )
-    u_approx = u_refined
+
+for i in range(0, len(num_elements_tests)):
+    u_approx = solve_poisson(num_elements=num_elements_tests[i], degree=1)
+    l2_error = calculate_l2_error(u_approx, u_exact)
+    num_elements = num_elements_tests[i]
+    print(f"{num_elements}: \t L2 error: {l2_error:.4} ")
+
+
+# u_exact = solve_poisson(num_elements_tests[-1], degree=1)
+
+# u_approx_list = []
+# for num_elements in num_elements_tests:
+#     u_approx = solve_poisson(num_elements=num_elements, degree=1)
+#     u_approx_list.append(u_approx)
+
+# for i in range(len(u_approx_list)):
+#     l2_error = calculate_l2_error(u_approx_list[i], u_exact, degree_raise=0)
+#     # relative_l2_error = calculate_relative_l2_error(u_approx, u_refined)
+#     relative_l2_error = 0.0
+#     num_elements = num_elements_tests[i]
+#     num_elements_refined = num_elements_tests[-1]
+#     print(
+#         f"{num_elements} \t -> {num_elements_refined}: \t L2 error: {l2_error:.4} \t relative L2 error: {relative_l2_error:.4}"
+#     )
