@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import TypeAlias, Union
 
-from dolfinx.fem import Constant, FunctionSpace
 from dolfinx import default_scalar_type
+from dolfinx.fem import Constant, FunctionSpace, functionspace
 from ufl import VectorElement
 
 from parametricpinn.fem.base import (
@@ -133,6 +133,8 @@ def _simulate_once(
 
     element = VectorElement(element_family, mesh.ufl_cell(), element_degree)
     function_space = FunctionSpace(mesh, element)
+    # element = (element_family, element_degree, (2,))
+    # function_space = functionspace(mesh, element)
 
     problem = define_problem(
         problem_config=problem_config,

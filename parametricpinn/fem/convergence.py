@@ -23,7 +23,7 @@ def calculate_l2_error(
     degree_raise=3,
 ) -> NPArray:
     func_space_raised = _create_higher_order_function_space(u_approx, degree_raise)
-    mpi_comm = func_space_raised.mesh.comm
+    mpi_comm = _get_mpi_communicator(func_space_raised)
     u_approx_raised = _interpolate_u_approx(u_approx, func_space_raised)
     u_exact_raised = _interpolate_u_exact(u_exact, func_space_raised)
 
@@ -41,7 +41,7 @@ def calculate_relative_l2_error(
     degree_raise=3,
 ) -> NPArray:
     func_space_raised = _create_higher_order_function_space(u_approx, degree_raise)
-    mpi_comm = func_space_raised.mesh.comm
+    mpi_comm = _get_mpi_communicator(func_space_raised)
     u_approx_raised = _interpolate_u_approx(u_approx, func_space_raised)
     u_exact_raised = _interpolate_u_exact(u_exact, func_space_raised)
 
@@ -59,13 +59,19 @@ def _create_higher_order_function_space(
     degree = u_approx.function_space.ufl_element().degree()
     family = u_approx.function_space.ufl_element().family()
     mesh = u_approx.function_space.mesh
-    return FunctionSpace(mesh, (family, degree + degree_raise))
+    # return FunctionSpace(mesh, (family, degree + degree_raise))
+    element = ufl.VectorElement(family, mesh.ufl_cell(), degree)
+    return FunctionSpace(mesh, element)
 
 
 def _interpolate_u_approx(u_approx: DFunction, func_space: DFunctionSpace) -> DFunction:
     func = Function(func_space)
     func.interpolate(u_approx)
     return func
+
+
+def _get_mpi_communicator(func_space: DFunctionSpace) -> MPICommunicator:
+    return func_space.mesh.comm
 
 
 def _interpolate_u_exact(u_exact: UExact, func_space: DFunctionSpace) -> DFunctionSpace:
