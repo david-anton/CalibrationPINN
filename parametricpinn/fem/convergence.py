@@ -60,7 +60,7 @@ def _create_higher_order_function_space(
     family = u_approx.function_space.ufl_element().family()
     mesh = u_approx.function_space.mesh
     # return FunctionSpace(mesh, (family, degree + degree_raise))
-    element = ufl.VectorElement(family, mesh.ufl_cell(), degree)
+    element = ufl.VectorElement(family, mesh.ufl_cell(), degree + degree_raise)
     return FunctionSpace(mesh, element)
 
 

@@ -173,7 +173,7 @@ class LinearElasticityProblem:
             return ufl.as_tensor([[sig[0], sig[2]], [sig[2], sig[1]]])
 
         def epsilon(u: UFLTrialFunction) -> UFLOperator:
-            return 0.5 * (ufl.nabla_grad(u) + ufl.nabla_grad(u).T)
+            return ufl.sym(ufl.grad(u)) # equivalent to 0.5 * (ufl.nabla_grad(u) + ufl.nabla_grad(u).T)
 
         return sigma, epsilon
 
