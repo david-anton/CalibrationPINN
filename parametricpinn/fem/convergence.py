@@ -3,7 +3,15 @@ from typing import Callable, TypeAlias, Union
 import numpy as np
 import ufl
 from dolfinx import default_scalar_type
-from dolfinx.fem import Expression, Function, assemble_scalar, form, functionspace
+from dolfinx.fem import (
+    Expression,
+    Function,
+    FunctionSpace,
+    assemble_scalar,
+    create_nonmatching_meshes_interpolation_data,
+    form,
+    functionspace,
+)
 from mpi4py import MPI
 
 from parametricpinn.fem.base import (
@@ -83,7 +91,14 @@ def _interpolate_u_exact(u_exact: UExact, func_space: DFunctionSpace) -> DFuncti
     #     func.interpolate(u_expression)
     # else:
     #     func.interpolate(u_exact)
-    func.interpolate(u_exact)
+    func.interpolate(
+        u_exact,
+        nmm_interpolation_data=create_nonmatching_meshes_interpolation_data(
+            func.function_space.mesh._cpp_object,
+            func.function_space.element,
+            u_exact.function_space.mesh._cpp_object,
+        ),
+    )
     return func
 
 

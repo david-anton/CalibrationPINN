@@ -31,9 +31,11 @@ def u_ex(mod):
 u_numpy = u_ex(np)
 u_ufl = u_ex(ufl)
 
+communicator = MPI.COMM_WORLD
+
 
 def solve_poisson(num_elements=10, degree=1):
-    mesh = create_unit_square(MPI.COMM_WORLD, num_elements, num_elements)
+    mesh = create_unit_square(communicator, num_elements, num_elements)
     x = SpatialCoordinate(mesh)
     f = -div(grad(u_ufl(x)))
     V = functionspace(mesh, ("Lagrange", degree))
@@ -54,7 +56,7 @@ def solve_poisson(num_elements=10, degree=1):
     return default_problem.solve()
 
 
-#u_exact = u_numpy
+# u_exact = u_numpy
 u_exact = solve_poisson(num_elements=num_elements_tests[-1], degree=1)
 
 
