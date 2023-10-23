@@ -100,7 +100,7 @@ fem_mesh_resolution = 0.5
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = 20231016
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_256_bc_32_neurons_4_32"
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_64_bc_32_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
