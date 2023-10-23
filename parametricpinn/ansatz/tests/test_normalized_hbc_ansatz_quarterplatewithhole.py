@@ -3,7 +3,7 @@ import torch
 
 from parametricpinn.ansatz import (
     StandardAnsatz,
-    create_standard_normalized_hbc_ansatz_2D,
+    create_standard_normalized_hbc_ansatz_quarter_plate_with_hole,
 )
 from parametricpinn.network import FFNN
 from parametricpinn.types import Tensor
@@ -35,7 +35,7 @@ class FakeNetworkSingleInput(FFNN):
 @pytest.fixture
 def sut() -> StandardAnsatz:
     network = FakeNetwork()
-    return create_standard_normalized_hbc_ansatz_2D(
+    return create_standard_normalized_hbc_ansatz_quarter_plate_with_hole(
         displacement_x_right=displacement_x_right,
         displacement_y_bottom=displacement_y_bottom,
         min_inputs=min_inputs,
@@ -46,7 +46,7 @@ def sut() -> StandardAnsatz:
     )
 
 
-def test_normalized_HBC_ansatz_2D(sut: StandardAnsatz) -> None:
+def test_normalized_HBC_ansatz(sut: StandardAnsatz) -> None:
     inputs = torch.tensor(
         [
             [-2.0, 2.0, 0.0, 0.0],
@@ -82,7 +82,7 @@ def test_normalized_HBC_ansatz_2D(sut: StandardAnsatz) -> None:
 @pytest.fixture
 def sut_single_input() -> StandardAnsatz:
     network = FakeNetworkSingleInput()
-    return create_standard_normalized_hbc_ansatz_2D(
+    return create_standard_normalized_hbc_ansatz_quarter_plate_with_hole(
         displacement_x_right=displacement_x_right,
         displacement_y_bottom=displacement_y_bottom,
         min_inputs=min_inputs,
@@ -107,7 +107,7 @@ def sut_single_input() -> StandardAnsatz:
         (torch.tensor([0.0, 0.0, 0.0, 0.0]), torch.tensor([0.0, 0.0])),
     ],
 )
-def test_normalized_HBC_ansatz_2D_for_single_input(
+def test_normalized_HBC_ansatz_for_single_input(
     sut_single_input: StandardAnsatz, input: Tensor, expected: Tensor
 ) -> None:
     actual = sut_single_input(input)

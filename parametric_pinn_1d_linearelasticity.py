@@ -5,7 +5,7 @@ import torch
 
 from parametricpinn.ansatz import (
     StandardAnsatz,
-    create_standard_normalized_hbc_ansatz_1D,
+    create_standard_normalized_hbc_ansatz_stretched_rod,
 )
 from parametricpinn.bayesian.prior import create_univariate_normal_distributed_prior
 from parametricpinn.calibration import (
@@ -138,7 +138,7 @@ def create_ansatz() -> StandardAnsatz:
 
     normalization_values = _determine_normalization_values()
     network = FFNN(layer_sizes=layer_sizes)
-    return create_standard_normalized_hbc_ansatz_1D(
+    return create_standard_normalized_hbc_ansatz_stretched_rod(
         displacement_left=torch.tensor([displacement_left]).to(device),
         min_inputs=normalization_values["min_inputs"],
         max_inputs=normalization_values["max_inputs"],

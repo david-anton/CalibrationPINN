@@ -13,7 +13,9 @@ from pathlib import Path
 import pandas as pd
 import torch
 
-from parametricpinn.ansatz import create_standard_normalized_hbc_ansatz_2D
+from parametricpinn.ansatz import (
+    create_standard_normalized_hbc_ansatz_quarter_plate_with_hole,
+)
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader, PandasDataWriter
@@ -74,7 +76,7 @@ max_outputs = torch.tensor([0.0, 9.3976e-08])
 
 def create_ansatz() -> Module:
     network = FFNN(layer_sizes=layer_sizes)
-    return create_standard_normalized_hbc_ansatz_2D(
+    return create_standard_normalized_hbc_ansatz_quarter_plate_with_hole(
         displacement_x_right=torch.tensor(0.0).to(device),
         displacement_y_bottom=torch.tensor(0.0).to(device),
         min_inputs=min_inputs,

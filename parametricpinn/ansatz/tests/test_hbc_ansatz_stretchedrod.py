@@ -1,7 +1,10 @@
 import pytest
 import torch
 
-from parametricpinn.ansatz import StandardAnsatz, create_standard_hbc_ansatz_1D
+from parametricpinn.ansatz import (
+    StandardAnsatz,
+    create_standard_hbc_ansatz_stretched_rod,
+)
 from parametricpinn.network import FFNN
 from parametricpinn.types import Tensor
 
@@ -29,14 +32,14 @@ displacement_left = 0.0
 @pytest.fixture
 def sut() -> StandardAnsatz:
     network = FakeNetwork()
-    return create_standard_hbc_ansatz_1D(
+    return create_standard_hbc_ansatz_stretched_rod(
         displacement_left=displacement_left,
         range_coordinate=range_coordinates,
         network=network,
     )
 
 
-def test_HBC_ansatz_1D(sut: StandardAnsatz) -> None:
+def test_HBC_ansatz(sut: StandardAnsatz) -> None:
     inputs = torch.tensor([[0.0, 0.0], [0.5, 0.0], [1.0, 0.0]])
 
     actual = sut(inputs)
@@ -48,7 +51,7 @@ def test_HBC_ansatz_1D(sut: StandardAnsatz) -> None:
 @pytest.fixture
 def sut_single_input() -> StandardAnsatz:
     network = FakeNetworkSingleInput()
-    return create_standard_hbc_ansatz_1D(
+    return create_standard_hbc_ansatz_stretched_rod(
         displacement_left=displacement_left,
         range_coordinate=range_coordinates,
         network=network,

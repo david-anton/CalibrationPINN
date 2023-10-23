@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 
 from parametricpinn.ansatz import (
     StandardAnsatz,
-    create_standard_normalized_hbc_ansatz_2D,
+    create_standard_normalized_hbc_ansatz_quarter_plate_with_hole,
 )
 from parametricpinn.data.dataset import (
     TrainingData2DCollocation,
@@ -385,7 +385,7 @@ if __name__ == "__main__":
     normalization_values = determine_normalization_values()
 
     network = FFNN(layer_sizes=layer_sizes)
-    ansatz = create_standard_normalized_hbc_ansatz_2D(
+    ansatz = create_standard_normalized_hbc_ansatz_quarter_plate_with_hole(
         displacement_x_right=torch.tensor(0.0).to(device),
         displacement_y_bottom=torch.tensor(0.0).to(device),
         network=network,

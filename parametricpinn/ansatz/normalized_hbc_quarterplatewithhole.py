@@ -19,7 +19,7 @@ from parametricpinn.types import Tensor
 NetworkInputNormalizer: TypeAlias = InputNormalizer
 
 
-class NormalizedHBCAnsatzStrategy2D:
+class NormalizedHBCAnsatzStrategyQuarterPlateWithHole:
     def __init__(
         self,
         displacement_x_right: Tensor,
@@ -59,7 +59,7 @@ class NormalizedHBCAnsatzStrategy2D:
         return self._hbc_ansatz_output_renormalizer(norm_y)
 
 
-def create_standard_normalized_hbc_ansatz_2D(
+def create_standard_normalized_hbc_ansatz_quarter_plate_with_hole(
     displacement_x_right: Tensor,
     displacement_y_bottom: Tensor,
     min_inputs: Tensor,
@@ -79,7 +79,7 @@ def create_standard_normalized_hbc_ansatz_2D(
     return StandardAnsatz(network, ansatz_strategy)
 
 
-def create_bayesian_normalized_hbc_ansatz_2D(
+def create_bayesian_normalized_hbc_ansatz_quarter_plate_with_hole(
     displacement_x_right: Tensor,
     displacement_y_bottom: Tensor,
     min_inputs: Tensor,
@@ -106,7 +106,7 @@ def _create_ansatz_strategy(
     max_inputs: Tensor,
     min_outputs: Tensor,
     max_outputs: Tensor,
-) -> NormalizedHBCAnsatzStrategy2D:
+) -> NormalizedHBCAnsatzStrategyQuarterPlateWithHole:
     network_input_normalizer = _create_network_input_normalizer(min_inputs, max_inputs)
     ansatz_coordinate_normalizer = _create_ansatz_coordinate_normalizer(
         min_inputs, max_inputs
@@ -117,7 +117,7 @@ def _create_ansatz_strategy(
     ansatz_output_renormalizer = _create_ansatz_output_renormalizer(
         min_outputs, max_outputs
     )
-    return NormalizedHBCAnsatzStrategy2D(
+    return NormalizedHBCAnsatzStrategyQuarterPlateWithHole(
         displacement_x_right=displacement_x_right,
         displacement_y_bottom=displacement_y_bottom,
         network_input_normalizer=network_input_normalizer,

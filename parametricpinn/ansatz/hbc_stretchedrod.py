@@ -10,7 +10,7 @@ from parametricpinn.ansatz.base import (
 from parametricpinn.types import Tensor
 
 
-class HBCAnsatzStrategy1D:
+class HBCAnsatzStrategyStretchedRod:
     def __init__(self, displacement_left: float, range_coordinate: float) -> None:
         super().__init__()
         self._displacement_left = displacement_left
@@ -32,15 +32,15 @@ class HBCAnsatzStrategy1D:
         return self._boundary_data_func() + (self._distance_func(x_coor) * network(x))
 
 
-def create_standard_hbc_ansatz_1D(
+def create_standard_hbc_ansatz_stretched_rod(
     displacement_left: float, range_coordinate: float, network: StandardNetworks
 ) -> StandardAnsatz:
-    ansatz_strategy = HBCAnsatzStrategy1D(displacement_left, range_coordinate)
+    ansatz_strategy = HBCAnsatzStrategyStretchedRod(displacement_left, range_coordinate)
     return StandardAnsatz(network, ansatz_strategy)
 
 
-def create_bayesian_hbc_ansatz_1D(
+def create_bayesian_hbc_ansatz_stretched_rod(
     displacement_left: float, range_coordinate: float, network: BayesianNetworks
 ) -> BayesianAnsatz:
-    ansatz_strategy = HBCAnsatzStrategy1D(displacement_left, range_coordinate)
+    ansatz_strategy = HBCAnsatzStrategyStretchedRod(displacement_left, range_coordinate)
     return BayesianAnsatz(network, ansatz_strategy)

@@ -4,7 +4,7 @@ import torch
 
 from parametricpinn.ansatz import (
     BayesianAnsatz,
-    create_bayesian_normalized_hbc_ansatz_1D,
+    create_bayesian_normalized_hbc_ansatz_stretched_rod,
 )
 from parametricpinn.data.trainingdata_linearelasticity_1d import (
     StretchedRodTrainingDataset1D,
@@ -103,7 +103,7 @@ def create_ansatz() -> BayesianAnsatz:
 
     normalization_values = _determine_normalization_values()
     network = BFFNN(layer_sizes=layer_sizes)
-    return create_bayesian_normalized_hbc_ansatz_1D(
+    return create_bayesian_normalized_hbc_ansatz_stretched_rod(
         displacement_left=torch.tensor([displacement_left]).to(device),
         min_inputs=normalization_values["min_inputs"],
         max_inputs=normalization_values["max_inputs"],

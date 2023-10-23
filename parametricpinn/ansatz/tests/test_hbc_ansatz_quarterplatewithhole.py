@@ -1,7 +1,10 @@
 import pytest
 import torch
 
-from parametricpinn.ansatz import StandardAnsatz, create_standard_hbc_ansatz_2D
+from parametricpinn.ansatz import (
+    StandardAnsatz,
+    create_standard_hbc_ansatz_quarter_plate_with_hole,
+)
 from parametricpinn.network import FFNN
 from parametricpinn.types import Tensor
 
@@ -30,7 +33,7 @@ range_coordinates = torch.tensor([1.0, 1.0])
 @pytest.fixture
 def sut() -> StandardAnsatz:
     network = FakeNetwork()
-    return create_standard_hbc_ansatz_2D(
+    return create_standard_hbc_ansatz_quarter_plate_with_hole(
         displacement_x_right=displacement_x_right,
         displacement_y_bottom=displacement_y_bottom,
         range_coordinates=range_coordinates,
@@ -38,7 +41,7 @@ def sut() -> StandardAnsatz:
     )
 
 
-def test_HBC_ansatz_2D(sut: StandardAnsatz) -> None:
+def test_HBC_ansatz(sut: StandardAnsatz) -> None:
     inputs = torch.tensor(
         [
             [0.0, 0.0, 0.0, 0.0],
@@ -74,7 +77,7 @@ def test_HBC_ansatz_2D(sut: StandardAnsatz) -> None:
 @pytest.fixture
 def sut_single_input() -> StandardAnsatz:
     network = FakeNetworkSingleInput()
-    return create_standard_hbc_ansatz_2D(
+    return create_standard_hbc_ansatz_quarter_plate_with_hole(
         displacement_x_right=displacement_x_right,
         displacement_y_bottom=displacement_y_bottom,
         range_coordinates=range_coordinates,

@@ -10,7 +10,7 @@ from parametricpinn.ansatz.base import (
 from parametricpinn.types import Tensor
 
 
-class HBCAnsatzStrategy2D:
+class HBCAnsatzStrategyQuarterPlateWithHole:
     def __init__(
         self,
         displacement_x_right: float,
@@ -39,25 +39,25 @@ class HBCAnsatzStrategy2D:
         return self._boundary_data_func() + (self._distance_func(x_coor) * network(x))
 
 
-def create_standard_hbc_ansatz_2D(
+def create_standard_hbc_ansatz_quarter_plate_with_hole(
     displacement_x_right: float,
     displacement_y_bottom: float,
     range_coordinates: Tensor,
     network: StandardNetworks,
 ) -> StandardAnsatz:
-    ansatz_strategy = HBCAnsatzStrategy2D(
+    ansatz_strategy = HBCAnsatzStrategyQuarterPlateWithHole(
         displacement_x_right, displacement_y_bottom, range_coordinates
     )
     return StandardAnsatz(network, ansatz_strategy)
 
 
-def create_bayesian_hbc_ansatz_2D(
+def create_bayesian_hbc_ansatz_quarter_plate_with_hole(
     displacement_x_right: float,
     displacement_y_bottom: float,
     range_coordinates: Tensor,
     network: BayesianNetworks,
 ) -> BayesianAnsatz:
-    ansatz_strategy = HBCAnsatzStrategy2D(
+    ansatz_strategy = HBCAnsatzStrategyQuarterPlateWithHole(
         displacement_x_right, displacement_y_bottom, range_coordinates
     )
     return BayesianAnsatz(network, ansatz_strategy)

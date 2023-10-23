@@ -3,7 +3,7 @@ import torch
 
 from parametricpinn.ansatz import (
     StandardAnsatz,
-    create_standard_normalized_hbc_ansatz_1D,
+    create_standard_normalized_hbc_ansatz_stretched_rod,
 )
 from parametricpinn.network import FFNN
 from parametricpinn.types import Tensor
@@ -34,7 +34,7 @@ class FakeNetworkSingleInput(FFNN):
 @pytest.fixture
 def sut() -> StandardAnsatz:
     network = FakeNetwork()
-    return create_standard_normalized_hbc_ansatz_1D(
+    return create_standard_normalized_hbc_ansatz_stretched_rod(
         displacement_left=displacement_left,
         min_inputs=min_inputs,
         max_inputs=max_inputs,
@@ -44,7 +44,7 @@ def sut() -> StandardAnsatz:
     )
 
 
-def test_normalized_HBC_ansatz_1D(sut: StandardAnsatz) -> None:
+def test_normalized_HBC_ansatz(sut: StandardAnsatz) -> None:
     inputs = torch.tensor([[0.0, 0.0], [1.0, 0.0], [2.0, 0.0]])
 
     actual = sut(inputs)
@@ -56,7 +56,7 @@ def test_normalized_HBC_ansatz_1D(sut: StandardAnsatz) -> None:
 @pytest.fixture
 def sut_single_input() -> StandardAnsatz:
     network = FakeNetworkSingleInput()
-    return create_standard_normalized_hbc_ansatz_1D(
+    return create_standard_normalized_hbc_ansatz_stretched_rod(
         displacement_left=displacement_left,
         min_inputs=min_inputs,
         max_inputs=max_inputs,
@@ -74,7 +74,7 @@ def sut_single_input() -> StandardAnsatz:
         (torch.tensor([2.0, 0.0]), torch.tensor([10.0])),
     ],
 )
-def test_normalized_HBC_ansatz_1D_for_single_input(
+def test_normalized_HBC_ansatz_for_single_input(
     sut_single_input: StandardAnsatz, input: Tensor, expected: Tensor
 ) -> None:
     actual = sut_single_input(input)

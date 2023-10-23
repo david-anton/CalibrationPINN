@@ -19,7 +19,7 @@ from parametricpinn.types import Tensor
 NetworkInputNormalizer: TypeAlias = InputNormalizer
 
 
-class NormalizedHBCAnsatzStrategy1D:
+class NormalizedHBCAnsatzStrategyStretchedRod:
     def __init__(
         self,
         displacement_left: Tensor,
@@ -56,7 +56,7 @@ class NormalizedHBCAnsatzStrategy1D:
         return self._hbc_ansatz_output_renormalizer(norm_y)
 
 
-def create_standard_normalized_hbc_ansatz_1D(
+def create_standard_normalized_hbc_ansatz_stretched_rod(
     displacement_left: Tensor,
     min_inputs: Tensor,
     max_inputs: Tensor,
@@ -70,7 +70,7 @@ def create_standard_normalized_hbc_ansatz_1D(
     return StandardAnsatz(network, ansatz_strategy)
 
 
-def create_bayesian_normalized_hbc_ansatz_1D(
+def create_bayesian_normalized_hbc_ansatz_stretched_rod(
     displacement_left: Tensor,
     min_inputs: Tensor,
     max_inputs: Tensor,
@@ -90,7 +90,7 @@ def _create_ansatz_strategy(
     max_inputs: Tensor,
     min_outputs: Tensor,
     max_outputs: Tensor,
-) -> NormalizedHBCAnsatzStrategy1D:
+) -> NormalizedHBCAnsatzStrategyStretchedRod:
     network_input_normalizer = _create_network_input_normalizer(min_inputs, max_inputs)
     ansatz_coordinate_normalizer = _create_ansatz_coordinate_normalizer(
         min_inputs, max_inputs
@@ -99,7 +99,7 @@ def _create_ansatz_strategy(
     ansatz_output_renormalizer = _create_ansatz_output_renormalizer(
         min_outputs, max_outputs
     )
-    return NormalizedHBCAnsatzStrategy1D(
+    return NormalizedHBCAnsatzStrategyStretchedRod(
         displacement_left=displacement_left,
         network_input_normalizer=network_input_normalizer,
         hbc_ansatz_coordinate_normalizer=ansatz_coordinate_normalizer,
