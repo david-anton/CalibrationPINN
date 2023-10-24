@@ -103,9 +103,17 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             x_E = symmetry_bc_data.x_E
             x_nu = symmetry_bc_data.x_nu
             x_param = torch.concat((x_E, x_nu), dim=1).to(device)
+            shear_stress_filter_right = torch.tensor([[0.0, 0.0], [1.0, 0.0]]).repeat(
+                num_points_per_bc, 1, 1
+            )
+            shear_stress_filter_bottom = torch.tensor([[0.0, 1.0], [0.0, 0.0]]).repeat(
+                num_points_per_bc, 1, 1
+            )
             shear_stress_filter = (
-                torch.tensor([[0.0, 1.0], [1.0, 0.0]])
-                .repeat(train_batch_size * 2 * num_points_per_bc, 1, 1)
+                torch.concat(
+                    (shear_stress_filter_right, shear_stress_filter_bottom), dim=0
+                )
+                .repeat(train_batch_size, 1, 1)
                 .to(device)
             )
             stress_tensors = stress_func(ansatz, x_coor, x_param)
