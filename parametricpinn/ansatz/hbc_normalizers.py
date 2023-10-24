@@ -8,8 +8,8 @@ class HBCAnsatzNormalizer(nn.Module):
         super().__init__()
         self._value_ranges = max_values - min_values
 
-    def forward(self, x: Tensor) -> Tensor:
-        return x / self._value_ranges
+    def forward(self, input: Tensor) -> Tensor:
+        return input / self._value_ranges
 
 
 class HBCAnsatzRenormalizer(nn.Module):
@@ -17,5 +17,5 @@ class HBCAnsatzRenormalizer(nn.Module):
         super().__init__()
         self._value_ranges = max_values - min_values
 
-    def forward(self, normalized_x: Tensor) -> Tensor:
-        return normalized_x * self._value_ranges
+    def forward(self, normalized_input: Tensor) -> Tensor:
+        return normalized_input * self._value_ranges

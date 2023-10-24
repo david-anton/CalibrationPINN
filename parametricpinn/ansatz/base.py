@@ -12,7 +12,7 @@ FlattenedParameters: TypeAlias = Tensor
 
 
 class AnsatzStrategy(Protocol):
-    def __call__(self, x: Tensor, network: Networks) -> Tensor:
+    def __call__(self, input: Tensor, network: Networks) -> Tensor:
         pass
 
 
@@ -24,8 +24,8 @@ class StandardAnsatz(nn.Module):
         self.network = network
         self._ansatz_strategy = ansatz_strategy
 
-    def forward(self, x: Tensor) -> Tensor:
-        return self._ansatz_strategy(x, self.network)
+    def forward(self, input: Tensor) -> Tensor:
+        return self._ansatz_strategy(input, self.network)
 
 
 class BayesianAnsatz(nn.Module):
@@ -36,5 +36,5 @@ class BayesianAnsatz(nn.Module):
         self.network = network
         self._ansatz_strategy = ansatz_strategy
 
-    def forward(self, x: Tensor) -> Tensor:
-        return self._ansatz_strategy(x, self.network)
+    def forward(self, input: Tensor) -> Tensor:
+        return self._ansatz_strategy(input, self.network)

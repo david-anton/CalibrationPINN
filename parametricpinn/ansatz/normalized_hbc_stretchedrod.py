@@ -38,22 +38,22 @@ class NormalizedHBCAnsatzStrategyStretchedRod:
     def _boundary_data_func(self) -> Tensor:
         return self._hbc_ansatz_output_normalizer(self._displacement_left)
 
-    def _distance_func(self, x_coor: Tensor) -> Tensor:
+    def _distance_func(self, input_coor: Tensor) -> Tensor:
         # It is assumed that the HBC is at x_coor=0.
-        return self._hbc_ansatz_coordinate_normalizer(x_coor)
+        return self._hbc_ansatz_coordinate_normalizer(input_coor)
 
-    def _extract_coordinates(self, x: Tensor) -> Tensor:
-        if x.dim() == 1:
-            return torch.unsqueeze(x[0], 0)
-        return torch.unsqueeze(x[:, 0], 1)
+    def _extract_coordinates(self, input: Tensor) -> Tensor:
+        if input.dim() == 1:
+            return torch.unsqueeze(input[0], 0)
+        return torch.unsqueeze(input[:, 0], 1)
 
-    def __call__(self, x: Tensor, network: Networks) -> Tensor:
-        x_coor = self._extract_coordinates(x)
-        norm_x = self._network_input_normalizer(x)
-        norm_y = self._boundary_data_func() + (
-            self._distance_func(x_coor) * network(norm_x)
+    def __call__(self, input: Tensor, network: Networks) -> Tensor:
+        input_coor = self._extract_coordinates(input)
+        norm_input = self._network_input_normalizer(input)
+        norm_output = self._boundary_data_func() + (
+            self._distance_func(input_coor) * network(norm_input)
         )
-        return self._hbc_ansatz_output_renormalizer(norm_y)
+        return self._hbc_ansatz_output_renormalizer(norm_output)
 
 
 def create_standard_normalized_hbc_ansatz_stretched_rod(

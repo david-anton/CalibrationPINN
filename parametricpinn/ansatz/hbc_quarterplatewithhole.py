@@ -26,17 +26,17 @@ class HBCAnsatzStrategyQuarterPlateWithHole:
     def _boundary_data_func(self) -> Tensor:
         return self._boundary_data
 
-    def _distance_func(self, x_coor: Tensor) -> Tensor:
-        return x_coor / self._range_coordinates
+    def _distance_func(self, input_coor: Tensor) -> Tensor:
+        return input_coor / self._range_coordinates
 
-    def _extract_coordinates(self, x: Tensor) -> Tensor:
-        if x.dim() == 1:
-            return x[0:2]
-        return x[:, 0:2]
+    def _extract_coordinates(self, input: Tensor) -> Tensor:
+        if input.dim() == 1:
+            return input[0:2]
+        return input[:, 0:2]
 
-    def __call__(self, x: Tensor, network: Networks) -> Tensor:
-        x_coor = self._extract_coordinates(x)
-        return self._boundary_data_func() + (self._distance_func(x_coor) * network(x))
+    def __call__(self, input: Tensor, network: Networks) -> Tensor:
+        x_coor = self._extract_coordinates(input)
+        return self._boundary_data_func() + (self._distance_func(x_coor) * network(input))
 
 
 def create_standard_hbc_ansatz_quarter_plate_with_hole(

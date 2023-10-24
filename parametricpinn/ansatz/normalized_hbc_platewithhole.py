@@ -40,7 +40,7 @@ class NormalizedHBCAnsatzStrategyPlateWithHole:
 
     def _distance_func_x(self, input_coor_x: Tensor) -> Tensor:
         # Boundary condition u_x=0 is at x=0
-        self._hbc_ansatz_coordinate_normalizer_x(input_coor_x)
+        return self._hbc_ansatz_coordinate_normalizer_x(input_coor_x)
 
     def _extract_coordinates_x(self, input: Tensor) -> Tensor:
         if input.dim() == 1:
@@ -50,16 +50,16 @@ class NormalizedHBCAnsatzStrategyPlateWithHole:
     def __call__(self, input: Tensor, network: Networks) -> Tensor:
         input_coor_x = self._extract_coordinates_x(input)
         norm_input = self._network_input_normalizer(input)
-        network_out = network(norm_input)
-        network_out_x, network_out_y = torch.unbind(network_out, dim=1)
-        network_out_x = network_out_x.reshape((-1, 1))
-        network_out_y = network_out_y.reshape((-1, 1))
+        network_output = network(norm_input)
+        network_output_x, network_output_y = torch.unbind(network_output, dim=1)
+        network_output_x = network_output_x.reshape((-1, 1))
+        network_output_y = network_output_y.reshape((-1, 1))
         norm_output_x = (
             self._boundary_data_func_x()
-            + self._distance_func_x(input_coor_x) * network_out_x
+            + self._distance_func_x(input_coor_x) * network_output_x
         )
-        norm_output_y = network_out_y
-        norm_output = torch.stack((norm_output_x, norm_output_y), dim=1)
+        norm_output_y = network_output_y
+        norm_output = torch.concat((norm_output_x, norm_output_y), dim=1)
         return self._hbc_ansatz_output_renormalizer(norm_output)
 
 
@@ -134,8 +134,8 @@ def _create_network_input_normalizer(
 def _create_ansatz_coordinate_normalizer(
     min_inputs: Tensor, max_inputs: Tensor
 ) -> HBCAnsatzNormalizer:
-    idx_coordinate = slice(0, 2)
-    return HBCAnsatzNormalizer(min_inputs[idx_coordinate], max_inputs[idx_coordinate])
+    idx_coordinates = slice(0, 2)
+    return HBCAnsatzNormalizer(min_inputs[idx_coordinates], max_inputs[idx_coordinates])
 
 
 def _create_ansatz_output_normalizer(
