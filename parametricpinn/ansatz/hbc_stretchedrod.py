@@ -29,7 +29,9 @@ class HBCAnsatzStrategyStretchedRod:
 
     def __call__(self, input: Tensor, network: Networks) -> Tensor:
         x_coor = self._extract_coordinates(input)
-        return self._boundary_data_func() + (self._distance_func(x_coor) * network(input))
+        return self._boundary_data_func() + (
+            self._distance_func(x_coor) * network(input)
+        )
 
 
 def create_standard_hbc_ansatz_stretched_rod(
