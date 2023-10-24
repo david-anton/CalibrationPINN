@@ -25,8 +25,8 @@ class FakeNetworkSingleInput(FFNN):
         return torch.tensor([2.0, 2.0])
 
 
-displacement_x_right = 0.0
-displacement_y_bottom = 0.0
+displacement_x_right = torch.tensor([0.0])
+displacement_y_bottom = torch.tensor([0.0])
 range_coordinates = torch.tensor([1.0, 1.0])
 
 

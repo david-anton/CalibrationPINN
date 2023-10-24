@@ -8,6 +8,9 @@ from parametricpinn.ansatz.base import (
     Networks,
     StandardAnsatz,
     StandardNetworks,
+    bind_output,
+    extract_coordinates_2d,
+    unbind_output,
 )
 from parametricpinn.ansatz.hbc_normalizers import (
     HBCAnsatzNormalizer,
@@ -42,38 +45,17 @@ class NormalizedHBCAnsatzStrategyPlateWithHole:
         # Boundary condition u_x=0 is at x=0
         return self._hbc_ansatz_coordinate_normalizer_x(input_coor_x)
 
-    def _extract_coordinates_x(self, input: Tensor) -> Tensor:
-        if input.dim() == 1:
-            return input[0]
-        return input[:, 0].reshape((-1, 1))
-
-    def _unbind_output(self, output: Tensor) -> tuple[Tensor, Tensor]:
-        if output.dim() == 1:
-            output_x, output_y = torch.unbind(output, dim=0)
-            output_x = torch.unsqueeze(output_x, dim=0)
-            output_y = torch.unsqueeze(output_y, dim=0)
-        else:
-            output_x, output_y = torch.unbind(output, dim=1)
-            output_x = output_x.reshape((-1, 1))
-            output_y = output_y.reshape((-1, 1))
-        return output_x, output_y
-
-    def _bind_output(self, output_x: Tensor, output_y: Tensor) -> Tensor:
-        if output_x.dim() == 1 and output_y.dim() == 1:
-            return torch.concat((output_x, output_y), dim=0)
-        return torch.concat((output_x, output_y), dim=1)
-
     def __call__(self, input: Tensor, network: Networks) -> Tensor:
-        input_coor_x = self._extract_coordinates_x(input)
+        input_coor_x, _ = extract_coordinates_2d(input)
         norm_input = self._network_input_normalizer(input)
         network_output = network(norm_input)
-        network_output_x, network_output_y = self._unbind_output(network_output)
+        network_output_x, network_output_y = unbind_output(network_output)
         norm_output_x = (
             self._boundary_data_func_x()
             + self._distance_func_x(input_coor_x) * network_output_x
         )
         norm_output_y = network_output_y
-        norm_output = self._bind_output(norm_output_x, norm_output_y)
+        norm_output = bind_output(norm_output_x, norm_output_y)
         return self._hbc_ansatz_output_renormalizer(norm_output)
 
 
@@ -148,15 +130,21 @@ def _create_network_input_normalizer(
 def _create_ansatz_coordinate_normalizer_x(
     min_inputs: Tensor, max_inputs: Tensor
 ) -> HBCAnsatzNormalizer:
-    idx_coordinates = 0
-    return HBCAnsatzNormalizer(min_inputs[idx_coordinates], max_inputs[idx_coordinates])
+    idx_coordinate = 0
+    return HBCAnsatzNormalizer(
+        torch.unsqueeze(min_inputs[idx_coordinate], dim=0),
+        torch.unsqueeze(max_inputs[idx_coordinate], dim=0),
+    )
 
 
 def _create_ansatz_output_normalizer_x(
     min_outputs: Tensor, max_outputs: Tensor
 ) -> HBCAnsatzNormalizer:
     idx_output = 0
-    return HBCAnsatzNormalizer(min_outputs[idx_output], max_outputs[idx_output])
+    return HBCAnsatzNormalizer(
+        torch.unsqueeze(min_outputs[idx_output], dim=0),
+        torch.unsqueeze(max_outputs[idx_output], dim=0),
+    )
 
 
 def _create_ansatz_output_renormalizer(

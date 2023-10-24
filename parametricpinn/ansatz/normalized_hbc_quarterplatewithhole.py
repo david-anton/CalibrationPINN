@@ -8,6 +8,9 @@ from parametricpinn.ansatz.base import (
     Networks,
     StandardAnsatz,
     StandardNetworks,
+    bind_output,
+    extract_coordinates_2d,
+    unbind_output,
 )
 from parametricpinn.ansatz.hbc_normalizers import (
     HBCAnsatzNormalizer,
@@ -25,37 +28,52 @@ class NormalizedHBCAnsatzStrategyQuarterPlateWithHole:
         displacement_x_right: Tensor,
         displacement_y_bottom: Tensor,
         network_input_normalizer: NetworkInputNormalizer,
-        hbc_ansatz_coordinate_normalizer: HBCAnsatzNormalizer,
-        hbc_ansatz_output_normalizer: HBCAnsatzNormalizer,
+        hbc_ansatz_coordinate_normalizer_x: HBCAnsatzNormalizer,
+        hbc_ansatz_coordinate_normalizer_y: HBCAnsatzNormalizer,
+        hbc_ansatz_output_normalizer_x: HBCAnsatzNormalizer,
+        hbc_ansatz_output_normalizer_y: HBCAnsatzNormalizer,
         hbc_ansatz_output_renormalizer: HBCAnsatzRenormalizer,
     ) -> None:
         super().__init__()
-        self._boundary_data = torch.tensor(
-            [displacement_x_right, displacement_y_bottom]
-        ).to(displacement_x_right.device)
+        self._boundary_data_x_right = displacement_x_right
+        self._boundary_data_y_bottom = displacement_y_bottom
         self._network_input_normalizer = network_input_normalizer
-        self._hbc_ansatz_coordinate_normalizer = hbc_ansatz_coordinate_normalizer
-        self._hbc_ansatz_output_normalizer = hbc_ansatz_output_normalizer
+        self._hbc_ansatz_coordinate_normalizer_x = hbc_ansatz_coordinate_normalizer_x
+        self._hbc_ansatz_coordinate_normalizer_y = hbc_ansatz_coordinate_normalizer_y
+        self._hbc_ansatz_output_normalizer_x = hbc_ansatz_output_normalizer_x
+        self._hbc_ansatz_output_normalizer_y = hbc_ansatz_output_normalizer_y
         self._hbc_ansatz_output_renormalizer = hbc_ansatz_output_renormalizer
 
-    def _boundary_data_func(self) -> Tensor:
-        return self._hbc_ansatz_output_normalizer(self._boundary_data)
+    def _boundary_data_func_x(self) -> Tensor:
+        return self._hbc_ansatz_output_normalizer_x(self._boundary_data_x_right)
 
-    def _distance_func(self, input_coor: Tensor) -> Tensor:
-        # It is assumed that the HBC is at the right (u_x=0) and bottom (u_y=0) edge.
-        return self._hbc_ansatz_coordinate_normalizer(input_coor)
+    def _boundary_data_func_y(self) -> Tensor:
+        return self._hbc_ansatz_output_normalizer_y(self._boundary_data_y_bottom)
 
-    def _extract_coordinates(self, input: Tensor) -> Tensor:
-        if input.dim() == 1:
-            return input[0:2]
-        return input[:, 0:2]
+    def _distance_func_x(self, input_coor_x: Tensor) -> Tensor:
+        # Boundary condition u_x=0 is at x=0
+        return self._hbc_ansatz_coordinate_normalizer_x(input_coor_x)
+
+    def _distance_func_y(self, input_coor_y: Tensor) -> Tensor:
+        # Boundary condition u_y=0 is at y=0
+        return self._hbc_ansatz_coordinate_normalizer_y(input_coor_y)
 
     def __call__(self, input: Tensor, network: Networks) -> Tensor:
-        input_coor = self._extract_coordinates(input)
+        input_coor_x, input_coor_y = extract_coordinates_2d(input)
         norm_input = self._network_input_normalizer(input)
-        norm_output = self._boundary_data_func() + (
-            self._distance_func(input_coor) * network(norm_input)
+        norm_network_output = network(norm_input)
+        norm_network_output_x, norm_network_output_y = unbind_output(
+            norm_network_output
         )
+        norm_output_x = (
+            self._boundary_data_func_x()
+            + self._distance_func_x(input_coor_x) * norm_network_output_x
+        )
+        norm_output_y = (
+            self._boundary_data_func_y()
+            + self._distance_func_y(input_coor_y) * norm_network_output_y
+        )
+        norm_output = bind_output(norm_output_x, norm_output_y)
         return self._hbc_ansatz_output_renormalizer(norm_output)
 
 
@@ -108,11 +126,17 @@ def _create_ansatz_strategy(
     max_outputs: Tensor,
 ) -> NormalizedHBCAnsatzStrategyQuarterPlateWithHole:
     network_input_normalizer = _create_network_input_normalizer(min_inputs, max_inputs)
-    ansatz_coordinate_normalizer = _create_ansatz_coordinate_normalizer(
-        min_inputs, max_inputs
+    ansatz_coordinate_normalizer_x = _create_ansatz_coordinate_normalizer(
+        min_inputs, max_inputs, index=0
     )
-    ansatz_output_normalizer = _create_ansatz_output_normalizer(
-        min_outputs, max_outputs
+    ansatz_coordinate_normalizer_y = _create_ansatz_coordinate_normalizer(
+        min_inputs, max_inputs, index=1
+    )
+    ansatz_output_normalizer_x = _create_ansatz_output_normalizer(
+        min_outputs, max_outputs, index=0
+    )
+    ansatz_output_normalizer_y = _create_ansatz_output_normalizer(
+        min_outputs, max_outputs, index=1
     )
     ansatz_output_renormalizer = _create_ansatz_output_renormalizer(
         min_outputs, max_outputs
@@ -121,8 +145,10 @@ def _create_ansatz_strategy(
         displacement_x_right=displacement_x_right,
         displacement_y_bottom=displacement_y_bottom,
         network_input_normalizer=network_input_normalizer,
-        hbc_ansatz_coordinate_normalizer=ansatz_coordinate_normalizer,
-        hbc_ansatz_output_normalizer=ansatz_output_normalizer,
+        hbc_ansatz_coordinate_normalizer_x=ansatz_coordinate_normalizer_x,
+        hbc_ansatz_coordinate_normalizer_y=ansatz_coordinate_normalizer_y,
+        hbc_ansatz_output_normalizer_x=ansatz_output_normalizer_x,
+        hbc_ansatz_output_normalizer_y=ansatz_output_normalizer_y,
         hbc_ansatz_output_renormalizer=ansatz_output_renormalizer,
     )
 
@@ -134,16 +160,21 @@ def _create_network_input_normalizer(
 
 
 def _create_ansatz_coordinate_normalizer(
-    min_inputs: Tensor, max_inputs: Tensor
+    min_inputs: Tensor, max_inputs: Tensor, index: int
 ) -> HBCAnsatzNormalizer:
-    idx_coordinates = slice(0, 2)
-    return HBCAnsatzNormalizer(min_inputs[idx_coordinates], max_inputs[idx_coordinates])
+    return HBCAnsatzNormalizer(
+        torch.unsqueeze(min_inputs[index], dim=0),
+        torch.unsqueeze(max_inputs[index], dim=0),
+    )
 
 
 def _create_ansatz_output_normalizer(
-    min_outputs: Tensor, max_outputs: Tensor
+    min_outputs: Tensor, max_outputs: Tensor, index: int
 ) -> HBCAnsatzNormalizer:
-    return HBCAnsatzNormalizer(min_outputs, max_outputs)
+    return HBCAnsatzNormalizer(
+        torch.unsqueeze(min_outputs[index], dim=0),
+        torch.unsqueeze(max_outputs[index], dim=0),
+    )
 
 
 def _create_ansatz_output_renormalizer(

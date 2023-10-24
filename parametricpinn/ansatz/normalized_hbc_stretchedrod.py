@@ -8,6 +8,7 @@ from parametricpinn.ansatz.base import (
     Networks,
     StandardAnsatz,
     StandardNetworks,
+    extract_coordinate_1d,
 )
 from parametricpinn.ansatz.hbc_normalizers import (
     HBCAnsatzNormalizer,
@@ -42,13 +43,8 @@ class NormalizedHBCAnsatzStrategyStretchedRod:
         # It is assumed that the HBC is at x_coor=0.
         return self._hbc_ansatz_coordinate_normalizer(input_coor)
 
-    def _extract_coordinates(self, input: Tensor) -> Tensor:
-        if input.dim() == 1:
-            return torch.unsqueeze(input[0], 0)
-        return torch.unsqueeze(input[:, 0], 1)
-
     def __call__(self, input: Tensor, network: Networks) -> Tensor:
-        input_coor = self._extract_coordinates(input)
+        input_coor = extract_coordinate_1d(input)
         norm_input = self._network_input_normalizer(input)
         norm_output = self._boundary_data_func() + (
             self._distance_func(input_coor) * network(norm_input)

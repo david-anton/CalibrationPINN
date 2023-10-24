@@ -25,8 +25,8 @@ class FakeNetworkSingleInput(FFNN):
         return torch.tensor([2.0])
 
 
-range_coordinates = 1.0
-displacement_left = 0.0
+range_coordinates = torch.tensor([1.0])
+displacement_left = torch.tensor([0.0])
 
 
 @pytest.fixture
