@@ -8,10 +8,11 @@ from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
 from scipy.interpolate import griddata
 
-from parametricpinn.errors import PlottingConfigError
+from parametricpinn.errors import FEMDomainConfigError, PlottingConfigError
 from parametricpinn.fem import (
     LinearElasticityProblemConfig,
     NeoHookeanProblemConfig,
+    PlateWithHoleDomainConfig,
     ProblemConfigs,
     QuarterPlateWithHoleDomainConfig,
 )
@@ -23,9 +24,10 @@ from parametricpinn.types import Device, Module, NPArray, PLTAxes, PLTFigure
 ProblemConfigLists: TypeAlias = Union[
     list[LinearElasticityProblemConfig], list[NeoHookeanProblemConfig]
 ]
+DomainConfigs: TypeAlias = Union[QuarterPlateWithHoleDomainConfig, PlateWithHoleDomainConfig]
 
 
-class DisplacementsPlotterConfigPWH:
+class DisplacementsPlotterConfig2D:
     def __init__(self) -> None:
         # label size
         self.label_size = 16
@@ -85,15 +87,15 @@ SimulationResults = namedtuple(
 )
 
 
-def plot_displacements_pwh(
+def plot_displacements_2d(
     ansatz: Module,
-    domain_config: QuarterPlateWithHoleDomainConfig,
+    domain_config: DomainConfigs,
     problem_configs: ProblemConfigLists,
     volume_force_x: float,
     volume_force_y: float,
     output_subdir: str,
     project_directory: ProjectDirectory,
-    plot_config: DisplacementsPlotterConfigPWH,
+    plot_config: DisplacementsPlotterConfig2D,
     device: Device,
 ) -> None:
     ansatz.eval()
@@ -119,7 +121,7 @@ def _plot_one_simulation(
     simulation_config: SimulationConfig,
     output_subdir: str,
     project_directory: ProjectDirectory,
-    plot_config: DisplacementsPlotterConfigPWH,
+    plot_config: DisplacementsPlotterConfig2D,
     device: Device,
 ):
     simulation_results = _calculate_results(
@@ -234,7 +236,7 @@ def _plot_results(
     simulation_config: SimulationConfig,
     output_subdir: str,
     project_directory: ProjectDirectory,
-    plot_config: DisplacementsPlotterConfigPWH,
+    plot_config: DisplacementsPlotterConfig2D,
 ) -> None:
     _plot_simulation_and_prediction(
         pinn_displacements=simulation_results.pinn_displacements_x,
@@ -293,7 +295,7 @@ def _plot_simulation_and_prediction(
     file_name_identifier: str,
     output_subdir: str,
     project_directory: ProjectDirectory,
-    plot_config: DisplacementsPlotterConfigPWH,
+    plot_config: DisplacementsPlotterConfig2D,
     simulation_config: SimulationConfig,
 ) -> None:
     composed_results = np.concatenate((pinn_displacements, fem_displacements), axis=0)
@@ -359,7 +361,7 @@ def _plot_errors(
     file_name_identifier: str,
     output_subdir: str,
     project_directory: ProjectDirectory,
-    plot_config: DisplacementsPlotterConfigPWH,
+    plot_config: DisplacementsPlotterConfig2D,
     simulation_config: SimulationConfig,
 ) -> None:
     normalizer = _create_normalizer(errors, plot_config)
@@ -394,7 +396,7 @@ def _plot_errors(
 
 
 def _create_normalizer(
-    results: NPArray, plot_config: DisplacementsPlotterConfigPWH
+    results: NPArray, plot_config: DisplacementsPlotterConfig2D
 ) -> BoundaryNorm:
     min_value = np.nanmin(results)
     max_value = np.nanmax(results)
@@ -407,7 +409,7 @@ def _create_normalizer(
 
 
 def _create_ticks(
-    results: NPArray, plot_config: DisplacementsPlotterConfigPWH
+    results: NPArray, plot_config: DisplacementsPlotterConfig2D
 ) -> list[float]:
     min_value = np.nanmin(results)
     max_value = np.nanmax(results)
@@ -421,7 +423,7 @@ def _create_ticks(
 
 def _generate_coordinate_grid(
     simulation_config: SimulationConfig,
-    plot_config: DisplacementsPlotterConfigPWH,
+    plot_config: DisplacementsPlotterConfig2D,
 ) -> list[NPArray]:
     grid_coordinates_x = np.linspace(
         -simulation_config.domain_config.edge_length,
@@ -460,7 +462,7 @@ def _plot_once(
     title: str,
     normalizer: BoundaryNorm,
     cbar_ticks: list[float],
-    plot_config: DisplacementsPlotterConfigPWH,
+    plot_config: DisplacementsPlotterConfig2D,
     simulation_config: SimulationConfig,
 ) -> PLTFigure:
     figure, axes = plt.subplots()
@@ -497,13 +499,13 @@ def _plot_once(
         cbar.ax.minorticks_off()
         figure.axes[1].tick_params(labelsize=plot_config.font_size)
 
-    def _add_hole(axes: PLTAxes) -> None:
-        hole = plt.Circle(
-            (0.0, 0.0),
-            radius=simulation_config.domain_config.radius,
-            color="white",
-        )
-        axes.add_patch(hole)
+    # def _add_hole(axes: PLTAxes) -> None:
+    #     hole = plt.Circle(
+    #         (0.0, 0.0),
+    #         radius=simulation_config.domain_config.radius,
+    #         color="white",
+    #     )
+    #     axes.add_patch(hole)
 
     _set_title_and_labels(axes)
     _configure_ticks(axes)
@@ -516,8 +518,40 @@ def _plot_once(
         norm=normalizer,
     )
     _configure_color_bar(figure)
-    _add_hole(axes)
+    _add_geometry_specific_patches(axes, simulation_config)
     return figure
+
+
+def _add_geometry_specific_patches(axes: PLTAxes, simulation_config: SimulationConfig) -> None:
+    def add_quarter_hole(axes: PLTAxes, domain_config: QuarterPlateWithHoleDomainConfig):
+        radius=domain_config.radius
+        hole = plt.Circle(
+            (0.0, 0.0),
+            radius=radius,
+            color="white",
+        )
+        axes.add_patch(hole)
+
+    def add_hole(axes: PLTAxes, domain_config: PlateWithHoleDomainConfig):
+        length = domain_config.plate_length
+        height = domain_config.plate_height
+        radius=domain_config.hole_radius
+        hole = plt.Circle(
+            (length/2, height/2),
+            radius=radius,
+            color="white",
+        )
+        axes.add_patch(hole)
+
+    domain_config = simulation_config.domain_config
+    if isinstance(domain_config, QuarterPlateWithHoleDomainConfig):
+        add_quarter_hole(axes=axes, domain_config=domain_config)
+    elif isinstance(domain_config, PlateWithHoleDomainConfig):
+        add_hole(axes=axes, domain_config=domain_config)
+    else:
+        raise FEMDomainConfigError(
+            f"There is no implementation for the requested FEM domain {domain_config}."
+        )
 
 
 def _cut_result_grid(result_grid: NPArray) -> NPArray:
@@ -529,7 +563,7 @@ def _save_plot(
     file_name: str,
     output_subdir: str,
     project_directory: ProjectDirectory,
-    plot_config: DisplacementsPlotterConfigPWH,
+    plot_config: DisplacementsPlotterConfig2D,
 ) -> None:
     save_path = project_directory.create_output_file_path(file_name, output_subdir)
     figure.savefig(

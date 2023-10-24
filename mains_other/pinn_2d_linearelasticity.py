@@ -36,9 +36,9 @@ from parametricpinn.fem import (
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN
 from parametricpinn.postprocessing.plot import (
-    DisplacementsPlotterConfigPWH,
+    DisplacementsPlotterConfig2D,
     HistoryPlotterConfig,
-    plot_displacements_pwh,
+    plot_displacements_2d,
     plot_loss_history,
     plot_valid_history,
 )
@@ -509,7 +509,7 @@ if __name__ == "__main__":
         config=history_plotter_config,
     )
 
-    displacements_plotter_config = DisplacementsPlotterConfigPWH()
+    displacements_plotter_config = DisplacementsPlotterConfig2D()
 
     domain_config = QuarterPlateWithHoleDomainConfig(
         edge_length=edge_length,
@@ -527,7 +527,7 @@ if __name__ == "__main__":
         poissons_ratio=0.3,
     )
 
-    plot_displacements_pwh(
+    plot_displacements_2d(
         ansatz=ansatz,
         domain_config=domain_config,
         problem_configs=[problem_config],

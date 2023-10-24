@@ -35,7 +35,7 @@ class DisplacementsPlotterConfig1D:
         self.dpi = 300
 
 
-def plot_displacements_1D(
+def plot_displacements_1d(
     ansatz: StandardAnsatz,
     length: float,
     youngs_modulus_list: list[float],
@@ -47,7 +47,7 @@ def plot_displacements_1D(
     device: Device,
 ) -> None:
     for youngs_modulus in youngs_modulus_list:
-        _plot_one_displacements_1D(
+        _plot_one_displacements(
             ansatz=ansatz,
             length=length,
             youngs_modulus=youngs_modulus,
@@ -60,7 +60,7 @@ def plot_displacements_1D(
         )
 
 
-def _plot_one_displacements_1D(
+def _plot_one_displacements(
     ansatz: StandardAnsatz,
     length: float,
     youngs_modulus: float,
@@ -113,7 +113,7 @@ class BayesianDisplacementsPlotterConfig1D(DisplacementsPlotterConfig1D):
         self.alpha = 0.2
 
 
-def plot_bayesian_displacements_1D(
+def plot_bayesian_displacements_1d(
     ansatz: BayesianAnsatz,
     parameter_samples: NPArray,
     length: float,

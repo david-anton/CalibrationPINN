@@ -48,8 +48,8 @@ from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader
 from parametricpinn.network import FFNN
 from parametricpinn.postprocessing.plot import (
-    DisplacementsPlotterConfigPWH,
-    plot_displacements_pwh,
+    DisplacementsPlotterConfig2D,
+    plot_displacements_2d,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
 from parametricpinn.training.training_standard_linearelasticity_quarterplatewithhole import (
@@ -302,7 +302,7 @@ def training_step() -> None:
     )
 
     def _plot_exemplary_displacement_fields() -> None:
-        displacements_plotter_config = DisplacementsPlotterConfigPWH()
+        displacements_plotter_config = DisplacementsPlotterConfig2D()
         youngs_modulus_and_poissons_ratio_list = [
             (min_youngs_modulus, min_poissons_ratio),
             (min_youngs_modulus, max_poissons_ratio),
@@ -323,7 +323,7 @@ def training_step() -> None:
                 )
             )
 
-        plot_displacements_pwh(
+        plot_displacements_2d(
             ansatz=ansatz,
             domain_config=domain_config,
             problem_configs=problem_configs,

@@ -18,7 +18,7 @@ from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import BFFNN
 from parametricpinn.postprocessing.plot import (
     BayesianDisplacementsPlotterConfig1D,
-    plot_bayesian_displacements_1D,
+    plot_bayesian_displacements_1d,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
 from parametricpinn.training.training_bayesian_linearelasticity_stretchedrod import (
@@ -136,7 +136,7 @@ def training_step() -> None:
     def _plot_exemplary_displacements() -> None:
         displacements_plotter_config = BayesianDisplacementsPlotterConfig1D()
 
-        plot_bayesian_displacements_1D(
+        plot_bayesian_displacements_1d(
             ansatz=ansatz,
             parameter_samples=parameter_samples,
             length=length,

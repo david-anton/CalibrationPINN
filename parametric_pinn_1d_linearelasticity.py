@@ -38,7 +38,7 @@ from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN
 from parametricpinn.postprocessing.plot import (
     DisplacementsPlotterConfig1D,
-    plot_displacements_1D,
+    plot_displacements_1d,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
 from parametricpinn.training.training_standard_linearelasticity_stretchedrod import (
@@ -166,7 +166,7 @@ def training_step() -> None:
     def _plot_exemplary_displacements() -> None:
         displacements_plotter_config = DisplacementsPlotterConfig1D()
 
-        plot_displacements_1D(
+        plot_displacements_1d(
             ansatz=ansatz,
             length=length,
             youngs_modulus_list=[187634, 238695],
@@ -189,7 +189,7 @@ def calibration_step() -> None:
     std_noise = 5 * 1e-4
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
-        calibration_dataset = create_validation_dataset(
+        config_validation_dataset = StretchedRodValidationDataset1DConfig(
             length=length,
             min_youngs_modulus=exact_youngs_modulus,
             max_youngs_modulus=exact_youngs_modulus,
@@ -198,6 +198,7 @@ def calibration_step() -> None:
             num_points=num_points_calibration,
             num_samples=1,
         )
+        calibration_dataset = create_validation_dataset(config_validation_dataset)
         inputs, outputs = calibration_dataset[0]
         coordinates = torch.reshape(inputs[:, 0], (-1, 1)).to(device)
         clean_displacements = outputs.to(device)
