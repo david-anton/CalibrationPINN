@@ -10,6 +10,7 @@ from ufl import SpatialCoordinate, TestFunction, TrialFunction, div, dx, grad, i
 
 from parametricpinn.fem.base import DFunction, UFLExpression
 from parametricpinn.fem.convergence import (
+    calculate_infinity_error,
     calculate_l2_error,
     calculate_relative_l2_error,
 )
@@ -56,15 +57,18 @@ def solve_poisson(num_elements=10, degree=1):
     return default_problem.solve()
 
 
-# u_exact = u_numpy
 u_exact = solve_poisson(num_elements=num_elements_tests[-1], degree=1)
 
 
 for i in range(0, len(num_elements_tests)):
     u_approx = solve_poisson(num_elements=num_elements_tests[i], degree=1)
     l2_error = calculate_l2_error(u_approx, u_exact)
+    relative_l2_error = calculate_relative_l2_error(u_approx, u_exact)
+    infinity_error = calculate_infinity_error(u_approx, u_exact)
     num_elements = num_elements_tests[i]
-    print(f"{num_elements}: \t L2 error: {l2_error:.4} ")
+    print(
+        f"{num_elements}: \t L2 error: {l2_error:.4} \t rel. L2 error: {relative_l2_error:.4} \t infinity error: {infinity_error:.4}"
+    )
 
 
 # u_exact = solve_poisson(num_elements_tests[-1], degree=1)

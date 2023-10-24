@@ -10,6 +10,7 @@ from parametricpinn.fem import (
 )
 from parametricpinn.fem.base import DFunction
 from parametricpinn.fem.convergence import (
+    calculate_infinity_error,
     calculate_l2_error,
     calculate_relative_l2_error,
 )
@@ -80,17 +81,14 @@ def calculate_approximate_solution(mesh_resolution) -> DFunction:
     return results.function
 
 
-u_approx = calculate_approximate_solution(fem_mesh_resolution_tests[0])
+u_exact = calculate_approximate_solution(fem_mesh_resolution_tests[-1])
 
-for i in range(1, len(fem_mesh_resolution_tests)):
-    u_refined = calculate_approximate_solution(fem_mesh_resolution_tests[i])
-    l2_error = calculate_l2_error(u_approx=u_approx, u_exact=u_refined)
-    relative_l2_error = calculate_relative_l2_error(
-        u_approx=u_approx, u_exact=u_refined
-    )
-    num_elements = u_approx.function_space.tabulate_dof_coordinates().size
-    num_elements_refined = u_refined.function_space.tabulate_dof_coordinates().size
+for i in range(0, len(fem_mesh_resolution_tests)):
+    u_approx = calculate_approximate_solution(fem_mesh_resolution_tests[i])
+    l2_error = calculate_l2_error(u_approx, u_exact)
+    relative_l2_error = calculate_relative_l2_error(u_approx, u_exact)
+    infinity_error = calculate_infinity_error(u_approx, u_exact)
+    mesh_resolution = fem_mesh_resolution_tests[i]
     print(
-        f"{num_elements} \t -> {num_elements_refined}: \t L2 error: {l2_error:.4} \t rel. L2 error: {relative_l2_error:.4}"
+        f"Mesh resolution: {mesh_resolution}: \t L2 error: {l2_error:.4} \t rel. L2 error: {relative_l2_error:.4} \t infinity error: {infinity_error:.4}"
     )
-    u_approx = u_refined

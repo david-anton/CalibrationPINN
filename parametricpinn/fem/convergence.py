@@ -6,7 +6,6 @@ from dolfinx import default_scalar_type
 from dolfinx.fem import (
     Expression,
     Function,
-    FunctionSpace,
     assemble_scalar,
     create_nonmatching_meshes_interpolation_data,
     form,
@@ -31,15 +30,13 @@ def calculate_l2_error(
     u_exact: UExact,
     degree_raise=3,
 ) -> NPArray:
-    func_space_raised = _create_higher_order_function_space(u_approx, degree_raise)
-    mpi_comm = _get_mpi_communicator(func_space_raised)
-    u_approx_raised = _interpolate_u_approx(u_approx, func_space_raised)
-    u_exact_raised = _interpolate_u_exact(u_exact, func_space_raised)
+    func_space = _create_higher_order_function_space(u_approx, degree_raise)
+    mpi_comm = _get_mpi_communicator(func_space)
+    u_approx_interpolated = _interpolate_u_approx(u_approx, func_space)
+    u_exact_interpolated = _interpolate_u_exact(u_exact, func_space)
 
-    # Compute the error in the higher order function space
-    error_func = _compute_error(u_approx_raised, u_exact_raised, func_space_raised)
+    error_func = _compute_error(u_approx_interpolated, u_exact_interpolated, func_space)
 
-    # Integrate the error
     error_norm = _l2_error_norm(error_func)
     return _integrate_error(error_norm, mpi_comm)
 
@@ -49,17 +46,27 @@ def calculate_relative_l2_error(
     u_exact: UExact,
     degree_raise=3,
 ) -> NPArray:
-    func_space_raised = _create_higher_order_function_space(u_approx, degree_raise)
-    mpi_comm = _get_mpi_communicator(func_space_raised)
-    u_approx_raised = _interpolate_u_approx(u_approx, func_space_raised)
-    u_exact_raised = _interpolate_u_exact(u_exact, func_space_raised)
+    func_space = _create_higher_order_function_space(u_approx, degree_raise)
+    mpi_comm = _get_mpi_communicator(func_space)
+    u_approx_interpolated = _interpolate_u_approx(u_approx, func_space)
+    u_exact_interpolated = _interpolate_u_exact(u_exact, func_space)
 
-    # Compute the error in the higher order function space
-    error_func = _compute_error(u_approx_raised, u_exact_raised, func_space_raised)
+    error_func = _compute_error(u_approx_interpolated, u_exact_interpolated, func_space)
 
-    # Integrate the error
-    error_norm = _relative_l2_error_norm(error_func, u_exact_raised)
+    error_norm = _relative_l2_error_norm(error_func, u_exact_interpolated)
     return _integrate_error(error_norm, mpi_comm)
+
+
+def calculate_infinity_error(
+    u_approx: DFunction,
+    u_exact: UExact,
+):
+    func_space = u_approx.function_space
+    mpi_comm = _get_mpi_communicator(func_space)
+    u_exact_interpolated = _interpolate_u_exact(u_exact, func_space)
+
+    error_norm = _infinity_error_norm(u_approx, u_exact_interpolated, mpi_comm)
+    return error_norm
 
 
 def _create_higher_order_function_space(
@@ -85,20 +92,21 @@ def _get_mpi_communicator(func_space: DFunctionSpace) -> MPICommunicator:
 
 def _interpolate_u_exact(u_exact: UExact, func_space: DFunctionSpace) -> DFunctionSpace:
     func = Function(func_space, dtype=default_scalar_type)
-    # if isinstance(u_exact, ufl.core.expr.Expr):
-    #     interpolation_points = func_space.element.interpolation_points()
-    #     u_expression = Expression(u_exact, interpolation_points)
-    #     func.interpolate(u_expression)
-    # else:
-    #     func.interpolate(u_exact)
-    func.interpolate(
-        u_exact,
-        nmm_interpolation_data=create_nonmatching_meshes_interpolation_data(
-            func.function_space.mesh._cpp_object,
-            func.function_space.element,
-            u_exact.function_space.mesh._cpp_object,
-        ),
-    )
+    if isinstance(u_exact, DFunction):
+        func.interpolate(
+            u_exact,
+            nmm_interpolation_data=create_nonmatching_meshes_interpolation_data(
+                func.function_space.mesh._cpp_object,
+                func.function_space.element,
+                u_exact.function_space.mesh._cpp_object,
+            ),
+        )
+    elif isinstance(u_exact, ufl.core.expr.Expr):
+        interpolation_points = func_space.element.interpolation_points()
+        u_expression = Expression(u_exact, interpolation_points)
+        func.interpolate(u_expression)
+    else:
+        func.interpolate(u_exact)
     return func
 
 
@@ -124,3 +132,11 @@ def _relative_l2_error_norm(error_func: DFunction, u_exact: DFunction) -> DForm:
     return form(
         (ufl.inner(error_func, error_func) / ufl.inner(u_exact, u_exact)) * ufl.dx
     )
+
+
+def _infinity_error_norm(
+    u_approx: DFunction, u_exact: DFunction, mpi_comm: MPICommunicator
+) -> NPArray:
+    error_local = np.max(np.abs(u_approx.x.array - u_exact.x.array))
+    error_global = mpi_comm.allreduce(error_local, op=MPI.MAX)
+    return error_global
