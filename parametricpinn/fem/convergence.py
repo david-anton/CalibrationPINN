@@ -75,9 +75,9 @@ def _create_higher_order_function_space(
     degree = u_approx.function_space.ufl_element().degree()
     family = u_approx.function_space.ufl_element().family()
     mesh = u_approx.function_space.mesh
-    return functionspace(mesh, (family, degree + degree_raise))
-    # element = ufl.VectorElement(family, mesh.ufl_cell(), degree + degree_raise)
-    # return FunctionSpace(mesh, element)
+    # return functionspace(mesh, (family, degree + degree_raise))
+    element = ufl.VectorElement(family, mesh.ufl_cell(), degree + degree_raise)
+    return functionspace(mesh, element)
 
 
 def _interpolate_u_approx(u_approx: DFunction, func_space: DFunctionSpace) -> DFunction:
