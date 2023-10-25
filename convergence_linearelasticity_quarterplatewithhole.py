@@ -50,7 +50,7 @@ set_default_dtype(torch.float64)
 
 
 def create_fem_domain_config(
-    mesh_resolution: float,
+    element_size: float,
 ) -> QuarterPlateWithHoleDomainConfig:
     return QuarterPlateWithHoleDomainConfig(
         edge_length=edge_length,
@@ -59,12 +59,12 @@ def create_fem_domain_config(
         traction_left_y=traction_left_y,
         element_family=fem_element_family,
         element_degree=fem_element_degree,
-        mesh_resolution=mesh_resolution,
+        element_size=element_size,
     )
 
 
-def calculate_approximate_solution(mesh_resolution) -> DFunction:
-    domain_config = create_fem_domain_config(mesh_resolution)
+def calculate_approximate_solution(element_size) -> DFunction:
+    domain_config = create_fem_domain_config(element_size)
     problem_config = LinearElasticityProblemConfig(
         model=material_model,
         youngs_modulus=youngs_modulus,

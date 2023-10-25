@@ -30,7 +30,7 @@ poissons_ratio = 0.3
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
-fem_mesh_resolution_tests = [3.2, 1.6, 0.8, 0.4, 0.2, 0.1]
+fem_element_size_tests = [3.2, 1.6, 0.8, 0.4, 0.2, 0.1]
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdirectory = (
@@ -44,7 +44,7 @@ set_default_dtype(torch.float64)
 
 
 def create_fem_domain_config(
-    mesh_resolution: float,
+    element_size: float,
 ) -> QuarterPlateWithHoleDomainConfig:
     return QuarterPlateWithHoleDomainConfig(
         edge_length=edge_length,
@@ -53,12 +53,12 @@ def create_fem_domain_config(
         traction_left_y=traction_left_y,
         element_family=fem_element_family,
         element_degree=fem_element_degree,
-        mesh_resolution=mesh_resolution,
+        element_size=element_size,
     )
 
 
-def calculate_approximate_solution(mesh_resolution) -> DFunction:
-    domain_config = create_fem_domain_config(mesh_resolution)
+def calculate_approximate_solution(element_size) -> DFunction:
+    domain_config = create_fem_domain_config(element_size)
     problem_config = NeoHookeanProblemConfig(
         youngs_modulus=youngs_modulus,
         poissons_ratio=poissons_ratio,
@@ -79,14 +79,14 @@ def calculate_approximate_solution(mesh_resolution) -> DFunction:
     return results.function
 
 
-u_exact = calculate_approximate_solution(fem_mesh_resolution_tests[-1])
+u_exact = calculate_approximate_solution(fem_element_size_tests[-1])
 
-for i in range(0, len(fem_mesh_resolution_tests)):
-    u_approx = calculate_approximate_solution(fem_mesh_resolution_tests[i])
+for i in range(0, len(fem_element_size_tests)):
+    u_approx = calculate_approximate_solution(fem_element_size_tests[i])
     l2_error = calculate_l2_error(u_approx, u_exact)
     relative_l2_error = calculate_relative_l2_error(u_approx, u_exact)
     infinity_error = calculate_infinity_error(u_approx, u_exact)
-    mesh_resolution = fem_mesh_resolution_tests[i]
+    mesh_resolution = fem_element_size_tests[i]
     print(
         f"Mesh resolution: {mesh_resolution}: \t L2 error: {l2_error:.4} \t rel. L2 error: {relative_l2_error:.4} \t infinity error: {infinity_error:.4}"
     )

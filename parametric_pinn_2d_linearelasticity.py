@@ -97,7 +97,7 @@ use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
-fem_mesh_resolution = 0.1
+fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
@@ -122,7 +122,7 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
         traction_left_y=traction_left_y,
         element_family=fem_element_family,
         element_degree=fem_element_degree,
-        mesh_resolution=fem_mesh_resolution,
+        element_size=fem_element_size,
     )
 
 

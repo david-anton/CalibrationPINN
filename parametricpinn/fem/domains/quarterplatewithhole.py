@@ -37,16 +37,14 @@ class QuarterPlateWithHoleDomainConfig:
     traction_left_y: float
     element_family: str
     element_degree: int
-    mesh_resolution: float
+    element_size: float
 
-
-Config: TypeAlias = QuarterPlateWithHoleDomainConfig
 
 
 class QuarterPlateWithHoleDomain:
     def __init__(
         self,
-        config: Config,
+        config: QuarterPlateWithHoleDomainConfig,
         save_mesh: bool,
         output_subdir: str,
         project_directory: ProjectDirectory,
@@ -128,7 +126,7 @@ class QuarterPlateWithHoleDomain:
     def _generate_gmesh(self) -> GMesh:
         length = self.config.edge_length
         radius = self.config.radius
-        resolution = self.config.mesh_resolution
+        element_size = self.config.element_size
         geometry_kernel = gmsh.model.occ
         solid_marker = 1
 
@@ -152,14 +150,14 @@ class QuarterPlateWithHoleDomain:
             tag_solid_surface()
 
         def configure_mesh() -> None:
-            gmsh.option.setNumber("Mesh.CharacteristicLengthMin", resolution)
-            gmsh.option.setNumber("Mesh.CharacteristicLengthMax", resolution)
+            gmsh.option.setNumber("Mesh.CharacteristicLengthMin", element_size)
+            gmsh.option.setNumber("Mesh.CharacteristicLengthMax", element_size)
             # gmsh.model.mesh.setSizeCallback(mesh_size_callback)
 
         # def mesh_size_callback(
         #     dim: int, tag: int, x: float, y: float, z: float, lc: float
         # ) -> float:
-        #     return resolution
+        #     return element_size
 
         def generate_mesh() -> None:
             geometry_kernel.synchronize()

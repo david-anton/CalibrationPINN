@@ -38,16 +38,13 @@ class PlateWithHoleDomainConfig:
     traction_right_y: float
     element_family: str
     element_degree: int
-    mesh_resolution: float
-
-
-Config: TypeAlias = PlateWithHoleDomainConfig
+    element_size: float
 
 
 class PlateWithHoleDomain:
     def __init__(
         self,
-        config: Config,
+        config: PlateWithHoleDomainConfig,
         save_mesh: bool,
         output_subdir: str,
         project_directory: ProjectDirectory,
@@ -119,7 +116,7 @@ class PlateWithHoleDomain:
         length = self.config.plate_length
         height = self.config.plate_height
         radius = self.config.hole_radius
-        resolution = self.config.mesh_resolution
+        element_size = self.config.element_size
         geometry_kernel = gmsh.model.occ
         solid_marker = 1
 
@@ -143,12 +140,14 @@ class PlateWithHoleDomain:
             tag_solid_surface()
 
         def configure_mesh() -> None:
-            gmsh.model.mesh.setSizeCallback(mesh_size_callback)
+            gmsh.option.setNumber("Mesh.CharacteristicLengthMin", element_size)
+            gmsh.option.setNumber("Mesh.CharacteristicLengthMax", element_size)
+            # gmsh.model.mesh.setSizeCallback(mesh_size_callback)
 
-        def mesh_size_callback(
-            dim: int, tag: int, x: float, y: float, z: float, lc: float
-        ) -> float:
-            return resolution
+        # def mesh_size_callback(
+        #     dim: int, tag: int, x: float, y: float, z: float, lc: float
+        # ) -> float:
+        #     return element_size
 
         def generate_mesh() -> None:
             geometry_kernel.synchronize()
