@@ -152,12 +152,14 @@ class QuarterPlateWithHoleDomain:
             tag_solid_surface()
 
         def configure_mesh() -> None:
-            gmsh.model.mesh.setSizeCallback(mesh_size_callback)
+            gmsh.option.setNumber("Mesh.CharacteristicLengthMin", resolution)
+            gmsh.option.setNumber("Mesh.CharacteristicLengthMax", resolution)
+            # gmsh.model.mesh.setSizeCallback(mesh_size_callback)
 
-        def mesh_size_callback(
-            dim: int, tag: int, x: float, y: float, z: float, lc: float
-        ) -> float:
-            return resolution
+        # def mesh_size_callback(
+        #     dim: int, tag: int, x: float, y: float, z: float, lc: float
+        # ) -> float:
+        #     return resolution
 
         def generate_mesh() -> None:
             geometry_kernel.synchronize()

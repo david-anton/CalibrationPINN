@@ -24,7 +24,9 @@ from parametricpinn.types import Device, Module, NPArray, PLTAxes, PLTFigure
 ProblemConfigLists: TypeAlias = Union[
     list[LinearElasticityProblemConfig], list[NeoHookeanProblemConfig]
 ]
-DomainConfigs: TypeAlias = Union[QuarterPlateWithHoleDomainConfig, PlateWithHoleDomainConfig]
+DomainConfigs: TypeAlias = Union[
+    QuarterPlateWithHoleDomainConfig, PlateWithHoleDomainConfig
+]
 
 
 class DisplacementsPlotterConfig2D:
@@ -522,9 +524,13 @@ def _plot_once(
     return figure
 
 
-def _add_geometry_specific_patches(axes: PLTAxes, simulation_config: SimulationConfig) -> None:
-    def add_quarter_hole(axes: PLTAxes, domain_config: QuarterPlateWithHoleDomainConfig):
-        radius=domain_config.radius
+def _add_geometry_specific_patches(
+    axes: PLTAxes, simulation_config: SimulationConfig
+) -> None:
+    def add_quarter_hole(
+        axes: PLTAxes, domain_config: QuarterPlateWithHoleDomainConfig
+    ):
+        radius = domain_config.radius
         hole = plt.Circle(
             (0.0, 0.0),
             radius=radius,
@@ -535,9 +541,9 @@ def _add_geometry_specific_patches(axes: PLTAxes, simulation_config: SimulationC
     def add_hole(axes: PLTAxes, domain_config: PlateWithHoleDomainConfig):
         length = domain_config.plate_length
         height = domain_config.plate_height
-        radius=domain_config.hole_radius
+        radius = domain_config.hole_radius
         hole = plt.Circle(
-            (length/2, height/2),
+            (length / 2, height / 2),
             radius=radius,
             color="white",
         )

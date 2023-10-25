@@ -1,6 +1,10 @@
 from datetime import date
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import torch
+from scipy import stats
 
 from parametricpinn.fem import (
     LinearElasticityProblemConfig,
@@ -15,6 +19,7 @@ from parametricpinn.fem.convergence import (
     calculate_relative_l2_error,
 )
 from parametricpinn.io import ProjectDirectory
+from parametricpinn.io.readerswriters import PandasDataWriter
 from parametricpinn.settings import Settings, set_default_dtype
 
 ### Configuration
@@ -31,7 +36,7 @@ poissons_ratio = 0.3
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
-fem_mesh_resolution_tests = [3.2, 1.6, 0.8, 0.4, 0.2, 0.1]
+fem_element_size_tests = [3.2, 1.6, 0.8] # [3.2, 1.6, 0.8, 0.4, 0.2, 0.1]
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdirectory = (
@@ -81,14 +86,109 @@ def calculate_approximate_solution(mesh_resolution) -> DFunction:
     return results.function
 
 
-u_exact = calculate_approximate_solution(fem_mesh_resolution_tests[-1])
+u_exact = calculate_approximate_solution(fem_element_size_tests[-1])
 
-for i in range(0, len(fem_mesh_resolution_tests)):
-    u_approx = calculate_approximate_solution(fem_mesh_resolution_tests[i])
-    l2_error = calculate_l2_error(u_approx, u_exact)
-    relative_l2_error = calculate_relative_l2_error(u_approx, u_exact)
-    infinity_error = calculate_infinity_error(u_approx, u_exact)
-    mesh_resolution = fem_mesh_resolution_tests[i]
-    print(
-        f"Mesh resolution: {mesh_resolution}: \t L2 error: {l2_error:.4} \t rel. L2 error: {relative_l2_error:.4} \t infinity error: {infinity_error:.4}"
-    )
+element_size_record: list[float] = []
+l2_error_record: list[float] = []
+relative_l2_error_record: list[float] = []
+inifinity_error_record: list[float] = []
+num_dofs_record: list[int] = []
+num_elements_record: list[int] = []
+
+
+print("Start convergence analysis")
+for element_size in fem_element_size_tests:
+    u_approx = calculate_approximate_solution(element_size)
+    l2_error = calculate_l2_error(u_approx, u_exact).item()
+    relative_l2_error = calculate_relative_l2_error(u_approx, u_exact).item()
+    infinity_error = calculate_infinity_error(u_approx, u_exact).item()
+    num_elements = u_approx.function_space.mesh.topology.index_map(2).size_global
+    num_dofs = u_approx.function_space.tabulate_dof_coordinates().size
+    element_size_record.append(element_size)
+    l2_error_record.append(l2_error)
+    relative_l2_error_record.append(relative_l2_error)
+    inifinity_error_record.append(infinity_error)
+    num_elements_record.append(num_elements)
+    num_dofs_record.append(num_dofs)
+
+# Save results
+results_frame = pd.DataFrame(
+    {
+        "element_size": element_size_record,
+        "l2 error": l2_error_record,
+        "relative l2 error": relative_l2_error_record,
+        "infinity error": inifinity_error_record,
+        "number elements": num_elements_record,
+        "number dofs": num_dofs_record,
+    }
+)
+pandas_data_writer = PandasDataWriter(project_directory)
+pandas_data_writer.write(
+    data=results_frame,
+    file_name="results",
+    subdir_name=output_subdirectory,
+    header=True,
+)
+
+############################################################
+print("Preprocessing")
+
+
+# Plot log l2 error
+figure, axes = plt.subplots()
+log_element_size = np.log(np.array(element_size_record))
+log_l2_error = np.log(np.array(l2_error_record))
+
+slope, intercept, _, _, _ = stats.linregress(log_element_size, log_l2_error)
+regression_log_element_size = log_element_size
+regression_log_l2_error = slope * regression_log_element_size + intercept
+
+axes.plot(log_element_size, log_l2_error, "ob", label="simulation")
+axes.plot(
+    regression_log_element_size, regression_log_l2_error, "--r", label="regression"
+)
+axes.set_xlabel("log element size")
+axes.set_ylabel("log l2 error")
+axes.set_title("Convergence")
+axes.legend(loc="best")
+axes.text(
+    log_element_size[2],
+    log_l2_error[-1],
+    f"convergence rate: {slope}",
+    style="italic",
+    bbox={"facecolor": "red", "alpha": 0.5, "pad": 10},
+)
+file_name = f"convergence_log_l2_error.png"
+output_path = project_directory.create_output_file_path(file_name, output_subdirectory)
+figure.savefig(output_path, bbox_inches="tight", dpi=256)
+plt.clf()
+
+
+# Plot log infinity error
+figure, axes = plt.subplots()
+log_element_size = np.log(np.array(element_size_record))
+log_infinity_error = np.log(np.array(inifinity_error_record))
+
+slope, intercept, _, _, _ = stats.linregress(log_element_size, log_infinity_error)
+regression_log_element_size = log_element_size
+regression_log_infinity_error = slope * regression_log_element_size + intercept
+
+axes.plot(log_element_size, log_infinity_error, "ob", label="simulation")
+axes.plot(
+    regression_log_element_size, regression_log_l2_error, "--r", label="regression"
+)
+axes.set_xlabel("log element size")
+axes.set_ylabel("log infinity error")
+axes.legend(loc="best")
+axes.text(
+    log_element_size[2],
+    log_infinity_error[-1],
+    f"convergence rate: {slope}",
+    style="italic",
+    bbox={"facecolor": "red", "alpha": 0.5, "pad": 10},
+)
+axes.set_title("Convergence")
+file_name = f"convergence_log_infinity_error.png"
+output_path = project_directory.create_output_file_path(file_name, output_subdirectory)
+figure.savefig(output_path, bbox_inches="tight", dpi=256)
+plt.clf()
