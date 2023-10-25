@@ -74,7 +74,7 @@ max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Ansatz
-distance_function = "normalized linear"
+distance_function = "sigmoid"
 # Training
 num_samples_per_parameter = 32
 num_collocation_points = 64
@@ -103,7 +103,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_E_180k_240k_nu_02_04_samples_32_col_64_bc_32_neurons_4_32"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_E_180k_240k_nu_02_04_samples_32_col_64_bc_32_neurons_4_32_sigmoid"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
