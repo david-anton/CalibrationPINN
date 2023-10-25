@@ -93,12 +93,18 @@ def create_bayesian_hbc_ansatz_quarter_plate_with_hole(
 def _create_distance_functions(
     distance_func_type: str, range_coordinates: Tensor
 ) -> tuple[DistanceFunction, DistanceFunction]:
-    range_coordinates_x = torch.unsqueeze(range_coordinates[0], dim=0)
-    range_coordinates_y = torch.unsqueeze(range_coordinates[1], dim=0)
-    distance_function_x = distance_function_factory(
-        distance_func_type, range_coordinates_x
+    range_coordinate_x = torch.unsqueeze(range_coordinates[0], dim=0)
+    range_coordinate_y = torch.unsqueeze(range_coordinates[1], dim=0)
+    distance_func_x = _create_distance_one_function(
+        distance_func_type, range_coordinate_x
     )
-    distance_function_y = distance_function_factory(
-        distance_func_type, range_coordinates_y
+    distance_func_y = _create_distance_one_function(
+        distance_func_type, range_coordinate_y
     )
-    return distance_function_x, distance_function_y
+    return distance_func_x, distance_func_y
+
+
+def _create_distance_one_function(
+    distance_func_type: str, range_coordinate: Tensor
+) -> DistanceFunction:
+    return distance_function_factory(distance_func_type, range_coordinate)

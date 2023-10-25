@@ -54,6 +54,8 @@ min_poissons_ratio = 0.3
 max_poissons_ratio = 0.3
 # Network
 layer_sizes = [4, 16, 16, 16, 16, 2]
+# Ansatz
+distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 1
 num_collocation_points = 8192
@@ -240,6 +242,7 @@ def create_ansatz() -> StandardAnsatz:
         min_outputs=normalization_values["min_outputs"],
         max_outputs=normalization_values["max_outputs"],
         network=network,
+        distance_function_type=distance_function
     ).to(device)
 
 

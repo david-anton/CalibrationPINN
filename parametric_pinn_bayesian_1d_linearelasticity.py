@@ -42,6 +42,8 @@ displacement_left = 0.0
 layer_sizes = [2, 8, 8, 1]
 std_weight = 1.0
 std_bias = 1.0
+# Ansatz
+distance_function = "normalized linear"
 # Training
 num_samples_train = 128
 num_points_pde = 128
@@ -110,6 +112,7 @@ def create_ansatz() -> BayesianAnsatz:
         min_outputs=normalization_values["min_output"],
         max_outputs=normalization_values["max_output"],
         network=network,
+        distance_function_type=distance_function
     ).to(device)
 
 

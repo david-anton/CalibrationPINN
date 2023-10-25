@@ -1,5 +1,3 @@
-import torch
-
 from parametricpinn.ansatz.base import (
     BayesianAnsatz,
     BayesianNetworks,

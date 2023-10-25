@@ -19,7 +19,7 @@ def normalized_linear_distance_function_factory(
 
 def sigmoid_distance_function_factory() -> DistanceFunction:
     def distance_func(input_coor: Tensor) -> Tensor:
-        return (2 * torch.exp(input_coor) / torch.exp(input_coor) + 1) - 1
+        return ((2 * torch.exp(input_coor)) / (torch.exp(input_coor) + 1)) - 1
 
     return distance_func
 
@@ -27,7 +27,7 @@ def sigmoid_distance_function_factory() -> DistanceFunction:
 def distance_function_factory(
     type_str: str, range_coordinate: Tensor
 ) -> DistanceFunction:
-    if type_str == "normalized_linear":
+    if type_str == "normalized linear":
         return normalized_linear_distance_function_factory(range_coordinate)
     elif type_str == "sigmoid":
         return sigmoid_distance_function_factory()

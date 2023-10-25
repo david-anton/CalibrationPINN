@@ -58,6 +58,8 @@ max_youngs_modulus = 255000.0
 displacement_left = 0.0
 # Network
 layer_sizes = [2, 16, 16, 16, 16, 1]
+# Ansatz
+distance_function = "normalized linear"
 # Training
 num_samples_train = 128
 num_points_pde = 128
@@ -145,6 +147,7 @@ def create_ansatz() -> StandardAnsatz:
         min_outputs=normalization_values["min_output"],
         max_outputs=normalization_values["max_output"],
         network=network,
+        distance_function_type=distance_function
     ).to(device)
 
 

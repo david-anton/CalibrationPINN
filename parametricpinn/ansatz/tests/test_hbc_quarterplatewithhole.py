@@ -28,6 +28,7 @@ class FakeNetworkSingleInput(FFNN):
 displacement_x_right = torch.tensor([0.0])
 displacement_y_bottom = torch.tensor([0.0])
 range_coordinates = torch.tensor([1.0, 1.0])
+distance_function_type = "normalized linear"
 
 
 @pytest.fixture
@@ -38,6 +39,7 @@ def sut() -> StandardAnsatz:
         displacement_y_bottom=displacement_y_bottom,
         range_coordinates=range_coordinates,
         network=network,
+        distance_function_type=distance_function_type,
     )
 
 
@@ -82,6 +84,7 @@ def sut_single_input() -> StandardAnsatz:
         displacement_y_bottom=displacement_y_bottom,
         range_coordinates=range_coordinates,
         network=network,
+        distance_function_type=distance_function_type,
     )
 
 

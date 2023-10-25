@@ -13,6 +13,7 @@ min_inputs = torch.tensor([0.0, 0.0, 0.0, 0.0])
 max_inputs = torch.tensor([2.0, 2.0, 0.0, 0.0])
 min_outputs = torch.tensor([0.0, 0.0])
 max_outputs = torch.tensor([10.0, 10.0])
+distance_function_type = "normalized linear"
 
 
 class FakeNetwork(FFNN):
@@ -41,6 +42,7 @@ def sut() -> StandardAnsatz:
         min_outputs=min_outputs,
         max_outputs=max_outputs,
         network=network,
+        distance_function_type=distance_function_type,
     )
 
 
@@ -87,6 +89,7 @@ def sut_single_input() -> StandardAnsatz:
         min_outputs=min_outputs,
         max_outputs=max_outputs,
         network=network,
+        distance_function_type=distance_function_type,
     )
 
 
