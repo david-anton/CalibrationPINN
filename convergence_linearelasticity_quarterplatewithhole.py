@@ -36,7 +36,7 @@ poissons_ratio = 0.3
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
-fem_element_size_tests = [3.2, 1.6, 0.8, 0.4] # [3.2, 1.6, 0.8, 0.4, 0.2, 0.1]
+fem_element_size_tests = [3.2, 1.6, 0.8, 0.4, 0.2, 0.1]
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdirectory = (
@@ -136,8 +136,8 @@ print("Preprocessing")
 
 # Plot log l2 error
 figure, axes = plt.subplots()
-log_element_size = np.log10(np.array(element_size_record))
-log_l2_error = np.log10(np.array(l2_error_record))
+log_element_size = np.log(np.array(element_size_record))
+log_l2_error = np.log(np.array(l2_error_record))
 
 slope, intercept, _, _, _ = stats.linregress(log_element_size, log_l2_error)
 regression_log_element_size = log_element_size
@@ -153,7 +153,7 @@ axes.set_title("Convergence")
 axes.legend(loc="best")
 axes.text(
     log_element_size[2],
-    log_l2_error[-2],
+    log_l2_error[-1],
     f"convergence rate: {slope:.6}",
     style="italic",
     bbox={"facecolor": "red", "alpha": 0.5, "pad": 10},
@@ -166,8 +166,8 @@ plt.clf()
 
 # Plot log infinity error
 figure, axes = plt.subplots()
-log_element_size = np.log10(np.array(element_size_record))
-log_infinity_error = np.log10(np.array(inifinity_error_record))
+log_element_size = np.log(np.array(element_size_record))
+log_infinity_error = np.log(np.array(inifinity_error_record))
 
 slope, intercept, _, _, _ = stats.linregress(log_element_size, log_infinity_error)
 regression_log_element_size = log_element_size
@@ -182,7 +182,7 @@ axes.set_ylabel("log infinity error")
 axes.legend(loc="best")
 axes.text(
     log_element_size[2],
-    log_infinity_error[-2],
+    log_infinity_error[-1],
     f"convergence rate: {slope:.6}",
     style="italic",
     bbox={"facecolor": "red", "alpha": 0.5, "pad": 10},
