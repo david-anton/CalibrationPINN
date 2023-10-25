@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=gpu_irmb
 #SBATCH --nodes=1
-#SBATCH --time=96:00:00
+#SBATCH --time=336:00:00
 #SBATCH --job-name=PPINN2D
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:ampere:1

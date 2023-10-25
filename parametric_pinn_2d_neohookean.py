@@ -58,7 +58,7 @@ from parametricpinn.training.training_standard_neohookean_quarterplatewithhole i
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 edge_length = 100.0
 radius = 10.0
@@ -73,7 +73,7 @@ max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Ansatz
-distance_function = "normalized linear"
+distance_function = "sigmoid"
 # Training
 num_samples_per_parameter = 32
 num_collocation_points = 64
@@ -84,8 +84,8 @@ weight_pde_loss = 1.0
 weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = "20231021_validation_data_neohookean_E_1000_3000_nu_02_04_edge_100_radius_10_traction_100"
+regenerate_valid_data = True
+input_subdir_valid = "20231025_validation_data_neohookean_E_1000_3000_nu_02_04_edge_100_radius_10_traction_100_elementsize_01"
 num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
@@ -98,11 +98,11 @@ use_efficient_nuts = True
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
-fem_element_size = 0.5
+fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = 20231016
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_64_bc_32_neurons_4_32"
+output_date = current_date
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_64_bc_32_neurons_4_32_sigmoid"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
