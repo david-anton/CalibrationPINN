@@ -75,3 +75,8 @@ class FEMProblemConfigError(Error):
 class PlottingConfigError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
+
+
+class DistanceFunctionConfigError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)

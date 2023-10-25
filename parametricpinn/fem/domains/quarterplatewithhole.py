@@ -40,7 +40,6 @@ class QuarterPlateWithHoleDomainConfig:
     element_size: float
 
 
-
 class QuarterPlateWithHoleDomain:
     def __init__(
         self,
