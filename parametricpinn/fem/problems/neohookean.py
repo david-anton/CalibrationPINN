@@ -68,7 +68,7 @@ class NeoHookeanProblem:
         solver.convergence_criterion = "incremental"
 
         solver.report = True
-        dolfinx.log.set_log_level(dolfinx.log.LogLevel.INFO)
+        dolfinx.log.set_log_level(dolfinx.log.LogLevel.WARNING)
 
         num_iterations, converged = solver.solve(self._solution_function)
         assert converged

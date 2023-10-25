@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Callable, TypeAlias
 
+import dolfinx
 import numpy as np
 import pandas as pd
 import ufl
@@ -57,6 +58,7 @@ class LinearElasticityProblem:
         self._problem = self._define()
 
     def solve(self) -> DFunction:
+        dolfinx.log.set_log_level(dolfinx.log.LogLevel.WARNING)
         solution_function = self._problem.solve()
         return solution_function
 
