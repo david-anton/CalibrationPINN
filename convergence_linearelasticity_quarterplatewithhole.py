@@ -36,7 +36,8 @@ poissons_ratio = 0.3
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
-fem_element_size_tests = [3.2, 1.6, 0.8, 0.4, 0.2, 0.1]
+fem_element_size_reference = 0.1
+fem_element_size_tests = [3.2, 1.6, 0.8, 0.4, 0.2]
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdirectory = (
@@ -86,7 +87,7 @@ def calculate_approximate_solution(element_size) -> DFunction:
     return results.function
 
 
-u_exact = calculate_approximate_solution(fem_element_size_tests[-1])
+u_exact = calculate_approximate_solution(fem_element_size_reference)
 
 element_size_record: list[float] = []
 l2_error_record: list[float] = []
