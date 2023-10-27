@@ -130,7 +130,7 @@ pandas_data_writer.write(
 )
 
 ############################################################
-print("Preprocessing")
+print("Postprocessing")
 
 
 # Plot log l2 error

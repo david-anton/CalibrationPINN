@@ -87,7 +87,7 @@ def calculate_approximate_solution(element_size) -> DFunction:
     return results.function
 
 
-u_exact = calculate_approximate_solution(fem_element_size_reference)
+u_exact = calculate_approximate_solution(fem_element_size_reference).sub(0)
 
 element_size_record: list[float] = []
 l2_error_record: list[float] = []
@@ -99,7 +99,7 @@ num_elements_record: list[int] = []
 
 print("Start convergence analysis")
 for element_size in fem_element_size_tests:
-    u_approx = calculate_approximate_solution(element_size)
+    u_approx = calculate_approximate_solution(element_size).sub(0)
     l2_error = calculate_l2_error(u_approx, u_exact).item()
     relative_l2_error = calculate_relative_l2_error(u_approx, u_exact).item()
     infinity_error = calculate_infinity_error(u_approx, u_exact).item()
@@ -132,7 +132,7 @@ pandas_data_writer.write(
 )
 
 ############################################################
-print("Preprocessing")
+print("Postprocessing")
 
 
 # Plot log l2 error
