@@ -21,7 +21,8 @@ UExact: TypeAlias = Union[DFunction, UFLExpression, Callable[[NPArray], NPArray]
 
 element_family = "Lagrange"
 element_degree = 1
-num_elements_tests = [4, 8, 16, 32, 64, 128, 256]
+num_elements_reference = 128
+num_elements_tests = [4, 8, 16, 32, 64]
 degree_raise = 3
 
 
@@ -57,7 +58,7 @@ def solve_poisson(num_elements=10, degree=1):
     return default_problem.solve()
 
 
-u_exact = solve_poisson(num_elements=num_elements_tests[-1], degree=1)
+u_exact = solve_poisson(num_elements=num_elements_reference, degree=1)
 
 
 for i in range(0, len(num_elements_tests)):
