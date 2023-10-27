@@ -395,7 +395,7 @@ if __name__ == "__main__":
         max_inputs=normalization_values["max_inputs"],
         min_outputs=normalization_values["min_outputs"],
         max_outputs=normalization_values["max_outputs"],
-        distance_function_type=distance_function
+        distance_function_type=distance_function,
     ).to(device)
 
     optimizer = torch.optim.LBFGS(

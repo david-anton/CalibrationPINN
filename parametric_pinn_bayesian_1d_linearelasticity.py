@@ -112,7 +112,7 @@ def create_ansatz() -> BayesianAnsatz:
         min_outputs=normalization_values["min_output"],
         max_outputs=normalization_values["max_output"],
         network=network,
-        distance_function_type=distance_function
+        distance_function_type=distance_function,
     ).to(device)
 
 

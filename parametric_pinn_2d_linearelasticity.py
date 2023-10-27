@@ -264,7 +264,7 @@ def create_ansatz() -> StandardAnsatz:
         min_outputs=normalization_values["min_outputs"],
         max_outputs=normalization_values["max_outputs"],
         network=network,
-        distance_function_type=distance_function
+        distance_function_type=distance_function,
     ).to(device)
 
 

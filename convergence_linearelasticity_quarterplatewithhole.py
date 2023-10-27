@@ -141,13 +141,10 @@ log_element_size = np.log(np.array(element_size_record))
 log_l2_error = np.log(np.array(l2_error_record))
 
 slope, intercept, _, _, _ = stats.linregress(log_element_size, log_l2_error)
-regression_log_element_size = log_element_size
-regression_log_l2_error = slope * regression_log_element_size + intercept
+regression_log_l2_error = slope * log_element_size + intercept
 
 axes.plot(log_element_size, log_l2_error, "ob", label="simulation")
-axes.plot(
-    regression_log_element_size, regression_log_l2_error, "--r", label="regression"
-)
+axes.plot(log_element_size, regression_log_l2_error, "--r", label="regression")
 axes.set_xlabel("log element size")
 axes.set_ylabel("log l2 error")
 axes.set_title("Convergence")
@@ -171,13 +168,10 @@ log_element_size = np.log(np.array(element_size_record))
 log_infinity_error = np.log(np.array(inifinity_error_record))
 
 slope, intercept, _, _, _ = stats.linregress(log_element_size, log_infinity_error)
-regression_log_element_size = log_element_size
-regression_log_infinity_error = slope * regression_log_element_size + intercept
+regression_log_infinity_error = slope * log_element_size + intercept
 
 axes.plot(log_element_size, log_infinity_error, "ob", label="simulation")
-axes.plot(
-    regression_log_element_size, regression_log_l2_error, "--r", label="regression"
-)
+axes.plot(log_element_size, regression_log_infinity_error, "--r", label="regression")
 axes.set_xlabel("log element size")
 axes.set_ylabel("log infinity error")
 axes.legend(loc="best")
