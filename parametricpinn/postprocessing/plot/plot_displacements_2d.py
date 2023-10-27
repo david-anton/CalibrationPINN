@@ -501,14 +501,6 @@ def _plot_once(
         cbar.ax.minorticks_off()
         figure.axes[1].tick_params(labelsize=plot_config.font_size)
 
-    # def _add_hole(axes: PLTAxes) -> None:
-    #     hole = plt.Circle(
-    #         (0.0, 0.0),
-    #         radius=simulation_config.domain_config.radius,
-    #         color="white",
-    #     )
-    #     axes.add_patch(hole)
-
     _set_title_and_labels(axes)
     _configure_ticks(axes)
     results_cut = _cut_result_grid(results)
@@ -561,7 +553,8 @@ def _add_geometry_specific_patches(
 
 
 def _cut_result_grid(result_grid: NPArray) -> NPArray:
-    return result_grid[:-1, :-1]
+    # return result_grid[:-1, :-1]
+    return result_grid[1:, 1:]
 
 
 def _save_plot(
