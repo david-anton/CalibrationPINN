@@ -37,7 +37,7 @@ poissons_ratio = 0.3
 fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size_reference = 0.2
-fem_element_size_tests = [3.2, 1.6, 0.8]
+fem_element_size_tests = [6.4, 3.2, 1.6]
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdirectory = (
@@ -87,7 +87,7 @@ def calculate_approximate_solution(element_size) -> DFunction:
     return results.function
 
 
-u_exact = calculate_approximate_solution(fem_element_size_reference).sub(0)
+u_exact = calculate_approximate_solution(fem_element_size_reference)
 
 element_size_record: list[float] = []
 l2_error_record: list[float] = []
@@ -99,7 +99,7 @@ num_elements_record: list[int] = []
 
 print("Start convergence analysis")
 for element_size in fem_element_size_tests:
-    u_approx = calculate_approximate_solution(element_size).sub(0)
+    u_approx = calculate_approximate_solution(element_size)
     l2_error = calculate_l2_error(u_approx, u_exact).item()
     relative_l2_error = calculate_relative_l2_error(u_approx, u_exact).item()
     infinity_error = calculate_infinity_error(u_approx, u_exact).item()
