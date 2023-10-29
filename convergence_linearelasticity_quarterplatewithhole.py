@@ -36,8 +36,10 @@ poissons_ratio = 0.3
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
-fem_element_size_reference = 0.2
-fem_element_size_tests = [6.4, 3.2, 1.6]
+# fem_element_size_reference = 0.2
+# fem_element_size_tests = [6.4, 3.2, 1.6]
+fem_element_size_reference = 128
+fem_element_size_tests = [2, 4, 8]
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdirectory = (
@@ -79,9 +81,9 @@ def calculate_approximate_solution(element_size) -> DFunction:
     )
     results = run_simulation(
         simulation_config=simulation_config,
-        save_results=False,
-        save_metadata=False,
-        output_subdir=output_subdirectory,
+        save_results=True,
+        save_metadata=True,
+        output_subdir=f"output_subdirectory_{element_size}",
         project_directory=project_directory,
     )
     return results.function
@@ -105,7 +107,7 @@ for element_size in fem_element_size_tests:
     infinity_error = calculate_infinity_error(u_approx, u_exact).item()
     num_elements = u_approx.function_space.mesh.topology.index_map(2).size_global
     num_dofs = u_approx.function_space.tabulate_dof_coordinates().size
-    element_size_record.append(element_size)
+    element_size_record.append(edge_length / element_size)
     l2_error_record.append(l2_error)
     relative_l2_error_record.append(relative_l2_error)
     inifinity_error_record.append(infinity_error)

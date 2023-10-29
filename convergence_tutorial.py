@@ -40,9 +40,7 @@ num_elements_tests = [4, 8, 16, 32, 64]
 degree_raise = 3
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdirectory = (
-    f"{current_date}_convergence_study_laplace_tutorial"
-)
+output_subdirectory = f"{current_date}_convergence_study_laplace_tutorial"
 
 
 def u_ex(mod):
@@ -95,7 +93,7 @@ for num_elements in num_elements_tests:
     infinity_error = calculate_infinity_error(u_approx, u_exact).item()
     num_total_elements = u_approx.function_space.mesh.topology.index_map(2).size_global
     num_dofs = u_approx.function_space.tabulate_dof_coordinates().size
-    element_size_record.append(1/num_elements)
+    element_size_record.append(1 / num_elements)
     l2_error_record.append(l2_error)
     relative_l2_error_record.append(relative_l2_error)
     inifinity_error_record.append(infinity_error)
