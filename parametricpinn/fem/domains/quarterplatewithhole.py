@@ -4,10 +4,8 @@ from typing import TypeAlias
 import gmsh
 import numpy as np
 from dolfinx import default_scalar_type
-from dolfinx.cpp.mesh import CellType
 from dolfinx.fem import Constant
-from dolfinx.mesh import create_rectangle, meshtags
-from mpi4py import MPI
+from dolfinx.mesh import meshtags
 
 from parametricpinn.fem.base import (
     DFunctionSpace,
@@ -116,21 +114,13 @@ class QuarterPlateWithHoleDomain:
         save_to_input_dir: bool,
     ) -> DMesh:
         print("Generate FEM mesh ...")
-        # gmsh.initialize()
-        # gmesh = self._generate_gmesh()
-        # if save_mesh:
-        #     save_gmesh(output_subdir, save_to_input_dir, project_directory)
-        # mesh = load_mesh_from_gmsh_model(gmesh, self._geometric_dim)
-        # gmsh.finalize()
-        mesh = create_rectangle(
-            comm=MPI.COMM_WORLD,
-            points=[
-                np.array([-self.config.edge_length, 0.0]),
-                np.array([0.0, self.config.edge_length]),
-            ],
-            n=[self.config.element_size, self.config.element_size],
-            cell_type=CellType.quadrilateral,
-        )
+        gmsh.initialize()
+        gmesh = self._generate_gmesh()
+        if save_mesh:
+            save_gmesh(output_subdir, save_to_input_dir, project_directory)
+        mesh = load_mesh_from_gmsh_model(gmesh, self._geometric_dim)
+        gmsh.finalize()
+
         return mesh
 
     def _generate_gmesh(self) -> GMesh:
@@ -182,10 +172,7 @@ class QuarterPlateWithHoleDomain:
 
     def _tag_boundaries(self) -> DMeshTags:
         locate_right_facet = lambda x: np.isclose(x[0], 0.0)
-        # locate_bottom_facet = lambda x: np.isclose(x[1], 0.0)
-        locate_bottom_facet = lambda x: np.logical_and(
-            np.isclose(x[1], 0.0), x[0] < 0.0
-        )
+        locate_bottom_facet = lambda x: np.isclose(x[1], 0.0)
         locate_left_facet = lambda x: np.logical_and(
             np.isclose(x[0], -self.config.edge_length), x[1] > 0.0
         )
