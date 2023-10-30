@@ -120,7 +120,6 @@ class QuarterPlateWithHoleDomain:
             save_gmesh(output_subdir, save_to_input_dir, project_directory)
         mesh = load_mesh_from_gmsh_model(gmesh, self._geometric_dim)
         gmsh.finalize()
-
         return mesh
 
     def _generate_gmesh(self) -> GMesh:
