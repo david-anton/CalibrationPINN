@@ -3,7 +3,6 @@ from typing import TypeAlias, Union
 
 from dolfinx import default_scalar_type
 from dolfinx.fem import Constant, FunctionSpace, functionspace
-from ufl import VectorElement
 
 from parametricpinn.fem.base import (
     DFunction,

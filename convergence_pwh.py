@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Callable, TypeAlias, Union
 
+import dolfinx
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
@@ -10,9 +11,13 @@ import ufl
 from dolfinx import default_scalar_type
 from dolfinx.fem import Constant, dirichletbc, functionspace, locate_dofs_topological
 from dolfinx.fem.petsc import LinearProblem
+from dolfinx.io import XDMFFile
 from dolfinx.mesh import create_rectangle, locate_entities_boundary, meshtags
+from matplotlib.colors import BoundaryNorm
+from matplotlib.ticker import MaxNLocator
 from mpi4py import MPI
 from scipy import stats
+from scipy.interpolate import griddata
 
 from parametricpinn.fem.base import (
     DFunction,
@@ -55,13 +60,20 @@ volume_force_x = 0.0
 volume_force_y = 0.0
 traction_left_x = -100.0
 traction_left_y = 0.0
-is_symmetry_bc = True
+is_symmetry_bc = False
 # FEM
 element_family = "Lagrange"
 element_degree = 1
-num_elements_reference = 256
-num_elements_tests = [32, 64, 128]
+cell_type = dolfinx.mesh.CellType.triangle  # dolfinx.mesh.CellType.quadrilateral
+num_elements_reference = 128
+num_elements_tests = [1, 2, 4, 8, 16, 32, 64]
 degree_raise = 3
+# Plot
+color_map = "jet"
+num_points_per_edge = 256
+ticks_max_number_of_intervals = 255
+num_cbar_ticks = 7
+plot_font_size = 12
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdirectory = f"{current_date}_convergence_pwh"
@@ -77,7 +89,7 @@ def calculate_approximate_solution(num_elements):
         comm=communicator,
         points=[[-edge_length, 0.0], [0.0, edge_length]],
         n=[num_elements, num_elements],
-        # cell_type=dolfinx.mesh.CellType.quadrilateral
+        cell_type=cell_type,
     )
 
     # Function space
@@ -109,16 +121,17 @@ def calculate_approximate_solution(num_elements):
     tag_right = 0
     tag_left = 1
     tag_bottom = 2
+    tag_top = 3
     bc_facets_dim = mesh.topology.dim - 1
     locate_right_facet = lambda x: np.isclose(x[0], 0.0)
     locate_left_facet = lambda x: np.isclose(x[0], -edge_length)
-    locate_bottom_facet = lambda x: np.logical_and(
-        np.isclose(x[1], 0.0), np.logical_and(x[0] > -edge_length, x[0] < 0.0)
-    )
+    locate_bottom_facet = lambda x: np.isclose(x[1], 0.0)
+    locate_top_facet = lambda x: np.isclose(x[1], edge_length)
     boundaries = [
         (tag_right, locate_right_facet),
         (tag_left, locate_left_facet),
         (tag_bottom, locate_bottom_facet),
+        (tag_top, locate_top_facet),
     ]
     sorted_facet_indices, sorted_facet_tags = list_sorted_facet_indices_and_tags(
         boundaries=boundaries, mesh=mesh, bc_facets_dim=bc_facets_dim
@@ -136,7 +149,22 @@ def calculate_approximate_solution(num_elements):
     )
 
     ds = ufl.Measure("ds", domain=mesh, subdomain_data=boundary_tags)
-    dx = ufl.Measure("dx", domain=mesh)
+    dx = ufl.dx  # ufl.Measure("dx", domain=mesh)
+
+    # mu_ = youngs_modulus / (2 * (1 + poissons_ratio))
+    # lambda_ = (
+    #     youngs_modulus
+    #     * poissons_ratio
+    #     / ((1 + poissons_ratio) * (1 - 2 * poissons_ratio))
+    # )
+    # lambda_ = 2 * mu_ * lambda_ / (lambda_ + 2 * mu_)
+
+    # def sigma(u: UFLTrialFunction) -> UFLOperator:
+    #     # return lambda_*ufl.tr(epsilon(u))*ufl.Identity(2) + 2.0*mu_*epsilon(u)
+    #     return lambda_ * ufl.nabla_div(u) * ufl.Identity(len(u)) + 2 * mu_ * epsilon(u)
+
+    # def epsilon(u: UFLTrialFunction) -> UFLOperator:
+    #     return ufl.sym(ufl.grad(u))
 
     compliance_matrix = (1 / youngs_modulus) * ufl.as_matrix(
         [
@@ -161,7 +189,7 @@ def calculate_approximate_solution(num_elements):
     def epsilon(u: UFLTrialFunction) -> UFLOperator:
         return ufl.sym(ufl.grad(u))
 
-    lhs = ufl.inner(epsilon(test_function), sigma(trial_function)) * dx
+    lhs = ufl.inner(sigma(trial_function), epsilon(test_function)) * dx
     rhs = ufl.dot(test_function, volume_force) * dx
 
     # Boundary conditions application
@@ -171,6 +199,13 @@ def calculate_approximate_solution(num_elements):
     )
     bc_N_T_left = ufl.dot(T_left, test_function) * ds(tag_left)
     rhs = rhs + bc_N_T_left
+
+    # T_top = Constant(
+    #     mesh,
+    #     default_scalar_type((0.0, 0.0)),
+    # )
+    # bc_N_T_top = ufl.dot(T_top, test_function) * ds(tag_top)
+    # rhs = rhs + bc_N_T_top
 
     if is_symmetry_bc:
         displacement_right_x = 0.0
@@ -225,32 +260,147 @@ def calculate_approximate_solution(num_elements):
         petsc_options={"ksp_type": "preonly", "pc_type": "lu"},
     )
 
-    return problem.solve()
+    approximate_solution = problem.solve()
+
+    mesh.topology.create_connectivity(mesh.topology.dim - 1, mesh.topology.dim)
+    file_name = f"facet_tags_{num_elements}.xdmf"
+    output_path = project_directory.create_output_file_path(
+        file_name, output_subdirectory
+    )
+    with XDMFFile(
+        mesh.comm, output_path, "w", encoding=XDMFFile.Encoding.ASCII
+    ) as xdmf:
+        xdmf.write_mesh(mesh)
+        xdmf.write_meshtags(boundary_tags, mesh.geometry)
+        xdmf.write_function(approximate_solution)
+    return approximate_solution
 
 
 def plot_solution(function: DFunction, num_elements: int) -> None:
+    def generate_coordinate_grid(num_points_per_edge: int) -> list[NPArray]:
+        grid_coordinates_x = np.linspace(
+            -edge_length,
+            0.0,
+            num=num_points_per_edge,
+        )
+        grid_coordinates_y = np.linspace(
+            0.0,
+            edge_length,
+            num=num_points_per_edge,
+        )
+        return np.meshgrid(grid_coordinates_x, grid_coordinates_y)
+
+    def interpolate_results_on_grid(
+        results: NPArray,
+        coordinates_x: NPArray,
+        coordinates_y: NPArray,
+        coordinates_grid_x: NPArray,
+        coordinates_grid_y: NPArray,
+    ) -> NPArray:
+        results = results.reshape((-1,))
+        coordinates = np.concatenate((coordinates_x, coordinates_y), axis=1)
+        return griddata(
+            coordinates,
+            results,
+            (coordinates_grid_x, coordinates_grid_y),
+            method="cubic",
+        )
+
+    def cut_result_grid(result_grid: NPArray) -> NPArray:
+        return result_grid[1:, 1:]
+
+    # Extract FEM results
     coordinates = function.function_space.tabulate_dof_coordinates()
-    coordinates_x = coordinates[:, 0]#.reshape((-1, 1))
-    coordinates_y = coordinates[:, 1]#.reshape((-1, 1))
+    coordinates_x = coordinates[:, 0].reshape((-1, 1))
+    coordinates_y = coordinates[:, 1].reshape((-1, 1))
 
     displacements = function.x.array.reshape(
         (-1, function.function_space.mesh.geometry.dim)
     )
-    displacements_x = displacements[:, 0]#.reshape((-1, 1))
-    displacements_y = displacements[:, 1]#.reshape((-1, 1))
+    displacements_x = displacements[:, 0].reshape((-1, 1))
+    displacements_y = displacements[:, 1].reshape((-1, 1))
 
+    # Interpolate results on grid
+    coordinates_grid_x, coordinates_grid_y = generate_coordinate_grid(
+        num_points_per_edge
+    )
+    displacements_grid_x = interpolate_results_on_grid(
+        displacements_x,
+        coordinates_x,
+        coordinates_y,
+        coordinates_grid_x,
+        coordinates_grid_y,
+    )
+    displacements_grid_y = interpolate_results_on_grid(
+        displacements_y,
+        coordinates_x,
+        coordinates_y,
+        coordinates_grid_x,
+        coordinates_grid_y,
+    )
+
+    # Plot interpolated results
+    results = displacements_grid_x
+    title = "Displacements x"
+    file_name = f"displacement_field_x_{num_elements}.png"
     figure, axes = plt.subplots()
-    axes.quiver(coordinates_x, coordinates_y, displacements_x, displacements_y)
+    axes.set_title(title)
     axes.set_xlabel("x [mm]")
     axes.set_ylabel("y [mm]")
-    axes.set_title("Displacement field")
-    file_name = f"displacement_field_{num_elements}.png"
-    output_path = project_directory.create_output_file_path(file_name, output_subdirectory)
+    min_value = np.nanmin(results)
+    max_value = np.nanmax(results)
+    tick_values = MaxNLocator(nbins=ticks_max_number_of_intervals).tick_values(
+        min_value, max_value
+    )
+    normalizer = BoundaryNorm(tick_values, ncolors=plt.get_cmap(color_map).N, clip=True)
+    plot = axes.pcolormesh(
+        coordinates_grid_x, coordinates_grid_y, results, cmap=color_map, norm=normalizer
+    )
+    cbar_ticks = (
+        np.linspace(min_value, max_value, num=num_cbar_ticks, endpoint=True)
+        .round(decimals=4)
+        .tolist()
+    )
+    cbar = figure.colorbar(mappable=plot, ax=axes, ticks=cbar_ticks)
+    cbar.ax.set_yticklabels(map(str, cbar_ticks))
+    cbar.ax.minorticks_off()
+    figure.axes[1].tick_params(labelsize=plot_font_size)
+    output_path = project_directory.create_output_file_path(
+        file_name, output_subdirectory
+    )
     figure.savefig(output_path, bbox_inches="tight", dpi=256)
     plt.clf()
 
-
-
+    results = displacements_grid_y
+    title = "Displacements y"
+    file_name = f"displacement_field_y_{num_elements}.png"
+    figure, axes = plt.subplots()
+    axes.set_title(title)
+    axes.set_xlabel("x [mm]")
+    axes.set_ylabel("y [mm]")
+    min_value = np.nanmin(results)
+    max_value = np.nanmax(results)
+    tick_values = MaxNLocator(nbins=ticks_max_number_of_intervals).tick_values(
+        min_value, max_value
+    )
+    normalizer = BoundaryNorm(tick_values, ncolors=plt.get_cmap(color_map).N, clip=True)
+    plot = axes.pcolormesh(
+        coordinates_grid_x, coordinates_grid_y, results, cmap=color_map, norm=normalizer
+    )
+    cbar_ticks = (
+        np.linspace(min_value, max_value, num=num_cbar_ticks, endpoint=True)
+        .round(decimals=4)
+        .tolist()
+    )
+    cbar = figure.colorbar(mappable=plot, ax=axes, ticks=cbar_ticks)
+    cbar.ax.set_yticklabels(map(str, cbar_ticks))
+    cbar.ax.minorticks_off()
+    figure.axes[1].tick_params(labelsize=plot_font_size)
+    output_path = project_directory.create_output_file_path(
+        file_name, output_subdirectory
+    )
+    figure.savefig(output_path, bbox_inches="tight", dpi=256)
+    plt.clf()
 
 
 u_exact = calculate_approximate_solution(num_elements=num_elements_reference)
@@ -301,6 +451,15 @@ pandas_data_writer.write(
 
 ############################################################
 print("Postprocessing")
+
+# Convergence rate
+error_k_1 = l2_error_record[-3]
+error_k_2 = l2_error_record[-2]
+error_k_4 = l2_error_record[-1]
+convergence_rate = (1 / np.log(2)) * np.log(
+    np.absolute((error_k_1 - error_k_2) / (error_k_2 - error_k_4))
+)
+print(f"Convergence rate: {convergence_rate}")
 
 
 # Plot log l2 error
