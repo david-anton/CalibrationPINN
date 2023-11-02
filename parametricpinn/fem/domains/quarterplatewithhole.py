@@ -53,9 +53,9 @@ class QuarterPlateWithHoleDomain:
         self._geometric_dim = 2
         self._u_x_right = default_scalar_type(0.0)
         self._u_y_bottom = default_scalar_type(0.0)
-        self._tag_right = 0
-        self._tag_bottom = 1
-        self._tag_left = 2
+        self._tag_left = 0
+        self._tag_right = 1
+        self._tag_bottom = 2
         self.mesh = self._generate_mesh(
             save_mesh=save_mesh,
             output_subdir=output_subdir,
@@ -82,6 +82,12 @@ class QuarterPlateWithHoleDomain:
         u_x_right = Constant(self.mesh, self._u_x_right)
         u_y_bottom = Constant(self.mesh, self._u_y_bottom)
         return [
+            NeumannBC(
+                tag=self._tag_left,
+                value=traction_left,
+                measure=measure,
+                test_function=test_function,
+            ),
             DirichletBC(
                 tag=self._tag_right,
                 value=u_x_right,
@@ -97,12 +103,6 @@ class QuarterPlateWithHoleDomain:
                 function_space=function_space,
                 boundary_tags=self.boundary_tags,
                 bc_facets_dim=self._bc_facets_dim,
-            ),
-            NeumannBC(
-                tag=self._tag_left,
-                value=traction_left,
-                measure=measure,
-                test_function=test_function,
             ),
         ]
 
@@ -151,12 +151,6 @@ class QuarterPlateWithHoleDomain:
         def configure_mesh() -> None:
             gmsh.option.setNumber("Mesh.CharacteristicLengthMin", element_size)
             gmsh.option.setNumber("Mesh.CharacteristicLengthMax", element_size)
-            # gmsh.model.mesh.setSizeCallback(mesh_size_callback)
-
-        # def mesh_size_callback(
-        #     dim: int, tag: int, x: float, y: float, z: float, lc: float
-        # ) -> float:
-        #     return element_size
 
         def generate_mesh() -> None:
             geometry_kernel.synchronize()
@@ -172,9 +166,8 @@ class QuarterPlateWithHoleDomain:
     def _tag_boundaries(self) -> DMeshTags:
         locate_right_facet = lambda x: np.isclose(x[0], 0.0)
         locate_bottom_facet = lambda x: np.isclose(x[1], 0.0)
-        locate_left_facet = lambda x: np.logical_and(
-            np.isclose(x[0], -self.config.edge_length), x[1] > 0.0
-        )
+        # Approximate solution converges much slower when excluding x[1]=0
+        locate_left_facet = lambda x: np.isclose(x[0], -self.config.edge_length)
         boundaries = [
             (self._tag_right, locate_right_facet),
             (self._tag_bottom, locate_bottom_facet),

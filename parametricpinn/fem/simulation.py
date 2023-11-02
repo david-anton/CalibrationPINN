@@ -130,8 +130,6 @@ def _simulate_once(
         mesh, (default_scalar_type((volume_force_x, volume_force_y)))
     )
 
-    # element = VectorElement(element_family, mesh.ufl_cell(), element_degree)
-    # function_space = FunctionSpace(mesh, element)
     element = (element_family, element_degree, (2,))
     function_space = functionspace(mesh, element)
 

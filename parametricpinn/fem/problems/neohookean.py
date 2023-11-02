@@ -72,7 +72,7 @@ class NeoHookeanProblem:
 
         num_iterations, converged = solver.solve(self._solution_function)
         assert converged
-        print(f"Number of interations: {num_iterations}")
+        print(f"Number of iterations: {num_iterations}")
 
         return self._solution_function
 

@@ -12,7 +12,6 @@ import ufl
 from dolfinx import default_scalar_type
 from dolfinx.fem import Constant, dirichletbc, functionspace, locate_dofs_topological
 from dolfinx.fem.petsc import LinearProblem
-from dolfinx.io import XDMFFile
 from dolfinx.io.gmshio import model_to_mesh
 from dolfinx.mesh import create_rectangle, locate_entities_boundary, meshtags
 from matplotlib.colors import BoundaryNorm
@@ -59,10 +58,10 @@ edge_length = 100.0
 radius = 10.0
 youngs_modulus = 210000.0
 poissons_ratio = 0.3
-volume_force_x = 0.0
-volume_force_y = 0.0
 traction_left_x = -100.0
 traction_left_y = 0.0
+volume_force_x = 0.0
+volume_force_y = 0.0
 is_symmetry_bc = True
 is_hole = True
 # FEM
@@ -70,7 +69,7 @@ element_family = "Lagrange"
 element_degree = 1
 cell_type = dolfinx.mesh.CellType.triangle  # dolfinx.mesh.CellType.quadrilateral
 num_elements_reference = 256
-num_elements_tests = [32, 64, 128]
+num_elements_tests = [16, 32, 64, 128]
 degree_raise = 3
 # Plot
 interpolation_method = "nearest"
@@ -307,7 +306,7 @@ def plot_solution(function: DFunction, num_elements: int) -> None:
 
     def cut_result_grid(result_grid: NPArray) -> NPArray:
         return result_grid[1:, 1:]
-    
+
     def configure_ticks(axes: PLTAxes) -> None:
         x_min = np.nanmin(coordinates_x)
         x_max = np.nanmax(coordinates_x)
