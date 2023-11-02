@@ -64,11 +64,12 @@ is_symmetry_bc = False
 # FEM
 element_family = "Lagrange"
 element_degree = 1
-cell_type = dolfinx.mesh.CellType.triangle  # dolfinx.mesh.CellType.quadrilateral
-num_elements_reference = 128
-num_elements_tests = [1, 2, 4, 8, 16, 32, 64]
+cell_type = dolfinx.mesh.CellType.triangle # dolfinx.mesh.CellType.quadrilateral 
+num_elements_reference = 256
+num_elements_tests = [32, 64, 128]
 degree_raise = 3
 # Plot
+interpolation_method = "nearest"
 color_map = "jet"
 num_points_per_edge = 256
 ticks_max_number_of_intervals = 255
@@ -118,15 +119,15 @@ def calculate_approximate_solution(num_elements):
         sorted_facet_tags = facet_tags[sorting_index_array]
         return sorted_facet_indices, sorted_facet_tags
 
-    tag_right = 0
-    tag_left = 1
-    tag_bottom = 2
-    tag_top = 3
+    tag_left = 0
+    tag_right = 1
+    tag_top = 2
+    tag_bottom = 3
     bc_facets_dim = mesh.topology.dim - 1
-    locate_right_facet = lambda x: np.isclose(x[0], 0.0)
     locate_left_facet = lambda x: np.isclose(x[0], -edge_length)
-    locate_bottom_facet = lambda x: np.isclose(x[1], 0.0)
+    locate_right_facet = lambda x: np.isclose(x[0], 0.0)
     locate_top_facet = lambda x: np.isclose(x[1], edge_length)
+    locate_bottom_facet = lambda x: np.isclose(x[1], 0.0)
     boundaries = [
         (tag_right, locate_right_facet),
         (tag_left, locate_left_facet),
@@ -262,17 +263,17 @@ def calculate_approximate_solution(num_elements):
 
     approximate_solution = problem.solve()
 
-    mesh.topology.create_connectivity(mesh.topology.dim - 1, mesh.topology.dim)
-    file_name = f"facet_tags_{num_elements}.xdmf"
-    output_path = project_directory.create_output_file_path(
-        file_name, output_subdirectory
-    )
-    with XDMFFile(
-        mesh.comm, output_path, "w", encoding=XDMFFile.Encoding.ASCII
-    ) as xdmf:
-        xdmf.write_mesh(mesh)
-        xdmf.write_meshtags(boundary_tags, mesh.geometry)
-        xdmf.write_function(approximate_solution)
+    # mesh.topology.create_connectivity(mesh.topology.dim - 1, mesh.topology.dim)
+    # file_name = f"facet_tags_{num_elements}.xdmf"
+    # output_path = project_directory.create_output_file_path(
+    #     file_name, output_subdirectory
+    # )
+    # with XDMFFile(
+    #     mesh.comm, output_path, "w", encoding=XDMFFile.Encoding.ASCII
+    # ) as xdmf:
+    #     xdmf.write_mesh(mesh)
+    #     xdmf.write_meshtags(boundary_tags, mesh.geometry)
+    #     xdmf.write_function(approximate_solution)
     return approximate_solution
 
 
@@ -303,7 +304,7 @@ def plot_solution(function: DFunction, num_elements: int) -> None:
             coordinates,
             results,
             (coordinates_grid_x, coordinates_grid_y),
-            method="cubic",
+            method=interpolation_method,
         )
 
     def cut_result_grid(result_grid: NPArray) -> NPArray:
