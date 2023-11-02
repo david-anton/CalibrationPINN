@@ -2,6 +2,7 @@ from datetime import date
 from typing import Callable, TypeAlias, Union
 
 import dolfinx
+import gmsh
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
@@ -12,6 +13,7 @@ from dolfinx import default_scalar_type
 from dolfinx.fem import Constant, dirichletbc, functionspace, locate_dofs_topological
 from dolfinx.fem.petsc import LinearProblem
 from dolfinx.io import XDMFFile
+from dolfinx.io.gmshio import model_to_mesh
 from dolfinx.mesh import create_rectangle, locate_entities_boundary, meshtags
 from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
@@ -34,7 +36,7 @@ from parametricpinn.fem.convergence import (
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import PandasDataWriter
 from parametricpinn.settings import Settings, set_default_dtype
-from parametricpinn.types import NPArray
+from parametricpinn.types import NPArray, PLTAxes
 
 # Set up simulation
 settings = Settings()
@@ -54,17 +56,19 @@ UExact: TypeAlias = Union[DFunction, UFLExpression, Callable[[NPArray], NPArray]
 
 # Setup
 edge_length = 100.0
+radius = 10.0
 youngs_modulus = 210000.0
 poissons_ratio = 0.3
 volume_force_x = 0.0
 volume_force_y = 0.0
 traction_left_x = -100.0
 traction_left_y = 0.0
-is_symmetry_bc = False
+is_symmetry_bc = True
+is_hole = True
 # FEM
 element_family = "Lagrange"
 element_degree = 1
-cell_type = dolfinx.mesh.CellType.triangle # dolfinx.mesh.CellType.quadrilateral 
+cell_type = dolfinx.mesh.CellType.triangle  # dolfinx.mesh.CellType.quadrilateral
 num_elements_reference = 256
 num_elements_tests = [32, 64, 128]
 degree_raise = 3
@@ -86,12 +90,39 @@ communicator = MPI.COMM_WORLD
 def calculate_approximate_solution(num_elements):
     print(f"Run simulation with {num_elements} elements per edge")
     # Mesh
-    mesh = create_rectangle(
-        comm=communicator,
-        points=[[-edge_length, 0.0], [0.0, edge_length]],
-        n=[num_elements, num_elements],
-        cell_type=cell_type,
-    )
+    if is_hole:
+        geometric_dim = 2
+        mpi_rank = 0
+        solid_marker = 1
+
+        gmsh.initialize()
+        geometry_kernel = gmsh.model.occ
+        gmsh.model.add("domain")
+        plate = geometry_kernel.add_rectangle(0, 0, 0, -edge_length, edge_length)
+        hole = geometry_kernel.add_disk(0, 0, 0, radius, radius)
+        geometry = geometry_kernel.cut([(2, plate)], [(2, hole)])
+
+        geometry_kernel.synchronize()
+        surface = geometry_kernel.getEntities(dim=2)
+        assert surface == geometry[0]
+        gmsh.model.addPhysicalGroup(surface[0][0], [surface[0][1]], solid_marker)
+        gmsh.model.setPhysicalName(surface[0][0], solid_marker, "Solid")
+
+        element_size = edge_length / num_elements
+        gmsh.option.setNumber("Mesh.CharacteristicLengthMin", element_size)
+        gmsh.option.setNumber("Mesh.CharacteristicLengthMax", element_size)
+
+        geometry_kernel.synchronize()
+        gmsh.model.mesh.generate(geometric_dim)
+        gmesh = gmsh.model
+        mesh, _, _ = model_to_mesh(gmesh, communicator, mpi_rank, gdim=geometric_dim)
+    else:
+        mesh = create_rectangle(
+            comm=communicator,
+            points=[[-edge_length, 0.0], [0.0, edge_length]],
+            n=[num_elements, num_elements],
+            cell_type=cell_type,
+        )
 
     # Function space
     shape = (2,)
@@ -150,22 +181,7 @@ def calculate_approximate_solution(num_elements):
     )
 
     ds = ufl.Measure("ds", domain=mesh, subdomain_data=boundary_tags)
-    dx = ufl.dx  # ufl.Measure("dx", domain=mesh)
-
-    # mu_ = youngs_modulus / (2 * (1 + poissons_ratio))
-    # lambda_ = (
-    #     youngs_modulus
-    #     * poissons_ratio
-    #     / ((1 + poissons_ratio) * (1 - 2 * poissons_ratio))
-    # )
-    # lambda_ = 2 * mu_ * lambda_ / (lambda_ + 2 * mu_)
-
-    # def sigma(u: UFLTrialFunction) -> UFLOperator:
-    #     # return lambda_*ufl.tr(epsilon(u))*ufl.Identity(2) + 2.0*mu_*epsilon(u)
-    #     return lambda_ * ufl.nabla_div(u) * ufl.Identity(len(u)) + 2 * mu_ * epsilon(u)
-
-    # def epsilon(u: UFLTrialFunction) -> UFLOperator:
-    #     return ufl.sym(ufl.grad(u))
+    dx = ufl.Measure("dx", domain=mesh)  # ufl.dx
 
     compliance_matrix = (1 / youngs_modulus) * ufl.as_matrix(
         [
@@ -191,7 +207,7 @@ def calculate_approximate_solution(num_elements):
         return ufl.sym(ufl.grad(u))
 
     lhs = ufl.inner(sigma(trial_function), epsilon(test_function)) * dx
-    rhs = ufl.dot(test_function, volume_force) * dx
+    rhs = ufl.dot(volume_force, test_function) * dx
 
     # Boundary conditions application
     T_left = Constant(
@@ -200,13 +216,6 @@ def calculate_approximate_solution(num_elements):
     )
     bc_N_T_left = ufl.dot(T_left, test_function) * ds(tag_left)
     rhs = rhs + bc_N_T_left
-
-    # T_top = Constant(
-    #     mesh,
-    #     default_scalar_type((0.0, 0.0)),
-    # )
-    # bc_N_T_top = ufl.dot(T_top, test_function) * ds(tag_top)
-    # rhs = rhs + bc_N_T_top
 
     if is_symmetry_bc:
         displacement_right_x = 0.0
@@ -263,17 +272,6 @@ def calculate_approximate_solution(num_elements):
 
     approximate_solution = problem.solve()
 
-    # mesh.topology.create_connectivity(mesh.topology.dim - 1, mesh.topology.dim)
-    # file_name = f"facet_tags_{num_elements}.xdmf"
-    # output_path = project_directory.create_output_file_path(
-    #     file_name, output_subdirectory
-    # )
-    # with XDMFFile(
-    #     mesh.comm, output_path, "w", encoding=XDMFFile.Encoding.ASCII
-    # ) as xdmf:
-    #     xdmf.write_mesh(mesh)
-    #     xdmf.write_meshtags(boundary_tags, mesh.geometry)
-    #     xdmf.write_function(approximate_solution)
     return approximate_solution
 
 
@@ -309,6 +307,33 @@ def plot_solution(function: DFunction, num_elements: int) -> None:
 
     def cut_result_grid(result_grid: NPArray) -> NPArray:
         return result_grid[1:, 1:]
+    
+    def configure_ticks(axes: PLTAxes) -> None:
+        x_min = np.nanmin(coordinates_x)
+        x_max = np.nanmax(coordinates_x)
+        y_min = np.nanmin(coordinates_y)
+        y_max = np.nanmax(coordinates_y)
+        x_ticks = np.linspace(x_min, x_max, num=3, endpoint=True)
+        y_ticks = np.linspace(y_min, y_max, num=3, endpoint=True)
+        axes.set_xlim(x_min, x_max)
+        axes.set_ylim(y_min, y_max)
+        axes.set_xticks(x_ticks)
+        axes.set_xticklabels(map(str, x_ticks.round(decimals=2)))
+        axes.set_yticks(y_ticks)
+        axes.set_yticklabels(map(str, y_ticks.round(decimals=2)))
+        axes.tick_params(axis="both", which="major", pad=15)
+
+    def add_geometry_specific_patches(axes: PLTAxes) -> None:
+        def add_quarter_hole(axes: PLTAxes):
+            hole = plt.Circle(
+                (0.0, 0.0),
+                radius=radius,
+                color="white",
+            )
+            axes.add_patch(hole)
+
+        if is_hole:
+            add_quarter_hole(axes)
 
     # Extract FEM results
     coordinates = function.function_space.tabulate_dof_coordinates()
@@ -348,6 +373,7 @@ def plot_solution(function: DFunction, num_elements: int) -> None:
     axes.set_title(title)
     axes.set_xlabel("x [mm]")
     axes.set_ylabel("y [mm]")
+    configure_ticks(axes)
     min_value = np.nanmin(results)
     max_value = np.nanmax(results)
     tick_values = MaxNLocator(nbins=ticks_max_number_of_intervals).tick_values(
@@ -366,6 +392,7 @@ def plot_solution(function: DFunction, num_elements: int) -> None:
     cbar.ax.set_yticklabels(map(str, cbar_ticks))
     cbar.ax.minorticks_off()
     figure.axes[1].tick_params(labelsize=plot_font_size)
+    add_geometry_specific_patches(axes)
     output_path = project_directory.create_output_file_path(
         file_name, output_subdirectory
     )
@@ -379,6 +406,7 @@ def plot_solution(function: DFunction, num_elements: int) -> None:
     axes.set_title(title)
     axes.set_xlabel("x [mm]")
     axes.set_ylabel("y [mm]")
+    configure_ticks(axes)
     min_value = np.nanmin(results)
     max_value = np.nanmax(results)
     tick_values = MaxNLocator(nbins=ticks_max_number_of_intervals).tick_values(
@@ -397,6 +425,7 @@ def plot_solution(function: DFunction, num_elements: int) -> None:
     cbar.ax.set_yticklabels(map(str, cbar_ticks))
     cbar.ax.minorticks_off()
     figure.axes[1].tick_params(labelsize=plot_font_size)
+    add_geometry_specific_patches(axes)
     output_path = project_directory.create_output_file_path(
         file_name, output_subdirectory
     )
