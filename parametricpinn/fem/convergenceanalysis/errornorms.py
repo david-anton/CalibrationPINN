@@ -25,11 +25,11 @@ from parametricpinn.types import NPArray
 UExact: TypeAlias = Union[DFunction, UFLExpression, Callable[[NPArray], NPArray]]
 
 
-def calculate_l2_error(
+def l2_error(
     u_approx: DFunction,
     u_exact: UExact,
     degree_raise=3,
-) -> NPArray:
+) -> float:
     func_space = _create_higher_order_function_space(u_approx, degree_raise)
     mpi_comm = _get_mpi_communicator(func_space)
     u_approx_interpolated = _interpolate_u_approx(u_approx, func_space)
@@ -38,14 +38,14 @@ def calculate_l2_error(
     error_func = _compute_error(u_approx_interpolated, u_exact_interpolated, func_space)
 
     error_norm = _l2_error_norm(error_func)
-    return _integrate_error(error_norm, mpi_comm)
+    return _integrate_error(error_norm, mpi_comm).item()
 
 
-def calculate_relative_l2_error(
+def relative_l2_error(
     u_approx: DFunction,
     u_exact: UExact,
     degree_raise=3,
-) -> NPArray:
+) -> float:
     func_space = _create_higher_order_function_space(u_approx, degree_raise)
     mpi_comm = _get_mpi_communicator(func_space)
     u_approx_interpolated = _interpolate_u_approx(u_approx, func_space)
@@ -54,19 +54,35 @@ def calculate_relative_l2_error(
     error_func = _compute_error(u_approx_interpolated, u_exact_interpolated, func_space)
 
     error_norm = _relative_l2_error_norm(error_func, u_exact_interpolated)
-    return _integrate_error(error_norm, mpi_comm)
+    return _integrate_error(error_norm, mpi_comm).item()
 
 
-def calculate_infinity_error(
+def h01_error(
     u_approx: DFunction,
     u_exact: UExact,
-):
+    degree_raise=3,
+) -> float:
+    func_space = _create_higher_order_function_space(u_approx, degree_raise)
+    mpi_comm = _get_mpi_communicator(func_space)
+    u_approx_interpolated = _interpolate_u_approx(u_approx, func_space)
+    u_exact_interpolated = _interpolate_u_exact(u_exact, func_space)
+
+    error_func = _compute_error(u_approx_interpolated, u_exact_interpolated, func_space)
+
+    error_norm = _h01_error_norm(error_func)
+    return _integrate_error(error_norm, mpi_comm).item()
+
+
+def infinity_error(
+    u_approx: DFunction,
+    u_exact: UExact,
+) -> float:
     func_space = u_approx.function_space
     mpi_comm = _get_mpi_communicator(func_space)
     u_exact_interpolated = _interpolate_u_exact(u_exact, func_space)
 
     error_norm = _infinity_error_norm(u_approx, u_exact_interpolated, mpi_comm)
-    return error_norm
+    return error_norm.item()
 
 
 def _create_higher_order_function_space(
@@ -133,6 +149,10 @@ def _relative_l2_error_norm(error_func: DFunction, u_exact: DFunction) -> DForm:
     return form(
         (ufl.inner(error_func, error_func) / ufl.inner(u_exact, u_exact)) * ufl.dx
     )
+
+
+def _h01_error_norm(error_func: DFunction) -> DForm:
+    return form(ufl.dot(ufl.grad(error_func), ufl.grad(error_func)) * ufl.dx)
 
 
 def _infinity_error_norm(

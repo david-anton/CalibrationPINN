@@ -16,11 +16,14 @@ from parametricpinn.fem import (
 )
 from parametricpinn.fem.base import DFunction
 from parametricpinn.fem.convergenceanalysis import (
-    calculate_infinity_error,
-    calculate_l2_error,
-    calculate_relative_l2_error,
+    calculate_empirical_convegrence_order,
+    h01_error,
+    infinity_error,
+    l2_error,
     plot_error_convergence_analysis,
+    relative_l2_error,
 )
+from parametricpinn.fem.utility import evaluate_function
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import PandasDataWriter
 from parametricpinn.settings import Settings, set_default_dtype
@@ -39,19 +42,20 @@ poissons_ratio = 0.3
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
-fem_element_size_reference = 0.4
-fem_element_size_tests = [6.4, 3.2, 1.6]
+fem_element_size_reference = 0.2
+fem_element_size_largest = 1.6
+fem_reduction_factor = 1 / 2
+fem_element_size_tests = (
+    np.array([1, fem_reduction_factor, fem_reduction_factor**2])
+    * fem_element_size_largest
+).tolist()
 # Plot
-interpolation_method = "nearest"
-color_map = "jet"
 num_points_per_edge = 256
-ticks_max_number_of_intervals = 255
-num_cbar_ticks = 7
-plot_font_size = 12
+interpolation_method = "nearest"
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdirectory = (
-    f"{current_date}_convergence_study_neohookean_quarterplatewithhole"
+    f"{current_date}_convergence_analysis_neohookean_quarterplatewithhole"
 )
 
 # Set up simulation
@@ -72,28 +76,6 @@ def create_fem_domain_config(
         element_degree=fem_element_degree,
         element_size=element_size,
     )
-
-
-def calculate_approximate_solution(element_size) -> DFunction:
-    domain_config = create_fem_domain_config(element_size)
-    problem_config = NeoHookeanProblemConfig(
-        youngs_modulus=youngs_modulus,
-        poissons_ratio=poissons_ratio,
-    )
-    simulation_config = SimulationConfig(
-        domain_config=domain_config,
-        problem_config=problem_config,
-        volume_force_x=volume_force_x,
-        volume_force_y=volume_force_y,
-    )
-    results = run_simulation(
-        simulation_config=simulation_config,
-        save_results=False,
-        save_metadata=False,
-        output_subdir=output_subdirectory,
-        project_directory=project_directory,
-    )
-    return results.function
 
 
 def plot_solution(function: DFunction, element_size: int) -> None:
@@ -246,39 +228,90 @@ def plot_solution(function: DFunction, element_size: int) -> None:
     )
 
 
+def calculate_approximate_solution(element_size) -> DFunction:
+    domain_config = create_fem_domain_config(element_size)
+    problem_config = NeoHookeanProblemConfig(
+        youngs_modulus=youngs_modulus,
+        poissons_ratio=poissons_ratio,
+    )
+    simulation_config = SimulationConfig(
+        domain_config=domain_config,
+        problem_config=problem_config,
+        volume_force_x=volume_force_x,
+        volume_force_y=volume_force_y,
+    )
+    results = run_simulation(
+        simulation_config=simulation_config,
+        save_results=False,
+        save_metadata=False,
+        output_subdir=output_subdirectory,
+        project_directory=project_directory,
+    )
+    function = results.function
+    plot_solution(function, element_size)
+    return function
+
+
 u_exact = calculate_approximate_solution(fem_element_size_reference)
-plot_solution(u_exact, fem_element_size_reference)
+u_exact_x = u_exact.sub(0).collapse()
+u_exact_y = u_exact.sub(1).collapse()
+
 
 element_size_record: list[float] = []
 l2_error_record: list[float] = []
 relative_l2_error_record: list[float] = []
+h01_error_x_record: list[float] = []
+h01_error_y_record: list[float] = []
 infinity_error_record: list[float] = []
 num_dofs_record: list[int] = []
 num_elements_record: list[int] = []
+displacement_x_beside_hole_record: list[float] = []
+displacement_y_above_hole_record: list[float] = []
+displacement_x_upper_left_corner_record: list[float] = []
+displacement_y_upper_left_corner_record: list[float] = []
 
 
 print("Start convergence analysis")
 for element_size in fem_element_size_tests:
     u_approx = calculate_approximate_solution(element_size)
-    plot_solution(u_approx, element_size)
-    l2_error = calculate_l2_error(u_approx, u_exact).item()
-    relative_l2_error = calculate_relative_l2_error(u_approx, u_exact).item()
-    infinity_error = calculate_infinity_error(u_approx, u_exact).item()
+    u_approx_x = u_approx.sub(0).collapse()
+    u_approx_y = u_approx.sub(1).collapse()
     num_elements = u_approx.function_space.mesh.topology.index_map(2).size_global
     num_dofs = u_approx.function_space.tabulate_dof_coordinates().size
-    element_size_record.append(element_size)
-    l2_error_record.append(l2_error)
-    relative_l2_error_record.append(relative_l2_error)
-    infinity_error_record.append(infinity_error)
+    l2_error_record.append(l2_error(u_approx, u_exact))
+    relative_l2_error_record.append(relative_l2_error(u_approx, u_exact))
+    h01_error_x_record.append(h01_error(u_approx_x, u_exact_x))
+    h01_error_y_record.append(h01_error(u_approx_y, u_exact_y))
+    infinity_error_record.append(infinity_error(u_approx, u_exact))
     num_elements_record.append(num_elements)
     num_dofs_record.append(num_dofs)
+    element_size_record.append(element_size)
+    displacement_x_beside_hole = evaluate_function(
+        u_approx_x, np.array([[-radius, 0.0, 0.0]])
+    )
+    displacement_y_above_hole = evaluate_function(
+        u_approx_y, np.array([[0.0, radius, 0.0]])
+    )
+    displacement_x_upper_left_corner = evaluate_function(
+        u_approx_x, np.array([[-edge_length, edge_length, 0.0]])
+    )
+    displacement_y_upper_left_corner = evaluate_function(
+        u_approx_y, np.array([[-edge_length, edge_length, 0.0]])
+    )
+    displacement_x_beside_hole_record.append(displacement_x_beside_hole)
+    displacement_y_above_hole_record.append(displacement_y_above_hole)
+    displacement_x_upper_left_corner_record.append(displacement_x_upper_left_corner)
+    displacement_y_upper_left_corner_record.append(displacement_y_upper_left_corner)
+
 
 # Save results
-results_frame = pd.DataFrame(
+records_frame = pd.DataFrame(
     {
         "element_size": element_size_record,
-        "l2 error": l2_error_record,
-        "relative l2 error": relative_l2_error_record,
+        "L2 error": l2_error_record,
+        "relative L2 error": relative_l2_error_record,
+        "H01 error x": h01_error_x_record,
+        "H01 error y": h01_error_y_record,
         "infinity error": infinity_error_record,
         "number elements": num_elements_record,
         "number dofs": num_dofs_record,
@@ -286,13 +319,40 @@ results_frame = pd.DataFrame(
 )
 pandas_data_writer = PandasDataWriter(project_directory)
 pandas_data_writer.write(
-    data=results_frame,
-    file_name="results",
+    data=records_frame,
+    file_name="error_norms",
     subdir_name=output_subdirectory,
     header=True,
 )
 
-############################################################
+
+convergence_x_beside_hole = calculate_empirical_convegrence_order(
+    displacement_x_beside_hole_record, fem_reduction_factor
+)
+
+convergence_y_above_hole = calculate_empirical_convegrence_order(
+    displacement_y_above_hole_record, fem_reduction_factor
+)
+
+convergence_x_upper_left_corner = calculate_empirical_convegrence_order(
+    displacement_x_upper_left_corner_record, fem_reduction_factor
+)
+
+convergence_y_upper_left_corner = calculate_empirical_convegrence_order(
+    displacement_y_upper_left_corner_record, fem_reduction_factor
+)
+
+convergence_frame = pd.DataFrame(
+    {
+        "u_x beside hole": [convergence_x_beside_hole],
+        "u_y above hole": [convergence_y_above_hole],
+        "u_x upper left corner": [convergence_x_upper_left_corner],
+        "u_y upper left corner": [convergence_y_upper_left_corner],
+    }
+)
+
+
+# Postprocessing
 print("Postprocessing")
 
 plot_error_convergence_analysis(
@@ -307,6 +367,22 @@ plot_error_convergence_analysis(
     error_record=infinity_error_record,
     element_size_record=element_size_record,
     error_norm="infinity",
+    output_subdirectory=output_subdirectory,
+    project_directory=project_directory,
+)
+
+plot_error_convergence_analysis(
+    error_record=h01_error_x_record,
+    element_size_record=element_size_record,
+    error_norm="h01_x",
+    output_subdirectory=output_subdirectory,
+    project_directory=project_directory,
+)
+
+plot_error_convergence_analysis(
+    error_record=h01_error_y_record,
+    element_size_record=element_size_record,
+    error_norm="h01_y",
     output_subdirectory=output_subdirectory,
     project_directory=project_directory,
 )

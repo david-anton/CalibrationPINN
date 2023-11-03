@@ -28,10 +28,10 @@ from parametricpinn.fem.base import (
 )
 from parametricpinn.fem.convergenceanalysis import (
     calculate_empirical_convegrence_order,
-    calculate_infinity_error,
-    calculate_l2_error,
-    calculate_relative_l2_error,
+    infinity_error,
+    l2_error,
     plot_error_convergence_analysis,
+    relative_l2_error,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import PandasDataWriter
@@ -448,9 +448,9 @@ print("Start convergence analysis")
 for num_elements in num_elements_tests:
     u_approx = calculate_approximate_solution(num_elements)
     plot_solution(u_approx, num_elements)
-    l2_error = calculate_l2_error(u_approx, u_exact).item()
-    relative_l2_error = calculate_relative_l2_error(u_approx, u_exact).item()
-    infinity_error = calculate_infinity_error(u_approx, u_exact).item()
+    l2_error = l2_error(u_approx, u_exact).item()
+    relative_l2_error = relative_l2_error(u_approx, u_exact).item()
+    infinity_error = infinity_error(u_approx, u_exact).item()
     num_total_elements = u_approx.function_space.mesh.topology.index_map(2).size_global
     num_dofs = u_approx.function_space.tabulate_dof_coordinates().size
     element_size_record.append(edge_length / num_elements)
