@@ -346,11 +346,17 @@ convergence_y_upper_left_corner = calculate_empirical_convegrence_order(
 
 convergence_frame = pd.DataFrame(
     {
-        "u_x beside hole": [convergence_x_beside_hole],
-        "u_y above hole": [convergence_y_above_hole],
-        "u_x upper left corner": [convergence_x_upper_left_corner],
-        "u_y upper left corner": [convergence_y_upper_left_corner],
+        "u_x beside hole": convergence_x_beside_hole,
+        "u_y above hole": convergence_y_above_hole,
+        "u_x upper left corner": convergence_x_upper_left_corner,
+        "u_y upper left corner": convergence_y_upper_left_corner,
     }
+)
+pandas_data_writer.write(
+    data=convergence_frame,
+    file_name="convergence_orders",
+    subdir_name=output_subdirectory,
+    header=True,
 )
 
 
