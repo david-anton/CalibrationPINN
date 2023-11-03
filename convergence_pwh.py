@@ -17,7 +17,6 @@ from dolfinx.mesh import create_rectangle, locate_entities_boundary, meshtags
 from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
 from mpi4py import MPI
-from scipy import stats
 from scipy.interpolate import griddata
 
 from parametricpinn.fem.base import (
@@ -27,10 +26,11 @@ from parametricpinn.fem.base import (
     UFLOperator,
     UFLTrialFunction,
 )
-from parametricpinn.fem.convergence import (
+from parametricpinn.fem.convergenceanalysis import (
     calculate_infinity_error,
     calculate_l2_error,
     calculate_relative_l2_error,
+    plot_error_convergence_analysis,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import PandasDataWriter
@@ -438,7 +438,7 @@ plot_solution(u_exact, num_elements_reference)
 element_size_record: list[float] = []
 l2_error_record: list[float] = []
 relative_l2_error_record: list[float] = []
-inifinity_error_record: list[float] = []
+infinity_error_record: list[float] = []
 num_dofs_record: list[int] = []
 num_total_elements_record: list[int] = []
 
@@ -455,7 +455,7 @@ for num_elements in num_elements_tests:
     element_size_record.append(edge_length / num_elements)
     l2_error_record.append(l2_error)
     relative_l2_error_record.append(relative_l2_error)
-    inifinity_error_record.append(infinity_error)
+    infinity_error_record.append(infinity_error)
     num_total_elements_record.append(num_total_elements)
     num_dofs_record.append(num_dofs)
 
@@ -465,7 +465,7 @@ results_frame = pd.DataFrame(
         "element_size": element_size_record,
         "l2 error": l2_error_record,
         "relative l2 error": relative_l2_error_record,
-        "infinity error": inifinity_error_record,
+        "infinity error": infinity_error_record,
         "number elements": num_total_elements_record,
         "number dofs": num_dofs_record,
     }
@@ -491,55 +491,18 @@ convergence_rate = (1 / np.log(2)) * np.log(
 print(f"Convergence rate: {convergence_rate}")
 
 
-# Plot log l2 error
-figure, axes = plt.subplots()
-log_element_size = np.log(np.array(element_size_record))
-log_l2_error = np.log(np.array(l2_error_record))
-
-slope, intercept, _, _, _ = stats.linregress(log_element_size, log_l2_error)
-regression_log_l2_error = slope * log_element_size + intercept
-
-axes.plot(log_element_size, log_l2_error, "ob", label="simulation")
-axes.plot(log_element_size, regression_log_l2_error, "--r", label="regression")
-axes.set_xlabel("log element size")
-axes.set_ylabel("log l2 error")
-axes.set_title("Convergence")
-axes.legend(loc="best")
-axes.text(
-    log_element_size[2],
-    log_l2_error[-1],
-    f"convergence rate: {slope:.6}",
-    style="italic",
-    bbox={"facecolor": "red", "alpha": 0.5, "pad": 10},
+plot_error_convergence_analysis(
+    error_record=l2_error_record,
+    element_size_record=element_size_record,
+    error_norm="l2",
+    output_subdirectory=output_subdirectory,
+    project_directory=project_directory,
 )
-file_name = f"convergence_log_l2_error.png"
-output_path = project_directory.create_output_file_path(file_name, output_subdirectory)
-figure.savefig(output_path, bbox_inches="tight", dpi=256)
-plt.clf()
 
-
-# Plot log infinity error
-figure, axes = plt.subplots()
-log_element_size = np.log(np.array(element_size_record))
-log_infinity_error = np.log(np.array(inifinity_error_record))
-
-slope, intercept, _, _, _ = stats.linregress(log_element_size, log_infinity_error)
-regression_log_infinity_error = slope * log_element_size + intercept
-
-axes.plot(log_element_size, log_infinity_error, "ob", label="simulation")
-axes.plot(log_element_size, regression_log_infinity_error, "--r", label="regression")
-axes.set_xlabel("log element size")
-axes.set_ylabel("log infinity error")
-axes.legend(loc="best")
-axes.text(
-    log_element_size[2],
-    log_infinity_error[-1],
-    f"convergence rate: {slope:.6}",
-    style="italic",
-    bbox={"facecolor": "red", "alpha": 0.5, "pad": 10},
+plot_error_convergence_analysis(
+    error_record=infinity_error_record,
+    element_size_record=element_size_record,
+    error_norm="infinity",
+    output_subdirectory=output_subdirectory,
+    project_directory=project_directory,
 )
-axes.set_title("Convergence")
-file_name = f"convergence_log_infinity_error.png"
-output_path = project_directory.create_output_file_path(file_name, output_subdirectory)
-figure.savefig(output_path, bbox_inches="tight", dpi=256)
-plt.clf()

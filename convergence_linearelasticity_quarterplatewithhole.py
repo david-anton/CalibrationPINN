@@ -6,7 +6,6 @@ import pandas as pd
 import torch
 from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
-from scipy import stats
 from scipy.interpolate import griddata
 
 from parametricpinn.fem import (
@@ -16,10 +15,11 @@ from parametricpinn.fem import (
     run_simulation,
 )
 from parametricpinn.fem.base import DFunction
-from parametricpinn.fem.convergence import (
+from parametricpinn.fem.convergenceanalysis import (
     calculate_infinity_error,
     calculate_l2_error,
     calculate_relative_l2_error,
+    plot_error_convergence_analysis,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import PandasDataWriter
@@ -40,15 +40,11 @@ poissons_ratio = 0.3
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
-fem_element_size_reference = 0.1
-fem_element_size_tests = [3.2, 1.6, 0.8, 0.4]
+fem_element_size_reference = 0.4
+fem_element_size_tests = [6.4, 3.2, 1.6]
 # Plot
-interpolation_method = "nearest"
-color_map = "jet"
 num_points_per_edge = 256
-ticks_max_number_of_intervals = 255
-num_cbar_ticks = 7
-plot_font_size = 12
+interpolation_method = "nearest"
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdirectory = (
@@ -99,6 +95,18 @@ def calculate_approximate_solution(element_size) -> DFunction:
 
 
 def plot_solution(function: DFunction, element_size: int) -> None:
+    # Extract FEM results
+    coordinates = function.function_space.tabulate_dof_coordinates()
+    coordinates_x = coordinates[:, 0].reshape((-1, 1))
+    coordinates_y = coordinates[:, 1].reshape((-1, 1))
+
+    displacements = function.x.array.reshape(
+        (-1, function.function_space.mesh.geometry.dim)
+    )
+    displacements_x = displacements[:, 0].reshape((-1, 1))
+    displacements_y = displacements[:, 1].reshape((-1, 1))
+
+    # Interpolate results on grid
     def generate_coordinate_grid(num_points_per_edge: int) -> list[NPArray]:
         grid_coordinates_x = np.linspace(
             -edge_length,
@@ -127,45 +135,7 @@ def plot_solution(function: DFunction, element_size: int) -> None:
             (coordinates_grid_x, coordinates_grid_y),
             method=interpolation_method,
         )
-
-    def cut_result_grid(result_grid: NPArray) -> NPArray:
-        return result_grid[1:, 1:]
-
-    def configure_ticks(axes: PLTAxes) -> None:
-        x_min = np.nanmin(coordinates_x)
-        x_max = np.nanmax(coordinates_x)
-        y_min = np.nanmin(coordinates_y)
-        y_max = np.nanmax(coordinates_y)
-        x_ticks = np.linspace(x_min, x_max, num=3, endpoint=True)
-        y_ticks = np.linspace(y_min, y_max, num=3, endpoint=True)
-        axes.set_xlim(x_min, x_max)
-        axes.set_ylim(y_min, y_max)
-        axes.set_xticks(x_ticks)
-        axes.set_xticklabels(map(str, x_ticks.round(decimals=2)))
-        axes.set_yticks(y_ticks)
-        axes.set_yticklabels(map(str, y_ticks.round(decimals=2)))
-        axes.tick_params(axis="both", which="major", pad=15)
-
-    def add_quarter_hole(axes: PLTAxes):
-        hole = plt.Circle(
-            (0.0, 0.0),
-            radius=radius,
-            color="white",
-        )
-        axes.add_patch(hole)
-
-    # Extract FEM results
-    coordinates = function.function_space.tabulate_dof_coordinates()
-    coordinates_x = coordinates[:, 0].reshape((-1, 1))
-    coordinates_y = coordinates[:, 1].reshape((-1, 1))
-
-    displacements = function.x.array.reshape(
-        (-1, function.function_space.mesh.geometry.dim)
-    )
-    displacements_x = displacements[:, 0].reshape((-1, 1))
-    displacements_y = displacements[:, 1].reshape((-1, 1))
-
-    # Interpolate results on grid
+    
     coordinates_grid_x, coordinates_grid_y = generate_coordinate_grid(
         num_points_per_edge
     )
@@ -185,71 +155,93 @@ def plot_solution(function: DFunction, element_size: int) -> None:
     )
 
     # Plot interpolated results
-    results = displacements_grid_x
-    title = "Displacements x"
-    file_name = f"displacement_field_x_{element_size}.png"
-    figure, axes = plt.subplots()
-    axes.set_title(title)
-    axes.set_xlabel("x [mm]")
-    axes.set_ylabel("y [mm]")
-    configure_ticks(axes)
-    min_value = np.nanmin(results)
-    max_value = np.nanmax(results)
-    tick_values = MaxNLocator(nbins=ticks_max_number_of_intervals).tick_values(
-        min_value, max_value
-    )
-    normalizer = BoundaryNorm(tick_values, ncolors=plt.get_cmap(color_map).N, clip=True)
-    plot = axes.pcolormesh(
-        coordinates_grid_x, coordinates_grid_y, results, cmap=color_map, norm=normalizer
-    )
-    cbar_ticks = (
-        np.linspace(min_value, max_value, num=num_cbar_ticks, endpoint=True)
-        .round(decimals=4)
-        .tolist()
-    )
-    cbar = figure.colorbar(mappable=plot, ax=axes, ticks=cbar_ticks)
-    cbar.ax.set_yticklabels(map(str, cbar_ticks))
-    cbar.ax.minorticks_off()
-    figure.axes[1].tick_params(labelsize=plot_font_size)
-    add_quarter_hole(axes)
-    output_path = project_directory.create_output_file_path(
-        file_name, output_subdirectory
-    )
-    figure.savefig(output_path, bbox_inches="tight", dpi=256)
-    plt.clf()
+    def plot_one_result_grid(
+        result_grid: NPArray,
+        dimension: str,
+        coordinates_grid_x: NPArray,
+        coordinates_grid_y: NPArray,
+        element_size: float,
+    ) -> None:
+        ticks_max_number_of_intervals = 255
+        color_map = "jet"
+        num_cbar_ticks = 7
+        font_size = 12
 
-    results = displacements_grid_y
-    title = "Displacements y"
-    file_name = f"displacement_field_y_{element_size}.png"
-    figure, axes = plt.subplots()
-    axes.set_title(title)
-    axes.set_xlabel("x [mm]")
-    axes.set_ylabel("y [mm]")
-    configure_ticks(axes)
-    min_value = np.nanmin(results)
-    max_value = np.nanmax(results)
-    tick_values = MaxNLocator(nbins=ticks_max_number_of_intervals).tick_values(
-        min_value, max_value
+        def configure_ticks(axes: PLTAxes) -> None:
+            x_min = np.nanmin(coordinates_x)
+            x_max = np.nanmax(coordinates_x)
+            y_min = np.nanmin(coordinates_y)
+            y_max = np.nanmax(coordinates_y)
+            x_ticks = np.linspace(x_min, x_max, num=3, endpoint=True)
+            y_ticks = np.linspace(y_min, y_max, num=3, endpoint=True)
+            axes.set_xlim(x_min, x_max)
+            axes.set_ylim(y_min, y_max)
+            axes.set_xticks(x_ticks)
+            axes.set_xticklabels(map(str, x_ticks.round(decimals=2)))
+            axes.set_yticks(y_ticks)
+            axes.set_yticklabels(map(str, y_ticks.round(decimals=2)))
+            axes.tick_params(axis="both", which="major", pad=15)
+
+        def add_quarter_hole(axes: PLTAxes):
+            hole = plt.Circle(
+                (0.0, 0.0),
+                radius=radius,
+                color="white",
+            )
+            axes.add_patch(hole)
+
+        title = f"Displacements {dimension}"
+        file_name = f"displacement_field_{dimension}_{element_size}.png"
+        figure, axes = plt.subplots()
+        axes.set_title(title)
+        axes.set_xlabel("x [mm]")
+        axes.set_ylabel("y [mm]")
+        configure_ticks(axes)
+        min_value = np.nanmin(result_grid)
+        max_value = np.nanmax(result_grid)
+        tick_values = MaxNLocator(nbins=ticks_max_number_of_intervals).tick_values(
+            min_value, max_value
+        )
+        normalizer = BoundaryNorm(
+            tick_values, ncolors=plt.get_cmap(color_map).N, clip=True
+        )
+        plot = axes.pcolormesh(
+            coordinates_grid_x,
+            coordinates_grid_y,
+            result_grid,
+            cmap=color_map,
+            norm=normalizer,
+        )
+        cbar_ticks = (
+            np.linspace(min_value, max_value, num=num_cbar_ticks, endpoint=True)
+            .round(decimals=4)
+            .tolist()
+        )
+        cbar = figure.colorbar(mappable=plot, ax=axes, ticks=cbar_ticks)
+        cbar.ax.set_yticklabels(map(str, cbar_ticks))
+        cbar.ax.minorticks_off()
+        figure.axes[1].tick_params(labelsize=font_size)
+        add_quarter_hole(axes)
+        output_path = project_directory.create_output_file_path(
+            file_name, output_subdirectory
+        )
+        figure.savefig(output_path, bbox_inches="tight", dpi=256)
+        plt.clf()
+
+    plot_one_result_grid(
+        result_grid=displacements_grid_x,
+        dimension="x",
+        coordinates_grid_x=coordinates_grid_x,
+        coordinates_grid_y=coordinates_grid_y,
+        element_size=element_size,
     )
-    normalizer = BoundaryNorm(tick_values, ncolors=plt.get_cmap(color_map).N, clip=True)
-    plot = axes.pcolormesh(
-        coordinates_grid_x, coordinates_grid_y, results, cmap=color_map, norm=normalizer
+    plot_one_result_grid(
+        result_grid=displacements_grid_y,
+        dimension="y",
+        coordinates_grid_x=coordinates_grid_x,
+        coordinates_grid_y=coordinates_grid_y,
+        element_size=element_size,
     )
-    cbar_ticks = (
-        np.linspace(min_value, max_value, num=num_cbar_ticks, endpoint=True)
-        .round(decimals=4)
-        .tolist()
-    )
-    cbar = figure.colorbar(mappable=plot, ax=axes, ticks=cbar_ticks)
-    cbar.ax.set_yticklabels(map(str, cbar_ticks))
-    cbar.ax.minorticks_off()
-    figure.axes[1].tick_params(labelsize=plot_font_size)
-    add_quarter_hole(axes)
-    output_path = project_directory.create_output_file_path(
-        file_name, output_subdirectory
-    )
-    figure.savefig(output_path, bbox_inches="tight", dpi=256)
-    plt.clf()
 
 
 u_exact = calculate_approximate_solution(fem_element_size_reference)
@@ -258,7 +250,7 @@ plot_solution(u_exact, fem_element_size_reference)
 element_size_record: list[float] = []
 l2_error_record: list[float] = []
 relative_l2_error_record: list[float] = []
-inifinity_error_record: list[float] = []
+infinity_error_record: list[float] = []
 num_dofs_record: list[int] = []
 num_elements_record: list[int] = []
 
@@ -275,7 +267,7 @@ for element_size in fem_element_size_tests:
     element_size_record.append(element_size)
     l2_error_record.append(l2_error)
     relative_l2_error_record.append(relative_l2_error)
-    inifinity_error_record.append(infinity_error)
+    infinity_error_record.append(infinity_error)
     num_elements_record.append(num_elements)
     num_dofs_record.append(num_dofs)
 
@@ -285,7 +277,7 @@ results_frame = pd.DataFrame(
         "element_size": element_size_record,
         "l2 error": l2_error_record,
         "relative l2 error": relative_l2_error_record,
-        "infinity error": inifinity_error_record,
+        "infinity error": infinity_error_record,
         "number elements": num_elements_record,
         "number dofs": num_dofs_record,
     }
@@ -301,56 +293,18 @@ pandas_data_writer.write(
 ############################################################
 print("Postprocessing")
 
-
-# Plot log l2 error
-figure, axes = plt.subplots()
-log_element_size = np.log(np.array(element_size_record))
-log_l2_error = np.log(np.array(l2_error_record))
-
-slope, intercept, _, _, _ = stats.linregress(log_element_size, log_l2_error)
-regression_log_l2_error = slope * log_element_size + intercept
-
-axes.plot(log_element_size, log_l2_error, "ob", label="simulation")
-axes.plot(log_element_size, regression_log_l2_error, "--r", label="regression")
-axes.set_xlabel("log element size")
-axes.set_ylabel("log l2 error")
-axes.set_title("Convergence")
-axes.legend(loc="best")
-axes.text(
-    log_element_size[2],
-    log_l2_error[-1],
-    f"convergence rate: {slope:.6}",
-    style="italic",
-    bbox={"facecolor": "red", "alpha": 0.5, "pad": 10},
+plot_error_convergence_analysis(
+    error_record=l2_error_record,
+    element_size_record=element_size_record,
+    error_norm="l2",
+    output_subdirectory=output_subdirectory,
+    project_directory=project_directory,
 )
-file_name = f"convergence_log_l2_error.png"
-output_path = project_directory.create_output_file_path(file_name, output_subdirectory)
-figure.savefig(output_path, bbox_inches="tight", dpi=256)
-plt.clf()
 
-
-# Plot log infinity error
-figure, axes = plt.subplots()
-log_element_size = np.log(np.array(element_size_record))
-log_infinity_error = np.log(np.array(inifinity_error_record))
-
-slope, intercept, _, _, _ = stats.linregress(log_element_size, log_infinity_error)
-regression_log_infinity_error = slope * log_element_size + intercept
-
-axes.plot(log_element_size, log_infinity_error, "ob", label="simulation")
-axes.plot(log_element_size, regression_log_infinity_error, "--r", label="regression")
-axes.set_xlabel("log element size")
-axes.set_ylabel("log infinity error")
-axes.legend(loc="best")
-axes.text(
-    log_element_size[2],
-    log_infinity_error[-1],
-    f"convergence rate: {slope:.6}",
-    style="italic",
-    bbox={"facecolor": "red", "alpha": 0.5, "pad": 10},
+plot_error_convergence_analysis(
+    error_record=infinity_error_record,
+    element_size_record=element_size_record,
+    error_norm="infinity",
+    output_subdirectory=output_subdirectory,
+    project_directory=project_directory,
 )
-axes.set_title("Convergence")
-file_name = f"convergence_log_infinity_error.png"
-output_path = project_directory.create_output_file_path(file_name, output_subdirectory)
-figure.savefig(output_path, bbox_inches="tight", dpi=256)
-plt.clf()
