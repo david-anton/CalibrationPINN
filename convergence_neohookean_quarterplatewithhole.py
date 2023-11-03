@@ -137,7 +137,7 @@ def plot_solution(function: DFunction, element_size: int) -> None:
             (coordinates_grid_x, coordinates_grid_y),
             method=interpolation_method,
         )
-    
+
     coordinates_grid_x, coordinates_grid_y = generate_coordinate_grid(
         num_points_per_edge
     )

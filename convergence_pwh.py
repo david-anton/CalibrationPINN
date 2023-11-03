@@ -27,6 +27,7 @@ from parametricpinn.fem.base import (
     UFLTrialFunction,
 )
 from parametricpinn.fem.convergenceanalysis import (
+    calculate_empirical_convegrence_order,
     calculate_infinity_error,
     calculate_l2_error,
     calculate_relative_l2_error,
@@ -480,16 +481,6 @@ pandas_data_writer.write(
 
 ############################################################
 print("Postprocessing")
-
-# Convergence rate
-error_k_1 = l2_error_record[-3]
-error_k_2 = l2_error_record[-2]
-error_k_4 = l2_error_record[-1]
-convergence_rate = (1 / np.log(2)) * np.log(
-    np.absolute((error_k_1 - error_k_2) / (error_k_2 - error_k_4))
-)
-print(f"Convergence rate: {convergence_rate}")
-
 
 plot_error_convergence_analysis(
     error_record=l2_error_record,
