@@ -87,15 +87,12 @@ num_total_elements_record: list[int] = []
 print("Start convergence analysis")
 for num_elements in num_elements_tests:
     u_approx = solve_poisson(num_elements)
-    l2_error = l2_error(u_approx, u_exact).item()
-    relative_l2_error = relative_l2_error(u_approx, u_exact).item()
-    infinity_error = infinity_error(u_approx, u_exact).item()
     num_total_elements = u_approx.function_space.mesh.topology.index_map(2).size_global
     num_dofs = u_approx.function_space.tabulate_dof_coordinates().size
     element_size_record.append(1 / num_elements)
-    l2_error_record.append(l2_error)
-    relative_l2_error_record.append(relative_l2_error)
-    infinity_error_record.append(infinity_error)
+    l2_error_record.append(l2_error(u_approx, u_exact))
+    relative_l2_error_record.append(relative_l2_error(u_approx, u_exact))
+    infinity_error_record.append(infinity_error(u_approx, u_exact))
     num_total_elements_record.append(num_total_elements)
     num_dofs_record.append(num_dofs)
 

@@ -33,6 +33,7 @@ from parametricpinn.fem.convergenceanalysis import (
     plot_error_convergence_analysis,
     relative_l2_error,
 )
+from parametricpinn.fem.utility import evaluate_function
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import PandasDataWriter
 from parametricpinn.settings import Settings, set_default_dtype
@@ -66,12 +67,19 @@ volume_force_y = 0.0
 is_symmetry_bc = True
 is_hole = True
 # FEM
-element_family = "Lagrange"
-element_degree = 1
-cell_type = dolfinx.mesh.CellType.triangle  # dolfinx.mesh.CellType.quadrilateral
-num_elements_reference = 256
-num_elements_tests = [16, 32, 64, 128]
-degree_raise = 3
+fem_element_family = "Lagrange"
+fem_element_degree = 1
+fem_cell_type = dolfinx.mesh.CellType.triangle  # dolfinx.mesh.CellType.quadrilateral
+fem_num_elements_reference = 128
+fem_minimal_num_elements = 16
+fem_reduction_factor = 1 / 2
+fem_num_elements_tests = (
+    np.array(
+        [1, 1 / fem_reduction_factor, (1 / fem_reduction_factor) ** 2], dtype=np.int32
+    )
+    * fem_minimal_num_elements
+).tolist()
+fem_degree_raise = 3
 # Plot
 interpolation_method = "nearest"
 color_map = "jet"
@@ -116,17 +124,18 @@ def calculate_approximate_solution(num_elements):
         gmsh.model.mesh.generate(geometric_dim)
         gmesh = gmsh.model
         mesh, _, _ = model_to_mesh(gmesh, communicator, mpi_rank, gdim=geometric_dim)
+        gmsh.finalize()
     else:
         mesh = create_rectangle(
             comm=communicator,
             points=[[-edge_length, 0.0], [0.0, edge_length]],
             n=[num_elements, num_elements],
-            cell_type=cell_type,
+            cell_type=fem_cell_type,
         )
 
     # Function space
     shape = (2,)
-    element = (element_family, element_degree, shape)
+    element = (fem_element_family, fem_element_degree, shape)
     function_space = functionspace(mesh, element)
     trial_function = ufl.TrialFunction(function_space)
     test_function = ufl.TestFunction(function_space)
@@ -182,6 +191,21 @@ def calculate_approximate_solution(num_elements):
 
     ds = ufl.Measure("ds", domain=mesh, subdomain_data=boundary_tags)
     dx = ufl.Measure("dx", domain=mesh)  # ufl.dx
+
+    # mu_ = youngs_modulus / (2.0 * (1.0 + poissons_ratio))
+    # lambda_ = (
+    #     youngs_modulus
+    #     * poissons_ratio
+    #     / ((1.0 + poissons_ratio) * (1.0 - 2.0 * poissons_ratio))
+    # )
+    # # plane-stress
+    # lambda_ = 2 * mu_ * lambda_ / (lambda_ + 2 * mu_)
+
+    # def epsilon(u):
+    #     return ufl.sym(ufl.grad(u))
+
+    # def sigma(u):
+    #     return 2.0 * mu_ * epsilon(u) + lambda_ * ufl.tr(epsilon(u)) * ufl.Identity(2)
 
     compliance_matrix = (1 / youngs_modulus) * ufl.as_matrix(
         [
@@ -433,8 +457,8 @@ def plot_solution(function: DFunction, num_elements: int) -> None:
     plt.clf()
 
 
-u_exact = calculate_approximate_solution(num_elements=num_elements_reference)
-plot_solution(u_exact, num_elements_reference)
+u_exact = calculate_approximate_solution(num_elements=fem_num_elements_reference)
+plot_solution(u_exact, fem_num_elements_reference)
 
 element_size_record: list[float] = []
 l2_error_record: list[float] = []
@@ -442,23 +466,27 @@ relative_l2_error_record: list[float] = []
 infinity_error_record: list[float] = []
 num_dofs_record: list[int] = []
 num_total_elements_record: list[int] = []
+displacement_x_upper_left_corner_record: list[int] = []
 
 
 print("Start convergence analysis")
-for num_elements in num_elements_tests:
+for num_elements in fem_num_elements_tests:
     u_approx = calculate_approximate_solution(num_elements)
+    u_approx_x = u_approx.sub(0).collapse()
+    u_approx_y = u_approx.sub(1).collapse()
     plot_solution(u_approx, num_elements)
-    l2_error = l2_error(u_approx, u_exact).item()
-    relative_l2_error = relative_l2_error(u_approx, u_exact).item()
-    infinity_error = infinity_error(u_approx, u_exact).item()
     num_total_elements = u_approx.function_space.mesh.topology.index_map(2).size_global
     num_dofs = u_approx.function_space.tabulate_dof_coordinates().size
     element_size_record.append(edge_length / num_elements)
-    l2_error_record.append(l2_error)
-    relative_l2_error_record.append(relative_l2_error)
-    infinity_error_record.append(infinity_error)
+    l2_error_record.append(l2_error(u_approx, u_exact))
+    relative_l2_error_record.append(relative_l2_error(u_approx, u_exact))
+    infinity_error_record.append(infinity_error(u_approx, u_exact))
     num_total_elements_record.append(num_total_elements)
     num_dofs_record.append(num_dofs)
+    displacement_x_upper_left_corner = evaluate_function(
+        u_approx_x, np.array([[-edge_length, edge_length, 0.0]])
+    )[0]
+    displacement_x_upper_left_corner_record.append(displacement_x_upper_left_corner)
 
 # Save results
 results_frame = pd.DataFrame(
@@ -481,6 +509,11 @@ pandas_data_writer.write(
 
 ############################################################
 print("Postprocessing")
+
+convergence_x_upper_left_corner = calculate_empirical_convegrence_order(
+    displacement_x_upper_left_corner_record, fem_reduction_factor
+)
+print(f"Convergence u_x upper left corner: {convergence_x_upper_left_corner}")
 
 plot_error_convergence_analysis(
     error_record=l2_error_record,

@@ -42,8 +42,8 @@ youngs_modulus = 210000.0
 poissons_ratio = 0.3
 # FEM
 fem_element_family = "Lagrange"
-fem_element_degree = 2
-fem_element_size_reference = 0.2
+fem_element_degree = 1
+fem_element_size_reference = 0.1
 fem_element_size_largest = 1.6
 fem_reduction_factor = 1 / 2
 fem_element_size_tests = (
