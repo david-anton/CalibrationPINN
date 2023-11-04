@@ -34,9 +34,9 @@ from parametricpinn.types import NPArray, PLTAxes
 material_model = "plane stress"
 edge_length = 100.0
 radius = 20.0
-traction_left_x = -100.0
+traction_left_x = 0.0
 traction_left_y = 0.0
-volume_force_x = 0.0
+volume_force_x = -1.0
 volume_force_y = 0.0
 youngs_modulus = 210000.0
 poissons_ratio = 0.3
@@ -56,7 +56,7 @@ interpolation_method = "nearest"
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdirectory = (
-    f"{current_date}_convergence_analysis_linearelasticity_quarterplatewithhole_p_2_r_20"
+    f"{current_date}_convergence_analysis_linearelasticity_quarterplatewithhole_f_only_p_2"
 )
 
 # Set up simulation
