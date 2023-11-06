@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Callable, TypeAlias, Union
 
+import dolfinx
 import numpy as np
 import pandas as pd
 import torch
@@ -53,7 +54,7 @@ communicator = MPI.COMM_WORLD
 
 
 def solve_poisson(num_elements):
-    mesh = create_unit_square(communicator, num_elements, num_elements)
+    mesh = create_unit_square(communicator, num_elements, num_elements)#, cell_type=dolfinx.mesh.CellType.quadrilateral)
     x = SpatialCoordinate(mesh)
     f = -div(grad(u_ufl(x)))
     V = functionspace(mesh, (element_family, element_degree))

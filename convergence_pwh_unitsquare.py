@@ -2,7 +2,6 @@ from datetime import date
 from typing import Callable, TypeAlias, Union
 
 import dolfinx
-import gmsh
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
@@ -11,9 +10,13 @@ import torch
 import ufl
 from dolfinx import default_scalar_type
 from dolfinx.fem import Constant, dirichletbc, functionspace, locate_dofs_topological
-from dolfinx.fem.petsc import LinearProblem
-from dolfinx.io.gmshio import model_to_mesh
-from dolfinx.mesh import create_rectangle, locate_entities_boundary, meshtags
+from dolfinx.fem.petsc import LinearProblem, create_vector
+from dolfinx.mesh import (
+    create_rectangle,
+    create_unit_square,
+    locate_entities_boundary,
+    meshtags,
+)
 from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
 from mpi4py import MPI
@@ -28,7 +31,6 @@ from parametricpinn.fem.base import (
 )
 from parametricpinn.fem.convergenceanalysis import (
     calculate_empirical_convegrence_order,
-    h01_error,
     infinity_error,
     l2_error,
     plot_error_convergence_analysis,
@@ -57,20 +59,18 @@ SortedFacetTags: TypeAlias = npt.NDArray[np.int32]
 UExact: TypeAlias = Union[DFunction, UFLExpression, Callable[[NPArray], NPArray]]
 
 # Setup
-edge_length = 100.0
-radius = 10.0
-youngs_modulus = 210000.0
+edge_length = 1.0
+youngs_modulus = 1.0
 poissons_ratio = 0.3
-traction_left_x = -100.0
-traction_left_y = 0.0
+traction_right_x = 1.0
+traction_right_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
 is_symmetry_bc = False
-is_hole = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
-fem_cell_type = dolfinx.mesh.CellType.triangle  # dolfinx.mesh.CellType.quadrilateral
+fem_cell_type = dolfinx.mesh.CellType.triangle #dolfinx.mesh.CellType.quadrilateral
 fem_num_elements_reference = 128
 fem_minimal_num_elements = 2
 fem_reduction_factor = 1 / 2
@@ -90,7 +90,7 @@ num_cbar_ticks = 7
 plot_font_size = 12
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_subdirectory = f"{current_date}_convergence_pwh"
+output_subdirectory = f"{current_date}_convergence_unitsquare"
 
 
 communicator = MPI.COMM_WORLD
@@ -99,40 +99,9 @@ communicator = MPI.COMM_WORLD
 def calculate_approximate_solution(num_elements):
     print(f"Run simulation with {num_elements} elements per edge")
     # Mesh
-    if is_hole:
-        geometric_dim = 2
-        mpi_rank = 0
-        solid_marker = 1
-
-        gmsh.initialize()
-        geometry_kernel = gmsh.model.occ
-        gmsh.model.add("domain")
-        plate = geometry_kernel.add_rectangle(0, 0, 0, -edge_length, edge_length)
-        hole = geometry_kernel.add_disk(0, 0, 0, radius, radius)
-        geometry = geometry_kernel.cut([(2, plate)], [(2, hole)])
-
-        geometry_kernel.synchronize()
-        surface = geometry_kernel.getEntities(dim=2)
-        assert surface == geometry[0]
-        gmsh.model.addPhysicalGroup(surface[0][0], [surface[0][1]], solid_marker)
-        gmsh.model.setPhysicalName(surface[0][0], solid_marker, "Solid")
-
-        element_size = edge_length / num_elements
-        gmsh.option.setNumber("Mesh.CharacteristicLengthMin", element_size)
-        gmsh.option.setNumber("Mesh.CharacteristicLengthMax", element_size)
-
-        geometry_kernel.synchronize()
-        gmsh.model.mesh.generate(geometric_dim)
-        gmesh = gmsh.model
-        mesh, _, _ = model_to_mesh(gmesh, communicator, mpi_rank, gdim=geometric_dim)
-        gmsh.finalize()
-    else:
-        mesh = create_rectangle(
-            comm=communicator,
-            points=[[-edge_length, 0.0], [0.0, edge_length]],
-            n=[num_elements, num_elements],
-            cell_type=fem_cell_type,
-        )
+    mesh = create_unit_square(
+        communicator, num_elements, num_elements, cell_type=fem_cell_type
+    )
 
     # Function space
     shape = (2,)
@@ -165,15 +134,15 @@ def calculate_approximate_solution(num_elements):
     tag_top = 2
     tag_bottom = 3
     bc_facets_dim = mesh.topology.dim - 1
-    locate_left_facet = lambda x: np.isclose(x[0], -edge_length)
-    locate_right_facet = lambda x: np.isclose(x[0], 0.0)
+    locate_left_facet = lambda x: np.isclose(x[0], 0.0)
+    locate_right_facet = lambda x: np.isclose(x[0], edge_length)
     locate_top_facet = lambda x: np.isclose(x[1], edge_length)
     locate_bottom_facet = lambda x: np.isclose(x[1], 0.0)
     boundaries = [
-        (tag_right, locate_right_facet),
         (tag_left, locate_left_facet),
-        (tag_bottom, locate_bottom_facet),
+        (tag_right, locate_right_facet),
         (tag_top, locate_top_facet),
+        (tag_bottom, locate_bottom_facet),
     ]
     sorted_facet_indices, sorted_facet_tags = list_sorted_facet_indices_and_tags(
         boundaries=boundaries, mesh=mesh, bc_facets_dim=bc_facets_dim
@@ -192,21 +161,6 @@ def calculate_approximate_solution(num_elements):
 
     ds = ufl.Measure("ds", domain=mesh, subdomain_data=boundary_tags)
     dx = ufl.Measure("dx", domain=mesh)  # ufl.dx
-
-    # mu_ = youngs_modulus / (2.0 * (1.0 + poissons_ratio))
-    # lambda_ = (
-    #     youngs_modulus
-    #     * poissons_ratio
-    #     / ((1.0 + poissons_ratio) * (1.0 - 2.0 * poissons_ratio))
-    # )
-    # # plane-stress
-    # lambda_ = 2 * mu_ * lambda_ / (lambda_ + 2 * mu_)
-
-    # def epsilon(u):
-    #     return ufl.sym(ufl.grad(u))
-
-    # def sigma(u):
-    #     return 2.0 * mu_ * epsilon(u) + lambda_ * ufl.tr(epsilon(u)) * ufl.Identity(2)
 
     compliance_matrix = (1 / youngs_modulus) * ufl.as_matrix(
         [
@@ -235,30 +189,30 @@ def calculate_approximate_solution(num_elements):
     rhs = ufl.dot(volume_force, test_function) * dx
 
     # Boundary conditions application
-    T_left = Constant(
+    T_right = Constant(
         mesh,
-        default_scalar_type((traction_left_x, traction_left_y)),
+        default_scalar_type((traction_right_x, traction_right_y)),
     )
-    bc_N_T_left = ufl.dot(T_left, test_function) * ds(tag_left)
-    rhs = rhs + bc_N_T_left
+    bc_N_T_right = ufl.dot(T_right, test_function) * ds(tag_right)
+    rhs = rhs + bc_N_T_right
 
     if is_symmetry_bc:
-        displacement_right_x = 0.0
+        displacement_left_x = 0.0
         displacement_bottom_y = 0.0
-        u_right_x = Constant(
+        u_left_x = Constant(
             mesh,
-            default_scalar_type(displacement_right_x),
+            default_scalar_type(displacement_left_x),
         )
         u_bottom_y = Constant(
             mesh,
             default_scalar_type(displacement_bottom_y),
         )
 
-        facets_u_right = boundary_tags.find(tag_right)
-        dofs_u_right_x = locate_dofs_topological(
-            function_space.sub(0), bc_facets_dim, facets_u_right
+        facets_u_left = boundary_tags.find(tag_left)
+        dofs_u_left_x = locate_dofs_topological(
+            function_space.sub(0), bc_facets_dim, facets_u_left
         )
-        bc_D_u_right_x = dirichletbc(u_right_x, dofs_u_right_x, function_space.sub(0))
+        bc_D_u_left_x = dirichletbc(u_left_x, dofs_u_left_x, function_space.sub(0))
 
         facets_u_bottom = boundary_tags.find(tag_bottom)
         dofs_u_bottom_y = locate_dofs_topological(
@@ -268,43 +222,44 @@ def calculate_approximate_solution(num_elements):
             u_bottom_y, dofs_u_bottom_y, function_space.sub(1)
         )
 
-        dirichlet_bcs = [bc_D_u_right_x, bc_D_u_bottom_y]
+        dirichlet_bcs = [bc_D_u_left_x, bc_D_u_bottom_y]
 
     else:
-        displacement_right_x = 0.0
-        displacement_right_y = 0.0
+        displacement_left_x = 0.0
+        displacement_left_y = 0.0
 
-        u_right = Constant(
+        u_left = Constant(
             mesh,
-            default_scalar_type((displacement_right_x, displacement_right_y)),
+            default_scalar_type((displacement_left_x, displacement_left_y)),
         )
 
-        facets_u_right = boundary_tags.find(tag_right)
-        dofs_u_right = locate_dofs_topological(
-            function_space, bc_facets_dim, facets_u_right
+        facets_u_left = boundary_tags.find(tag_left)
+        dofs_u_left = locate_dofs_topological(
+            function_space, bc_facets_dim, facets_u_left
         )
-        bc_D_u_right = dirichletbc(u_right, dofs_u_right, function_space)
+        bc_D_u_left = dirichletbc(u_left, dofs_u_left, function_space)
 
-        dirichlet_bcs = [bc_D_u_right]
+        dirichlet_bcs = [bc_D_u_left]
 
     # Problem
     problem = LinearProblem(
         lhs,
         rhs,
         bcs=dirichlet_bcs,
+        # petsc_options={"ksp_type": "cg", "ksp_rtol": 1e-8, "ksp_atol": 1e-10, "ksp_max_it": 1000}
         petsc_options={"ksp_type": "preonly", "pc_type": "lu"},
     )
 
     approximate_solution = problem.solve()
 
-    if num_elements == fem_minimal_num_elements:
-        # L = dolfinx.fem.form(rhs)
-        # b = create_vector(L)
-        A = problem.A
-        b = problem.b
-        print(b.array.reshape((-1, 2)))
-        print(A.view())
-        print(approximate_solution.function_space.tabulate_dof_coordinates())
+    # if num_elements == fem_minimal_num_elements:
+    #     # L = dolfinx.fem.form(rhs)
+    #     # b = create_vector(L)
+    #     A = problem.A
+    #     b = problem.b
+    #     print(b.array.reshape((-1, 2)))
+    #     print(A.view())
+    #     print(approximate_solution.function_space.tabulate_dof_coordinates())
 
     return approximate_solution
 
@@ -312,8 +267,8 @@ def calculate_approximate_solution(num_elements):
 def plot_solution(function: DFunction, num_elements: int) -> None:
     def generate_coordinate_grid(num_points_per_edge: int) -> list[NPArray]:
         grid_coordinates_x = np.linspace(
-            -edge_length,
             0.0,
+            edge_length,
             num=num_points_per_edge,
         )
         grid_coordinates_y = np.linspace(
@@ -339,9 +294,6 @@ def plot_solution(function: DFunction, num_elements: int) -> None:
             method=interpolation_method,
         )
 
-    def cut_result_grid(result_grid: NPArray) -> NPArray:
-        return result_grid[1:, 1:]
-
     def configure_ticks(axes: PLTAxes) -> None:
         x_min = np.nanmin(coordinates_x)
         x_max = np.nanmax(coordinates_x)
@@ -356,18 +308,6 @@ def plot_solution(function: DFunction, num_elements: int) -> None:
         axes.set_yticks(y_ticks)
         axes.set_yticklabels(map(str, y_ticks.round(decimals=2)))
         axes.tick_params(axis="both", which="major", pad=15)
-
-    def add_geometry_specific_patches(axes: PLTAxes) -> None:
-        def add_quarter_hole(axes: PLTAxes):
-            hole = plt.Circle(
-                (0.0, 0.0),
-                radius=radius,
-                color="white",
-            )
-            axes.add_patch(hole)
-
-        if is_hole:
-            add_quarter_hole(axes)
 
     # Extract FEM results
     coordinates = function.function_space.tabulate_dof_coordinates()
@@ -426,7 +366,6 @@ def plot_solution(function: DFunction, num_elements: int) -> None:
     cbar.ax.set_yticklabels(map(str, cbar_ticks))
     cbar.ax.minorticks_off()
     figure.axes[1].tick_params(labelsize=plot_font_size)
-    add_geometry_specific_patches(axes)
     output_path = project_directory.create_output_file_path(
         file_name, output_subdirectory
     )
@@ -459,7 +398,6 @@ def plot_solution(function: DFunction, num_elements: int) -> None:
     cbar.ax.set_yticklabels(map(str, cbar_ticks))
     cbar.ax.minorticks_off()
     figure.axes[1].tick_params(labelsize=plot_font_size)
-    add_geometry_specific_patches(axes)
     output_path = project_directory.create_output_file_path(
         file_name, output_subdirectory
     )
@@ -473,20 +411,12 @@ u_exact_y = u_exact.sub(1).collapse()
 plot_solution(u_exact, fem_num_elements_reference)
 
 element_size_record: list[float] = []
-l2_error_x_record: list[float] = []
-l2_error_y_record: list[float] = []
-relative_l2_error_x_record: list[float] = []
-relative_l2_error_y_record: list[float] = []
-h01_error_x_record: list[float] = []
-h01_error_y_record: list[float] = []
-infinity_error_x_record: list[float] = []
-infinity_error_y_record: list[float] = []
+l2_error_record: list[float] = []
+relative_l2_error_record: list[float] = []
+infinity_error_record: list[float] = []
 num_dofs_record: list[int] = []
 num_total_elements_record: list[int] = []
-displacement_x_beside_hole_record: list[float] = []
-displacement_y_above_hole_record: list[float] = []
-displacement_x_upper_left_corner_record: list[float] = []
-displacement_y_upper_left_corner_record: list[float] = []
+displacement_x_upper_right_corner_record: list[int] = []
 
 
 print("Start convergence analysis")
@@ -498,33 +428,23 @@ for num_elements in fem_num_elements_tests:
     num_total_elements = u_approx.function_space.mesh.topology.index_map(2).size_global
     num_dofs = u_approx.function_space.tabulate_dof_coordinates().size
     element_size_record.append(edge_length / num_elements)
-    l2_error_x_record.append(l2_error(u_approx_x, u_exact_x))
-    l2_error_y_record.append(l2_error(u_approx_y, u_exact_y))
-    relative_l2_error_x_record.append(relative_l2_error(u_approx_x, u_exact_x))
-    relative_l2_error_y_record.append(relative_l2_error(u_approx_y, u_exact_y))
-    h01_error_x_record.append(h01_error(u_approx_x, u_exact_x))
-    h01_error_y_record.append(h01_error(u_approx_y, u_exact_y))
-    infinity_error_x_record.append(infinity_error(u_approx_x, u_exact_x))
-    infinity_error_y_record.append(infinity_error(u_approx_y, u_exact_y))
+    l2_error_record.append(l2_error(u_approx_x, u_exact_y))
+    relative_l2_error_record.append(relative_l2_error(u_approx, u_exact))
+    infinity_error_record.append(infinity_error(u_approx, u_exact))
     num_total_elements_record.append(num_total_elements)
     num_dofs_record.append(num_dofs)
-    displacement_x_upper_left_corner = evaluate_function(
-        u_approx_x, np.array([[-edge_length, edge_length, 0.0]])
+    displacement_x_upper_right_corner = evaluate_function(
+        u_approx_x, np.array([[edge_length, edge_length, 0.0]])
     )[0]
-    displacement_x_upper_left_corner_record.append(displacement_x_upper_left_corner)
+    displacement_x_upper_right_corner_record.append(displacement_x_upper_right_corner)
 
 # Save results
 results_frame = pd.DataFrame(
     {
         "element_size": element_size_record,
-        "L2 error x": l2_error_x_record,
-        "L2 error y": l2_error_y_record,
-        "relative L2 error x": relative_l2_error_x_record,
-        "relative L2 error y": relative_l2_error_y_record,
-        "H01 error x": h01_error_x_record,
-        "H01 error y": h01_error_y_record,
-        "infinity error x": infinity_error_x_record,
-        "infinity error y": infinity_error_y_record,
+        "l2 error": l2_error_record,
+        "relative l2 error": relative_l2_error_record,
+        "infinity error": infinity_error_record,
         "number elements": num_total_elements_record,
         "number dofs": num_dofs_record,
     }
@@ -541,54 +461,22 @@ pandas_data_writer.write(
 print("Postprocessing")
 
 convergence_x_upper_left_corner = calculate_empirical_convegrence_order(
-    displacement_x_upper_left_corner_record, fem_reduction_factor
+    displacement_x_upper_right_corner_record, fem_reduction_factor
 )
 print(f"Convergence u_x upper left corner: {convergence_x_upper_left_corner}")
 
 plot_error_convergence_analysis(
-    error_record=l2_error_x_record,
+    error_record=l2_error_record,
     element_size_record=element_size_record,
-    error_norm="l2_x",
+    error_norm="l2",
     output_subdirectory=output_subdirectory,
     project_directory=project_directory,
 )
 
 plot_error_convergence_analysis(
-    error_record=l2_error_y_record,
+    error_record=infinity_error_record,
     element_size_record=element_size_record,
-    error_norm="l2_y",
-    output_subdirectory=output_subdirectory,
-    project_directory=project_directory,
-)
-
-plot_error_convergence_analysis(
-    error_record=infinity_error_x_record,
-    element_size_record=element_size_record,
-    error_norm="infinity_x",
-    output_subdirectory=output_subdirectory,
-    project_directory=project_directory,
-)
-
-plot_error_convergence_analysis(
-    error_record=infinity_error_y_record,
-    element_size_record=element_size_record,
-    error_norm="infinity_y",
-    output_subdirectory=output_subdirectory,
-    project_directory=project_directory,
-)
-
-plot_error_convergence_analysis(
-    error_record=h01_error_x_record,
-    element_size_record=element_size_record,
-    error_norm="h01_x",
-    output_subdirectory=output_subdirectory,
-    project_directory=project_directory,
-)
-
-plot_error_convergence_analysis(
-    error_record=h01_error_y_record,
-    element_size_record=element_size_record,
-    error_norm="h01_y",
+    error_norm="infinity",
     output_subdirectory=output_subdirectory,
     project_directory=project_directory,
 )

@@ -260,11 +260,14 @@ u_exact_y = u_exact.sub(1).collapse()
 
 
 element_size_record: list[float] = []
-l2_error_record: list[float] = []
-relative_l2_error_record: list[float] = []
+l2_error_x_record: list[float] = []
+l2_error_y_record: list[float] = []
+relative_l2_error_x_record: list[float] = []
+relative_l2_error_y_record: list[float] = []
 h01_error_x_record: list[float] = []
 h01_error_y_record: list[float] = []
-infinity_error_record: list[float] = []
+infinity_error_x_record: list[float] = []
+infinity_error_y_record: list[float] = []
 num_dofs_record: list[int] = []
 num_elements_record: list[int] = []
 displacement_x_beside_hole_record: list[float] = []
@@ -280,11 +283,14 @@ for element_size in fem_element_size_tests:
     u_approx_y = u_approx.sub(1).collapse()
     num_elements = u_approx.function_space.mesh.topology.index_map(2).size_global
     num_dofs = u_approx.function_space.tabulate_dof_coordinates().size
-    l2_error_record.append(l2_error(u_approx, u_exact))
-    relative_l2_error_record.append(relative_l2_error(u_approx, u_exact))
+    l2_error_x_record.append(l2_error(u_approx_x, u_exact_x))
+    l2_error_y_record.append(l2_error(u_approx_y, u_exact_y))
+    relative_l2_error_x_record.append(relative_l2_error(u_approx_x, u_exact_x))
+    relative_l2_error_y_record.append(relative_l2_error(u_approx_y, u_exact_y))
     h01_error_x_record.append(h01_error(u_approx_x, u_exact_x))
     h01_error_y_record.append(h01_error(u_approx_y, u_exact_y))
-    infinity_error_record.append(infinity_error(u_approx, u_exact))
+    infinity_error_x_record.append(infinity_error(u_approx_x, u_exact_x))
+    infinity_error_y_record.append(infinity_error(u_approx_y, u_exact_y))
     num_elements_record.append(num_elements)
     num_dofs_record.append(num_dofs)
     element_size_record.append(element_size)
@@ -310,11 +316,14 @@ for element_size in fem_element_size_tests:
 records_frame = pd.DataFrame(
     {
         "element_size": element_size_record,
-        "L2 error": l2_error_record,
-        "relative L2 error": relative_l2_error_record,
+        "L2 error x": l2_error_x_record,
+        "L2 error y": l2_error_y_record,
+        "relative L2 error x": relative_l2_error_x_record,
+        "relative L2 error y": relative_l2_error_y_record,
         "H01 error x": h01_error_x_record,
         "H01 error y": h01_error_y_record,
-        "infinity error": infinity_error_record,
+        "infinity error x": infinity_error_x_record,
+        "infinity error y": infinity_error_y_record,
         "number elements": num_elements_record,
         "number dofs": num_dofs_record,
     }
@@ -364,17 +373,33 @@ pandas_data_writer.write(
 print("Postprocessing")
 
 plot_error_convergence_analysis(
-    error_record=l2_error_record,
+    error_record=l2_error_x_record,
     element_size_record=element_size_record,
-    error_norm="l2",
+    error_norm="l2_x",
     output_subdirectory=output_subdirectory,
     project_directory=project_directory,
 )
 
 plot_error_convergence_analysis(
-    error_record=infinity_error_record,
+    error_record=l2_error_y_record,
     element_size_record=element_size_record,
-    error_norm="infinity",
+    error_norm="l2_y",
+    output_subdirectory=output_subdirectory,
+    project_directory=project_directory,
+)
+
+plot_error_convergence_analysis(
+    error_record=infinity_error_x_record,
+    element_size_record=element_size_record,
+    error_norm="infinity_x",
+    output_subdirectory=output_subdirectory,
+    project_directory=project_directory,
+)
+
+plot_error_convergence_analysis(
+    error_record=infinity_error_y_record,
+    element_size_record=element_size_record,
+    error_norm="infinity_y",
     output_subdirectory=output_subdirectory,
     project_directory=project_directory,
 )
