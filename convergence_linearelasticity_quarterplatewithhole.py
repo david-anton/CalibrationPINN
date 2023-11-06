@@ -43,8 +43,8 @@ poissons_ratio = 0.3
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
-fem_element_size_reference = 0.4
-fem_element_size_largest = 3.2
+fem_element_size_reference = 0.2
+fem_element_size_largest = 1.6
 fem_reduction_factor = 1 / 2
 fem_element_size_tests = (
     np.array([1, fem_reduction_factor, fem_reduction_factor**2])
@@ -56,7 +56,7 @@ interpolation_method = "nearest"
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdirectory = (
-    f"{current_date}_convergence_analysis_linearelasticity_quarterplatewithhole"
+    f"{current_date}_convergence_analysis_linearelasticity_quarterplatewithhole_r_20"
 )
 
 # Set up simulation
