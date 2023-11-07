@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+from dolfinx.io import XDMFFile
 import torch
 import ufl
 from dolfinx import default_scalar_type
@@ -71,8 +72,8 @@ is_hole = False
 fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_cell_type = dolfinx.mesh.CellType.triangle  # dolfinx.mesh.CellType.quadrilateral
-fem_num_elements_reference = 128
-fem_minimal_num_elements = 2
+fem_num_elements_reference = 256
+fem_minimal_num_elements = 8
 fem_reduction_factor = 1 / 2
 fem_num_elements_tests = (
     np.array(
@@ -297,14 +298,24 @@ def calculate_approximate_solution(num_elements):
 
     approximate_solution = problem.solve()
 
-    if num_elements == fem_minimal_num_elements:
-        # L = dolfinx.fem.form(rhs)
-        # b = create_vector(L)
-        A = problem.A
-        b = problem.b
-        print(b.array.reshape((-1, 2)))
-        print(A.view())
-        print(approximate_solution.function_space.tabulate_dof_coordinates())
+    # if num_elements == fem_minimal_num_elements:
+    #     # L = dolfinx.fem.form(rhs)
+    #     # b = create_vector(L)
+    #     A = problem.A
+    #     b = problem.b
+    #     print(b.array.reshape((-1, 2)))
+    #     print(A.view())
+    #     print(approximate_solution.function_space.tabulate_dof_coordinates())
+
+    # file_name =  f"displacement_{num_elements}.xdmf"
+    # output_path = project_directory.create_output_file_path(
+    #         file_name, output_subdirectory
+    #     )
+    # with XDMFFile(mesh.comm, output_path, "w") as xdmf:
+    #     xdmf.write_mesh(mesh)
+    #     approximate_solution.name = "approximation"
+    #     xdmf.write_function(approximate_solution)
+
 
     return approximate_solution
 
