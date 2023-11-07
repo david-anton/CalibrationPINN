@@ -34,9 +34,7 @@ def l2_error(
     mpi_comm = _get_mpi_communicator(func_space)
     u_approx_interpolated = _interpolate_u_approx(u_approx, func_space)
     u_exact_interpolated = _interpolate_u_exact(u_exact, func_space)
-
     error_func = _compute_error(u_approx_interpolated, u_exact_interpolated, func_space)
-
     error_norm = _l2_error_norm(error_func)
     return _integrate_error(error_norm, mpi_comm).item()
 
@@ -50,9 +48,7 @@ def relative_l2_error(
     mpi_comm = _get_mpi_communicator(func_space)
     u_approx_interpolated = _interpolate_u_approx(u_approx, func_space)
     u_exact_interpolated = _interpolate_u_exact(u_exact, func_space)
-
     error_func = _compute_error(u_approx_interpolated, u_exact_interpolated, func_space)
-
     error_norm = _relative_l2_error_norm(error_func, u_exact_interpolated)
     return _integrate_error(error_norm, mpi_comm).item()
 
@@ -66,9 +62,7 @@ def h01_error(
     mpi_comm = _get_mpi_communicator(func_space)
     u_approx_interpolated = _interpolate_u_approx(u_approx, func_space)
     u_exact_interpolated = _interpolate_u_exact(u_exact, func_space)
-
     error_func = _compute_error(u_approx_interpolated, u_exact_interpolated, func_space)
-
     error_norm = _h01_error_norm(error_func)
     return _integrate_error(error_norm, mpi_comm).item()
 
@@ -80,7 +74,6 @@ def infinity_error(
     func_space = u_approx.function_space
     mpi_comm = _get_mpi_communicator(func_space)
     u_exact_interpolated = _interpolate_u_exact(u_exact, func_space)
-
     error_norm = _infinity_error_norm(u_approx, u_exact_interpolated, mpi_comm)
     return error_norm.item()
 
@@ -108,16 +101,21 @@ def _get_mpi_communicator(func_space: DFunctionSpace) -> MPICommunicator:
 
 
 def _interpolate_u_exact(u_exact: UExact, func_space: DFunctionSpace) -> DFunctionSpace:
+    mesh = func_space.mesh
     func = Function(func_space, dtype=default_scalar_type)
+
     if isinstance(u_exact, DFunction):
-        func.interpolate(
-            u_exact,
-            nmm_interpolation_data=create_nonmatching_meshes_interpolation_data(
-                func.function_space.mesh._cpp_object,
-                func.function_space.element,
-                u_exact.function_space.mesh._cpp_object,
-            ),
-        )
+        if u_exact.function_space.mesh != mesh:
+            func.interpolate(
+                u_exact,
+                nmm_interpolation_data=create_nonmatching_meshes_interpolation_data(
+                    func.function_space.mesh._cpp_object,
+                    func.function_space.element,
+                    u_exact.function_space.mesh._cpp_object,
+                ),
+            )
+        else:
+            func.interpolate(u_exact)
     elif isinstance(u_exact, ufl.core.expr.Expr):
         interpolation_points = func_space.element.interpolation_points()
         u_expression = Expression(u_exact, interpolation_points)

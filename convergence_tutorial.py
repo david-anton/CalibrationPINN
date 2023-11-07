@@ -36,7 +36,7 @@ UExact: TypeAlias = Union[DFunction, UFLExpression, Callable[[NPArray], NPArray]
 element_family = "Lagrange"
 element_degree = 1
 num_elements_reference = 128
-num_elements_tests = [4, 8, 16, 32, 64]
+num_elements_tests = [4, 8, 16]
 degree_raise = 3
 # Output
 current_date = date.today().strftime("%Y%m%d")
@@ -54,7 +54,9 @@ communicator = MPI.COMM_WORLD
 
 
 def solve_poisson(num_elements):
-    mesh = create_unit_square(communicator, num_elements, num_elements)#, cell_type=dolfinx.mesh.CellType.quadrilateral)
+    mesh = create_unit_square(
+        communicator, num_elements, num_elements
+    )  # , cell_type=dolfinx.mesh.CellType.quadrilateral)
     x = SpatialCoordinate(mesh)
     f = -div(grad(u_ufl(x)))
     V = functionspace(mesh, (element_family, element_degree))

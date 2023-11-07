@@ -70,7 +70,7 @@ is_symmetry_bc = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
-fem_cell_type = dolfinx.mesh.CellType.triangle #dolfinx.mesh.CellType.quadrilateral
+fem_cell_type = dolfinx.mesh.CellType.triangle  # dolfinx.mesh.CellType.quadrilateral
 fem_num_elements_reference = 128
 fem_minimal_num_elements = 2
 fem_reduction_factor = 1 / 2
