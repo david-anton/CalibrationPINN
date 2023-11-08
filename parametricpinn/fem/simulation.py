@@ -130,7 +130,8 @@ def _simulate_once(
         mesh, (default_scalar_type((volume_force_x, volume_force_y)))
     )
 
-    element = (element_family, element_degree, (2,))
+    element_shape = (2,)
+    element = (element_family, element_degree, element_shape)
     function_space = functionspace(mesh, element)
 
     problem = define_problem(
