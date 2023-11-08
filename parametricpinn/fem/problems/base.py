@@ -75,4 +75,5 @@ def save_results_as_xdmf(
     )
     with XDMFFile(mesh.comm, output_path, "w") as xdmf:
         xdmf.write_mesh(mesh)
-        # xdmf.write_function(approximate_solution) # No longer working after updating dolfinx
+        approximate_solution.name = "approximation"
+        xdmf.write_function(approximate_solution)
