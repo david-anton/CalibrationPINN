@@ -316,7 +316,6 @@ def calculate_approximate_solution(num_elements):
     #     approximate_solution.name = "approximation"
     #     xdmf.write_function(approximate_solution)
 
-
     return approximate_solution
 
 
