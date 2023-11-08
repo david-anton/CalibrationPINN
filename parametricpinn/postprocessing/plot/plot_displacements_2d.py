@@ -58,6 +58,8 @@ class DisplacementsPlotterConfig2D:
         self.num_cbar_ticks = 7
         # resolution of results
         self.num_points_per_edge = 128
+        # grid interpolation
+        self.interpolation_method = "nearest"
         # save options
         self.dpi = 300
         self.file_format = "pdf"
@@ -312,6 +314,7 @@ def _plot_simulation_and_prediction(
         coordinates_y,
         coordinates_grid_x,
         coordinates_grid_y,
+        plot_config.interpolation_method
     )
     interpolated_fem_displacements = _interpolate_results_on_grid(
         fem_displacements,
@@ -319,6 +322,7 @@ def _plot_simulation_and_prediction(
         coordinates_y,
         coordinates_grid_x,
         coordinates_grid_y,
+        plot_config.interpolation_method
     )
     figure_pinn = _plot_once(
         interpolated_pinn_displacements,
@@ -377,6 +381,7 @@ def _plot_errors(
         coordinates_y,
         coordinates_grid_x,
         coordinates_grid_y,
+        plot_config.interpolation_method
     )
     figure = _plot_once(
         interpolated_errors,
@@ -446,6 +451,7 @@ def _interpolate_results_on_grid(
     coordinates_y: NPArray,
     coordinates_grid_x: NPArray,
     coordinates_grid_y: NPArray,
+    interpolation_method: str
 ) -> NPArray:
     results = results.reshape((-1,))
     coordinates = np.concatenate((coordinates_x, coordinates_y), axis=1)
@@ -453,7 +459,7 @@ def _interpolate_results_on_grid(
         coordinates,
         results,
         (coordinates_grid_x, coordinates_grid_y),
-        method="cubic",
+        method=interpolation_method,
     )
 
 
@@ -503,11 +509,10 @@ def _plot_once(
 
     _set_title_and_labels(axes)
     _configure_ticks(axes)
-    results_cut = _cut_result_grid(results)
     plot = axes.pcolormesh(
         coordinates_x,
         coordinates_y,
-        results_cut,
+        results,
         cmap=plt.get_cmap(plot_config.color_map),
         norm=normalizer,
     )
@@ -550,11 +555,6 @@ def _add_geometry_specific_patches(
         raise FEMDomainConfigError(
             f"There is no implementation for the requested FEM domain {domain_config}."
         )
-
-
-def _cut_result_grid(result_grid: NPArray) -> NPArray:
-    # return result_grid[:-1, :-1]
-    return result_grid[1:, 1:]
 
 
 def _save_plot(
