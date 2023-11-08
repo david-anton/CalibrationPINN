@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import TypeAlias, Union
 
 from dolfinx import default_scalar_type
-from dolfinx.fem import Constant, FunctionSpace, functionspace
+from dolfinx.fem import Constant, functionspace
 
 from parametricpinn.fem.base import (
     DFunction,

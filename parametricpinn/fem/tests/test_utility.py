@@ -32,7 +32,6 @@ def expected_solution_between_nodes_linear(points: NPArray) -> NPArray:
     return 1 / 2 * ((2 * points[:, 0]) ** 2 + (2 * points[:, 1]) ** 2)
 
 
-
 def create_fem_function(element_degree: int) -> DFunction:
     element = (element_family, element_degree, element_shape)
     mesh = create_rectangle(
@@ -48,7 +47,6 @@ def create_fem_function(element_degree: int) -> DFunction:
     function = Function(function_space)
     function.interpolate(solution)
     return function
-
 
 
 @pytest.fixture

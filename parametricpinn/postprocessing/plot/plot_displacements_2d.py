@@ -314,7 +314,7 @@ def _plot_simulation_and_prediction(
         coordinates_y,
         coordinates_grid_x,
         coordinates_grid_y,
-        plot_config.interpolation_method
+        plot_config.interpolation_method,
     )
     interpolated_fem_displacements = _interpolate_results_on_grid(
         fem_displacements,
@@ -322,7 +322,7 @@ def _plot_simulation_and_prediction(
         coordinates_y,
         coordinates_grid_x,
         coordinates_grid_y,
-        plot_config.interpolation_method
+        plot_config.interpolation_method,
     )
     figure_pinn = _plot_once(
         interpolated_pinn_displacements,
@@ -381,7 +381,7 @@ def _plot_errors(
         coordinates_y,
         coordinates_grid_x,
         coordinates_grid_y,
-        plot_config.interpolation_method
+        plot_config.interpolation_method,
     )
     figure = _plot_once(
         interpolated_errors,
@@ -451,7 +451,7 @@ def _interpolate_results_on_grid(
     coordinates_y: NPArray,
     coordinates_grid_x: NPArray,
     coordinates_grid_y: NPArray,
-    interpolation_method: str
+    interpolation_method: str,
 ) -> NPArray:
     results = results.reshape((-1,))
     coordinates = np.concatenate((coordinates_x, coordinates_y), axis=1)
