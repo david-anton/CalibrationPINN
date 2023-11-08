@@ -32,7 +32,7 @@ from parametricpinn.types import NPArray, PLTAxes
 ### Configuration
 # Set up
 edge_length = 100.0
-radius = 20.0
+radius = 10.0
 traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
@@ -55,7 +55,7 @@ interpolation_method = "nearest"
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_subdirectory = (
-    f"{current_date}_convergence_analysis_neohookean_quarterplatewithhole_r_20"
+    f"{current_date}_convergence_analysis_neohookean_quarterplatewithhole"
 )
 
 # Set up simulation
