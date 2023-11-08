@@ -13,6 +13,7 @@ from dolfinx.fem import (
     locate_dofs_topological,
 )
 from dolfinx.fem.petsc import LinearProblem
+from dolfinx.io import XDMFFile
 from dolfinx.mesh import create_rectangle, locate_entities_boundary, meshtags
 from mpi4py import MPI
 from scipy import stats
@@ -101,6 +102,58 @@ def solve_problem(num_elements):
     return problem.solve()
 
 
+# def save_function(approximation, num_elements):
+#     mesh = approximation.function_space.mesh
+#     output_path = f"output/dolfinx_report/approximation_{num_elements}.xdmf"
+#     with XDMFFile(mesh.comm, output_path, "w") as xdmf:
+#         xdmf.write_mesh(mesh)
+#         approximation.name = "approximation"
+#         xdmf.write_function(approximation)
+
+
+# import matplotlib.pyplot as plt
+# import numpy as np
+# from scipy import stats
+
+# from parametricpinn.io import ProjectDirectory
+# from parametricpinn.settings import Settings
+
+
+# def plot_error_convergence_analysis(
+#     error_record: list[float],
+#     element_size_record: list[float],
+#     error_norm: str,
+#     output_subdirectory: str,
+#     project_directory: ProjectDirectory,
+# ) -> None:
+#     figure, axes = plt.subplots()
+#     log_element_size = np.log(np.array(element_size_record))
+#     log_error = np.log(np.array(error_record))
+
+#     slope, intercept, _, _, _ = stats.linregress(log_element_size, log_error)
+#     regression_log_error = slope * log_element_size + intercept
+
+#     axes.plot(log_element_size, log_error, "ob", label="simulation")
+#     axes.plot(log_element_size, regression_log_error, "--r", label="regression")
+#     axes.set_xlabel("log element size")
+#     axes.set_ylabel(f"log error {error_norm}")
+#     axes.set_title("Convergence analysis")
+#     axes.legend(loc="best")
+#     axes.text(
+#         log_element_size[1],
+#         log_error[-1],
+#         f"convergence rate: {slope:.6}",
+#         style="italic",
+#         bbox={"facecolor": "red", "alpha": 0.5, "pad": 10},
+#     )
+#     file_name = f"convergence_log_{error_norm}_error.png"
+#     output_path = project_directory.create_output_file_path(
+#         file_name, output_subdirectory
+#     )
+#     figure.savefig(output_path, bbox_inches="tight", dpi=256)
+#     plt.clf()
+
+
 def L2_error(u_approx, u_exact, degree_raise=3):
     # Create higher order function space
     degree = u_approx.function_space.ufl_element().degree()
@@ -140,13 +193,21 @@ def calculate_convegrence_order(errors, element_sizes):
 
 u_exact = solve_problem(fem_num_elements_reference)
 
-element_sizes= []
+element_sizes = []
 l2_errors = []
 
 for num_elements in fem_num_elements_analysis:
     u_approx = solve_problem(num_elements)
     element_sizes.append(edge_length / num_elements)
+    # save_function(u_approx, num_elements)
     l2_errors.append(L2_error(u_approx, u_exact))
-    
-convergence_order = calculate_convegrence_order(l2_errors, element_sizes)    
+
+convergence_order = calculate_convegrence_order(l2_errors, element_sizes)
+# plot_error_convergence_analysis(
+#     l2_errors,
+#     element_sizes,
+#     error_norm="l2",
+#     output_subdirectory="output",
+#     project_directory=ProjectDirectory(Settings()),
+# )
 print(f"Convergence order: {convergence_order}")
