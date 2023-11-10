@@ -9,13 +9,19 @@ from parametricpinn.ansatz import (
     create_bayesian_normalized_hbc_ansatz_stretched_rod,
     create_standard_normalized_hbc_ansatz_stretched_rod,
 )
+from parametricpinn.bayesian.prior import create_univariate_normal_distributed_prior
 from parametricpinn.calibration import (
     CalibrationData,
     EfficientNUTSConfig,
     HamiltonianConfig,
-    LeastSquaresConfig,
     MetropolisHastingsConfig,
     calibrate,
+)
+from parametricpinn.calibration.bayesianinference.parametric_pinn import (
+    create_bayesian_ppinn_likelihood,
+)
+from parametricpinn.calibration.bayesianinference.plot import (
+    plot_posterior_normal_distributions,
 )
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.data.trainingdata_linearelasticity_1d import (
@@ -30,6 +36,7 @@ from parametricpinn.data.validationdata_linearelasticity_1d import (
     create_validation_dataset,
 )
 from parametricpinn.io import ProjectDirectory
+from parametricpinn.io.readerswriters import CSVDataReader
 from parametricpinn.network import BFFNN, FFNN
 from parametricpinn.postprocessing.plot import (
     BayesianDisplacementsPlotterConfig1D,
@@ -77,11 +84,15 @@ num_samples_valid = 64
 valid_interval = 1
 num_points_valid = 512
 batch_size_valid = num_samples_valid
-# Data
+# Loss errors
 std_pde_not_pretrained = 1e-2
 std_stress_bc_not_pretrained = 1e-2
 std_pde_pretrained = 1e-4
 std_stress_bc_pretrained = 1e-4
+# Calibration
+use_random_walk_metropolis_hasting = True
+use_hamiltonian = False
+use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
@@ -96,7 +107,9 @@ set_default_dtype(torch.float64)
 set_seed(0)
 
 
-def create_datasets() -> tuple[StretchedRodTrainingDataset1D, StretchedRodValidationDataset1D]:
+def create_datasets() -> (
+    tuple[StretchedRodTrainingDataset1D, StretchedRodValidationDataset1D]
+):
     config_training_dataset = StretchedRodTrainingDataset1DConfig(
         length=length,
         traction=traction,
@@ -205,10 +218,10 @@ def pretraining_step() -> None:
 
 def bayesian_training_step(is_pretrained: bool = False) -> None:
     if is_pretrained:
-        ansatz = create_standard_ansatz()
+        standard_ansatz = create_standard_ansatz()
         name_model_parameters_file = "model_parameters"
         model = load_model(
-            model=ansatz,
+            model=standard_ansatz,
             name_model_parameters_file=name_model_parameters_file,
             input_subdir=output_subdirectory,
             project_directory=project_directory,
@@ -218,12 +231,13 @@ def bayesian_training_step(is_pretrained: bool = False) -> None:
         measurements_standard_deviations = MeasurementsStds(
             pde=std_pde_pretrained, stress_bc=std_stress_bc_pretrained
         )
-    else: 
+    else:
         initial_parameters = None
         measurements_standard_deviations = MeasurementsStds(
             pde=std_pde_not_pretrained, stress_bc=std_stress_bc_not_pretrained
         )
 
+    ansatz = create_bayesian_ansatz()
     parameter_prior_stds = ParameterPriorStds(weight=std_weight, bias=std_bias)
 
     train_config = BayesianTrainingConfiguration(
@@ -259,153 +273,151 @@ def bayesian_training_step(is_pretrained: bool = False) -> None:
     _plot_exemplary_displacements()
 
 
-# def calibration_step() -> None:
-#     print("Start calibration ...")
-#     exact_youngs_modulus = 195000
-#     num_points_calibration = 32
-#     std_noise = 5 * 1e-4
+def calibration_step() -> None:
+    print("Start calibration ...")
+    exact_youngs_modulus = 195000
+    num_points_calibration = 32
+    std_noise = 5 * 1e-4
 
-#     def generate_calibration_data() -> tuple[Tensor, Tensor]:
-#         config_validation_dataset = StretchedRodValidationDataset1DConfig(
-#             length=length,
-#             min_youngs_modulus=exact_youngs_modulus,
-#             max_youngs_modulus=exact_youngs_modulus,
-#             traction=traction,
-#             volume_force=volume_force,
-#             num_points=num_points_calibration,
-#             num_samples=1,
-#         )
-#         calibration_dataset = create_validation_dataset(config_validation_dataset)
-#         inputs, outputs = calibration_dataset[0]
-#         coordinates = torch.reshape(inputs[:, 0], (-1, 1)).to(device)
-#         clean_displacements = outputs.to(device)
-#         noise = torch.normal(
-#             mean=torch.tensor(0.0, device=device),
-#             std=torch.tensor(std_noise, device=device),
-#         )
-#         noisy_displacements = clean_displacements + noise
-#         return coordinates, noisy_displacements
+    def generate_calibration_data() -> tuple[Tensor, Tensor]:
+        config_validation_dataset = StretchedRodValidationDataset1DConfig(
+            length=length,
+            min_youngs_modulus=exact_youngs_modulus,
+            max_youngs_modulus=exact_youngs_modulus,
+            traction=traction,
+            volume_force=volume_force,
+            num_points=num_points_calibration,
+            num_samples=1,
+        )
+        calibration_dataset = create_validation_dataset(config_validation_dataset)
+        inputs, outputs = calibration_dataset[0]
+        coordinates = torch.reshape(inputs[:, 0], (-1, 1)).to(device)
+        clean_displacements = outputs.to(device)
+        noise = torch.normal(
+            mean=torch.tensor(0.0, device=device),
+            std=torch.tensor(std_noise, device=device),
+        )
+        noisy_displacements = clean_displacements + noise
+        return coordinates, noisy_displacements
 
-#     name_model_parameters_file = "bayesian_model_parameters"
-#     model = ansatz
+    model = create_bayesian_ansatz()
+    csv_data_reader = CSVDataReader(project_directory)
+    name_model_parameters_file = "bayesian_model_parameters"
+    model_parameter_samples = torch.from_numpy(
+        csv_data_reader.read(
+            file_name=name_model_parameters_file,
+            subdir_name=output_subdirectory,
+            read_from_output_dir=True,
+        )
+    )
 
-#     coordinates, noisy_displacements = generate_calibration_data()
-#     data = CalibrationData(
-#         inputs=coordinates,
-#         outputs=noisy_displacements,
-#         std_noise=std_noise,
-#     )
-#     likelihood = create_ppinn_likelihood(ansatz=model, data=data, device=device)
+    coordinates, noisy_displacements = generate_calibration_data()
+    data = CalibrationData(
+        inputs=coordinates,
+        outputs=noisy_displacements,
+        std_noise=std_noise,
+    )
 
-#     prior_mean_youngs_modulus = 210000
-#     prior_std_youngs_modulus = 10000
-#     prior = create_univariate_normal_distributed_prior(
-#         mean=prior_mean_youngs_modulus,
-#         standard_deviation=prior_std_youngs_modulus,
-#         device=device,
-#     )
+    likelihood = create_bayesian_ppinn_likelihood(
+        ansatz=model,
+        ansatz_parameter_samples=model_parameter_samples,
+        data=data,
+        device=device,
+    )
 
-#     parameter_names = ("Youngs modulus",)
-#     true_parameters = (exact_youngs_modulus,)
-#     initial_parameters = torch.tensor([prior_mean_youngs_modulus], device=device)
+    prior_mean_youngs_modulus = 210000
+    prior_std_youngs_modulus = 10000
+    prior = create_univariate_normal_distributed_prior(
+        mean=prior_mean_youngs_modulus,
+        standard_deviation=prior_std_youngs_modulus,
+        device=device,
+    )
 
-#     least_squares_config = LeastSquaresConfig(
-#         initial_parameters=initial_parameters,
-#         num_iterations=100,
-#         ansatz=model,
-#         calibration_data=data,
-#     )
-#     mcmc_config_mh = MetropolisHastingsConfig(
-#         likelihood=likelihood,
-#         prior=prior,
-#         initial_parameters=initial_parameters,
-#         num_iterations=int(1e4),
-#         num_burn_in_iterations=int(1e3),
-#         cov_proposal_density=torch.pow(torch.tensor([1000], device=device), 2),
-#     )
-#     mcmc_config_h = HamiltonianConfig(
-#         likelihood=likelihood,
-#         prior=prior,
-#         initial_parameters=initial_parameters,
-#         num_iterations=int(1e4),
-#         num_burn_in_iterations=int(1e3),
-#         num_leabfrog_steps=256,
-#         leapfrog_step_sizes=torch.tensor(1.0, device=device),
-#     )
-#     mcmc_config_enuts = EfficientNUTSConfig(
-#         likelihood=likelihood,
-#         prior=prior,
-#         initial_parameters=initial_parameters,
-#         num_iterations=int(1e4),
-#         num_burn_in_iterations=int(1e3),
-#         max_tree_depth=8,
-#         leapfrog_step_sizes=torch.tensor(10.0, device=device),
-#     )
-#     if use_least_squares:
-#         start = perf_counter()
-#         identified_parameters, _ = calibrate(
-#             calibration_config=least_squares_config,
-#             device=device,
-#         )
-#         end = perf_counter()
-#         time = end - start
-#         print(f"Identified parameter: {identified_parameters}")
-#         print(f"Run time least squares: {time}")
-#     if use_random_walk_metropolis_hasting:
-#         start = perf_counter()
-#         posterior_moments_mh, samples_mh = calibrate(
-#             calibration_config=mcmc_config_mh,
-#             device=device,
-#         )
-#         end = perf_counter()
-#         time = end - start
-#         print(f"Run time Metropolis-Hasting: {time}")
-#         plot_posterior_normal_distributions(
-#             parameter_names=parameter_names,
-#             true_parameters=true_parameters,
-#             moments=posterior_moments_mh,
-#             samples=samples_mh,
-#             mcmc_algorithm="metropolis_hastings",
-#             output_subdir=output_subdirectory,
-#             project_directory=project_directory,
-#         )
-#     if use_hamiltonian:
-#         start = perf_counter()
-#         posterior_moments_h, samples_h = calibrate(
-#             calibration_config=mcmc_config_h,
-#             device=device,
-#         )
-#         end = perf_counter()
-#         time = end - start
-#         print(f"Run time Hamiltonian: {time}")
-#         plot_posterior_normal_distributions(
-#             parameter_names=parameter_names,
-#             true_parameters=true_parameters,
-#             moments=posterior_moments_h,
-#             samples=samples_h,
-#             mcmc_algorithm="hamiltonian",
-#             output_subdir=output_subdirectory,
-#             project_directory=project_directory,
-#         )
-#     if use_efficient_nuts:
-#         start = perf_counter()
-#         posterior_moments_enuts, samples_enuts = calibrate(
-#             calibration_config=mcmc_config_enuts,
-#             device=device,
-#         )
-#         end = perf_counter()
-#         time = end - start
-#         print(f"Run time efficient NUTS: {time}")
-#         plot_posterior_normal_distributions(
-#             parameter_names=parameter_names,
-#             true_parameters=true_parameters,
-#             moments=posterior_moments_enuts,
-#             samples=samples_enuts,
-#             mcmc_algorithm="efficient_nuts",
-#             output_subdir=output_subdirectory,
-#             project_directory=project_directory,
-#         )
-#     print("Calibration finished.")
+    parameter_names = ("Youngs modulus",)
+    true_parameters = (exact_youngs_modulus,)
+    initial_parameters = torch.tensor([prior_mean_youngs_modulus], device=device)
+
+    mcmc_config_mh = MetropolisHastingsConfig(
+        likelihood=likelihood,
+        prior=prior,
+        initial_parameters=initial_parameters,
+        num_iterations=int(1e4),
+        num_burn_in_iterations=int(1e3),
+        cov_proposal_density=torch.pow(torch.tensor([1000], device=device), 2),
+    )
+    mcmc_config_h = HamiltonianConfig(
+        likelihood=likelihood,
+        prior=prior,
+        initial_parameters=initial_parameters,
+        num_iterations=int(1e4),
+        num_burn_in_iterations=int(1e3),
+        num_leabfrog_steps=256,
+        leapfrog_step_sizes=torch.tensor(1.0, device=device),
+    )
+    mcmc_config_enuts = EfficientNUTSConfig(
+        likelihood=likelihood,
+        prior=prior,
+        initial_parameters=initial_parameters,
+        num_iterations=int(1e4),
+        num_burn_in_iterations=int(1e3),
+        max_tree_depth=8,
+        leapfrog_step_sizes=torch.tensor(10.0, device=device),
+    )
+    if use_random_walk_metropolis_hasting:
+        start = perf_counter()
+        posterior_moments_mh, samples_mh = calibrate(
+            calibration_config=mcmc_config_mh,
+            device=device,
+        )
+        end = perf_counter()
+        time = end - start
+        print(f"Run time Metropolis-Hasting: {time}")
+        plot_posterior_normal_distributions(
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            moments=posterior_moments_mh,
+            samples=samples_mh,
+            mcmc_algorithm="metropolis_hastings",
+            output_subdir=output_subdirectory,
+            project_directory=project_directory,
+        )
+    if use_hamiltonian:
+        start = perf_counter()
+        posterior_moments_h, samples_h = calibrate(
+            calibration_config=mcmc_config_h,
+            device=device,
+        )
+        end = perf_counter()
+        time = end - start
+        print(f"Run time Hamiltonian: {time}")
+        plot_posterior_normal_distributions(
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            moments=posterior_moments_h,
+            samples=samples_h,
+            mcmc_algorithm="hamiltonian",
+            output_subdir=output_subdirectory,
+            project_directory=project_directory,
+        )
+    if use_efficient_nuts:
+        start = perf_counter()
+        posterior_moments_enuts, samples_enuts = calibrate(
+            calibration_config=mcmc_config_enuts,
+            device=device,
+        )
+        end = perf_counter()
+        time = end - start
+        print(f"Run time efficient NUTS: {time}")
+        plot_posterior_normal_distributions(
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            moments=posterior_moments_enuts,
+            samples=samples_enuts,
+            mcmc_algorithm="efficient_nuts",
+            output_subdir=output_subdirectory,
+            project_directory=project_directory,
+        )
+    print("Calibration finished.")
 
 
 training_dataset, validation_dataset = create_datasets()
@@ -413,3 +425,4 @@ if pretrain_parametric_pinn:
     pretraining_step()
     bayesian_training_step(is_pretrained=True)
 bayesian_training_step(is_pretrained=False)
+calibration_step()

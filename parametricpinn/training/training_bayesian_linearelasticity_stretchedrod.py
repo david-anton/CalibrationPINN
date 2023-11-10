@@ -42,7 +42,7 @@ class MeasurementsStds(NamedTuple):
 @dataclass
 class BayesianTrainingConfiguration:
     ansatz: BayesianAnsatz
-    initial_parameters: Optional[Tensor] = None
+    initial_parameters: Optional[Tensor]
     parameter_prior_stds: ParameterPriorStds
     training_dataset: StretchedRodTrainingDataset1D
     measurements_standard_deviations: MeasurementsStds
@@ -185,7 +185,7 @@ def train_bayesian_parametric_pinn(
         parameter_prior_stds, device
     )
 
-    if not initial_parameters:
+    if initial_parameters == None:
         initial_parameters = prior.sample().to(device)
 
     leapfrog_step_sizes = torch.full(parameters_shape, 1e-6, device=device)

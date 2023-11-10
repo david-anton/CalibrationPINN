@@ -21,7 +21,7 @@ from parametricpinn.calibration import (
     calibrate,
 )
 from parametricpinn.calibration.bayesianinference.parametric_pinn import (
-    create_ppinn_likelihood,
+    create_standard_ppinn_likelihood,
 )
 from parametricpinn.calibration.bayesianinference.plot import (
     plot_posterior_normal_distributions,
@@ -435,7 +435,9 @@ def calibration_step() -> None:
         outputs=noisy_displacements,
         std_noise=std_error,
     )
-    likelihood = create_ppinn_likelihood(ansatz=model, data=data, device=device)
+    likelihood = create_standard_ppinn_likelihood(
+        ansatz=model, data=data, device=device
+    )
 
     prior_mean_youngs_modulus = 2000
     prior_std_youngs_modulus = 100

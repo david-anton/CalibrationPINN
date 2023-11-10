@@ -9,7 +9,9 @@ from parametricpinn.ansatz.base import (
     StandardNetworks,
 )
 from parametricpinn.calibration.base import PreprocessedCalibrationData
-from parametricpinn.calibration.bayesianinference.parametric_pinn import PPINNLikelihood
+from parametricpinn.calibration.bayesianinference.parametric_pinn import (
+    StandardPPINNLikelihood,
+)
 from parametricpinn.network import FFNN
 from parametricpinn.types import Tensor
 
@@ -70,7 +72,7 @@ def test_calibration_likelihood_single_data_single_dimension():
         num_data_points=1,
         dim_outputs=1,
     )
-    sut = PPINNLikelihood(
+    sut = StandardPPINNLikelihood(
         ansatz=ansatz,
         data=data,
         device=device,
@@ -98,7 +100,7 @@ def test_calibration_likelihood_multiple_data_single_dimension():
         num_data_points=2,
         dim_outputs=1,
     )
-    sut = PPINNLikelihood(
+    sut = StandardPPINNLikelihood(
         ansatz=ansatz,
         data=data,
         device=device,
@@ -128,7 +130,7 @@ def test_calibration_likelihood_single_data_multiple_dimension():
         num_data_points=1,
         dim_outputs=2,
     )
-    sut = PPINNLikelihood(
+    sut = StandardPPINNLikelihood(
         ansatz=model,
         data=data,
         device=device,
@@ -158,7 +160,7 @@ def test_calibration_likelihood_multiple_data_multiple_dimension():
         num_data_points=2,
         dim_outputs=2,
     )
-    sut = PPINNLikelihood(
+    sut = StandardPPINNLikelihood(
         ansatz=model,
         data=data,
         device=device,

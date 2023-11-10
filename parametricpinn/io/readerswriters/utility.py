@@ -20,3 +20,15 @@ def join_output_file_path(
         return project_directory.create_input_file_path(file_name, subdir_name)
     else:
         return project_directory.create_output_file_path(file_name, subdir_name)
+
+
+def join_input_file_path(
+    file_name: str,
+    subdir_name: str,
+    project_directory: ProjectDirectory,
+    read_from_output_dir: bool,
+) -> Path:
+    if read_from_output_dir:
+        return project_directory.create_output_file_path(file_name, subdir_name)
+    else:
+        return project_directory.create_input_file_path(file_name, subdir_name)

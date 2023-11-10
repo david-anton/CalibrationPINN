@@ -40,6 +40,19 @@ class BayesianAnsatz(nn.Module):
     def forward(self, input: Tensor) -> Tensor:
         return self._ansatz_strategy(input, self.network)
 
+    def predict_normal_distribution(
+        self, input: Tensor, parameter_samples: Tensor
+    ) -> tuple[Tensor, Tensor]:
+        prediction_list: list[Tensor] = []
+        for parameter_sample in parameter_samples:
+            self.network.set_flattened_parameters(parameter_sample)
+            prediction = self.forward(input).cpu().detach()
+            prediction_list.append(prediction)
+        predictions = torch.stack(prediction_list, dim=0)
+        means = torch.mean(predictions, dim=0)
+        standard_deviations = torch.std(predictions, correction=0, dim=0)
+        return means, standard_deviations
+
 
 def extract_coordinate_1d(input: Tensor) -> Tensor:
     if input.dim() == 1:
