@@ -238,7 +238,9 @@ def bayesian_training_step(is_pretrained: bool = False) -> None:
         )
 
     ansatz = create_bayesian_ansatz()
-    parameter_prior_stds = ParameterPriorStds(weight=prior_stddev_weight, bias=prior_stddev_bias)
+    parameter_prior_stds = ParameterPriorStds(
+        weight=prior_stddev_weight, bias=prior_stddev_bias
+    )
 
     train_config = BayesianTrainingConfiguration(
         ansatz=ansatz,
@@ -308,7 +310,7 @@ def calibration_step() -> None:
             file_name=name_model_parameters_file,
             subdir_name=output_subdirectory,
             read_from_output_dir=True,
-            header=None
+            header=None,
         )
     ).to(device)
 

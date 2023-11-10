@@ -191,7 +191,6 @@ def train_bayesian_parametric_pinn(
 
     leapfrog_step_sizes = torch.full(parameters_shape, 1e-6, device=device)
 
-
     if mcmc_algorithm == "metropolis hastings":
         mcmc_config = MetropolisHastingsConfig(
             initial_parameters=initial_parameters,
@@ -229,7 +228,7 @@ def train_bayesian_parametric_pinn(
             prior=prior,
             num_burn_in_iterations=int(1e3),
             leapfrog_step_sizes=leapfrog_step_sizes,
-            num_leabfrog_steps=256
+            num_leabfrog_steps=256,
         )
     else:
         raise BayesianTrainingError(

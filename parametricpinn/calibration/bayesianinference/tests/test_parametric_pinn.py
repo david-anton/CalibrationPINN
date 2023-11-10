@@ -4,6 +4,8 @@ import torch
 
 from parametricpinn.ansatz.base import (
     AnsatzStrategy,
+    BayesianAnsatz,
+    BayesianNetworks,
     Networks,
     StandardAnsatz,
     StandardNetworks,
@@ -19,43 +21,86 @@ device = torch.device("cpu")
 
 
 class FakeAnsatzStrategy(AnsatzStrategy):
-    def __call__(self, x: Tensor, network: Networks) -> Tensor:
+    def __call__(self, input: Tensor, network: Networks) -> Tensor:
         return torch.zeros((1,))
 
 
-class FakeAnsatz_SingleDimension(StandardAnsatz):
+class FakeStandardAnsatz_SingleDimension(StandardAnsatz):
     def __init__(
         self, network: StandardNetworks, ansatz_strategy: AnsatzStrategy
     ) -> None:
         super().__init__(network, ansatz_strategy)
 
-    def forward(self, x: Tensor) -> Tensor:
-        return torch.sum(x, dim=1, keepdim=True)
+    def forward(self, input: Tensor) -> Tensor:
+        return torch.sum(input, dim=1, keepdim=True)
 
 
-class FakeAnsatz_MultipleDimension(StandardAnsatz):
+class FakeStandardAnsatz_MultipleDimension(StandardAnsatz):
     def __init__(
         self, network: StandardNetworks, ansatz_strategy: AnsatzStrategy
     ) -> None:
         super().__init__(network, ansatz_strategy)
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, input: Tensor) -> Tensor:
         return torch.concat(
-            (torch.sum(x, dim=1, keepdim=True), torch.sum(x, dim=1, keepdim=True)),
+            (
+                torch.sum(input, dim=1, keepdim=True),
+                torch.sum(input, dim=1, keepdim=True),
+            ),
             dim=1,
         )
+
+
+class FakeBayesianAnsatz_SingleDimension(BayesianAnsatz):
+    def __init__(
+        self, network: BayesianNetworks, ansatz_strategy: AnsatzStrategy
+    ) -> None:
+        super().__init__(network, ansatz_strategy)
+
+    def forward(self, input: Tensor) -> Tensor:
+        pass
+
+    def predict_normal_distribution(
+        self, input: Tensor, parameter_samples: Tensor
+    ) -> tuple[Tensor, Tensor]:
+        means = torch.sum(input, dim=1, keepdim=True)
+        stddevs = torch.full_like(means, 1 / (2 * torch.sqrt(2)))
+        return means, stddevs
+
+
+class FakeBayesianAnsatz_MultipleDimension(BayesianAnsatz):
+    def __init__(
+        self, network: BayesianNetworks, ansatz_strategy: AnsatzStrategy
+    ) -> None:
+        super().__init__(network, ansatz_strategy)
+
+    def forward(self, input: Tensor) -> Tensor:
+        pass
+
+    def predict_normal_distribution(
+        self, input: Tensor, parameter_samples: Tensor
+    ) -> tuple[Tensor, Tensor]:
+        means = torch.concat(
+            (
+                torch.sum(input, dim=1, keepdim=True),
+                torch.sum(input, dim=1, keepdim=True),
+            ),
+            dim=1,
+        )
+        stddevs = torch.full_like(means, 1 / (2 * torch.sqrt(2)))
+        return means, stddevs
 
 
 def _create_fake_ansatz_single_dimension() -> StandardAnsatz:
     fake_network = FFNN(layer_sizes=[1, 1])
     fake_ansatz_strategy = FakeAnsatzStrategy()
-    return FakeAnsatz_SingleDimension(fake_network, fake_ansatz_strategy)
+    return FakeStandardAnsatz_SingleDimension(fake_network, fake_ansatz_strategy)
 
 
 def _create_fake_ansatz_multiple_dimension() -> StandardAnsatz:
     fake_network = FFNN(layer_sizes=[1, 1])
     fake_ansatz_strategy = FakeAnsatzStrategy()
-    return FakeAnsatz_MultipleDimension(fake_network, fake_ansatz_strategy)
+    return FakeStandardAnsatz_MultipleDimension(fake_network, fake_ansatz_strategy)
 
 
 def test_calibration_likelihood_single_data_single_dimension():
