@@ -42,7 +42,7 @@ from parametricpinn.postprocessing.plot import (
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
 from parametricpinn.training.training_standard_linearelasticity_stretchedrod import (
-    TrainingConfiguration,
+    StandardTrainingConfiguration,
     train_parametric_pinn,
 )
 from parametricpinn.types import Tensor
@@ -53,8 +53,8 @@ retrain_parametric_pinn = True
 length = 100.0
 traction = 1.0
 volume_force = 1.0
-min_youngs_modulus = 165000.0
-max_youngs_modulus = 255000.0
+min_youngs_modulus = 180000.0
+max_youngs_modulus = 240000.0
 displacement_left = 0.0
 # Network
 layer_sizes = [2, 16, 16, 16, 16, 1]
@@ -66,15 +66,15 @@ num_points_pde = 128
 training_batch_size = num_samples_train
 number_training_epochs = 300
 # Validation
-num_samples_valid = 128
+num_samples_valid = 64
 valid_interval = 1
-num_points_valid = 1024
+num_points_valid = 512
 batch_size_valid = num_samples_valid
 # Calibration
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
-use_efficient_nuts = True
+use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
@@ -155,7 +155,7 @@ ansatz = create_ansatz()
 
 
 def training_step() -> None:
-    train_config = TrainingConfiguration(
+    train_config = StandardTrainingConfiguration(
         ansatz=ansatz,
         training_dataset=training_dataset,
         number_training_epochs=number_training_epochs,

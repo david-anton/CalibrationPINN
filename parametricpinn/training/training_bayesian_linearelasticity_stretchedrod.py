@@ -1,7 +1,7 @@
 import math
 from dataclasses import dataclass
 from time import perf_counter
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 import torch
 
@@ -23,7 +23,9 @@ from parametricpinn.data.dataset import (
 from parametricpinn.data.trainingdata_linearelasticity_1d import (
     StretchedRodTrainingDataset1D,
 )
+from parametricpinn.errors import BayesianTrainingError
 from parametricpinn.io import ProjectDirectory
+from parametricpinn.io.readerswriters import NumpyDataWriter
 from parametricpinn.network import ParameterPriorStds
 from parametricpinn.training.loss_1d.momentum_linearelasticity import (
     momentum_equation_func,
@@ -38,11 +40,13 @@ class MeasurementsStds(NamedTuple):
 
 
 @dataclass
-class TrainingConfiguration:
+class BayesianTrainingConfiguration:
     ansatz: BayesianAnsatz
+    initial_parameters: Optional[Tensor] = None
     parameter_prior_stds: ParameterPriorStds
     training_dataset: StretchedRodTrainingDataset1D
     measurements_standard_deviations: MeasurementsStds
+    mcmc_algorithm: str
     number_mcmc_iterations: int
     output_subdirectory: str
     project_directory: ProjectDirectory
@@ -154,13 +158,15 @@ class TrainigLikelihood:
         return torch.concat(stds, dim=0).to(self._device)
 
 
-def train_parametric_pinn(
-    train_config: TrainingConfiguration,
+def train_bayesian_parametric_pinn(
+    train_config: BayesianTrainingConfiguration,
 ) -> MCMCOutput:
     ansatz = train_config.ansatz
+    initial_parameters = train_config.initial_parameters
     parameter_prior_stds = train_config.parameter_prior_stds
     training_dataset = train_config.training_dataset
     measurements_standard_deviations = train_config.measurements_standard_deviations
+    mcmc_algorithm = train_config.mcmc_algorithm
     number_mcmc_iterations = train_config.number_mcmc_iterations
     output_subdir = train_config.output_subdirectory
     project_directory = train_config.project_directory
@@ -179,41 +185,56 @@ def train_parametric_pinn(
         parameter_prior_stds, device
     )
 
-    initial_parameters = prior.sample().to(device)
+    if not initial_parameters:
+        initial_parameters = prior.sample().to(device)
+
     leapfrog_step_sizes = torch.full(parameters_shape, 1e-6, device=device)
 
-    mcmc_config = EfficientNUTSConfig(
-        initial_parameters=initial_parameters,
-        num_iterations=number_mcmc_iterations,
-        likelihood=likelihood,
-        prior=prior,
-        num_burn_in_iterations=int(2e3),
-        leapfrog_step_sizes=leapfrog_step_sizes,
-        max_tree_depth=10,  # = 1024 steps
-    )
-    # mcmc_config = MetropolisHastingsConfig(
-    #     initial_parameters=initial_parameters,
-    #     num_iterations=number_mcmc_iterations,
-    #     likelihood=likelihood,
-    #     prior=prior,
-    #     num_burn_in_iterations=int(1e6),
-    #     cov_proposal_density=torch.diag(
-    #         torch.pow(
-    #             torch.full_like(
-    #                 initial_parameters,
-    #                 math.sqrt(0.01),
-    #                 dtype=torch.float64,
-    #                 device=device,
-    #             ),
-    #             2,
-    #         )
-    #     ),
-    # )
+    if mcmc_algorithm == "efficient nuts":
+        mcmc_config = EfficientNUTSConfig(
+            initial_parameters=initial_parameters,
+            num_iterations=number_mcmc_iterations,
+            likelihood=likelihood,
+            prior=prior,
+            num_burn_in_iterations=int(2e3),
+            leapfrog_step_sizes=leapfrog_step_sizes,
+            max_tree_depth=10,
+        )
+    elif mcmc_algorithm == "metropolis hastings":
+        mcmc_config = MetropolisHastingsConfig(
+            initial_parameters=initial_parameters,
+            num_iterations=number_mcmc_iterations,
+            likelihood=likelihood,
+            prior=prior,
+            num_burn_in_iterations=int(1e4),
+            cov_proposal_density=torch.diag(
+                torch.pow(
+                    torch.full_like(
+                        initial_parameters,
+                        math.sqrt(0.01),
+                        dtype=torch.float64,
+                        device=device,
+                    ),
+                    2,
+                )
+            ),
+        )
+    else:
+        raise BayesianTrainingError(
+            f"There is no implementation for the requested MCMC algorithm {mcmc_algorithm}."
+        )
 
+    # Training
     start = perf_counter()
     posterior_moments, samples = calibrate(mcmc_config, device)
     end = perf_counter()
     time = end - start
     print(f"Sampling time: {time}")
+
+    # Save parameters
+    numpy_writer = NumpyDataWriter(project_directory)
+    numpy_writer.write(
+        data=samples, file_name="bayesian_model_parameters", subdir_name=output_subdir
+    )
 
     return posterior_moments, samples

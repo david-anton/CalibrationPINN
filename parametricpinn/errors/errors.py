@@ -57,6 +57,11 @@ class BayesianNNError(Error):
         super().__init__(message)
 
 
+class BayesianTrainingError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
 class FEMConfigurationError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)

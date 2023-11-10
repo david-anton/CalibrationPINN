@@ -3,6 +3,7 @@ from typing import Literal, Optional
 import numpy as np
 
 from parametricpinn.io import ProjectDirectory
+from parametricpinn.io.readerswriters.utility import ensure_correct_file_ending
 from parametricpinn.types import NPArray
 
 
@@ -18,13 +19,10 @@ class NumpyDataReader:
         encoding: Literal["ASCII", "latin1", "bytes"],
         subdir_name: Optional[str] = None,
     ) -> NPArray:
-        file_name = self._ensure_correct_file_ending(file_name)
+        file_name = ensure_correct_file_ending(
+            file_name=file_name, file_ending=self._correct_file_ending
+        )
         input_file_path = self._project_directory.get_input_file_path(
             file_name, subdir_name
         )
         return np.load(input_file_path, allow_pickle=allow_pickle, encoding=encoding)
-
-    def _ensure_correct_file_ending(self, file_name: str) -> str:
-        if file_name[-4:] == self._correct_file_ending:
-            return file_name
-        return file_name + self._correct_file_ending

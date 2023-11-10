@@ -31,7 +31,7 @@ from parametricpinn.types import Device, Tensor
 
 
 @dataclass
-class TrainingConfiguration:
+class StandardTrainingConfiguration:
     ansatz: StandardAnsatz
     training_dataset: StretchedRodTrainingDataset1D
     number_training_epochs: int
@@ -42,7 +42,7 @@ class TrainingConfiguration:
     device: Device
 
 
-def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
+def train_parametric_pinn(train_config: StandardTrainingConfiguration) -> None:
     ansatz = train_config.ansatz
     train_dataset = train_config.training_dataset
     train_num_epochs = train_config.number_training_epochs
