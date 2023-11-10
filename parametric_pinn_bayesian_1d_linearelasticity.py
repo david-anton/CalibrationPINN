@@ -91,12 +91,12 @@ std_pde_pretrained = 1e-4
 std_stress_bc_pretrained = 1e-4
 # Calibration
 use_random_walk_metropolis_hasting = True
-use_hamiltonian = False
-use_efficient_nuts = False
+use_hamiltonian = True
+use_efficient_nuts = True
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_Parametric_PINN_Bayesian_1D"
+output_subdirectory = f"{output_date}_Parametric_PINN_Bayesian_1D_MH"
 
 
 ### Set up simulation
