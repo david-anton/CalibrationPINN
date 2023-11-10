@@ -200,6 +200,7 @@ def create_bayesian_ppinn_likelihood(
     data: CalibrationData,
     device: Device,
 ) -> BayesianPPINNLikelihood:
+    ansatz_parameter_samples = ansatz_parameter_samples.to(device)
     preprocessed_data = preprocess_calibration_data(data)
     return BayesianPPINNLikelihood(
         ansatz=ansatz,

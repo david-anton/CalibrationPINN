@@ -310,7 +310,7 @@ def calibration_step() -> None:
             read_from_output_dir=True,
             header=None
         )
-    )
+    ).to(device)
 
     coordinates, noisy_displacements = generate_calibration_data()
     data = CalibrationData(
