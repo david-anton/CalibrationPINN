@@ -1,5 +1,6 @@
 from typing import Any, Optional
 
+import numpy as np
 import pandas as pd
 
 from parametricpinn.io import ProjectDirectory
@@ -31,4 +32,4 @@ class CSVDataReader:
             project_directory=self._project_directory,
             read_from_output_dir=read_from_output_dir,
         )
-        return pd.read_csv(input_file_path, header=header).to_numpy()
+        return pd.read_csv(input_file_path, header=header).to_numpy(dtype=np.float64)

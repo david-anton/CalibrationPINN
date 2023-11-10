@@ -68,16 +68,16 @@ max_youngs_modulus = 240000.0
 displacement_left = 0.0
 # Network
 layer_sizes = [2, 8, 8, 1]
-std_weight = 1.0
-std_bias = 1.0
+prior_stddev_weight = 1.0
+prior_stddev_bias = 1.0
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_train = 128
+num_samples_train = 64
 num_points_pde = 128
 training_batch_size = num_samples_train
-number_pretraining_epochs = 300
-number_mcmc_iterations = int(1e4)
+number_pretraining_epochs = 400
+number_mcmc_iterations = int(1e3)
 mcmc_algorithm_training = "metropolis hastings"
 # Validation
 num_samples_valid = 64
@@ -238,7 +238,7 @@ def bayesian_training_step(is_pretrained: bool = False) -> None:
         )
 
     ansatz = create_bayesian_ansatz()
-    parameter_prior_stds = ParameterPriorStds(weight=std_weight, bias=std_bias)
+    parameter_prior_stds = ParameterPriorStds(weight=prior_stddev_weight, bias=prior_stddev_bias)
 
     train_config = BayesianTrainingConfiguration(
         ansatz=ansatz,
@@ -308,6 +308,7 @@ def calibration_step() -> None:
             file_name=name_model_parameters_file,
             subdir_name=output_subdirectory,
             read_from_output_dir=True,
+            header=None
         )
     )
 
@@ -424,5 +425,6 @@ training_dataset, validation_dataset = create_datasets()
 if pretrain_parametric_pinn:
     pretraining_step()
     bayesian_training_step(is_pretrained=True)
-bayesian_training_step(is_pretrained=False)
+else:
+    bayesian_training_step(is_pretrained=False)
 calibration_step()

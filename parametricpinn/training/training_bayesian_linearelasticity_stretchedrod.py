@@ -12,6 +12,7 @@ from parametricpinn.bayesian.distributions import (
 )
 from parametricpinn.calibration import (
     EfficientNUTSConfig,
+    HamiltonianConfig,
     MetropolisHastingsConfig,
     calibrate,
 )
@@ -190,17 +191,8 @@ def train_bayesian_parametric_pinn(
 
     leapfrog_step_sizes = torch.full(parameters_shape, 1e-6, device=device)
 
-    if mcmc_algorithm == "efficient nuts":
-        mcmc_config = EfficientNUTSConfig(
-            initial_parameters=initial_parameters,
-            num_iterations=number_mcmc_iterations,
-            likelihood=likelihood,
-            prior=prior,
-            num_burn_in_iterations=int(2e3),
-            leapfrog_step_sizes=leapfrog_step_sizes,
-            max_tree_depth=10,
-        )
-    elif mcmc_algorithm == "metropolis hastings":
+
+    if mcmc_algorithm == "metropolis hastings":
         mcmc_config = MetropolisHastingsConfig(
             initial_parameters=initial_parameters,
             num_iterations=number_mcmc_iterations,
@@ -218,6 +210,26 @@ def train_bayesian_parametric_pinn(
                     2,
                 )
             ),
+        )
+    elif mcmc_algorithm == "efficient nuts":
+        mcmc_config = EfficientNUTSConfig(
+            initial_parameters=initial_parameters,
+            num_iterations=number_mcmc_iterations,
+            likelihood=likelihood,
+            prior=prior,
+            num_burn_in_iterations=int(1e3),
+            leapfrog_step_sizes=leapfrog_step_sizes,
+            max_tree_depth=8,
+        )
+    elif mcmc_algorithm == "hamiltonian":
+        mcmc_config = HamiltonianConfig(
+            initial_parameters=initial_parameters,
+            num_iterations=number_mcmc_iterations,
+            likelihood=likelihood,
+            prior=prior,
+            num_burn_in_iterations=int(1e3),
+            leapfrog_step_sizes=leapfrog_step_sizes,
+            num_leabfrog_steps=256
         )
     else:
         raise BayesianTrainingError(

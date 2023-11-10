@@ -48,8 +48,8 @@ MCMCHamiltonianFunc: TypeAlias = Callable[
 
 @dataclass
 class HamiltonianConfig(MCMCConfig):
-    num_leabfrog_steps: int
     leapfrog_step_sizes: Tensor
+    num_leabfrog_steps: int
 
 
 def mcmc_hamiltonian(
