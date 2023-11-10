@@ -46,7 +46,7 @@ class BayesianAnsatz(nn.Module):
         prediction_list: list[Tensor] = []
         for parameter_sample in parameter_samples:
             self.network.set_flattened_parameters(parameter_sample)
-            prediction = self.forward(input).cpu().detach()
+            prediction = self.__call__(input)
             prediction_list.append(prediction)
         predictions = torch.stack(prediction_list, dim=0)
         means = torch.mean(predictions, dim=0)
