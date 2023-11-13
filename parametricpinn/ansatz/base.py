@@ -1,7 +1,9 @@
+import copy
 from typing import Protocol, TypeAlias, Union
 
 import torch
 import torch.nn as nn
+from functorch import combine_state_for_ensemble
 from torch.func import vmap
 
 from parametricpinn.network import BFFNN, FFNN
@@ -44,22 +46,25 @@ class BayesianAnsatz(nn.Module):
     def predict_normal_distribution(
         self, input: Tensor, parameter_samples: Tensor
     ) -> tuple[Tensor, Tensor]:
-        def _predict_once(parameter_sample: Tensor, input: Tensor) -> Tensor:
-            self.network.set_flattened_parameters(parameter_sample)
-            freeze_network(self.network)
-            return self.__call__(input)
-
-        vmap_func = lambda _parameter_sample: _predict_once(_parameter_sample, input)
-        predictions = vmap(vmap_func)(parameter_samples)
-        means = torch.mean(predictions, dim=0)
-        standard_deviations = torch.std(predictions, correction=0, dim=0)
-        # prediction_list: list[Tensor] = []
-        # for parameter_sample in parameter_samples:
-        #     self.network.set_flattened_parameters(parameter_sample)
-        #     freeze_model(self.network)
-        #     prediction = self.__call__(input)
-        #     prediction_list.append(prediction)
-        # predictions = torch.stack(prediction_list, dim=0)
+        device = parameter_samples.device
+        network_ensemble = [
+            copy.deepcopy(self.network)
+            .set_flattened_parameters(parameters)
+            .to(device)
+            for parameters in parameter_samples
+        ]
+        ansatz_ensemble = [
+            BayesianAnsatz(network, self._ansatz_strategy)
+            for network in network_ensemble
+        ]
+        ansatz_func, parameters_stack, buffers = combine_state_for_ensemble(
+            ansatz_ensemble
+        )
+        for parameters in parameters_stack:
+            parameters.requires_grad = False
+            
+        predictions = vmap(ansatz_func, in_dims=(0, 0, None))(parameters_stack, buffers, input)
+        
         means = torch.mean(predictions, dim=0)
         standard_deviations = torch.std(predictions, correction=0, dim=0)
         return means, standard_deviations
@@ -99,9 +104,3 @@ def bind_output(output_x: Tensor, output_y: Tensor) -> Tensor:
     if output_x.dim() == 1 and output_y.dim() == 1:
         return torch.concat((output_x, output_y), dim=0)
     return torch.concat((output_x, output_y), dim=1)
-
-
-def freeze_network(network: Networks) -> None:
-    network.train(False)
-    for parameters in network.parameters():
-        parameters.requires_grad = False
