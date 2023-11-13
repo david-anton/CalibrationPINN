@@ -2,6 +2,7 @@ from typing import Protocol, TypeAlias, Union
 
 import torch
 import torch.nn as nn
+from torch.func import vmap
 
 from parametricpinn.calibration.utility import freeze_model
 from parametricpinn.network import BFFNN, FFNN
@@ -44,13 +45,23 @@ class BayesianAnsatz(nn.Module):
     def predict_normal_distribution(
         self, input: Tensor, parameter_samples: Tensor
     ) -> tuple[Tensor, Tensor]:
-        prediction_list: list[Tensor] = []
-        for parameter_sample in parameter_samples:
+                
+        def _predict_once(parameter_sample: Tensor, input: Tensor) -> Tensor:
             self.network.set_flattened_parameters(parameter_sample)
             freeze_model(self.network)
-            prediction = self.__call__(input)
-            prediction_list.append(prediction)
-        predictions = torch.stack(prediction_list, dim=0)
+            return self.__call__(input)
+        
+        vmap_func = lambda _parameter_sample: _predict_once(_parameter_sample, input)
+        predictions = vmap(vmap_func)(parameter_samples)
+        means = torch.mean(predictions, dim=0)
+        standard_deviations = torch.std(predictions, correction=0, dim=0)
+        # prediction_list: list[Tensor] = []
+        # for parameter_sample in parameter_samples:
+        #     self.network.set_flattened_parameters(parameter_sample)
+        #     freeze_model(self.network)
+        #     prediction = self.__call__(input)
+        #     prediction_list.append(prediction)
+        # predictions = torch.stack(prediction_list, dim=0)
         means = torch.mean(predictions, dim=0)
         standard_deviations = torch.std(predictions, correction=0, dim=0)
         return means, standard_deviations
