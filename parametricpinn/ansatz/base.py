@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 from torch.func import vmap
 
-from parametricpinn.calibration.utility import freeze_model
 from parametricpinn.network import BFFNN, FFNN
 from parametricpinn.types import Tensor
 
@@ -45,12 +44,11 @@ class BayesianAnsatz(nn.Module):
     def predict_normal_distribution(
         self, input: Tensor, parameter_samples: Tensor
     ) -> tuple[Tensor, Tensor]:
-                
         def _predict_once(parameter_sample: Tensor, input: Tensor) -> Tensor:
             self.network.set_flattened_parameters(parameter_sample)
-            freeze_model(self.network)
+            freeze_network(self.network)
             return self.__call__(input)
-        
+
         vmap_func = lambda _parameter_sample: _predict_once(_parameter_sample, input)
         predictions = vmap(vmap_func)(parameter_samples)
         means = torch.mean(predictions, dim=0)
@@ -101,3 +99,9 @@ def bind_output(output_x: Tensor, output_y: Tensor) -> Tensor:
     if output_x.dim() == 1 and output_y.dim() == 1:
         return torch.concat((output_x, output_y), dim=0)
     return torch.concat((output_x, output_y), dim=1)
+
+
+def freeze_network(network: Networks) -> None:
+    network.train(False)
+    for parameters in network.parameters():
+        parameters.requires_grad = False
