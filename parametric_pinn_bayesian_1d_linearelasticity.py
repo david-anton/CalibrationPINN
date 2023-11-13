@@ -85,10 +85,10 @@ valid_interval = 1
 num_points_valid = 512
 batch_size_valid = num_samples_valid
 # Loss errors
-std_pde_not_pretrained = 1e-2
-std_stress_bc_not_pretrained = 1e-2
-std_pde_pretrained = 1e-4
-std_stress_bc_pretrained = 1e-4
+std_pde_not_pretrained = 1e-1
+std_stress_bc_not_pretrained = 1e-1
+std_pde_pretrained = 1e-2
+std_stress_bc_pretrained = 1e-2
 # Calibration
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = True
@@ -358,7 +358,7 @@ def calibration_step() -> None:
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e3),
         num_leabfrog_steps=256,
-        leapfrog_step_sizes=torch.tensor(1.0, device=device),
+        leapfrog_step_sizes=torch.tensor(10.0, device=device),
     )
     mcmc_config_enuts = EfficientNUTSConfig(
         likelihood=likelihood,
