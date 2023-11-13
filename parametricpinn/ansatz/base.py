@@ -3,6 +3,7 @@ from typing import Protocol, TypeAlias, Union
 import torch
 import torch.nn as nn
 
+from parametricpinn.calibration.utility import freeze_model
 from parametricpinn.network import BFFNN, FFNN
 from parametricpinn.types import Tensor
 
@@ -46,6 +47,7 @@ class BayesianAnsatz(nn.Module):
         prediction_list: list[Tensor] = []
         for parameter_sample in parameter_samples:
             self.network.set_flattened_parameters(parameter_sample)
+            freeze_model(self.network)
             prediction = self.__call__(input)
             prediction_list.append(prediction)
         predictions = torch.stack(prediction_list, dim=0)

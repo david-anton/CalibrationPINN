@@ -10,6 +10,7 @@ from parametricpinn.calibration.base import (
     PreprocessedCalibrationData,
     preprocess_calibration_data,
 )
+from parametricpinn.calibration.utility import freeze_model
 from parametricpinn.types import Device, Tensor
 
 
@@ -21,6 +22,7 @@ class StandardPPINNLikelihood:
         device: Device,
     ):
         self._model = ansatz.to(device)
+        freeze_model(self._model)
         self._data = data
         self._data.inputs.detach().to(device)
         self._data.outputs.detach().to(device)
