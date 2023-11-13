@@ -78,7 +78,7 @@ num_points_pde = 128
 training_batch_size = num_samples_train
 number_pretraining_epochs = 400
 number_mcmc_iterations = int(1e3)
-mcmc_algorithm_training = "hamiltonian"
+mcmc_algorithm_training = "metropolis hastings"
 # Validation
 num_samples_valid = 64
 valid_interval = 1
@@ -96,8 +96,11 @@ use_efficient_nuts = True
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_Parametric_PINN_Bayesian_1D_Hamiltonian"
+output_subdirectory = f"{output_date}_Parametric_PINN_Bayesian_1D_MH"
 
+
+### Enable anomaly detection
+torch.autograd.set_detect_anomaly(True)
 
 ### Set up simulation
 settings = Settings()
