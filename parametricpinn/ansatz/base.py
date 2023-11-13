@@ -48,23 +48,26 @@ class BayesianAnsatz(nn.Module):
     ) -> tuple[Tensor, Tensor]:
         device = parameter_samples.device
         network_ensemble = [
-            copy.deepcopy(self.network)
-            .set_flattened_parameters(parameters)
-            .to(device)
+            copy.deepcopy(self.network).set_flattened_parameters(parameters)
             for parameters in parameter_samples
         ]
         ansatz_ensemble = [
             BayesianAnsatz(network, self._ansatz_strategy)
             for network in network_ensemble
         ]
+        for ansatz in ansatz_ensemble:
+            ansatz.to(device)
+
         ansatz_func, parameters_stack, buffers = combine_state_for_ensemble(
             ansatz_ensemble
         )
         for parameters in parameters_stack:
             parameters.requires_grad = False
-            
-        predictions = vmap(ansatz_func, in_dims=(0, 0, None))(parameters_stack, buffers, input)
-        
+
+        predictions = vmap(ansatz_func, in_dims=(0, 0, None))(
+            parameters_stack, buffers, input
+        )
+
         means = torch.mean(predictions, dim=0)
         standard_deviations = torch.std(predictions, correction=0, dim=0)
         return means, standard_deviations
