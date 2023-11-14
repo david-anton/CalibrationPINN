@@ -101,8 +101,8 @@ fem_element_degree = 2
 fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = 20231016
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_64_bc_32_neurons_4_32"
+output_date = current_date
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_64_bc_32_neurons_4_32_sigmoid"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -374,7 +374,7 @@ def calibration_step() -> None:
     exact_poissons_ratio = 0.34
     num_data_points = 128
     std_noise = 5 * 1e-4
-    std_model_error = 0.0
+    std_model_error = 1.0
     std_error = std_noise + std_model_error
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
