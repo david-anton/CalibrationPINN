@@ -217,7 +217,7 @@ def train_bayesian_parametric_pinn(
             likelihood=likelihood,
             prior=prior,
             num_burn_in_iterations=int(1e3),
-            leapfrog_step_sizes=leapfrog_step_sizes,
+            leapfrog_step_sizes=torch.full(parameters_shape, 1e-5, device=device),
             num_leabfrog_steps=256,
         )
     elif mcmc_algorithm == "efficient nuts":
