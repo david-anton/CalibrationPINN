@@ -3,16 +3,17 @@ from typing import Protocol, TypeAlias, Union
 
 import torch
 import torch.nn as nn
-from functorch import combine_state_for_ensemble
-from torch.func import vmap
+from torch.func import functional_call, stack_module_state, vmap
 
 from parametricpinn.network import BFFNN, FFNN
-from parametricpinn.types import Tensor
+from parametricpinn.types import Device, Tensor
 
 Networks: TypeAlias = Union[FFNN, BFFNN]
 StandardNetworks: TypeAlias = FFNN
 BayesianNetworks: TypeAlias = BFFNN
+BayesianNetworksEnsemble: TypeAlias = list[BayesianNetworks]
 FlattenedParameters: TypeAlias = Tensor
+BayesianAnsatzEnsemble: TypeAlias = list[nn.Module]
 
 
 class AnsatzStrategy(Protocol):
@@ -46,31 +47,40 @@ class BayesianAnsatz(nn.Module):
     def predict_normal_distribution(
         self, input: Tensor, parameter_samples: Tensor
     ) -> tuple[Tensor, Tensor]:
-        device = parameter_samples.device
-        network_ensemble = [
-            copy.deepcopy(self.network).set_flattened_parameters(parameters)
-            for parameters in parameter_samples
-        ]
-        ansatz_ensemble = [
-            BayesianAnsatz(network, self._ansatz_strategy)
-            for network in network_ensemble
-        ]
-        for ansatz in ansatz_ensemble:
-            ansatz.to(device)
-
-        ansatz_func, parameters_stack, buffers = combine_state_for_ensemble(
-            ansatz_ensemble
-        )
-        for parameters in parameters_stack:
-            parameters.requires_grad = False
-
-        predictions = vmap(ansatz_func, in_dims=(0, 0, None))(
-            parameters_stack, buffers, input
-        )
-
+        predictions = self.forward_ensemble(parameter_samples, input)
         means = torch.mean(predictions, dim=0)
         standard_deviations = torch.std(predictions, correction=0, dim=0)
         return means, standard_deviations
+
+    def forward_ensemble(self, parameter_samples: Tensor, input: Tensor) -> Tensor:
+        device = parameter_samples.device
+        ansatz_ensemble = self._create_ansatz_ensemble(parameter_samples, device)
+        parameters_stack, buffers = stack_module_state(ansatz_ensemble)
+        base_ansatz = ansatz_ensemble[0].to("meta")
+
+        def vmap_ansatz_func(parameters, buffers) -> Tensor:
+            return functional_call(base_ansatz, (parameters, buffers), (input,))
+
+        return vmap(vmap_ansatz_func, in_dims=(0, 0))(parameters_stack, buffers)
+
+    def _create_ansatz_ensemble(
+        self, parameter_samples: Tensor, device: Device
+    ) -> BayesianAnsatzEnsemble:
+        network_ensemble = self._create_network_ensemble(parameter_samples)
+        return [
+            BayesianAnsatz(network, copy.deepcopy(self._ansatz_strategy)).to(device)
+            for network in network_ensemble
+        ]
+
+    def _create_network_ensemble(
+        self, parameter_samples: Tensor
+    ) -> BayesianNetworksEnsemble:
+        network_ensemble = [copy.deepcopy(self.network) for _ in parameter_samples]
+
+        for network, parameters in zip(network_ensemble, parameter_samples):
+            parameters.requires_grad = False
+            network.set_flattened_parameters(parameters)
+        return network_ensemble
 
 
 def extract_coordinate_1d(input: Tensor) -> Tensor:
