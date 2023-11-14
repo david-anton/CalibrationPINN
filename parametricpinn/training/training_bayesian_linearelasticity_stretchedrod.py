@@ -202,7 +202,7 @@ def train_bayesian_parametric_pinn(
                 torch.pow(
                     torch.full_like(
                         initial_parameters,
-                        math.sqrt(0.001),
+                        math.sqrt(1e-3),
                         dtype=torch.float64,
                         device=device,
                     ),
