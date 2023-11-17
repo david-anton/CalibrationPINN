@@ -73,8 +73,8 @@ prior_stddev_bias = 1.0
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_train = 64
-num_points_pde = 128
+num_samples_train = 8 #64
+num_points_pde = 8 #128
 training_batch_size = num_samples_train
 number_pretraining_epochs = 400
 number_mcmc_iterations = int(1e3)
@@ -90,9 +90,9 @@ std_stress_bc_not_pretrained = 1e-1
 std_pde_pretrained = 1e-2
 std_stress_bc_pretrained = 1e-2
 # Calibration
-use_random_walk_metropolis_hasting = True
-use_hamiltonian = True
-use_efficient_nuts = True
+use_random_walk_metropolis_hasting = False
+use_hamiltonian = False
+use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
