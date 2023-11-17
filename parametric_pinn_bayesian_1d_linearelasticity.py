@@ -58,7 +58,7 @@ from parametricpinn.training.training_standard_linearelasticity_stretchedrod imp
 from parametricpinn.types import Tensor
 
 ### Configuration
-pretrain_parametric_pinn = True
+pretrain_parametric_pinn = False
 # Set up
 length = 100.0
 traction = 1.0
@@ -96,7 +96,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_Parametric_PINN_Bayesian_1D_MH_proposaldensity_1e-3"
+output_subdirectory = f"{output_date}_Parametric_PINN_Bayesian_1D_MH_proposaldensity_1e-3_nopretraining"
 
 
 ### Enable anomaly detection
