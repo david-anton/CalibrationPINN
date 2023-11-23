@@ -73,8 +73,8 @@ prior_stddev_bias = 1.0
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_train = 8 #64
-num_points_pde = 8 #128
+num_samples_train = 8  # 64
+num_points_pde = 8  # 128
 training_batch_size = num_samples_train
 number_pretraining_epochs = 400
 number_mcmc_iterations = int(1e3)
@@ -96,7 +96,9 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_Parametric_PINN_Bayesian_1D_MH_proposaldensity_1e-3_nopretraining"
+output_subdirectory = (
+    f"{output_date}_Parametric_PINN_Bayesian_1D_MH_proposaldensity_1e-3_nopretraining"
+)
 
 
 ### Enable anomaly detection

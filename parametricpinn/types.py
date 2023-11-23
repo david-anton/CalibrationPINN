@@ -12,6 +12,7 @@ from scipy.stats._multivariate import multivariate_normal_gen
 
 # Pytorch
 Tensor: TypeAlias = torch.Tensor
+TensorSize: TypeAlias = torch.Size
 Parameter: TypeAlias = nn.Parameter
 Module: TypeAlias = torch.nn.Module
 Device: TypeAlias = torch.device

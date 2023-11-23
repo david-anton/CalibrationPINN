@@ -85,3 +85,8 @@ class PlottingConfigError(Error):
 class DistanceFunctionConfigError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
+
+
+class UnvalidGPParametersError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
