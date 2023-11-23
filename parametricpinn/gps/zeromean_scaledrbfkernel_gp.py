@@ -3,8 +3,15 @@ from typing import TypeAlias
 import gpytorch
 import torch
 
+from parametricpinn.bayesian.prior import (
+    Prior,
+    create_mixed_independent_multivariate_distributed_prior,
+)
 from parametricpinn.gps.utility import validate_parameters_size
-from parametricpinn.types import Tensor
+from parametricpinn.statistics.distributions import (
+    create_univariate_uniform_distribution,
+)
+from parametricpinn.types import Device, Tensor
 
 GPMultivariateNormal: TypeAlias = gpytorch.distributions.MultivariateNormal
 
@@ -28,3 +35,14 @@ class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
         validate_parameters_size(parameters, valid_size)
         self.covariance_module.outputscale = parameters[0]
         self.covariance_module.lengthscale = parameters[1]
+
+    def get_uninformed_covariance_parameters_prior(self, device: Device) -> Prior:
+        outputscale_prior = create_univariate_uniform_distribution(
+            lower_limit=0.0, upper_limit=10.0, device=device
+        )
+        lengthscale_prior = create_univariate_uniform_distribution(
+            lower_limit=0.0, upper_limit=10.0, device=device
+        )
+        return create_mixed_independent_multivariate_distributed_prior(
+            [outputscale_prior, lengthscale_prior]
+        )
