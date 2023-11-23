@@ -29,6 +29,7 @@ PriorDistribution: TypeAlias = Union[
 class Prior:
     def __init__(self, distribution: PriorDistribution):
         self.distribution = distribution
+        self.dim = distribution.dim
 
     def prob(self, parameters: Tensor) -> Tensor:
         with torch.no_grad():
@@ -54,6 +55,29 @@ class Prior:
 
     def _log_prob(self, parameters: Tensor) -> Tensor:
         return self.distribution.log_prob(parameters)
+
+
+class MultipliedPriors(Prior):
+    def __init__(self, priors: list[Prior]):
+        self._priors = priors
+        self._prior_dims = [prior.dim for prior in priors]
+        self.dim = sum(self._prior_dims)
+
+    def sample(self) -> Tensor:
+        samples = [prior.distribution.sample() for prior in self._priors]
+        return torch.concat(samples, dim=0)
+
+    def _log_prob(self, parameters: Tensor) -> Tensor:
+        log_probs = []
+        start_index = 0
+        for i, prior in enumerate(self._priors[:-1]):
+            dim_parameters_i = self._prior_dims[i]
+            parameters_i = parameters[start_index: start_index + dim_parameters_i] 
+            log_probs.append(prior.distribution.log_prob(parameters_i))
+            start_index += dim_parameters_i
+        parameters_last = parameters[start_index:] 
+        log_probs.append(self._priors[-1].distribution.log_prob(parameters_last))
+        return torch.sum(torch.tensor(log_probs))
 
 
 def create_univariate_uniform_distributed_prior(
@@ -99,3 +123,7 @@ def create_mixed_independent_multivariate_distributed_prior(
         independent_univariate_distributions
     )
     return Prior(distribution)
+
+
+def multiply_priors(priors: list[Prior]) -> MultipliedPriors:
+    return MultipliedPriors(priors)

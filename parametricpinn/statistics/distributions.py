@@ -31,6 +31,7 @@ class UnivariateUniformDistributon:
             high=torch.tensor(upper_limit, dtype=torch.float64, device=device),
             validate_args=False,
         )
+        self.dim = 1
 
     def _validate_sample(self, sample: Tensor) -> None:
         shape = sample.shape
@@ -56,6 +57,7 @@ class UnivariateNormalDistributon:
                 [[standard_deviation**2]], dtype=torch.float64, device=device
             ),
         )
+        self.dim = 1
 
     def _validate_sample(self, sample: Tensor) -> None:
         shape = sample.shape
@@ -81,6 +83,7 @@ class MultivariateNormalDistributon:
         )
         self.means = self._distribution.mean
         self.variances = self._distribution.variance
+        self.dim = torch.numel(means)
 
     def log_prob(self, sample: Tensor) -> Tensor:
         log_prob = self._distribution.log_prob(sample)
@@ -98,6 +101,7 @@ class IndependentMultivariateNormalDistributon:
         )
         self.means = self._distribution.mean
         self.standard_deviations = self._distribution.stddev
+        self.dim = torch.numel(means)
 
     def log_prob(self, sample: Tensor) -> Tensor:
         log_prob = torch.sum(self._distribution.log_prob(sample))
@@ -115,6 +119,7 @@ UnivariateDistributions: TypeAlias = Union[
 class MixedIndependetMultivariateDistribution:
     def __init__(self, distributions: list[UnivariateDistributions]) -> None:
         self._distributions = distributions
+        self.dim = len(distributions)
 
     def _validate_sample(self, sample: Tensor) -> None:
         if sample.dim() != 1:
