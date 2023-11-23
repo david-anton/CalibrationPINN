@@ -167,7 +167,7 @@ def create_independent_multivariate_normal_distribution(
     return IndependentMultivariateNormalDistributon(means, standard_deviations, device)
 
 
-def create_mixed_multivariate_independently_distribution(
+def create_mixed_independent_multivariate_distribution(
     independent_univariate_distributions: list[UnivariateDistributions],
 ) -> MixedIndependetMultivariateDistribution:
     return MixedIndependetMultivariateDistribution(independent_univariate_distributions)

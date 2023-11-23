@@ -10,7 +10,7 @@ from parametricpinn.bayesian.distributions import (
     UnivariateNormalDistributon,
     UnivariateUniformDistributon,
     create_independent_multivariate_normal_distribution,
-    create_mixed_multivariate_independently_distribution,
+    create_mixed_independent_multivariate_distribution,
     create_multivariate_normal_distribution,
     create_univariate_normal_distribution,
     create_univariate_uniform_distribution,
@@ -95,7 +95,7 @@ def create_independent_multivariate_normal_distributed_prior(
 def create_mixed_multivariate_independently_distributed_prior(
     independent_univariate_distributions: list[UnivariateDistributions],
 ) -> Prior:
-    distribution = create_mixed_multivariate_independently_distribution(
+    distribution = create_mixed_independent_multivariate_distribution(
         independent_univariate_distributions
     )
     return Prior(distribution)

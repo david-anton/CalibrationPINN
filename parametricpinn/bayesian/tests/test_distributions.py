@@ -3,7 +3,7 @@ import torch
 
 from parametricpinn.bayesian.distributions import (
     create_independent_multivariate_normal_distribution,
-    create_mixed_multivariate_independently_distribution,
+    create_mixed_independent_multivariate_distribution,
     create_multivariate_normal_distribution,
     create_univariate_normal_distribution,
     create_univariate_uniform_distribution,
@@ -114,7 +114,7 @@ def _expected_independent_multivariate_normal_distribution() -> (
     ]
 
 
-def _expected_mixed_multivariate_independently_distribution() -> (
+def _expected_mixed_independent_multivariate_distribution() -> (
     list[tuple[Tensor, Tensor]]
 ):
     mean_normal_dist = 0.0
@@ -206,9 +206,9 @@ def test_independent_multivariate_normal_distributed_prior(
 
 @pytest.mark.parametrize(
     ("parameter", "expected"),
-    _expected_mixed_multivariate_independently_distribution(),
+    _expected_mixed_independent_multivariate_distribution(),
 )
-def test_mixed_multivariate_independently_distributed_prior(
+def test_mixed_independent_multivariate_distributed_prior(
     parameter: Tensor, expected: Tensor
 ):
     lower_bound_uniform_dist = -1
@@ -225,7 +225,7 @@ def test_mixed_multivariate_independently_distributed_prior(
         standard_deviation=standard_deviation_normal_dist,
         device=device,
     )
-    sut = create_mixed_multivariate_independently_distribution(
+    sut = create_mixed_independent_multivariate_distribution(
         independent_univariate_distributions=[uniform_dist, normal_dist]
     )
 
