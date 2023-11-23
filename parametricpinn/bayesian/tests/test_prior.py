@@ -3,7 +3,7 @@ import torch
 
 from parametricpinn.bayesian.prior import (
     create_independent_multivariate_normal_distributed_prior,
-    create_mixed_multivariate_independently_distributed_prior,
+    create_mixed_independent_multivariate_distributed_prior,
     create_multivariate_normal_distributed_prior,
     create_univariate_normal_distributed_prior,
     create_univariate_normal_distribution,
@@ -214,7 +214,7 @@ def test_independent_multivariate_normal_distributed_prior(
     ("parameter", "expected"),
     _expected_mixed_multivariate_independently_distributed_prior(),
 )
-def test_mixed_multivariate_independently_distributed_prior(
+def test_mixed_independent_multivariate_distributed_prior(
     parameter: Tensor, expected: Tensor
 ):
     lower_bound_uniform_dist = -1
@@ -231,7 +231,7 @@ def test_mixed_multivariate_independently_distributed_prior(
         standard_deviation=standard_deviation_normal_dist,
         device=device,
     )
-    sut = create_mixed_multivariate_independently_distributed_prior(
+    sut = create_mixed_independent_multivariate_distributed_prior(
         independent_univariate_distributions=[uniform_dist, normal_dist]
     )
 

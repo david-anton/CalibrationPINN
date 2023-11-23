@@ -92,7 +92,7 @@ def create_independent_multivariate_normal_distributed_prior(
     return Prior(distribution)
 
 
-def create_mixed_multivariate_independently_distributed_prior(
+def create_mixed_independent_multivariate_distributed_prior(
     independent_univariate_distributions: list[UnivariateDistributions],
 ) -> Prior:
     distribution = create_mixed_independent_multivariate_distribution(
