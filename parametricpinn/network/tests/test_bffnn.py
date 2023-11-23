@@ -2,10 +2,10 @@ from typing import cast
 
 import torch
 
-from parametricpinn.bayesian.distributions import (
+from parametricpinn.network.bffnn import BFFNN, ParameterPriorStds
+from parametricpinn.statistics.distributions import (
     IndependentMultivariateNormalDistributon,
 )
-from parametricpinn.network.bffnn import BFFNN, ParameterPriorStds
 
 device = torch.device("cpu")
 layer_sizes = [2, 4, 1]

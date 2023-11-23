@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from parametricpinn.bayesian.distributions import (
+from parametricpinn.statistics.distributions import (
     create_independent_multivariate_normal_distribution,
     create_mixed_independent_multivariate_distribution,
     create_multivariate_normal_distribution,

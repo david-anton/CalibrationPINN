@@ -1,16 +1,16 @@
 import torch
 
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
-from parametricpinn.bayesian.distributions import (
-    IndependentMultivariateNormalDistributon,
-    create_independent_multivariate_normal_distribution,
-)
 from parametricpinn.calibration.base import (
     CalibrationData,
     PreprocessedCalibrationData,
     preprocess_calibration_data,
 )
 from parametricpinn.calibration.utility import freeze_model
+from parametricpinn.statistics.distributions import (
+    IndependentMultivariateNormalDistributon,
+    create_independent_multivariate_normal_distribution,
+)
 from parametricpinn.types import Device, Tensor
 
 

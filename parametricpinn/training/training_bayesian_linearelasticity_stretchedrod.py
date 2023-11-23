@@ -6,10 +6,6 @@ from typing import NamedTuple, Optional
 import torch
 
 from parametricpinn.ansatz import BayesianAnsatz
-from parametricpinn.bayesian.distributions import (
-    IndependentMultivariateNormalDistributon,
-    create_independent_multivariate_normal_distribution,
-)
 from parametricpinn.calibration import (
     EfficientNUTSConfig,
     HamiltonianConfig,
@@ -28,6 +24,10 @@ from parametricpinn.errors import BayesianTrainingError
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import NumpyDataWriter
 from parametricpinn.network import ParameterPriorStds
+from parametricpinn.statistics.distributions import (
+    IndependentMultivariateNormalDistributon,
+    create_independent_multivariate_normal_distribution,
+)
 from parametricpinn.training.loss_1d.momentum_linearelasticity import (
     momentum_equation_func,
     traction_func,
