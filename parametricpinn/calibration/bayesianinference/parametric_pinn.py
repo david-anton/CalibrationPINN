@@ -246,13 +246,13 @@ def create_standard_ppinn_likelihood_for_noise_and_model_error(
 class BayesianPPINNLikelihood:
     def __init__(
         self,
-        ansatz: BayesianAnsatz,
-        ansatz_parameter_samples: Tensor,
+        model: BayesianAnsatz,
+        model_parameter_samples: Tensor,
         data: PreprocessedCalibrationData,
         device: Device,
     ):
-        self._model = ansatz.to(device)
-        self._model_parameter_samples = ansatz_parameter_samples.to(device)
+        self._model = model.to(device)
+        self._model_parameter_samples = model_parameter_samples.to(device)
         self._data = data
         self._data.inputs.detach().to(device)
         self._data.outputs.detach().to(device)
@@ -329,7 +329,7 @@ class BayesianPPINNLikelihood:
             dtype=torch.float64,
             device=self._device,
         )
-        return flattened_noise_stddevs + flattened_model_stddevs
+        return torch.sqrt(flattened_noise_stddevs**2 + flattened_model_stddevs**2)
 
     def _calculate_residuals(self, flattened_means: Tensor) -> Tensor:
         flattened_outputs = self._data.outputs.ravel()
@@ -344,8 +344,8 @@ def create_bayesian_ppinn_likelihood_for_noise(
 ) -> BayesianPPINNLikelihood:
     preprocessed_data = preprocess_calibration_data(data)
     return BayesianPPINNLikelihood(
-        ansatz=model,
-        ansatz_parameter_samples=model_parameter_samples,
+        model=model,
+        model_parameter_samples=model_parameter_samples,
         data=preprocessed_data,
         device=device,
     )
