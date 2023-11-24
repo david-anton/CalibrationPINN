@@ -38,9 +38,7 @@ from parametricpinn.calibration.bayesianinference.mcmc.base_nuts import (
     keep_plus_from_old_tree,
 )
 from parametricpinn.calibration.bayesianinference.mcmc.config import MCMCConfig
-from parametricpinn.calibration.bayesianinference.statistics import (
-    MomentsMultivariateNormal,
-)
+from parametricpinn.statistics.utility import MomentsMultivariateNormal
 from parametricpinn.types import Device, NPArray, Tensor
 
 CandidateSetSize: TypeAlias = Tensor

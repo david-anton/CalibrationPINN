@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from parametricpinn.calibration.bayesianinference.statistics import (
+from parametricpinn.statistics.utility import (
     MomentsMultivariateNormal,
     MomentsUnivariateNormal,
     determine_moments_of_multivariate_normal_distribution,

@@ -5,7 +5,7 @@ import torch
 from parametricpinn.bayesian.likelihood import Likelihood
 from parametricpinn.bayesian.prior import Prior
 from parametricpinn.calibration.base import Parameters
-from parametricpinn.calibration.bayesianinference.statistics import (
+from parametricpinn.statistics.utility import (
     MomentsMultivariateNormal,
     determine_moments_of_multivariate_normal_distribution,
 )
