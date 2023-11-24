@@ -1,3 +1,5 @@
+from typing import Protocol, TypeAlias, Union
+
 import torch
 
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
@@ -7,28 +9,124 @@ from parametricpinn.calibration.base import (
     preprocess_calibration_data,
 )
 from parametricpinn.calibration.utility import freeze_model
+from parametricpinn.gps import ZeroMeanScaledRBFKernelGP
 from parametricpinn.statistics.distributions import (
     IndependentMultivariateNormalDistributon,
+    MultivariateNormalDistributon,
     create_independent_multivariate_normal_distribution,
+    create_multivariate_normal_distribution,
 )
 from parametricpinn.types import Device, Tensor
+
+LikelihoodDistributions: TypeAlias = Union[
+    IndependentMultivariateNormalDistributon, MultivariateNormalDistributon
+]
+
+
+class LikelihoodStrategy(Protocol):
+    def log_prob(self, residuals: Tensor, parameters: Tensor) -> Tensor:
+        pass
+
+
+class NoiseLikelihoodStrategy:
+    def __init__(self, data: PreprocessedCalibrationData, device: Device) -> None:
+        self.standard_deviation_noise = data.std_noise
+        self._num_flattened_outputs = data.num_data_points * data.dim_outputs
+        self._device = device
+
+    def log_prob(self, residuals: Tensor, parameters: Tensor) -> Tensor:
+        distribution = self._initialize_likelihood_distribution()
+        return distribution.log_prob(residuals)
+
+    def _initialize_likelihood_distribution(self) -> LikelihoodDistributions:
+        means = self._assemble_residual_means()
+        standard_deviations = self._assemble_residual_standard_deviations()
+        return create_independent_multivariate_normal_distribution(
+            means=means,
+            standard_deviations=standard_deviations,
+            device=self._device,
+        )
+
+    def _assemble_residual_means(self) -> Tensor:
+        return torch.zeros(
+            (self._num_flattened_outputs,), dtype=torch.float64, device=self._device
+        )
+
+    def _assemble_residual_standard_deviations(self) -> Tensor:
+        return torch.full(
+            (self._num_flattened_outputs,),
+            self.standard_deviation_noise,
+            dtype=torch.float64,
+            device=self._device,
+        )
+
+
+class NoiseAndModelErrorLikelihoodStrategy:
+    def __init__(
+        self,
+        data: PreprocessedCalibrationData,
+        model_error_gp: ZeroMeanScaledRBFKernelGP,
+        device: Device,
+    ) -> None:
+        self._data_inputs = data.inputs.detach().to(device)
+        self._standard_deviation_noise = data.std_noise
+        self._num_flattened_outputs = data.num_data_points * data.dim_outputs
+        self._model_error_gp = model_error_gp.to(device)
+        self._device = device
+
+    def log_prob(self, residuals: Tensor, parameters: Tensor) -> Tensor:
+        distribution = self._initialize_likelihood_distribution(parameters)
+        return distribution.log_prob(residuals)
+
+    def _initialize_likelihood_distribution(
+        self, parameters: Tensor
+    ) -> LikelihoodDistributions:
+        means = self._assemble_residual_means()
+        covariance_matrix = self._calculate_residual_covariance_matrix(parameters)
+        return create_multivariate_normal_distribution(
+            means=means, covariance_matrix=covariance_matrix, device=self._device
+        )
+
+    def _assemble_residual_means(self) -> Tensor:
+        return torch.zeros(
+            (self._num_flattened_outputs,), dtype=torch.float64, device=self._device
+        )
+
+    def _calculate_residual_covariance_matrix(self, parameters: Tensor) -> Tensor:
+        noise_covar = self._assemble_noise_covar_matrix()
+        model_error_covar = self._calculate_model_error_covar_matrix(parameters)
+        return noise_covar + model_error_covar
+
+    def _assemble_noise_covar_matrix(self) -> Tensor:
+        return self._standard_deviation_noise * torch.eye(
+            self._num_flattened_outputs, dtype=torch.float64, device=self._device
+        )
+
+    def _calculate_model_error_covar_matrix(self, parameters: Tensor) -> Tensor:
+        output_scale = parameters[2]
+        length_scale = parameters[3]
+        self._model_error_gp.set_covariance_parameters(
+            torch.tensor([output_scale, length_scale])
+        )
+        return self._model_error_gp.forward_kernel(self._data_inputs, self._data_inputs)
 
 
 class StandardPPINNLikelihood:
     def __init__(
         self,
-        ansatz: StandardAnsatz,
+        likelihood_strategy: LikelihoodStrategy,
+        model: StandardAnsatz,
         data: PreprocessedCalibrationData,
         device: Device,
     ):
-        self._model = ansatz.to(device)
+        self._likelihood_strategy = likelihood_strategy
+        self._model = model.to(device)
         freeze_model(self._model)
         self._data = data
         self._data.inputs.detach().to(device)
         self._data.outputs.detach().to(device)
         self._num_flattened_outputs = self._data.num_data_points * data.dim_outputs
         self._device = device
-        self._likelihood = self._initialize_likelihood()
 
     def prob(self, parameters: Tensor) -> Tensor:
         with torch.no_grad():
@@ -52,29 +150,7 @@ class StandardPPINNLikelihood:
     def _log_prob(self, parameters: Tensor) -> Tensor:
         parameters.to(self._device)
         residuals = self._calculate_residuals(parameters)
-        return self._likelihood.log_prob(residuals)
-
-    def _initialize_likelihood(self) -> IndependentMultivariateNormalDistributon:
-        means = self._assemble_residual_means()
-        standard_deviations = self._assemble_residual_standard_deviations()
-        return create_independent_multivariate_normal_distribution(
-            means=means,
-            standard_deviations=standard_deviations,
-            device=self._device,
-        )
-
-    def _assemble_residual_means(self) -> Tensor:
-        return torch.zeros(
-            (self._num_flattened_outputs,), dtype=torch.float64, device=self._device
-        )
-
-    def _assemble_residual_standard_deviations(self) -> Tensor:
-        return torch.full(
-            (self._num_flattened_outputs,),
-            self._data.std_noise,
-            dtype=torch.float64,
-            device=self._device,
-        )
+        return self._likelihood_strategy.log_prob(residuals, parameters)
 
     def _calculate_residuals(self, parameters: Tensor) -> Tensor:
         flattened_model_outputs = self._calculate_flattened_model_outputs(parameters)
@@ -92,12 +168,32 @@ class StandardPPINNLikelihood:
         return model_output.ravel()
 
 
-def create_standard_ppinn_likelihood(
+def create_standard_ppinn_likelihood_for_noise(
     ansatz: StandardAnsatz, data: CalibrationData, device: Device
 ) -> StandardPPINNLikelihood:
     preprocessed_data = preprocess_calibration_data(data)
+    likelihood_strategy = NoiseLikelihoodStrategy(data=preprocessed_data, device=device)
     return StandardPPINNLikelihood(
-        ansatz=ansatz,
+        likelihood_strategy=likelihood_strategy,
+        model=ansatz,
+        data=preprocessed_data,
+        device=device,
+    )
+
+
+def create_standard_ppinn_likelihood_for_noise_and_model_error(
+    ansatz: StandardAnsatz,
+    model_error_gp: ZeroMeanScaledRBFKernelGP,
+    data: CalibrationData,
+    device: Device,
+) -> StandardPPINNLikelihood:
+    preprocessed_data = preprocess_calibration_data(data)
+    likelihood_strategy = NoiseAndModelErrorLikelihoodStrategy(
+        data=preprocessed_data, model_error_gp=model_error_gp, device=device
+    )
+    return StandardPPINNLikelihood(
+        likelihood_strategy=likelihood_strategy,
+        model=ansatz,
         data=preprocessed_data,
         device=device,
     )
@@ -140,14 +236,14 @@ class BayesianPPINNLikelihood:
 
     def _log_prob(self, parameters: Tensor) -> Tensor:
         parameters.to(self._device)
-        means, stddevs = self._calculate_means_and_stddevs_of_model_output(parameters)
+        means, stddevs = self._calculate_model_output_means_and_stddevs(parameters)
         flattened_model_means = means.ravel()
         flattened_model_stddevs = stddevs.ravel()
         residuals = self._calculate_residuals(flattened_model_means)
         likelihood = self._initialize_likelihood(flattened_model_stddevs)
         return likelihood.log_prob(residuals)
 
-    def _calculate_means_and_stddevs_of_model_output(
+    def _calculate_model_output_means_and_stddevs(
         self, parameters: Tensor
     ) -> tuple[Tensor, Tensor]:
         model_inputs = torch.concat(
@@ -196,7 +292,7 @@ class BayesianPPINNLikelihood:
         return flattened_means - flattened_outputs
 
 
-def create_bayesian_ppinn_likelihood(
+def create_bayesian_ppinn_likelihood_for_noise(
     ansatz: BayesianAnsatz,
     ansatz_parameter_samples: Tensor,
     data: CalibrationData,
