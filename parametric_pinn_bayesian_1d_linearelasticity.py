@@ -18,7 +18,7 @@ from parametricpinn.calibration import (
     calibrate,
 )
 from parametricpinn.calibration.bayesianinference.parametric_pinn import (
-    create_bayesian_ppinn_likelihood,
+    create_bayesian_ppinn_likelihood_for_noise,
 )
 from parametricpinn.calibration.bayesianinference.plot import (
     plot_posterior_normal_distributions,
@@ -326,7 +326,7 @@ def calibration_step() -> None:
         std_noise=std_noise,
     )
 
-    likelihood = create_bayesian_ppinn_likelihood(
+    likelihood = create_bayesian_ppinn_likelihood_for_noise(
         ansatz=model,
         ansatz_parameter_samples=model_parameter_samples,
         data=data,

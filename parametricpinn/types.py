@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Protocol, TypeAlias, Union
 
+import gpytorch
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
@@ -19,6 +20,11 @@ Device: TypeAlias = torch.device
 TorchUniformDist: TypeAlias = torch.distributions.Uniform
 TorchUniNormalDist: TypeAlias = torch.distributions.Normal
 TorchMultiNormalDist: TypeAlias = torch.distributions.MultivariateNormal
+
+# GPyTorch
+GPModel: TypeAlias = gpytorch.models.ExactGP
+GPMean: TypeAlias = gpytorch.means.Mean
+GPKernel: TypeAlias = gpytorch.kernels.Kernel
 
 # Numpy
 NPArray: TypeAlias = Union[

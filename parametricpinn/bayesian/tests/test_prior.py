@@ -148,9 +148,7 @@ def _expected_mixed_independent_multivariate_distributed_prior() -> (
     ]
 
 
-def _expected_multiplied_prior() -> (
-    list[tuple[Tensor, Tensor]]
-):
+def _expected_multiplied_prior() -> list[tuple[Tensor, Tensor]]:
     mean_normal_dist = torch.tensor([0.0, 0.0])
     covariance_matrix = torch.eye(2)
     parameter_normal_dist = [0.0, 0.0]
@@ -170,7 +168,9 @@ def _expected_multiplied_prior() -> (
 @pytest.mark.parametrize(
     ("parameter", "expected"), _expected_univariate_uniform_distributed_prior()
 )
-def test_univariate_uniform_distributed_prior(parameter: Tensor, expected: Tensor) -> None:
+def test_univariate_uniform_distributed_prior(
+    parameter: Tensor, expected: Tensor
+) -> None:
     lower_limit = -1.0
     upper_limit = 1.0
     sut = create_univariate_uniform_distributed_prior(
@@ -185,7 +185,9 @@ def test_univariate_uniform_distributed_prior(parameter: Tensor, expected: Tenso
 @pytest.mark.parametrize(
     ("parameter", "expected"), _expected_univariate_normal_distributed_prior()
 )
-def test_univariate_normal_distributed_prior(parameter: Tensor, expected: Tensor) -> None:
+def test_univariate_normal_distributed_prior(
+    parameter: Tensor, expected: Tensor
+) -> None:
     mean = 0.0
     standard_deviation = 1.0
     sut = create_univariate_normal_distributed_prior(
@@ -200,7 +202,9 @@ def test_univariate_normal_distributed_prior(parameter: Tensor, expected: Tensor
 @pytest.mark.parametrize(
     ("parameter", "expected"), _expected_multivariate_normal_distributed_prior()
 )
-def test_multivariate_normal_distributed_prior(parameter: Tensor, expected: Tensor) -> None:
+def test_multivariate_normal_distributed_prior(
+    parameter: Tensor, expected: Tensor
+) -> None:
     means = torch.tensor([0.0, 0.0])
     covariance_matrix = torch.tensor([[1.0, 0.0], [0.0, 1.0]])
     sut = create_multivariate_normal_distributed_prior(
@@ -290,11 +294,11 @@ def test_multipled_priors(parameter: Tensor, expected: Tensor) -> None:
     normal_prior = create_independent_multivariate_normal_distributed_prior(
         means=mean_normal_dist,
         standard_deviations=standard_deviations_normal_dist,
-        device=device
+        device=device,
     )
 
     sut = multiply_priors(priors=[uniform_prior, normal_prior])
-    
+
     actual = sut.prob(parameter)
 
     torch.testing.assert_close(actual, expected)
@@ -313,11 +317,11 @@ def test_multipled_priors_dimension() -> None:
     normal_prior = create_independent_multivariate_normal_distributed_prior(
         means=mean_normal_dist,
         standard_deviations=standard_deviations_normal_dist,
-        device=device
+        device=device,
     )
 
     sut = multiply_priors(priors=[uniform_prior, normal_prior])
-    
+
     actual = sut.dim
     expected = 3
 
