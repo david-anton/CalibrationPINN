@@ -327,8 +327,8 @@ def calibration_step() -> None:
     )
 
     likelihood = create_bayesian_ppinn_likelihood_for_noise(
-        ansatz=model,
-        ansatz_parameter_samples=model_parameter_samples,
+        model=model,
+        model=model_parameter_samples,
         data=data,
         device=device,
     )

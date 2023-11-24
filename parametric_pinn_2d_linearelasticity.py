@@ -61,6 +61,7 @@ from parametricpinn.types import Tensor
 retrain_parametric_pinn = True
 # Set up
 material_model = "plane stress"
+num_model_parameters = 2
 edge_length = 100.0
 radius = 10.0
 traction_left_x = -100.0
@@ -394,7 +395,7 @@ def calibration_step() -> None:
         std_noise=std_noise,
     )
     likelihood = create_standard_ppinn_likelihood_for_noise(
-        ansatz=model, data=data, device=device
+        model=model, data=data, num_model_parameters=num_model_parameters, device=device
     )
 
     prior_mean_youngs_modulus = 210000

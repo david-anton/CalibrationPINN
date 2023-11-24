@@ -50,6 +50,7 @@ from parametricpinn.types import Tensor
 ### Configuration
 retrain_parametric_pinn = True
 # Set up
+num_model_parameters = 1
 length = 100.0
 traction = 1.0
 volume_force = 1.0
@@ -228,7 +229,7 @@ def calibration_step() -> None:
         std_noise=std_noise,
     )
     likelihood = create_standard_ppinn_likelihood_for_noise(
-        ansatz=model, data=data, device=device
+        model=model, num_model_parameters=num_model_parameters, data=data, device=device
     )
 
     prior_mean_youngs_modulus = 210000
