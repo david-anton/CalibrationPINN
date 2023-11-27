@@ -1,6 +1,7 @@
 from typing import Protocol, TypeAlias, Union
 
 import torch
+import gpytorch
 
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
 from parametricpinn.calibration.base import (
@@ -9,7 +10,7 @@ from parametricpinn.calibration.base import (
     preprocess_calibration_data,
 )
 from parametricpinn.calibration.utility import freeze_model
-from parametricpinn.gps import ZeroMeanScaledRBFKernelGP
+from parametricpinn.gps import GaussianProcess
 from parametricpinn.statistics.distributions import (
     IndependentMultivariateNormalDistributon,
     MultivariateNormalDistributon,
@@ -69,7 +70,7 @@ class NoiseAndModelErrorLikelihoodStrategy:
     def __init__(
         self,
         data: PreprocessedCalibrationData,
-        model_error_gp: ZeroMeanScaledRBFKernelGP,
+        model_error_gp: GaussianProcess, #[gpytorch.models.GP],
         device: Device,
     ) -> None:
         self._data = data
@@ -111,37 +112,11 @@ class NoiseAndModelErrorLikelihoodStrategy:
         )
 
     def _calculate_model_error_covar_matrix(self, gp_parameters: Tensor) -> Tensor:
-        # It is assumed that the covariance structure of the error is identical in all dimensions
-        # and that the errors in the individual dimensions are not dependent on each other
-        # (covariance between dimensions = 0).
-        output_scale = gp_parameters[0]
-        length_scale = gp_parameters[1]
-        self._model_error_gp.set_covariance_parameters(
-            torch.tensor([output_scale, length_scale])
-        )
+        # The model error is modeled in each dimension by an independent, individual Gaussian process.
+        # It is assumed that there are no dependencies of the errors between the different dimensions.
+        self._model_error_gp.set_parameters(gp_parameters)
         inputs = self._data.inputs
-        covar_matrix = self._model_error_gp.forward_kernel(inputs, inputs)
-        return self._apply_model_error_covar_matrix_for_all_output_dimensions(
-            covar_matrix
-        )
-
-    def _apply_model_error_covar_matrix_for_all_output_dimensions(
-        self, covar_matrix: Tensor
-    ) -> Tensor:
-        flattened_covar_matrix = torch.zeros(
-            (self._num_flattened_outputs, self._num_flattened_outputs),
-            dtype=torch.float64,
-            device=self._device,
-        )
-        num_output_dims = self._data.dim_outputs
-        num_data_points = self._data.num_data_points
-        start_index = 0
-        for _ in range(num_output_dims - 1):
-            index_slice = slice(start_index, start_index + num_data_points)
-            flattened_covar_matrix[index_slice, index_slice] = covar_matrix
-            start_index += num_data_points
-        flattened_covar_matrix[start_index:, start_index:] = covar_matrix
-        return flattened_covar_matrix
+        return self._model_error_gp.forward_kernel(inputs, inputs)
 
 
 class StandardPPINNLikelihood:
@@ -226,7 +201,7 @@ def create_standard_ppinn_likelihood_for_noise(
 def create_standard_ppinn_likelihood_for_noise_and_model_error(
     model: StandardAnsatz,
     num_model_parameters: int,
-    model_error_gp: ZeroMeanScaledRBFKernelGP,
+    model_error_gp: GaussianProcess, #[gpytorch.models.GP],
     data: CalibrationData,
     device: Device,
 ) -> StandardPPINNLikelihood:

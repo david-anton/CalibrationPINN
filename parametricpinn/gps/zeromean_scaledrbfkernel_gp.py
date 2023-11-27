@@ -28,9 +28,13 @@ class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
             train_y.to(device)
         likelihood = gpytorch.likelihoods.GaussianLikelihood().to(device)
         super(ZeroMeanScaledRBFKernelGP, self).__init__(train_x, train_y, likelihood)
-        self.mean = gpytorch.means.ZeroMean()
-        self.kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+        self.mean = gpytorch.means.ZeroMean().to(device)
+        self.kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()).to(
+            device
+        )
         self.num_gps = 1
+        self.num_hyperparameters = 2
+        self._device = device
 
     def forward(self, x) -> GPMultivariateNormal:
         mean_x = self.mean(x)
@@ -39,15 +43,15 @@ class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
 
     def forward_kernel(self, x_1: Tensor, x_2: Tensor) -> Tensor:
         lazy_tensor = self.kernel(x_1, x_2)
-        return lazy_tensor.evaluate()
+        return lazy_tensor.evaluate().to(self._device)
 
-    def set_covariance_parameters(self, parameters: Tensor) -> None:
+    def set_parameters(self, parameters: Tensor) -> None:
         valid_size = torch.Size([2])
         validate_parameters_size(parameters, valid_size)
-        self.kernel.outputscale = parameters[0]
-        self.kernel.base_kernel.lengthscale = parameters[1]
+        self.kernel.outputscale = parameters[0].to(self._device)
+        self.kernel.base_kernel.lengthscale = parameters[1].to(self._device)
 
-    def get_uninformed_covariance_parameters_prior(self, device: Device) -> Prior:
+    def get_uninformed_parameters_prior(self, device: Device) -> Prior:
         outputscale_prior = create_univariate_uniform_distribution(
             lower_limit=0.0, upper_limit=10.0, device=device
         )

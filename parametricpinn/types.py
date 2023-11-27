@@ -25,6 +25,7 @@ TorchMultiNormalDist: TypeAlias = torch.distributions.MultivariateNormal
 GPModel: TypeAlias = gpytorch.models.ExactGP
 GPMean: TypeAlias = gpytorch.means.Mean
 GPKernel: TypeAlias = gpytorch.kernels.Kernel
+GPMultivariateNormal: TypeAlias = gpytorch.distributions.MultivariateNormal
 
 # Numpy
 NPArray: TypeAlias = Union[

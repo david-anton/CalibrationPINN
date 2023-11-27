@@ -1,4 +1,4 @@
-from typing import Optional, TypeAlias
+from typing import TypeAlias
 from itertools import groupby
 
 import gpytorch
@@ -6,34 +6,32 @@ import torch
 
 from parametricpinn.bayesian.prior import (
     Prior,
-    create_mixed_independent_multivariate_distributed_prior,
+    MultipliedPriors,
 )
 from parametricpinn.gps.utility import validate_parameters_size
-from parametricpinn.statistics.distributions import (
-    create_univariate_uniform_distribution,
-)
-from parametricpinn.types import Device, Tensor
+from parametricpinn.types import Device, Tensor, GPMultivariateNormal
 
 from parametricpinn.gps.base import GaussianProcess
 from parametricpinn.errors import UnvalidGPMultivariateNormaError
 
-GPMultivariateNormal: TypeAlias = gpytorch.distributions.MultivariateNormal
+GPMultivariateNormalList: TypeAlias = list[GPMultivariateNormal]
 
 
 class IndependentMultiOutputGPMultivariateNormal(
     gpytorch.distributions.MultivariateNormal
 ):
-    def __init__(self, multivariate_normals: list[GPMultivariateNormal]):
+    def __init__(self, multivariate_normals: GPMultivariateNormalList, device: Device):
         self._validate_equal_size(multivariate_normals)
         self._multivariate_normals = multivariate_normals
-        combined_mean = self._combine_means()
-        combined_covariance_matrix = self._combine_covariance_matrices()
+        combined_mean = self._combine_means().to(device)
+        combined_covariance_matrix = self._combine_covariance_matrices().to(device)
         super(IndependentMultiOutputGPMultivariateNormal).__init__(
-            mean=combined_mean, covariance_matrix=combined_covariance_matrix
+            combined_mean, combined_covariance_matrix
         )
+        self._device = device
 
     def _validate_equal_size(
-        self, multivariate_normals: list[GPMultivariateNormal]
+        self, multivariate_normals: GPMultivariateNormalList
     ) -> None:
         normal_sizes = [normal.loc.size()[0] for normal in multivariate_normals]
         grouped_sizes = groupby(normal_sizes)
@@ -51,14 +49,14 @@ class IndependentMultiOutputGPMultivariateNormal(
         num_output_dims = self._determine_number_of_output_dimensions()
         single_output_length = self._determine_single_output_length()
         total_output_length = self._determine_total_output_length()
-        combined_covar_matrix = torch.zeros(total_output_length)
+        combined_covar_matrix = torch.zeros((total_output_length, total_output_length))
         start_index = 0
         for i in range(num_output_dims - 1):
             index_slice = slice(start_index, start_index + single_output_length)
             covar_matrix_i = self._multivariate_normals[i].covariance_matrix
             combined_covar_matrix[index_slice, index_slice] = covar_matrix_i
             start_index += single_output_length
-        covar_matrix_last = self._multivariate_normals[num_output_dims].covariance_matrix
+        covar_matrix_last = self._multivariate_normals[-1].covariance_matrix
         combined_covar_matrix[start_index:, start_index:] = covar_matrix_last
         return combined_covar_matrix
 
@@ -75,37 +73,73 @@ class IndependentMultiOutputGPMultivariateNormal(
         return sum(output_lengths)
 
 
-class IndependentMultiOutputGP:
+class IndependentMultiOutputGP(gpytorch.models.GP):
     def __init__(
         self,
-        gp_list: list[GaussianProcess],
+        independent_gps: list[GaussianProcess],
         device: Device,
     ) -> None:
-        for gp in self.gp_list:
+        super(IndependentMultiOutputGP, self).__init__()
+        self._gps_list = independent_gps
+        for gp in self._gps_list:
             gp.to(device)
-        self._gp_list = gpytorch.models.IndependentModelList(*gp_list)
-        self.num_gps = len(gp_list)
+        self.num_gps = len(self._gps_list)
+        self._device = device
 
-    def forward(self, x) -> list[GPMultivariateNormal]:
-        return self._gp_list.forward(x)
+    def forward(self, x) -> GPMultivariateNormalList:
+        multivariate_normals = [gp.forward() for gp in self._gps_list]
+        return IndependentMultiOutputGPMultivariateNormal(
+            multivariate_normals, self._device
+        )
 
     def forward_kernel(self, x_1: Tensor, x_2: Tensor) -> Tensor:
-        lazy_tensor = self.kernel(x_1, x_2)
-        return lazy_tensor.evaluate()
+        num_outputs = self.num_gps
+        num_inputs_1 = x_1.size()[0]
+        num_inputs_2 = x_2.size()[0]
+        covar_matrix = torch.zeros(
+            (num_outputs * num_inputs_1, num_outputs * num_inputs_2),
+            dtype=torch.float64,
+            device=self._device,
+        )
+        start_index_1 = start_index_2 = 0
+        for i in range(num_outputs - 1):
+            index_slice_1 = slice(start_index_1, start_index_1 + num_inputs_1)
+            index_slice_2 = slice(start_index_2, start_index_2 + num_inputs_2)
+            covar_matrix_i = (
+                self._gps_list[i].kernel(x_1, x_2).evaluate().to(self._device)
+            )
+            covar_matrix[index_slice_1, index_slice_2] = covar_matrix_i
+            start_index_1 += num_inputs_1
+            start_index_2 += num_inputs_2
+        covar_matrix_last = (
+            self._gps_list[-1].kernel(x_1, x_2).evaluate().to(self._device)
+        )
+        covar_matrix[start_index_1:, start_index_2:] = covar_matrix_last
+        return covar_matrix
 
-    # def set_covariance_parameters(self, parameters: Tensor) -> None:
-    #     valid_size = torch.Size([2])
-    #     validate_parameters_size(parameters, valid_size)
-    #     self.kernel.outputscale = parameters[0]
-    #     self.kernel.base_kernel.lengthscale = parameters[1]
+    def set_parameters(self, parameters: Tensor) -> None:
+        self._validate_hyperparameters_size(parameters)
+        start_index = 0
+        for gp in self._gps_list[:-1]:
+            num_parameters = gp.num_hyperparameters
+            gp.set_parameters(
+                parameters[start_index : start_index + num_parameters].to(self._device)
+            )
+            start_index += num_parameters
+        gp_last = self._gps_list[-1]
+        num_parameters = gp_last.num_hyperparameters
+        gp_last.set_parameters(
+            parameters[start_index : start_index + num_parameters].to(self._device)
+        )
 
-    # def get_uninformed_covariance_parameters_prior(self, device: Device) -> Prior:
-    #     outputscale_prior = create_univariate_uniform_distribution(
-    #         lower_limit=0.0, upper_limit=10.0, device=device
-    #     )
-    #     lengthscale_prior = create_univariate_uniform_distribution(
-    #         lower_limit=0.0, upper_limit=10.0, device=device
-    #     )
-    #     return create_mixed_independent_multivariate_distributed_prior(
-    #         [outputscale_prior, lengthscale_prior]
-    #     )
+    def get_uninformed_parameters_prior(self, device: Device) -> Prior:
+        priors = [gp.get_uninformed_parameters_prior(device) for gp in self._gps_list]
+        return MultipliedPriors(priors)
+
+    def _validate_hyperparameters_size(self, parameters: Tensor) -> None:
+        num_hyperparameters = sum([gp.num_hyperparameters for gp in self._gps_list])
+        valid_size = torch.Size([num_hyperparameters])
+        validate_parameters_size(parameters, valid_size)
+
+    def __call__(self, x: Tensor) -> GPMultivariateNormalList:
+        return self.forward(x)
