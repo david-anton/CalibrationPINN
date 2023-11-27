@@ -15,7 +15,7 @@ class GaussianProcess(Protocol):
         train_x: Optional[Tensor] = None,
         train_y: Optional[Tensor] = None,
     ) -> None:
-        pass
+        self.num_gps: int
 
     def forward(self, x: Tensor) -> GPMultivariateNormal:
         pass

@@ -30,6 +30,7 @@ class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
         super(ZeroMeanScaledRBFKernelGP, self).__init__(train_x, train_y, likelihood)
         self.mean = gpytorch.means.ZeroMean()
         self.kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+        self.num_gps = 1
 
     def forward(self, x) -> GPMultivariateNormal:
         mean_x = self.mean(x)

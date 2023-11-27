@@ -16,6 +16,7 @@ from .errors import (
     UnivariateUniformDistributionError,
     UnvalidCalibrationDataError,
     UnvalidGPParametersError,
+    UnvalidGPMultivariateNormaError,
 )
 
 __all__ = [
@@ -36,4 +37,5 @@ __all__ = [
     "UnivariateUniformDistributionError",
     "UnvalidCalibrationDataError",
     "UnvalidGPParametersError",
+    "UnvalidGPMultivariateNormaError",
 ]

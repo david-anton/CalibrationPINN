@@ -90,3 +90,8 @@ class DistanceFunctionConfigError(Error):
 class UnvalidGPParametersError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
+
+
+class UnvalidGPMultivariateNormaError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
