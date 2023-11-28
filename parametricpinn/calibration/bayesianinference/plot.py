@@ -2,11 +2,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
 
-from parametricpinn.calibration.bayesianinference.statistics import (
+from parametricpinn.io import ProjectDirectory
+from parametricpinn.statistics.utility import (
     MomentsMultivariateNormal,
     MomentsUnivariateNormal,
 )
-from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import NPArray
 
 
