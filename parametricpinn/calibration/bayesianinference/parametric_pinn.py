@@ -1,7 +1,6 @@
 from typing import Protocol, TypeAlias, Union
 
 import torch
-import gpytorch
 
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
 from parametricpinn.calibration.base import (
@@ -70,7 +69,7 @@ class NoiseAndModelErrorLikelihoodStrategy:
     def __init__(
         self,
         data: PreprocessedCalibrationData,
-        model_error_gp: GaussianProcess, #[gpytorch.models.GP],
+        model_error_gp: GaussianProcess,
         device: Device,
     ) -> None:
         self._data = data
@@ -201,7 +200,7 @@ def create_standard_ppinn_likelihood_for_noise(
 def create_standard_ppinn_likelihood_for_noise_and_model_error(
     model: StandardAnsatz,
     num_model_parameters: int,
-    model_error_gp: GaussianProcess, #[gpytorch.models.GP],
+    model_error_gp: GaussianProcess,
     data: CalibrationData,
     device: Device,
 ) -> StandardPPINNLikelihood:

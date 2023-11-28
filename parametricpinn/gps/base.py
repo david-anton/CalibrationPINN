@@ -1,16 +1,14 @@
-from typing import Optional, Protocol, TypeAlias, TypeVar
+from typing import Optional, Protocol, TypeAlias
 
 import gpytorch
-import torch
 
 from parametricpinn.bayesian.prior import Prior
-from parametricpinn.types import Device, GPKernel, GPMean, Tensor
+from parametricpinn.types import Device, Tensor
 
 GPMultivariateNormal: TypeAlias = gpytorch.distributions.MultivariateNormal
-T = TypeVar("T", bound="gpytorch.models.GP")
 
 
-class GaussianProcess(Protocol[T]):
+class GaussianProcess(Protocol):
     def __init__(
         self,
         device: Device,
@@ -33,5 +31,5 @@ class GaussianProcess(Protocol[T]):
     def get_uninformed_parameters_prior(self, device: Device) -> Prior:
         pass
 
-    def to(self: T, device: Device) -> T:
+    def to(self, device: Device) -> "GaussianProcess":
         pass
