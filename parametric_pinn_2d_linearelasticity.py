@@ -75,7 +75,7 @@ max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Ansatz
-distance_function = "linear"
+distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 32
 num_collocation_points = 64
