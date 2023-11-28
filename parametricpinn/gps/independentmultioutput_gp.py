@@ -1,18 +1,14 @@
-from typing import TypeAlias
 from itertools import groupby
+from typing import TypeAlias
 
 import gpytorch
 import torch
 
-from parametricpinn.bayesian.prior import (
-    Prior,
-    MultipliedPriors,
-)
-from parametricpinn.gps.utility import validate_parameters_size
-from parametricpinn.types import Device, Tensor, GPMultivariateNormal
-
-from parametricpinn.gps.base import GaussianProcess
+from parametricpinn.bayesian.prior import MultipliedPriors, Prior
 from parametricpinn.errors import UnvalidGPMultivariateNormaError
+from parametricpinn.gps.base import GaussianProcess
+from parametricpinn.gps.utility import validate_parameters_size
+from parametricpinn.types import Device, GPMultivariateNormal, Tensor
 
 GPMultivariateNormalList: TypeAlias = list[GPMultivariateNormal]
 
@@ -84,6 +80,7 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
         for gp in self._gps_list:
             gp.to(device)
         self.num_gps = len(self._gps_list)
+        self.num_hyperparameters = self._determine_number_of_hyperparameetrs()
         self._device = device
 
     def forward(self, x) -> GPMultivariateNormalList:
@@ -136,10 +133,13 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
         priors = [gp.get_uninformed_parameters_prior(device) for gp in self._gps_list]
         return MultipliedPriors(priors)
 
+    def _determine_number_of_hyperparameetrs(self) -> None:
+        num_parameters_list = [gp.num_hyperparameters for gp in self._gps_list]
+        return sum(num_parameters_list)
+
     def _validate_hyperparameters_size(self, parameters: Tensor) -> None:
         num_hyperparameters = sum([gp.num_hyperparameters for gp in self._gps_list])
-        valid_size = torch.Size([num_hyperparameters])
-        validate_parameters_size(parameters, valid_size)
+        validate_parameters_size(parameters, torch.Size([num_hyperparameters]))
 
     def __call__(self, x: Tensor) -> GPMultivariateNormalList:
         return self.forward(x)
