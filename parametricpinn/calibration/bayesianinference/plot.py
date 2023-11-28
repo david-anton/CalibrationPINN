@@ -1,3 +1,5 @@
+from typing import TypeAlias, Union
+
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
@@ -8,6 +10,9 @@ from parametricpinn.statistics.utility import (
     MomentsUnivariateNormal,
 )
 from parametricpinn.types import NPArray
+
+TrueParameter: TypeAlias = Union[float, None]
+TrueParametersTuple: TypeAlias = tuple[TrueParameter, ...]
 
 
 class UnivariateNormalPlotterConfig:
@@ -54,7 +59,7 @@ class UnivariateNormalPlotterConfig:
 
 def plot_posterior_normal_distributions(
     parameter_names: tuple[str, ...],
-    true_parameters: tuple[float, ...],
+    true_parameters: TrueParametersTuple,
     moments: MomentsMultivariateNormal,
     samples: NPArray,
     mcmc_algorithm: str,
@@ -73,7 +78,7 @@ def plot_posterior_normal_distributions(
             mean=mean_univariate, standard_deviation=std_univariate
         )
         config = UnivariateNormalPlotterConfig()
-        plot_univariate_univariate_normal_distribution(
+        plot_univariate_normal_distribution(
             parameter_name,
             true_parameter,
             moments_univariate,
@@ -97,7 +102,7 @@ def plot_posterior_normal_distributions(
 
 def plot_multivariate_normal_distribution(
     parameter_names: tuple[str, ...],
-    true_parameters: tuple[float, ...],
+    true_parameters: TrueParametersTuple,
     moments: MomentsMultivariateNormal,
     samples: NPArray,
     mcmc_algorithm: str,
@@ -118,7 +123,7 @@ def plot_multivariate_normal_distribution(
         )
         samples_univariate = samples[:, parameter_idx]
         config = UnivariateNormalPlotterConfig()
-        plot_univariate_univariate_normal_distribution(
+        plot_univariate_normal_distribution(
             parameter_name,
             true_parameter,
             moments_univariate,
@@ -130,9 +135,9 @@ def plot_multivariate_normal_distribution(
         )
 
 
-def plot_univariate_univariate_normal_distribution(
+def plot_univariate_normal_distribution(
     parameter_name: str,
-    true_parameter: float,
+    true_parameter: TrueParameter,
     moments: MomentsUnivariateNormal,
     samples: NPArray,
     mcmc_algorithm: str,
@@ -144,12 +149,13 @@ def plot_univariate_univariate_normal_distribution(
     standard_deviation = moments.standard_deviation
     figure, axes = plt.subplots()
     # Truth
-    axes.axvline(
-        x=true_parameter,
-        color=config.truth_color,
-        linestyle=config.truth_linestyle,
-        label="truth",
-    )
+    if true_parameter is not None:
+        axes.axvline(
+            x=true_parameter,
+            color=config.truth_color,
+            linestyle=config.truth_linestyle,
+            label="truth",
+        )
     # Histogram
     range_hist = config.hist_range_in_std * standard_deviation
     axes.hist(
