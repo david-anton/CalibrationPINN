@@ -1,4 +1,4 @@
-from typing import Protocol, TypeAlias
+from typing import Protocol, TypeAlias, Union
 
 from parametricpinn.errors import FEMDomainConfigError
 from parametricpinn.fem.base import (
@@ -9,6 +9,7 @@ from parametricpinn.fem.base import (
     UFLTestFunction,
 )
 from parametricpinn.fem.boundaryconditions import BoundaryConditions
+from parametricpinn.fem.domains.dogbone import DogBoneDomain, DogBoneDomainConfig
 from parametricpinn.fem.domains.platewithhole import (
     PlateWithHoleDomain,
     PlateWithHoleDomainConfig,
@@ -19,7 +20,9 @@ from parametricpinn.fem.domains.quarterplatewithhole import (
 )
 from parametricpinn.io import ProjectDirectory
 
-DomainConfig: TypeAlias = QuarterPlateWithHoleDomainConfig
+DomainConfig: TypeAlias = Union[
+    QuarterPlateWithHoleDomainConfig, PlateWithHoleDomainConfig, DogBoneDomainConfig
+]
 
 
 class Domain(Protocol):
@@ -59,7 +62,14 @@ def create_domain(
             project_directory=project_directory,
             save_to_input_dir=save_to_input_dir,
         )
-
+    elif isinstance(domain_config, DogBoneDomainConfig):
+        return DogBoneDomain(
+            config=domain_config,
+            save_mesh=save_mesh,
+            output_subdir=output_subdir,
+            project_directory=project_directory,
+            save_to_input_dir=save_to_input_dir,
+        )
     else:
         raise FEMDomainConfigError(
             f"There is no implementation for the requested FEM domain {domain_config}."
