@@ -10,7 +10,8 @@ from parametricpinn.ansatz import (
     create_standard_normalized_hbc_ansatz_quarter_plate_with_hole,
 )
 from parametricpinn.bayesian.prior import (
-    create_independent_multivariate_normal_distributed_prior,
+    create_univariate_normal_distributed_prior,
+    multiply_priors,
 )
 from parametricpinn.calibration import (
     CalibrationData,
@@ -21,7 +22,7 @@ from parametricpinn.calibration import (
     calibrate,
 )
 from parametricpinn.calibration.bayesianinference.parametric_pinn import (
-    create_standard_ppinn_likelihood_for_noise,
+    create_standard_ppinn_likelihood_for_noise_and_model_error,
 )
 from parametricpinn.calibration.bayesianinference.plot import (
     plot_posterior_normal_distributions,
@@ -44,6 +45,7 @@ from parametricpinn.fem import (
     generate_validation_data,
     run_simulation,
 )
+from parametricpinn.gps import IndependentMultiOutputGP, ZeroMeanScaledRBFKernelGP
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN
 from parametricpinn.postprocessing.plot import (
@@ -434,9 +436,16 @@ def calibration_step() -> None:
         outputs=noisy_displacements,
         std_noise=std_noise,
     )
-    likelihood = create_standard_ppinn_likelihood_for_noise(
+    model_error_gp = IndependentMultiOutputGP(
+        independent_gps=[
+            ZeroMeanScaledRBFKernelGP(device),
+            ZeroMeanScaledRBFKernelGP(device),
+        ]
+    ).to(device)
+    likelihood = create_standard_ppinn_likelihood_for_noise_and_model_error(
         model=model,
         num_model_parameters=num_material_parameters,
+        model_error_gp=model_error_gp,
         data=data,
         device=device,
     )
@@ -445,18 +454,41 @@ def calibration_step() -> None:
     prior_std_youngs_modulus = 100
     prior_mean_poissons_ratio = 0.3
     prior_std_poissons_ratio = 0.015
-    prior_means = torch.tensor([prior_mean_youngs_modulus, prior_mean_poissons_ratio])
-    prior_standard_deviations = torch.tensor(
-        [prior_std_youngs_modulus, prior_std_poissons_ratio]
+    prior_youngs_modulus = create_univariate_normal_distributed_prior(
+        mean=prior_mean_youngs_modulus, standard_deviation=prior_std_youngs_modulus
     )
-    prior = create_independent_multivariate_normal_distributed_prior(
-        means=prior_means, standard_deviations=prior_standard_deviations, device=device
+    prior_poissons_ratio = create_univariate_normal_distributed_prior(
+        mean=prior_mean_poissons_ratio, standard_deviation=prior_std_poissons_ratio
+    )
+    model_error_prior = model_error_gp.get_uninformed_parameters_prior(device)
+    prior = multiply_priors([prior_youngs_modulus, prior_poissons_ratio, model_error_prior])
+
+    material_parameter_names = (
+        "Youngs modulus",
+        "Poissons ratio",
+        "error output scale 1",
+        "error length scale 1",
+        "error output scale 2",
+        "error length scale 2",
+    )
+    true_material_parameters = (
+        exact_youngs_modulus,
+        exact_poissons_ratio,
+        None,
+        None,
+        None,
+        None,
     )
 
-    parameter_names = ("Youngs modulus", "Poissons ratio")
-    true_parameters = (exact_youngs_modulus, exact_poissons_ratio)
-    initial_parameters = torch.tensor(
+    initial_material_parameters = torch.tensor(
         [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
+    )
+    num_model_error_parameters = model_error_gp.num_hyperparameters
+    initial_model_error_parameters = torch.ones(
+        (num_model_error_parameters,), dtype=torch.float64, device=device
+    )
+    initial_parameters = torch.concat(
+        [initial_material_parameters, initial_model_error_parameters]
     )
 
     least_squares_config = LeastSquaresConfig(
@@ -467,23 +499,24 @@ def calibration_step() -> None:
     )
     std_proposal_density_youngs_modulus = 10
     std_proposal_density_poissons_ratio = 0.0015
+    std_proposal_density_model_error_parameters = 0.1
+    std_proposal_density = torch.concat(
+        [
+            torch.tensor([std_proposal_density_youngs_modulus]),
+            torch.tensor([std_proposal_density_poissons_ratio]),
+            torch.full(
+                (num_model_error_parameters,),
+                std_proposal_density_model_error_parameters,
+            ),
+        ]
+    )
     mcmc_config_mh = MetropolisHastingsConfig(
         likelihood=likelihood,
         prior=prior,
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
         num_burn_in_iterations=int(2e4),
-        cov_proposal_density=torch.diag(
-            torch.tensor(
-                [
-                    std_proposal_density_youngs_modulus,
-                    std_proposal_density_poissons_ratio,
-                ],
-                dtype=torch.float64,
-                device=device,
-            )
-            ** 2
-        ),
+        cov_proposal_density=torch.pow(std_proposal_density, 2),
     )
     mcmc_config_h = HamiltonianConfig(
         likelihood=likelihood,
@@ -523,8 +556,8 @@ def calibration_step() -> None:
         time = end - start
         print(f"Run time Metropolis-Hasting: {time}")
         plot_posterior_normal_distributions(
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
+            parameter_names=material_parameter_names,
+            true_parameters=true_material_parameters,
             moments=posterior_moments_mh,
             samples=samples_mh,
             mcmc_algorithm="metropolis_hastings",
@@ -541,8 +574,8 @@ def calibration_step() -> None:
         time = end - start
         print(f"Run time Hamiltonian: {time}")
         plot_posterior_normal_distributions(
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
+            parameter_names=material_parameter_names,
+            true_parameters=true_material_parameters,
             moments=posterior_moments_h,
             samples=samples_h,
             mcmc_algorithm="hamiltonian",
@@ -559,8 +592,8 @@ def calibration_step() -> None:
         time = end - start
         print(f"Run time efficient NUTS: {time}")
         plot_posterior_normal_distributions(
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
+            parameter_names=material_parameter_names,
+            true_parameters=true_material_parameters,
             moments=posterior_moments_enuts,
             samples=samples_enuts,
             mcmc_algorithm="efficient_nuts",
