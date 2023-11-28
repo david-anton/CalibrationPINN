@@ -7,7 +7,7 @@
 #SBATCH --gres=gpu:ampere:1
 
 ## Build command
-## singularity build --fakeroot --force parametricpinn.sif app/.devcontainer/container.def
+## singularity build --fakeroot --force parametricpinn.sif app/.devcontainer/container_conda.def
 
 SCRIPT=mains_others/pinn_2d_linearelasticity.py
 
