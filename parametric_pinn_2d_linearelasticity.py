@@ -61,7 +61,7 @@ from parametricpinn.types import Tensor
 retrain_parametric_pinn = True
 # Set up
 material_model = "plane stress"
-num_model_parameters = 2
+num_material_parameters = 2
 edge_length = 100.0
 radius = 10.0
 traction_left_x = -100.0
@@ -75,7 +75,7 @@ max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Ansatz
-distance_function = "sigmoid"
+distance_function = "linear"
 # Training
 num_samples_per_parameter = 32
 num_collocation_points = 64
@@ -86,8 +86,8 @@ weight_pde_loss = 1.0
 weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = "20231011_validation_data_linearelasticity_E_180k_240k_nu_02_04_edge_100_radius_10_traction_100"
+regenerate_valid_data = True
+input_subdir_valid = "20231128_validation_data_linearelasticity_E_180k_240k_nu_02_04_edge_100_radius_10_traction_100_elementsize_01"
 num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
@@ -104,7 +104,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_E_180k_240k_nu_02_04_samples_32_col_64_bc_32_neurons_4_32_sigmoid"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_E_180k_240k_nu_02_04_samples_32_col_64_bc_32_neurons_4_32_BC_complete"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -395,7 +395,10 @@ def calibration_step() -> None:
         std_noise=std_noise,
     )
     likelihood = create_standard_ppinn_likelihood_for_noise(
-        model=model, data=data, num_model_parameters=num_model_parameters, device=device
+        model=model,
+        data=data,
+        num_model_parameters=num_material_parameters,
+        device=device,
     )
 
     prior_mean_youngs_modulus = 210000

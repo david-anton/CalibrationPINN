@@ -60,7 +60,7 @@ from parametricpinn.types import Tensor
 ### Configuration
 retrain_parametric_pinn = True
 # Set up
-num_model_parameters = 2
+num_material_parameters = 2
 edge_length = 100.0
 radius = 10.0
 traction_left_x = -100.0
@@ -74,11 +74,11 @@ max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Ansatz
-distance_function = "sigmoid"
+distance_function = "linear"
 # Training
 num_samples_per_parameter = 32
-num_collocation_points = 64
-number_points_per_bc = 32
+num_collocation_points = 128
+number_points_per_bc = 64
 training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 20000
 weight_pde_loss = 1.0
@@ -86,7 +86,7 @@ weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20231025_validation_data_neohookean_E_1000_3000_nu_02_04_edge_100_radius_10_traction_100_elementsize_01"
+input_subdir_valid = "20231128_validation_data_neohookean_E_1000_3000_nu_02_04_edge_100_radius_10_traction_100_elementsize_01"
 num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
@@ -103,7 +103,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_64_bc_32_neurons_4_32_sigmoid"
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_4_32_BC_complete"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -375,8 +375,6 @@ def calibration_step() -> None:
     exact_poissons_ratio = 0.34
     num_data_points = 128
     std_noise = 5 * 1e-4
-    std_model_error = 1.0
-    std_error = std_noise + std_model_error
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
         domain_config = create_fem_domain_config()
@@ -434,10 +432,13 @@ def calibration_step() -> None:
     data = CalibrationData(
         inputs=coordinates,
         outputs=noisy_displacements,
-        std_noise=std_error,
+        std_noise=std_noise,
     )
     likelihood = create_standard_ppinn_likelihood_for_noise(
-        model=model, num_model_parameters=num_model_parameters, data=data, device=device
+        model=model,
+        num_model_parameters=num_material_parameters,
+        data=data,
+        device=device,
     )
 
     prior_mean_youngs_modulus = 2000
@@ -471,7 +472,7 @@ def calibration_step() -> None:
         prior=prior,
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
-        num_burn_in_iterations=int(2e3),
+        num_burn_in_iterations=int(2e4),
         cov_proposal_density=torch.diag(
             torch.tensor(
                 [
@@ -488,7 +489,7 @@ def calibration_step() -> None:
         likelihood=likelihood,
         prior=prior,
         initial_parameters=initial_parameters,
-        num_iterations=int(5e3),
+        num_iterations=int(1e3),
         num_burn_in_iterations=int(1e3),
         num_leabfrog_steps=256,
         leapfrog_step_sizes=torch.tensor([1, 0.01], device=device),

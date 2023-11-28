@@ -221,23 +221,36 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
     def _create_coordinates_and_normals_for_traction_bcs(self) -> tuple[Tensor, Tensor]:
         num_points = self._num_points_per_bc
         (
-            x_coor_left_complete_boundary,
-            normal_left_complete_boundary,
-        ) = self._geometry.create_uniform_points_on_left_boundary(num_points + 1)
-        x_coor_left = x_coor_left_complete_boundary[1:, :]
-        normal_left = normal_left_complete_boundary[1:, :]
+            x_coor_left,
+            normal_left,
+        ) = self._geometry.create_uniform_points_on_left_boundary(num_points)
         (
-            x_coor_top_complete_boundary,
-            normal_top_complete_boundary,
-        ) = self._geometry.create_uniform_points_on_top_boundary(num_points + 2)
-        x_coor_top = x_coor_top_complete_boundary[1:-1, :]
-        normal_top = normal_top_complete_boundary[1:-1, :]
+            x_coor_top,
+            normal_top,
+        ) = self._geometry.create_uniform_points_on_top_boundary(num_points)
         (
-            x_coor_hole_complete_boundary,
-            normal_hole_complete_boundary,
-        ) = self._geometry.create_uniform_points_on_hole_boundary(num_points + 2)
-        x_coor_hole = x_coor_hole_complete_boundary[1:-1, :]
-        normal_hole = normal_hole_complete_boundary[1:-1, :]
+            x_coor_hole,
+            normal_hole,
+        ) = self._geometry.create_uniform_points_on_hole_boundary(num_points)
+        ### Apply only two BCs everywhere
+        # (
+        #     x_coor_left_complete_boundary,
+        #     normal_left_complete_boundary,
+        # ) = self._geometry.create_uniform_points_on_left_boundary(num_points + 1)
+        # x_coor_left = x_coor_left_complete_boundary[1:, :]
+        # normal_left = normal_left_complete_boundary[1:, :]
+        # (
+        #     x_coor_top_complete_boundary,
+        #     normal_top_complete_boundary,
+        # ) = self._geometry.create_uniform_points_on_top_boundary(num_points + 2)
+        # x_coor_top = x_coor_top_complete_boundary[1:-1, :]
+        # normal_top = normal_top_complete_boundary[1:-1, :]
+        # (
+        #     x_coor_hole_complete_boundary,
+        #     normal_hole_complete_boundary,
+        # ) = self._geometry.create_uniform_points_on_hole_boundary(num_points + 2)
+        # x_coor_hole = x_coor_hole_complete_boundary[1:-1, :]
+        # normal_hole = normal_hole_complete_boundary[1:-1, :]
         x_coor = torch.concat((x_coor_left, x_coor_top, x_coor_hole), dim=0)
         normal = torch.concat((normal_left, normal_top, normal_hole), dim=0)
         return x_coor, normal
