@@ -461,7 +461,9 @@ def calibration_step() -> None:
         mean=prior_mean_poissons_ratio, standard_deviation=prior_std_poissons_ratio
     )
     model_error_prior = model_error_gp.get_uninformed_parameters_prior(device)
-    prior = multiply_priors([prior_youngs_modulus, prior_poissons_ratio, model_error_prior])
+    prior = multiply_priors(
+        [prior_youngs_modulus, prior_poissons_ratio, model_error_prior]
+    )
 
     material_parameter_names = (
         "Youngs modulus",
