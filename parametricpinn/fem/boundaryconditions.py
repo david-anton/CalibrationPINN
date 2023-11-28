@@ -30,6 +30,20 @@ class DirichletBC:
         self,
         tag: int,
         value: BCValue,
+        function_space: DFunctionSpace,
+        boundary_tags: DMeshTags,
+        bc_facets_dim: int,
+    ) -> None:
+        facet = boundary_tags.find(tag)
+        dofs = locate_dofs_topological(function_space, bc_facets_dim, facet)
+        self.bc = dirichletbc(value, dofs, function_space)
+
+
+class SubDirichletBC(DirichletBC):
+    def __init__(
+        self,
+        tag: int,
+        value: BCValue,
         dim: int,
         function_space: DFunctionSpace,
         boundary_tags: DMeshTags,
@@ -40,4 +54,4 @@ class DirichletBC:
         self.bc = dirichletbc(value, dofs, function_space.sub(dim))
 
 
-BoundaryConditions: TypeAlias = list[Union[DirichletBC, NeumannBC]]
+BoundaryConditions: TypeAlias = list[Union[NeumannBC, DirichletBC]]

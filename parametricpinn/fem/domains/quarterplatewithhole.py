@@ -18,8 +18,8 @@ from parametricpinn.fem.base import (
 )
 from parametricpinn.fem.boundaryconditions import (
     BoundaryConditions,
-    DirichletBC,
     NeumannBC,
+    SubDirichletBC,
 )
 from parametricpinn.fem.domains.base import (
     list_sorted_facet_indices_and_tags,
@@ -88,7 +88,7 @@ class QuarterPlateWithHoleDomain:
                 measure=measure,
                 test_function=test_function,
             ),
-            DirichletBC(
+            SubDirichletBC(
                 tag=self._tag_right,
                 value=u_x_right,
                 dim=0,
@@ -96,7 +96,7 @@ class QuarterPlateWithHoleDomain:
                 boundary_tags=self.boundary_tags,
                 bc_facets_dim=self._bc_facets_dim,
             ),
-            DirichletBC(
+            SubDirichletBC(
                 tag=self._tag_bottom,
                 value=u_y_bottom,
                 dim=1,

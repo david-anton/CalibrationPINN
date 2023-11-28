@@ -18,8 +18,8 @@ from parametricpinn.fem.base import (
 )
 from parametricpinn.fem.boundaryconditions import (
     BoundaryConditions,
-    DirichletBC,
     NeumannBC,
+    SubDirichletBC,
 )
 from parametricpinn.fem.domains.base import (
     list_sorted_facet_indices_and_tags,
@@ -80,7 +80,7 @@ class PlateWithHoleDomain:
         )
         u_x_left = Constant(self.mesh, self._u_x_left)
         return [
-            DirichletBC(
+            SubDirichletBC(
                 tag=self._tag_left,
                 value=u_x_left,
                 dim=0,
