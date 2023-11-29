@@ -1,12 +1,11 @@
 import math
 
 import pytest
+import shapely
 import torch
-from shapely.geometry import Point, Polygon, box
 
 from parametricpinn.data.dataset import (
     TrainingData2DCollocation,
-    TrainingData2DSymmetryBC,
     TrainingData2DTractionBC,
 )
 from parametricpinn.data.trainingdata_elasticity_2d import (
@@ -14,7 +13,7 @@ from parametricpinn.data.trainingdata_elasticity_2d import (
     PlateWithHoleTrainingDataset2DConfig,
     create_training_dataset,
 )
-from parametricpinn.types import Tensor
+from parametricpinn.types import ShapelyPolygon, Tensor
 
 plate_length = 20.0
 plate_height = 10.0
@@ -41,10 +40,10 @@ num_points_traction_bcs = num_traction_bcs * num_points_per_bc
 
 
 ### Test TrainingDataset
-def _create_plate_with_hole_shape() -> Polygon:
-    plate = box(x_min, y_min, x_max, y_max)
-    hole = Point(plate_length / 2, plate_height / 2).buffer(hole_radius)
-    return plate.difference(hole)
+def _create_plate_with_hole_shape() -> ShapelyPolygon:
+    plate = shapely.box(x_min, y_min, x_max, y_max)
+    hole = shapely.Point(plate_length / 2, plate_height / 2).buffer(hole_radius)
+    return shapely.difference(plate, hole)
 
 
 shape = _create_plate_with_hole_shape()
