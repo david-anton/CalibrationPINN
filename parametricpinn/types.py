@@ -50,6 +50,7 @@ PLTAxes: TypeAlias = axes.Axes
 # Shapely
 ShapelyPolygon: TypeAlias = shapely.Polygon
 
+
 # dataclass
 @dataclass
 class DataClass(Protocol):

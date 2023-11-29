@@ -72,7 +72,6 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         self._samples_collocation: list[TrainingData2DCollocation] = []
         self._samples_symmetry_bc: list[TrainingData2DSymmetryBC] = []
         self._samples_traction_bc: list[TrainingData2DTractionBC] = []
-
         self._generate_samples()
 
     def get_collate_func(self) -> TrainingCollateFunc:

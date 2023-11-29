@@ -83,9 +83,9 @@ class PlateWithHole2D:
         self, num_points: int
     ) -> tuple[Tensor, Tensor]:
         extended_num_points = num_points + 1
-        angles = torch.linspace(
-            0, 360, extended_num_points
-        ).view(extended_num_points, 1)[:-1, :]
+        angles = torch.linspace(0, 360, extended_num_points).view(
+            extended_num_points, 1
+        )[:-1, :]
         delta_x = torch.cos(torch.deg2rad(angles)) * self.radius
         delta_y = torch.sin(torch.deg2rad(angles)) * self.radius
         coordinates_x = self._x_center - delta_x

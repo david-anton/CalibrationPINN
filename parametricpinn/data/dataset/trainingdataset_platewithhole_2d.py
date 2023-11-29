@@ -70,7 +70,6 @@ class PlateWithHoleTrainingDataset2D(Dataset):
         self._total_num_samples = num_samples_per_parameter**self._num_parameters
         self._samples_collocation: list[TrainingData2DCollocation] = []
         self._samples_traction_bc: list[TrainingData2DTractionBC] = []
-
         self._generate_samples()
 
     def get_collate_func(self) -> TrainingCollateFunc:
