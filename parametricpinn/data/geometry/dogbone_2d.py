@@ -167,14 +167,14 @@ class DogBone2D:
         angles = torch.linspace(0, 360, extended_num_points).view(
             extended_num_points, 1
         )[:-1, :]
-        delta_x = torch.cos(torch.deg2rad(angles)) * self._tapered_radius
-        delta_y = torch.sin(torch.deg2rad(angles)) * self._tapered_radius
+        delta_x = torch.cos(torch.deg2rad(angles)) * self._plate_hole_radius
+        delta_y = torch.sin(torch.deg2rad(angles)) * self._plate_hole_radius
         coordinates_x = self._origin_x - delta_x
         coordinates_y = self._origin_y + delta_y
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
         normals_x = delta_x
         normals_y = -delta_y
-        normals = torch.concat((normals_x, normals_y), dim=1) / self.radius
+        normals = torch.concat((normals_x, normals_y), dim=1) / self._plate_hole_radius
         return coordinates, normals
 
     def calculate_area_fractions_on_horizontal_parallel_boundary(
@@ -221,8 +221,8 @@ class DogBone2D:
 
     def _calculate_maximum_angle_for_tapered_boundary(self) -> float:
         return math.degrees(
-            math.atan(
-                (self._half_box_height - self._half_parallel_height)
+            math.asin(
+                (self._half_box_length - self._half_parallel_length)
                 / self._tapered_radius
             )
         )
@@ -266,26 +266,24 @@ class DogBone2D:
             self._origin_x,
             self._origin_y,
         ).buffer(self._plate_hole_radius)
-        dog_bone = shapely.difference(
-            box,
-            [
-                cut_parallel_top,
-                cut_parallel_bottom,
-                cut_tapered_top_left,
-                cut_tapered_top_right,
-                cut_tapered_bottom_left,
-                cut_tapered_bottom_right,
-                plate_hole,
-            ],
+        dog_bone = (
+            box
+            - cut_parallel_top
+            - cut_parallel_bottom
+            - cut_tapered_top_left
+            - cut_tapered_top_right
+            - cut_tapered_bottom_left
+            - cut_tapered_bottom_right
+            - plate_hole
         )
         return dog_bone
 
     def _calculate_absolute_radial_coordinate_components_for_tapered_boundaries(
         self, num_points: int
     ) -> list[Tensor, Tensor]:
-        angles = torch.linspace(self._angle_min_tapered, self._angle_max_tapered).view(
-            num_points, 1
-        )
+        angles = torch.linspace(
+            self._angle_min_tapered, self._angle_max_tapered, num_points
+        ).view(num_points, 1)
         abs_components_x = torch.sin(torch.deg2rad(angles)) * self._tapered_radius
         abs_components_y = torch.cos(torch.deg2rad(angles)) * self._tapered_radius
         return abs_components_x, abs_components_y

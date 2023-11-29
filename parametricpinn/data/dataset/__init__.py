@@ -5,6 +5,10 @@ from .dataset import (
     TrainingData2DSymmetryBC,
     TrainingData2DTractionBC,
 )
+from .trainingdataset_dogbone_2d import (
+    DogBoneTrainingDataset2D,
+    DogBoneTrainingDataset2DConfig,
+)
 from .trainingdataset_platewithhole_2d import (
     PlateWithHoleTrainingDataset2D,
     PlateWithHoleTrainingDataset2DConfig,
@@ -29,6 +33,8 @@ __all__ = [
     "TrainingData2DCollocation",
     "TrainingData2DSymmetryBC",
     "TrainingData2DTractionBC",
+    "DogBoneTrainingDataset2D",
+    "DogBoneTrainingDataset2DConfig",
     "PlateWithHoleTrainingDataset2D",
     "PlateWithHoleTrainingDataset2DConfig",
     "QuarterPlateWithHoleTrainingDataset2D",

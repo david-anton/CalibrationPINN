@@ -203,11 +203,11 @@ class DogBoneTrainingDataset2D(Dataset):
         x_coor_top_parallel = x_coor_top_parallel_complete[1:-1, :]
         normal_top_parallel = normal_top_parallel_complete[1:-1, :]
         x_coor_top = torch.concat(
-            (x_coor_top_left_tapered, x_coor_top_right_tapered, x_coor_top_parallel),
+            (x_coor_top_left_tapered, x_coor_top_parallel, x_coor_top_right_tapered),
             dim=0,
         )
         normal_top = torch.concat(
-            (normal_top_left_tapered, normal_top_right_tapered, normal_top_parallel),
+            (normal_top_left_tapered, normal_top_parallel, normal_top_right_tapered),
             dim=0,
         )
         # bottom
@@ -234,16 +234,16 @@ class DogBoneTrainingDataset2D(Dataset):
         x_coor_bottom = torch.concat(
             (
                 x_coor_bottom_left_tapered,
-                x_coor_bottom_right_tapered,
                 x_coor_bottom_parallel,
+                x_coor_bottom_right_tapered,
             ),
             dim=0,
         )
         normal_bottom = torch.concat(
             (
                 normal_bottom_left_tapered,
-                normal_bottom_right_tapered,
                 normal_bottom_parallel,
+                normal_bottom_right_tapered,
             ),
             dim=0,
         )
