@@ -1,9 +1,9 @@
 import math
 
+import shapely
 import torch
-from shapely.geometry import Point, Polygon, box
 
-from parametricpinn.types import Tensor
+from parametricpinn.types import ShapelyPolygon, Tensor
 
 
 class PlateWithHole2D:
@@ -19,8 +19,6 @@ class PlateWithHole2D:
         self._y_max = plate_height
         self._x_center = plate_length / 2
         self._y_center = plate_height / 2
-        self._angle_min = 0.0
-        self._angle_max = 360.0
         self._shape = self._create_shape()
 
     def create_random_points(self, num_points: int) -> Tensor:
@@ -84,10 +82,9 @@ class PlateWithHole2D:
     def create_uniform_points_on_hole_boundary(
         self, num_points: int
     ) -> tuple[Tensor, Tensor]:
-        shape = (num_points, 1)
         extended_num_points = num_points + 1
         angles = torch.linspace(
-            self._angle_min, self._angle_max, extended_num_points
+            0, 360, extended_num_points
         ).view(extended_num_points, 1)[:-1, :]
         delta_x = torch.cos(torch.deg2rad(angles)) * self.radius
         delta_y = torch.sin(torch.deg2rad(angles)) * self.radius
@@ -126,10 +123,10 @@ class PlateWithHole2D:
 
     def _is_point_in_shape(self, point: Tensor) -> bool:
         _point = point.detach().numpy()
-        return self._shape.contains(Point(_point[0], _point[1]))
+        return self._shape.contains(shapely.Point(_point[0], _point[1]))
 
-    def _create_shape(self) -> Polygon:
-        plate = box(self._x_min, self._y_min, self._x_max, self._y_max)
-        hole = Point(self._x_center, self._y_center).buffer(self.radius)
-        plate_with_hole = plate.difference(hole)
+    def _create_shape(self) -> ShapelyPolygon:
+        plate = shapely.box(self._x_min, self._y_min, self._x_max, self._y_max)
+        hole = shapely.Point(self._x_center, self._y_center).buffer(self.radius)
+        plate_with_hole = shapely.difference(plate, hole)
         return plate_with_hole

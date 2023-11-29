@@ -1,9 +1,9 @@
 import math
 
+import shapely
 import torch
-from shapely.geometry import Point, Polygon, box
 
-from parametricpinn.types import Tensor
+from parametricpinn.types import ShapelyPolygon, Tensor
 
 
 class QuarterPlateWithHole2D:
@@ -121,10 +121,10 @@ class QuarterPlateWithHole2D:
 
     def _is_point_in_shape(self, point: Tensor) -> bool:
         _point = point.detach().numpy()
-        return self._shape.contains(Point(_point[0], _point[1]))
+        return self._shape.contains(shapely.Point(_point[0], _point[1]))
 
-    def _create_shape(self) -> Polygon:
-        plate = box(self._x_min, self._y_min, self._x_max, self._y_max)
-        hole = Point(0, 0).buffer(self.radius)
-        plate_with_hole = plate.difference(hole)
+    def _create_shape(self) -> ShapelyPolygon:
+        plate = shapely.box(self._x_min, self._y_min, self._x_max, self._y_max)
+        hole = shapely.Point(0, 0).buffer(self.radius)
+        plate_with_hole = shapely.difference(plate, hole)
         return plate_with_hole

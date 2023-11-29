@@ -5,6 +5,7 @@ import gpytorch
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+import shapely
 import torch
 import torch.nn as nn
 from matplotlib import axes, figure
@@ -46,6 +47,8 @@ PDDataFrame: TypeAlias = pd.DataFrame
 PLTFigure: TypeAlias = figure.Figure
 PLTAxes: TypeAlias = axes.Axes
 
+# Shapely
+ShapelyPolygon: TypeAlias = shapely.Polygon
 
 # dataclass
 @dataclass
