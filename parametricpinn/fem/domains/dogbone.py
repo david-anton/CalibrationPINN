@@ -30,7 +30,23 @@ from parametricpinn.io import ProjectDirectory
 
 
 @dataclass
-class DogBoneDomainConfig:
+class DogBoneDomainConfigBase:
+    origin_x = 0
+    origin_y = 0
+    box_length = 120
+    box_height = 30
+    half_box_length = box_length / 2
+    half_box_height = box_height / 2
+    parallel_length = 90
+    parallel_height = 20
+    half_parallel_length = parallel_length / 2
+    half_parallel_height = parallel_height / 2
+    cut_parallel_height = (box_height - parallel_height) / 2
+    tapered_radius = 25
+    plate_hole_radius = 4
+
+@dataclass
+class DogBoneDomainConfig(DogBoneDomainConfigBase):
     traction_right_x: float
     traction_right_y: float
     element_family: str
@@ -112,19 +128,19 @@ class DogBoneDomain:
         return mesh
 
     def _generate_gmesh(self) -> GMesh:
-        origin_x = 0
-        origin_y = 0
-        box_length = 120
-        box_height = 30
-        half_box_length = box_length / 2
-        half_box_height = box_height / 2
-        parallel_length = 90
-        parallel_height = 20
-        half_parallel_length = parallel_length / 2
-        half_parallel_height = parallel_height / 2
-        cut_parallel_height = (box_height - parallel_height) / 2
-        tapered_radius = 25
-        plate_hole_radius = 4
+        origin_x = self.config.origin_x 
+        origin_y = self.config.origin_y
+        box_length = self.config.box_length 
+        box_height = self.config.box_height
+        half_box_length = self.config.half_box_length 
+        half_box_height = self.config.half_box_height 
+        parallel_length = self.config.parallel_length 
+        parallel_height = self.config.parallel_height
+        half_parallel_length = self.config.half_parallel_length
+        half_parallel_height = self.config.half_parallel_height 
+        cut_parallel_height = self.config.cut_parallel_height 
+        tapered_radius = self.config.tapered_radius 
+        plate_hole_radius = self.config.plate_hole_radius 
         element_size = self.config.element_size
         geometry_kernel = gmsh.model.occ
         solid_marker = 1

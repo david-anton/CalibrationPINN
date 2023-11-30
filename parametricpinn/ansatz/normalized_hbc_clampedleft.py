@@ -26,7 +26,7 @@ from parametricpinn.types import Tensor
 NetworkInputNormalizer: TypeAlias = InputNormalizer
 
 
-class NormalizedHBCAnsatzStrategyPlateWithHole:
+class NormalizedHBCAnsatzStrategyClampedLeft:
     def __init__(
         self,
         displacement_x_left: Tensor,
@@ -59,7 +59,8 @@ class NormalizedHBCAnsatzStrategyPlateWithHole:
         return self._hbc_ansatz_output_renormalizer(norm_output)
 
 
-def create_standard_normalized_hbc_ansatz_plate_with_hole(
+def create_standard_normalized_hbc_ansatz_clamped_left(
+    coordinate_x_left: Tensor,
     displacement_x_left: Tensor,
     min_inputs: Tensor,
     max_inputs: Tensor,
@@ -69,6 +70,7 @@ def create_standard_normalized_hbc_ansatz_plate_with_hole(
     distance_function_type: str,
 ) -> StandardAnsatz:
     ansatz_strategy = _create_ansatz_strategy(
+        coordinate_x_left,
         displacement_x_left,
         min_inputs,
         max_inputs,
@@ -79,7 +81,8 @@ def create_standard_normalized_hbc_ansatz_plate_with_hole(
     return StandardAnsatz(network, ansatz_strategy)
 
 
-def create_bayesian_normalized_hbc_ansatz_plate_with_hole(
+def create_bayesian_normalized_hbc_ansatz_clamped_left(
+    coordinate_x_left: Tensor,
     displacement_x_left: Tensor,
     min_inputs: Tensor,
     max_inputs: Tensor,
@@ -89,6 +92,7 @@ def create_bayesian_normalized_hbc_ansatz_plate_with_hole(
     distance_function_type: str,
 ) -> BayesianAnsatz:
     ansatz_strategy = _create_ansatz_strategy(
+        coordinate_x_left,
         displacement_x_left,
         min_inputs,
         max_inputs,
@@ -100,24 +104,25 @@ def create_bayesian_normalized_hbc_ansatz_plate_with_hole(
 
 
 def _create_ansatz_strategy(
+    coordinate_x_left: Tensor,
     displacement_x_left: Tensor,
     min_inputs: Tensor,
     max_inputs: Tensor,
     min_outputs: Tensor,
     max_outputs: Tensor,
     distance_func_type: str,
-) -> NormalizedHBCAnsatzStrategyPlateWithHole:
+) -> NormalizedHBCAnsatzStrategyClampedLeft:
     network_input_normalizer = _create_network_input_normalizer(min_inputs, max_inputs)
     ansatz_output_normalizer_x = _create_ansatz_output_normalizer_x(
         min_outputs, max_outputs
     )
     distance_func_x = _create_distance_function_x(
-        distance_func_type, min_inputs, max_inputs
+        distance_func_type, min_inputs, max_inputs, coordinate_x_left
     )
     ansatz_output_renormalizer = _create_ansatz_output_renormalizer(
         min_outputs, max_outputs
     )
-    return NormalizedHBCAnsatzStrategyPlateWithHole(
+    return NormalizedHBCAnsatzStrategyClampedLeft(
         displacement_x_left=displacement_x_left,
         network_input_normalizer=network_input_normalizer,
         hbc_ansatz_output_normalizer_x=ansatz_output_normalizer_x,
@@ -143,14 +148,17 @@ def _create_ansatz_output_normalizer_x(
 
 
 def _create_distance_function_x(
-    distance_func_type: str, min_inputs: Tensor, max_inputs: Tensor
+    distance_func_type: str,
+    min_inputs: Tensor,
+    max_inputs: Tensor,
+    coordinate_x_left: Tensor,
 ) -> DistanceFunction:
     idx_coordinate = 0
     range_coordinate_x = torch.unsqueeze(
         max_inputs[idx_coordinate] - min_inputs[idx_coordinate], dim=0
     )
     device = range_coordinate_x.device
-    boundary_coordinate_x = torch.tensor([0.0], device=device)
+    boundary_coordinate_x = coordinate_x_left.to(device)
     return distance_function_factory(
         distance_func_type, range_coordinate_x, boundary_coordinate_x
     )

@@ -332,18 +332,10 @@ def test_sample_traction_bc__normal(
 
     actual = sample_traction_bc.normal
 
-    abs_normal_half_angle_tapered_x = (
-        math.sin(math.radians(half_angle_tapered))
-    )
-    abs_normal_half_angle_tapered_y = (
-        math.cos(math.radians(half_angle_tapered))
-    )
-    abs_normal_max_angle_tapered_x = (
-        math.sin(math.radians(max_angle_tapered))
-    )
-    abs_normal_max_angle_tapered_y = (
-        math.cos(math.radians(max_angle_tapered))
-    )
+    abs_normal_half_angle_tapered_x = math.sin(math.radians(half_angle_tapered))
+    abs_normal_half_angle_tapered_y = math.cos(math.radians(half_angle_tapered))
+    abs_normal_max_angle_tapered_x = math.sin(math.radians(max_angle_tapered))
+    abs_normal_max_angle_tapered_y = math.cos(math.radians(max_angle_tapered))
 
     expected = torch.tensor(
         [
@@ -398,7 +390,7 @@ def test_sample_traction_bc__area_fractions(
     actual = sample_traction_bc.area_frac
 
     plate_hole_length = 2.0 * math.pi * plate_hole_radius
-    tapered_length = (max_angle_tapered/360) * 2.0 * math.pi * tapered_radius
+    tapered_length = (max_angle_tapered / 360) * 2.0 * math.pi * tapered_radius
 
     expected = torch.tensor(
         [

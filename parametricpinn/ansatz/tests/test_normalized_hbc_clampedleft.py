@@ -3,12 +3,13 @@ import torch
 
 from parametricpinn.ansatz import (
     StandardAnsatz,
-    create_standard_normalized_hbc_ansatz_plate_with_hole,
+    create_standard_normalized_hbc_ansatz_clamped_left,
 )
 from parametricpinn.network import FFNN
 from parametricpinn.types import Tensor
 
 displacement_x_left = torch.tensor([0.0])
+coordinate_x_left = torch.tensor([0.0])
 min_inputs = torch.tensor([0.0, 0.0, 0.0, 0.0])
 max_inputs = torch.tensor([2.0, 2.0, 0.0, 0.0])
 min_outputs = torch.tensor([0.0, 0.0])
@@ -35,7 +36,8 @@ class FakeNetworkSingleInput(FFNN):
 @pytest.fixture
 def sut() -> StandardAnsatz:
     network = FakeNetwork()
-    return create_standard_normalized_hbc_ansatz_plate_with_hole(
+    return create_standard_normalized_hbc_ansatz_clamped_left(
+        coordinate_x_left=coordinate_x_left,
         displacement_x_left=displacement_x_left,
         min_inputs=min_inputs,
         max_inputs=max_inputs,
@@ -82,7 +84,8 @@ def test_normalized_HBC_ansatz(sut: StandardAnsatz) -> None:
 @pytest.fixture
 def sut_single_input() -> StandardAnsatz:
     network = FakeNetworkSingleInput()
-    return create_standard_normalized_hbc_ansatz_plate_with_hole(
+    return create_standard_normalized_hbc_ansatz_clamped_left(
+        coordinate_x_left=coordinate_x_left,
         displacement_x_left=displacement_x_left,
         min_inputs=min_inputs,
         max_inputs=max_inputs,
