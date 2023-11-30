@@ -16,10 +16,10 @@ from parametricpinn.data.geometry import (
 from parametricpinn.errors import DatasetConfigError
 
 TrainingDatasetConfig: TypeAlias = Union[
-    QuarterPlateWithHoleTrainingDataset2DConfig, PlateWithHoleTrainingDataset2DConfig
+    QuarterPlateWithHoleTrainingDataset2DConfig, PlateWithHoleTrainingDataset2DConfig, DogBoneTrainingDataset2DConfig
 ]
 TrainingDataset: TypeAlias = Union[
-    QuarterPlateWithHoleTrainingDataset2D, PlateWithHoleTrainingDataset2D
+    QuarterPlateWithHoleTrainingDataset2D, PlateWithHoleTrainingDataset2D, DogBoneTrainingDataset2D
 ]
 
 

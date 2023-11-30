@@ -135,7 +135,6 @@ class DogBoneDomain:
         half_box_length = self.config.half_box_length 
         half_box_height = self.config.half_box_height 
         parallel_length = self.config.parallel_length 
-        parallel_height = self.config.parallel_height
         half_parallel_length = self.config.half_parallel_length
         half_parallel_height = self.config.half_parallel_height 
         cut_parallel_height = self.config.cut_parallel_height 
