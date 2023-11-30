@@ -10,6 +10,7 @@ from scipy.interpolate import griddata
 
 from parametricpinn.errors import FEMDomainConfigError, PlottingConfigError
 from parametricpinn.fem import (
+    DogBoneDomainConfig,
     LinearElasticityProblemConfig,
     NeoHookeanProblemConfig,
     PlateWithHoleDomainConfig,
@@ -25,7 +26,7 @@ ProblemConfigLists: TypeAlias = Union[
     list[LinearElasticityProblemConfig], list[NeoHookeanProblemConfig]
 ]
 DomainConfigs: TypeAlias = Union[
-    QuarterPlateWithHoleDomainConfig, PlateWithHoleDomainConfig
+    QuarterPlateWithHoleDomainConfig, PlateWithHoleDomainConfig, DogBoneDomainConfig
 ]
 
 
@@ -526,7 +527,7 @@ def _add_geometry_specific_patches(
 ) -> None:
     def add_quarter_hole(
         axes: PLTAxes, domain_config: QuarterPlateWithHoleDomainConfig
-    ):
+    ) -> None:
         radius = domain_config.radius
         hole = plt.Circle(
             (0.0, 0.0),
@@ -535,7 +536,7 @@ def _add_geometry_specific_patches(
         )
         axes.add_patch(hole)
 
-    def add_hole(axes: PLTAxes, domain_config: PlateWithHoleDomainConfig):
+    def add_hole(axes: PLTAxes, domain_config: PlateWithHoleDomainConfig) -> None:
         length = domain_config.plate_length
         height = domain_config.plate_height
         radius = domain_config.hole_radius
@@ -546,11 +547,66 @@ def _add_geometry_specific_patches(
         )
         axes.add_patch(hole)
 
+    def cut_dog_bone(axes: PLTAxes, domain_config: DogBoneDomainConfig) -> None:
+        origin_x = domain_config.origin_x
+        origin_y = domain_config.origin_y 
+        half_box_height = domain_config.half_box_height
+        parallel_length = domain_config.parallel_length
+        half_parallel_length = domain_config.half_parallel_length
+        half_parallel_height = domain_config.half_parallel_height
+        cut_parallel_height = domain_config.cut_parallel_height
+        tapered_radius = domain_config.tapered_radius
+        plate_hole_radius = domain_config.plate_hole_radius
+        tapered_top_left = plt.Circle(
+            (-half_parallel_length, half_parallel_height + tapered_radius),
+            radius=tapered_radius,
+            color="white",
+        )
+        parallel_top = plt.Rectangle(
+            (-half_parallel_length, half_parallel_height),
+            width = parallel_length,
+            height = cut_parallel_height
+        )
+        tapered_top_right = plt.Circle(
+            (half_parallel_length, half_parallel_height + tapered_radius),
+            radius=tapered_radius,
+            color="white",
+        )
+        tapered_bottom_left = plt.Circle(
+            (-half_parallel_length, -(half_parallel_height + tapered_radius)),
+            radius=tapered_radius,
+            color="white",
+        )
+        parallel_bottom = plt.Rectangle(
+            (-half_parallel_length, -half_box_height),
+            width = parallel_length,
+            height = cut_parallel_height
+        )
+        tapered_bottom_right = plt.Circle(
+            (half_parallel_length, -(half_parallel_height + tapered_radius)),
+            radius=tapered_radius,
+            color="white",
+        )
+        plate_hole = plt.Circle(
+            (origin_x, origin_y),
+            radius=plate_hole_radius,
+            color="white",
+        )
+        axes.add_patch(tapered_top_left)
+        axes.add_patch(parallel_top)
+        axes.add_patch(tapered_top_right)
+        axes.add_patch(tapered_bottom_left)
+        axes.add_patch(parallel_bottom)
+        axes.add_patch(tapered_bottom_right)
+        axes.add_patch(plate_hole)
+
     domain_config = simulation_config.domain_config
     if isinstance(domain_config, QuarterPlateWithHoleDomainConfig):
         add_quarter_hole(axes=axes, domain_config=domain_config)
     elif isinstance(domain_config, PlateWithHoleDomainConfig):
         add_hole(axes=axes, domain_config=domain_config)
+    elif isinstance(domain_config, DogBoneDomainConfig):
+        cut_dog_bone(axes=axes, domain_config=domain_config)
     else:
         raise FEMDomainConfigError(
             f"There is no implementation for the requested FEM domain {domain_config}."
