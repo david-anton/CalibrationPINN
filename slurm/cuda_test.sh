@@ -9,6 +9,10 @@
 ## Build command
 ## singularity build --fakeroot --force parametricpinn.sif app/.devcontainer/container_conda.def
 
+srun nvidia-smi
+
+srun conda list
+
 SCRIPT=cuda_test.py
 
 srun singularity run \
