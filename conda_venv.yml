@@ -2,10 +2,11 @@ name: venv
 channels:
   - defaults
   - conda-forge
+  - nvidia
 dependencies:
   - python=3.11.5
   - pytorch::pytorch=2.1.0
-  - nvidia::pytorch-cuda=12.1
+  - pytorch::pytorch-cuda=12.1
   - gpytorch::gpytorch=1.11
   - fenics-dolfinx=0.7.0
   - gmsh=4.11.1
