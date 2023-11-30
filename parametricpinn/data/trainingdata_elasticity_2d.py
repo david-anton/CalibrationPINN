@@ -10,16 +10,21 @@ from parametricpinn.data.dataset import (
 )
 from parametricpinn.data.geometry import (
     DogBone2D,
+    DogBoneGeometryConfig,
     PlateWithHole2D,
     QuarterPlateWithHole2D,
 )
 from parametricpinn.errors import DatasetConfigError
 
 TrainingDatasetConfig: TypeAlias = Union[
-    QuarterPlateWithHoleTrainingDataset2DConfig, PlateWithHoleTrainingDataset2DConfig, DogBoneTrainingDataset2DConfig
+    QuarterPlateWithHoleTrainingDataset2DConfig,
+    PlateWithHoleTrainingDataset2DConfig,
+    DogBoneTrainingDataset2DConfig,
 ]
 TrainingDataset: TypeAlias = Union[
-    QuarterPlateWithHoleTrainingDataset2D, PlateWithHoleTrainingDataset2D, DogBoneTrainingDataset2D
+    QuarterPlateWithHoleTrainingDataset2D,
+    PlateWithHoleTrainingDataset2D,
+    DogBoneTrainingDataset2D,
 ]
 
 
@@ -59,7 +64,8 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
             num_samples_per_parameter=config.num_samples_per_parameter,
         )
     elif isinstance(config, DogBoneTrainingDataset2DConfig):
-        geometry_dogbone = DogBone2D()
+        geometry_config_dogbone = DogBoneGeometryConfig()
+        geometry_dogbone = DogBone2D(geometry_config_dogbone)
         return DogBoneTrainingDataset2D(
             geometry=geometry_dogbone,
             traction_right=config.traction_right,

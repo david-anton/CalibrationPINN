@@ -1,4 +1,5 @@
 import math
+from dataclasses import dataclass
 
 import shapely
 import torch
@@ -6,21 +7,38 @@ import torch
 from parametricpinn.types import ShapelyPolygon, Tensor
 
 
+@dataclass
+class DogBoneGeometryConfig:
+    origin_x = 0
+    origin_y = 0
+    box_length = 120
+    box_height = 30
+    half_box_length = box_length / 2
+    half_box_height = box_height / 2
+    parallel_length = 90
+    parallel_height = 20
+    half_parallel_length = parallel_length / 2
+    half_parallel_height = parallel_height / 2
+    cut_parallel_height = (box_height - parallel_height) / 2
+    tapered_radius = 25
+    plate_hole_radius = 4
+
+
 class DogBone2D:
-    def __init__(self) -> None:
-        self._origin_x = 0
-        self._origin_y = 0
-        self._box_length = 120
-        self._box_height = 30
-        self._half_box_length = self._box_length / 2
-        self._half_box_height = self._box_height / 2
-        self._parallel_length = 90
-        self._parallel_height = 20
-        self._half_parallel_length = self._parallel_length / 2
-        self._half_parallel_height = self._parallel_height / 2
-        self._cut_parallel_height = (self._box_height - self._parallel_height) / 2
-        self._tapered_radius = 25
-        self._plate_hole_radius = 4
+    def __init__(self, geometry_config: DogBoneGeometryConfig) -> None:
+        self._origin_x = geometry_config.origin_x
+        self._origin_y = geometry_config.origin_y
+        self._box_length = geometry_config.box_length
+        self._box_height = geometry_config.box_height
+        self._half_box_length = geometry_config.half_box_length
+        self._half_box_height = geometry_config.half_box_height
+        self._parallel_length = geometry_config.parallel_length
+        self._parallel_height = geometry_config.parallel_height
+        self._half_parallel_length = geometry_config.half_parallel_length
+        self._half_parallel_height = geometry_config.half_parallel_height
+        self._cut_parallel_height = geometry_config.cut_parallel_height
+        self._tapered_radius = geometry_config.tapered_radius
+        self._plate_hole_radius = geometry_config.plate_hole_radius
         self._angle_min_tapered = 0
         self._angle_max_tapered = self._calculate_maximum_angle_for_tapered_boundary()
         self._shape = self._create_shape()

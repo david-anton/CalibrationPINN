@@ -28,6 +28,7 @@ from parametricpinn.calibration.bayesianinference.plot import (
 )
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.data.trainingdata_elasticity_2d import (
+    DogBoneGeometryConfig,
     DogBoneTrainingDataset2D,
     DogBoneTrainingDataset2DConfig,
     create_training_dataset,
@@ -62,7 +63,7 @@ retrain_parametric_pinn = True
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
-traction_right_x = 100.0
+traction_right_x = 106.2629
 traction_right_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
@@ -113,20 +114,21 @@ device = get_device()
 set_default_dtype(torch.float64)
 set_seed(0)
 
+geometry_config = DogBoneGeometryConfig()
+
 
 def create_fem_domain_config() -> DogBoneDomainConfig:
     return DogBoneDomainConfig(
+        geometry_config=geometry_config,
         traction_right_x=traction_right_x,
         traction_right_y=traction_right_y,
         element_family=fem_element_family,
         element_degree=fem_element_degree,
-        element_size=fem_element_size
+        element_size=fem_element_size,
     )
 
 
-def create_datasets() -> (
-    tuple[DogBoneTrainingDataset2D, ValidationDataset2D]
-):
+def create_datasets() -> tuple[DogBoneTrainingDataset2D, ValidationDataset2D]:
     def _create_training_dataset() -> DogBoneTrainingDataset2D:
         print("Generate training data ...")
         traction_right = torch.tensor([traction_right_x, traction_right_y])
@@ -196,12 +198,11 @@ def create_datasets() -> (
 
 
 def create_ansatz() -> StandardAnsatz:
-    domain_config = create_fem_domain_config()
     def _determine_normalization_values() -> dict[str, Tensor]:
-        min_coordinate_x = - domain_config.half_box_length
-        max_coordinate_x = domain_config.half_box_length
-        min_coordinate_y = - domain_config.half_box_height
-        max_coordinate_y = domain_config.half_box_height
+        min_coordinate_x = -geometry_config.half_box_length
+        max_coordinate_x = geometry_config.half_box_length
+        min_coordinate_y = -geometry_config.half_box_height
+        max_coordinate_y = geometry_config.half_box_height
         min_coordinates = torch.tensor([min_coordinate_x, min_coordinate_y])
         max_coordinates = torch.tensor([max_coordinate_x, max_coordinate_y])
 
@@ -221,6 +222,7 @@ def create_ansatz() -> StandardAnsatz:
             youngs_modulus=min_youngs_modulus,
             poissons_ratio=max_poissons_ratio,
         )
+        domain_config = create_fem_domain_config()
         simulation_config = SimulationConfig(
             domain_config=domain_config,
             problem_config=problem_config,
@@ -251,7 +253,9 @@ def create_ansatz() -> StandardAnsatz:
     normalization_values = _determine_normalization_values()
     network = FFNN(layer_sizes=layer_sizes)
     return create_standard_normalized_hbc_ansatz_clamped_left(
-        coordinate_x_left=torch.tensor([-domain_config.half_box_length], device=device),
+        coordinate_x_left=torch.tensor(
+            [-geometry_config.half_box_length], device=device
+        ),
         displacement_x_left=torch.tensor([0.0], device=device),
         min_inputs=normalization_values["min_inputs"],
         max_inputs=normalization_values["max_inputs"],

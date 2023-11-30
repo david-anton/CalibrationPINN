@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import TypeAlias
 
 import gmsh
 import numpy as np
@@ -7,6 +6,7 @@ from dolfinx import default_scalar_type
 from dolfinx.fem import Constant
 from dolfinx.mesh import meshtags
 
+from parametricpinn.data.geometry.dogbone_2d import DogBoneGeometryConfig
 from parametricpinn.fem.base import (
     DFunctionSpace,
     DMesh,
@@ -30,28 +30,34 @@ from parametricpinn.io import ProjectDirectory
 
 
 @dataclass
-class DogBoneDomainConfigBase:
-    origin_x = 0
-    origin_y = 0
-    box_length = 120
-    box_height = 30
-    half_box_length = box_length / 2
-    half_box_height = box_height / 2
-    parallel_length = 90
-    parallel_height = 20
-    half_parallel_length = parallel_length / 2
-    half_parallel_height = parallel_height / 2
-    cut_parallel_height = (box_height - parallel_height) / 2
-    tapered_radius = 25
-    plate_hole_radius = 4
-
-@dataclass
-class DogBoneDomainConfig(DogBoneDomainConfigBase):
-    traction_right_x: float
-    traction_right_y: float
-    element_family: str
-    element_degree: int
-    element_size: float
+class DogBoneDomainConfig:
+    def __init__(
+        self,
+        geometry_config: DogBoneGeometryConfig,
+        traction_right_x: float,
+        traction_right_y: float,
+        element_family: str,
+        element_degree: int,
+        element_size: float,
+    ):
+        self.origin_x = geometry_config.origin_x
+        self.origin_y = geometry_config.origin_y
+        self.box_length = geometry_config.box_length
+        self.box_height = geometry_config.box_height
+        self.half_box_length = geometry_config.half_box_length
+        self.half_box_height = geometry_config.half_box_height
+        self.parallel_length = geometry_config.parallel_length
+        self.parallel_height = geometry_config.parallel_height
+        self.half_parallel_length = geometry_config.half_parallel_length
+        self.half_parallel_height = geometry_config.half_parallel_height
+        self.cut_parallel_height = geometry_config.cut_parallel_height
+        self.tapered_radius = geometry_config.tapered_radius
+        self.plate_hole_radius = geometry_config.plate_hole_radius
+        self.traction_right_x = traction_right_x
+        self.traction_right_y = traction_right_y
+        self.element_family = element_family
+        self.element_degree = element_degree
+        self.element_size = element_size
 
 
 class DogBoneDomain:
@@ -128,18 +134,18 @@ class DogBoneDomain:
         return mesh
 
     def _generate_gmesh(self) -> GMesh:
-        origin_x = self.config.origin_x 
+        origin_x = self.config.origin_x
         origin_y = self.config.origin_y
-        box_length = self.config.box_length 
+        box_length = self.config.box_length
         box_height = self.config.box_height
-        half_box_length = self.config.half_box_length 
-        half_box_height = self.config.half_box_height 
-        parallel_length = self.config.parallel_length 
+        half_box_length = self.config.half_box_length
+        half_box_height = self.config.half_box_height
+        parallel_length = self.config.parallel_length
         half_parallel_length = self.config.half_parallel_length
-        half_parallel_height = self.config.half_parallel_height 
-        cut_parallel_height = self.config.cut_parallel_height 
-        tapered_radius = self.config.tapered_radius 
-        plate_hole_radius = self.config.plate_hole_radius 
+        half_parallel_height = self.config.half_parallel_height
+        cut_parallel_height = self.config.cut_parallel_height
+        tapered_radius = self.config.tapered_radius
+        plate_hole_radius = self.config.plate_hole_radius
         element_size = self.config.element_size
         geometry_kernel = gmsh.model.occ
         solid_marker = 1
