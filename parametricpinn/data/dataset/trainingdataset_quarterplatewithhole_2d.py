@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 from typing import Callable, TypeAlias
 
@@ -56,6 +57,8 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         self._num_parameters = 2
         self._num_symmetry_bcs = 2
         self._num_traction_bcs = 3
+        self._distance_bcs = 1e-7
+        self._distance_angle_bcs = 1e-7
         self._geometry = geometry
         self._traction_left = traction_left
         self._traction_top = torch.tensor([0.0, 0.0], device=traction_left.device)
@@ -223,14 +226,22 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
             x_coor_left,
             normal_left,
         ) = self._geometry.create_uniform_points_on_left_boundary(num_points)
+        x_coor_left[0,1] += self._distance_bcs
         (
             x_coor_top,
             normal_top,
         ) = self._geometry.create_uniform_points_on_top_boundary(num_points)
+        x_coor_top[0,0] += self._distance_bcs
+        x_coor_top[-1,0] -= self._distance_bcs
         (
             x_coor_hole,
             normal_hole,
         ) = self._geometry.create_uniform_points_on_hole_boundary(num_points)
+        radius = self._geometry.radius
+        x_coor_hole[0,0] = - math.cos(math.radians(self._distance_angle_bcs)) * radius
+        x_coor_hole[0,1] = math.sin(math.radians(self._distance_angle_bcs)) * radius
+        x_coor_hole[-1,0] = -math.sin(math.radians(self._distance_angle_bcs)) * radius
+        x_coor_hole[-1,1] = math.cos(math.radians(self._distance_angle_bcs)) * radius
         ### Apply only two BCs everywhere
         # (
         #     x_coor_left_complete_boundary,
