@@ -18,10 +18,12 @@ from parametricpinn.types import ShapelyPolygon, Tensor
 plate_length = 20.0
 plate_height = 10.0
 hole_radius = 2.0
-x_min = 0.0
-x_max = plate_length
-y_min = 0.0
-y_max = plate_height
+x_min = -plate_length/2
+x_max = plate_length/2
+y_min = -plate_height/2
+y_max = plate_height/2
+origin_x = 0.0
+origin_y = 0.0
 volume_foce = torch.tensor([10.0, 10.0])
 min_youngs_modulus = 180000.0
 max_youngs_modulus = 240000.0
@@ -71,7 +73,7 @@ def sut() -> PlateWithHoleTrainingDataset2D:
 def assert_if_coordinates_are_inside_shape(coordinates: Tensor) -> bool:
     coordinates_list = coordinates.tolist()
     for one_coordinate in coordinates_list:
-        if not shape.contains(Point(one_coordinate[0], one_coordinate[1])):
+        if not shape.contains(shapely.Point(one_coordinate[0], one_coordinate[1])):
             return False
     return True
 
@@ -162,31 +164,31 @@ def test_sample_traction_bc__x_coordinates(
 
     expected = torch.tensor(
         [
-            [x_max, 0 * plate_height],
-            [x_max, 1 / 2 * plate_height],
-            [x_max, 1 * plate_height],
-            [1 / 4 * plate_length, y_max],
-            [2 / 4 * plate_length, y_max],
-            [3 / 4 * plate_length, y_max],
-            [1 / 4 * plate_length, y_min],
-            [2 / 4 * plate_length, y_min],
-            [3 / 4 * plate_length, y_min],
+            [x_max, y_min + 0 * plate_height],
+            [x_max, y_min + 1 / 2 * plate_height],
+            [x_max, y_min + 1 * plate_height],
+            [x_min + 1 / 4 * plate_length, y_max],
+            [x_min + 2 / 4 * plate_length, y_max],
+            [x_min + 3 / 4 * plate_length, y_max],
+            [x_min + 1 / 4 * plate_length, y_min],
+            [x_min + 2 / 4 * plate_length, y_min],
+            [x_min + 3 / 4 * plate_length, y_min],
             [
-                (plate_length / 2)
+                origin_x
                 - torch.cos(torch.deg2rad(torch.tensor(0 * 360))) * hole_radius,
-                (plate_height / 2)
+                origin_y
                 + torch.sin(torch.deg2rad(torch.tensor(0 * 360))) * hole_radius,
             ],
             [
-                (plate_length / 2)
+                origin_x
                 - torch.cos(torch.deg2rad(torch.tensor(1 / 3 * 360))) * hole_radius,
-                (plate_height / 2)
+                origin_y
                 + torch.sin(torch.deg2rad(torch.tensor(1 / 3 * 360))) * hole_radius,
             ],
             [
-                (plate_length / 2)
+                origin_x
                 - torch.cos(torch.deg2rad(torch.tensor(2 / 3 * 360))) * hole_radius,
-                (plate_height / 2)
+                origin_y
                 + torch.sin(torch.deg2rad(torch.tensor(2 / 3 * 360))) * hole_radius,
             ],
         ]

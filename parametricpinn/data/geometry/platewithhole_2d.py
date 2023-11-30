@@ -11,14 +11,16 @@ class PlateWithHole2D:
         self, plate_length: float, plate_height: float, hole_radius: float
     ) -> None:
         self.length = plate_length
+        self._half_length = plate_length / 2
         self.height = plate_height
+        self._half_height = plate_height / 2
         self.radius = hole_radius
-        self._x_min = 0.0
-        self._x_max = plate_length
-        self._y_min = 0.0
-        self._y_max = plate_height
-        self._x_center = plate_length / 2
-        self._y_center = plate_height / 2
+        self._x_min = -self._half_length
+        self._x_max = self._half_length
+        self._y_min = -self._half_height
+        self._y_max = self._half_height
+        self._x_center = 0.0
+        self._y_center = 0.0
         self._shape = self._create_shape()
 
     def create_random_points(self, num_points: int) -> Tensor:
