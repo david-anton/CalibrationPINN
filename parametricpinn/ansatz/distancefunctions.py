@@ -10,27 +10,36 @@ DistanceFunction: TypeAlias = Callable[[Tensor], Tensor]
 
 def normalized_linear_distance_function_factory(
     range_coordinate: Tensor,
+    boundary_coordinate: Tensor,
 ) -> DistanceFunction:
-    def distance_func(input_coord: Tensor) -> Tensor:
-        return input_coord / range_coordinate
+    def distance_func(input_coordinate: Tensor) -> Tensor:
+        relative_coordinate = input_coordinate - boundary_coordinate
+        return (relative_coordinate) / range_coordinate
 
     return distance_func
 
 
-def sigmoid_distance_function_factory() -> DistanceFunction:
-    def distance_func(input_coor: Tensor) -> Tensor:
-        return ((2 * torch.exp(input_coor)) / (torch.exp(input_coor) + 1)) - 1
+def sigmoid_distance_function_factory(boundary_coordinate: Tensor) -> DistanceFunction:
+    def distance_func(input_coordinate: Tensor) -> Tensor:
+        relative_coordinate = input_coordinate - boundary_coordinate
+        return (
+            (2 * torch.exp(relative_coordinate)) / (torch.exp(relative_coordinate) + 1)
+        ) - 1
 
     return distance_func
 
 
 def distance_function_factory(
-    type_str: str, range_coordinate: Tensor
+    type_str: str,
+    range_coordinate: Tensor,
+    boundary_coordinate: Tensor,
 ) -> DistanceFunction:
     if type_str == "normalized linear":
-        return normalized_linear_distance_function_factory(range_coordinate)
+        return normalized_linear_distance_function_factory(
+            range_coordinate, boundary_coordinate
+        )
     elif type_str == "sigmoid":
-        return sigmoid_distance_function_factory()
+        return sigmoid_distance_function_factory(boundary_coordinate)
     else:
         raise DistanceFunctionConfigError(
             f"There is no implementation for the requested distance function {type_str}."

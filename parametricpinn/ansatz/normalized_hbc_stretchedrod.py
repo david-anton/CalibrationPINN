@@ -102,7 +102,7 @@ def _create_ansatz_strategy(
 ) -> NormalizedHBCAnsatzStrategyStretchedRod:
     network_input_normalizer = _create_network_input_normalizer(min_inputs, max_inputs)
     ansatz_output_normalizer = _create_ansatz_ouput_normalizer(min_outputs, max_outputs)
-    distance_func = _create_distance_functions(
+    distance_func = _create_distance_function(
         distance_func_type, min_inputs, max_inputs
     )
     ansatz_output_renormalizer = _create_ansatz_output_renormalizer(
@@ -129,11 +129,15 @@ def _create_ansatz_ouput_normalizer(
     return HBCAnsatzNormalizer(min_outputs, max_outputs)
 
 
-def _create_distance_functions(
+def _create_distance_function(
     distance_func_type: str, min_inputs: Tensor, max_inputs: Tensor
 ) -> DistanceFunction:
     range_coordinate = torch.unsqueeze(max_inputs[0] - min_inputs[0], dim=0)
-    return distance_function_factory(distance_func_type, range_coordinate)
+    device = range_coordinate.device
+    boundary_coordinate = torch.tensor([0.0], device=device)
+    return distance_function_factory(
+        distance_func_type, range_coordinate, boundary_coordinate
+    )
 
 
 def _create_ansatz_output_renormalizer(

@@ -149,7 +149,11 @@ def _create_distance_function_x(
     range_coordinate_x = torch.unsqueeze(
         max_inputs[idx_coordinate] - min_inputs[idx_coordinate], dim=0
     )
-    return distance_function_factory(distance_func_type, range_coordinate_x)
+    device = range_coordinate_x.device
+    boundary_coordinate_x = torch.tensor([0.0], device=device)
+    return distance_function_factory(
+        distance_func_type, range_coordinate_x, boundary_coordinate_x
+    )
 
 
 def _create_ansatz_output_renormalizer(

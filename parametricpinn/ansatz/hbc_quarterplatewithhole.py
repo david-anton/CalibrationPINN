@@ -95,16 +95,20 @@ def _create_distance_functions(
 ) -> tuple[DistanceFunction, DistanceFunction]:
     range_coordinate_x = torch.unsqueeze(range_coordinates[0], dim=0)
     range_coordinate_y = torch.unsqueeze(range_coordinates[1], dim=0)
-    distance_func_x = _create_distance_one_function(
+    distance_func_x = _create_one_distance_function(
         distance_func_type, range_coordinate_x
     )
-    distance_func_y = _create_distance_one_function(
+    distance_func_y = _create_one_distance_function(
         distance_func_type, range_coordinate_y
     )
     return distance_func_x, distance_func_y
 
 
-def _create_distance_one_function(
+def _create_one_distance_function(
     distance_func_type: str, range_coordinate: Tensor
 ) -> DistanceFunction:
-    return distance_function_factory(distance_func_type, range_coordinate)
+    device = range_coordinate.device
+    boundary_coordinate = torch.tensor([0.0], device=device)
+    return distance_function_factory(
+        distance_func_type, range_coordinate, boundary_coordinate
+    )
