@@ -11,8 +11,6 @@
 
 srun nvidia-smi
 
-srun conda list
-
 SCRIPT=cuda_test.py
 
 srun singularity run \
