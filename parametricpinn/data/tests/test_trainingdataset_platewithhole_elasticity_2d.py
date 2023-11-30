@@ -18,10 +18,10 @@ from parametricpinn.types import ShapelyPolygon, Tensor
 plate_length = 20.0
 plate_height = 10.0
 hole_radius = 2.0
-x_min = -plate_length/2
-x_max = plate_length/2
-y_min = -plate_height/2
-y_max = plate_height/2
+x_min = -plate_length / 2
+x_max = plate_length / 2
+y_min = -plate_height / 2
+y_max = plate_height / 2
 origin_x = 0.0
 origin_y = 0.0
 volume_foce = torch.tensor([10.0, 10.0])

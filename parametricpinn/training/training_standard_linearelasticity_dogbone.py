@@ -20,7 +20,6 @@ from parametricpinn.postprocessing.plot import (
 )
 from parametricpinn.training.loss_2d.momentum_linearelasticity import (
     momentum_equation_func_factory,
-    stress_func_factory,
     traction_func_factory,
 )
 from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm

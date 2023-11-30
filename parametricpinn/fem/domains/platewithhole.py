@@ -122,7 +122,9 @@ class PlateWithHoleDomain:
 
         def create_geometry() -> GGeometry:
             gmsh.model.add("domain")
-            plate = geometry_kernel.add_rectangle(-length/2, -height/2, 0, length, height)
+            plate = geometry_kernel.add_rectangle(
+                -length / 2, -height / 2, 0, length, height
+            )
             hole = geometry_kernel.add_disk(0, 0, 0, radius, radius)
             return geometry_kernel.cut([(2, plate)], [(2, hole)])
 

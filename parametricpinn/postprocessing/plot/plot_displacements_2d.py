@@ -549,7 +549,7 @@ def _add_geometry_specific_patches(
 
     def cut_dog_bone(axes: PLTAxes, domain_config: DogBoneDomainConfig) -> None:
         origin_x = domain_config.origin_x
-        origin_y = domain_config.origin_y 
+        origin_y = domain_config.origin_y
         half_box_height = domain_config.half_box_height
         parallel_length = domain_config.parallel_length
         half_parallel_length = domain_config.half_parallel_length
@@ -564,8 +564,8 @@ def _add_geometry_specific_patches(
         )
         parallel_top = plt.Rectangle(
             (-half_parallel_length, half_parallel_height),
-            width = parallel_length,
-            height = cut_parallel_height
+            width=parallel_length,
+            height=cut_parallel_height,
         )
         tapered_top_right = plt.Circle(
             (half_parallel_length, half_parallel_height + tapered_radius),
@@ -579,8 +579,8 @@ def _add_geometry_specific_patches(
         )
         parallel_bottom = plt.Rectangle(
             (-half_parallel_length, -half_box_height),
-            width = parallel_length,
-            height = cut_parallel_height
+            width=parallel_length,
+            height=cut_parallel_height,
         )
         tapered_bottom_right = plt.Circle(
             (half_parallel_length, -(half_parallel_height + tapered_radius)),
