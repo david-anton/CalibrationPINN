@@ -14,16 +14,11 @@ srun nvidia-smi
 SCRIPT=cuda_test.py
 
 srun singularity run \
+ --cleanenv \
+ --env CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES \
  --nv \
+ --nvccli \
  parametricpinn.sif \
  python3 /home/davanton/development/ParametricPINN/app/${SCRIPT}
-
-##srun singularity run \
-## --cleanenv \
-## --env CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES \
-## --nv \
-## --nvccli \
-## parametricpinn.sif \
-## python3 /home/davanton/development/ParametricPINN/app/${SCRIPT}
 
 
