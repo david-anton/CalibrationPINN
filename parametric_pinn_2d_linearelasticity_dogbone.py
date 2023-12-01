@@ -80,13 +80,13 @@ num_samples_per_parameter = 32
 num_collocation_points = 128
 number_points_per_bc = 32
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 20000
+number_training_epochs = 10 #20000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20231130_validation_data_linearelasticity_dogbone_E_180k_240k_nu_02_04_elementsize_01"
-num_samples_valid = 32
+input_subdir_valid = "20231201_validation_data_linearelasticity_dogbone_E_180k_240k_nu_02_04_elementsize_01"
+num_samples_valid = 2 #32
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
@@ -102,7 +102,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_dogbone_E_180k_240k_nu_02_04_samples_32_col_128_bc_32_neurons_4_32_BC_complete"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_dogbone_E_180k_240k_nu_02_04_samples_32_col_128_bc_32_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
