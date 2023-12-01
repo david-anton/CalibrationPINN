@@ -13,6 +13,7 @@ from parametricpinn.data.trainingdata_elasticity_2d import (
     DogBoneTrainingDataset2DConfig,
     create_training_dataset,
 )
+from parametricpinn.settings import set_default_dtype
 from parametricpinn.types import ShapelyPolygon, Tensor
 
 origin_x = 0
@@ -32,21 +33,25 @@ max_angle_tapered = math.degrees(
     math.asin((half_box_length - half_parallel_length) / tapered_radius)
 )
 half_angle_tapered = max_angle_tapered / 2
-volume_foce = torch.tensor([10.0, 10.0])
+volume_foce = torch.tensor([10.0, 10.0], dtype=torch.float64)
 min_youngs_modulus = 180000.0
 max_youngs_modulus = 240000.0
 min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
-traction_right = torch.tensor([-100.0, 0.0])
-traction_tapered = torch.tensor([0.0, 0.0])
-traction_parralel = torch.tensor([0.0, 0.0])
-traction_hole = torch.tensor([0.0, 0.0])
+traction_right = torch.tensor([-100.0, 0.0], dtype=torch.float64)
+traction_tapered = torch.tensor([0.0, 0.0], dtype=torch.float64)
+traction_parralel = torch.tensor([0.0, 0.0], dtype=torch.float64)
+traction_hole = torch.tensor([0.0, 0.0], dtype=torch.float64)
 num_samples_per_parameter = 2
 num_samples = num_samples_per_parameter**2
 num_collocation_points = 3
 num_points_per_bc = 3
 num_traction_bcs = 8
 num_points_traction_bcs = num_traction_bcs * num_points_per_bc
+overlap_distance_bcs = 1e-7
+overlap_distance_angle_bcs = 1e-7
+
+set_default_dtype(torch.float64)
 
 
 ### Test TrainingDataset
@@ -213,11 +218,17 @@ def test_sample_traction_bc__x_coordinates(
 
     actual = sample_traction_bc.x_coor
 
-    abs_radial_component_tapered_x = (
+    abs_half_angle_radial_component_tapered_x = (
         math.sin(math.radians(half_angle_tapered)) * tapered_radius
     )
-    abs_radial_component_tapered_y = (
+    abs_half_angle_radial_component_tapered_y = (
         math.cos(math.radians(half_angle_tapered)) * tapered_radius
+    )
+    abs_max_angle_radial_component_tapered_x = (
+        math.sin(math.radians(max_angle_tapered - overlap_distance_angle_bcs)) * tapered_radius
+    )
+    abs_max_angle_radial_component_tapered_y = (
+        math.cos(math.radians(max_angle_tapered - overlap_distance_angle_bcs)) * tapered_radius
     )
     expected = torch.tensor(
         [
@@ -226,13 +237,17 @@ def test_sample_traction_bc__x_coordinates(
             [half_box_length, 0.0],
             [half_box_length, half_box_height],
             # top
-            [-half_parallel_length, half_parallel_height],
             [
-                -half_parallel_length - abs_radial_component_tapered_x,
+                -half_parallel_length - abs_max_angle_radial_component_tapered_x,
                 half_parallel_height
-                + (tapered_radius - abs_radial_component_tapered_y),
+                + (tapered_radius - abs_max_angle_radial_component_tapered_y),
             ],
-            [-half_box_length, half_box_height],
+            [
+                -half_parallel_length - abs_half_angle_radial_component_tapered_x,
+                half_parallel_height
+                + (tapered_radius - abs_half_angle_radial_component_tapered_y),
+            ],
+            [-half_parallel_length, half_parallel_height],
             [
                 -half_parallel_length + 1 / 4 * parallel_length,
                 half_parallel_height,
@@ -247,19 +262,27 @@ def test_sample_traction_bc__x_coordinates(
             ],
             [half_parallel_length, half_parallel_height],
             [
-                half_parallel_length + abs_radial_component_tapered_x,
+                half_parallel_length + abs_half_angle_radial_component_tapered_x,
                 half_parallel_height
-                + (tapered_radius - abs_radial_component_tapered_y),
+                + (tapered_radius - abs_half_angle_radial_component_tapered_y),
             ],
-            [half_box_length, half_box_height],
-            # bottom
-            [-half_parallel_length, -half_parallel_height],
             [
-                -half_parallel_length - abs_radial_component_tapered_x,
-                -half_parallel_height
-                - (tapered_radius - abs_radial_component_tapered_y),
+                half_parallel_length + abs_max_angle_radial_component_tapered_x,
+                half_parallel_height
+                + (tapered_radius - abs_max_angle_radial_component_tapered_y),
             ],
-            [-half_box_length, -half_box_height],
+            # bottom
+            [
+                -half_parallel_length - abs_max_angle_radial_component_tapered_x,
+                -half_parallel_height
+                - (tapered_radius - abs_max_angle_radial_component_tapered_y),
+            ],
+            [
+                -half_parallel_length - abs_half_angle_radial_component_tapered_x,
+                -half_parallel_height
+                - (tapered_radius - abs_half_angle_radial_component_tapered_y),
+            ],
+            [-half_parallel_length, -half_parallel_height],
             [
                 -half_parallel_length + 1 / 4 * parallel_length,
                 -half_parallel_height,
@@ -274,11 +297,16 @@ def test_sample_traction_bc__x_coordinates(
             ],
             [half_parallel_length, -half_parallel_height],
             [
-                half_parallel_length + abs_radial_component_tapered_x,
+                half_parallel_length + abs_half_angle_radial_component_tapered_x,
                 -half_parallel_height
-                - (tapered_radius - abs_radial_component_tapered_y),
+                - (tapered_radius - abs_half_angle_radial_component_tapered_y),
             ],
-            [half_box_length, -half_box_height],
+            [
+                half_parallel_length + abs_max_angle_radial_component_tapered_x,
+                -half_parallel_height
+                - (tapered_radius - abs_max_angle_radial_component_tapered_y),
+            ],
+            
             # plate hole
             [
                 origin_x - math.cos(math.radians(0 / 3 * 360)) * plate_hole_radius,
@@ -334,8 +362,8 @@ def test_sample_traction_bc__normal(
 
     abs_normal_half_angle_tapered_x = math.sin(math.radians(half_angle_tapered))
     abs_normal_half_angle_tapered_y = math.cos(math.radians(half_angle_tapered))
-    abs_normal_max_angle_tapered_x = math.sin(math.radians(max_angle_tapered))
-    abs_normal_max_angle_tapered_y = math.cos(math.radians(max_angle_tapered))
+    abs_normal_max_angle_tapered_x = math.sin(math.radians(max_angle_tapered-overlap_distance_angle_bcs))
+    abs_normal_max_angle_tapered_y = math.cos(math.radians(max_angle_tapered-overlap_distance_angle_bcs))
 
     expected = torch.tensor(
         [
@@ -344,9 +372,9 @@ def test_sample_traction_bc__normal(
             [1.0, 0.0],
             [1.0, 0.0],
             # top
-            [0.0, 1.0],
-            [abs_normal_half_angle_tapered_x, abs_normal_half_angle_tapered_y],
             [abs_normal_max_angle_tapered_x, abs_normal_max_angle_tapered_y],
+            [abs_normal_half_angle_tapered_x, abs_normal_half_angle_tapered_y],
+            [0.0, 1.0],
             [0.0, 1.0],
             [0.0, 1.0],
             [0.0, 1.0],
@@ -354,9 +382,9 @@ def test_sample_traction_bc__normal(
             [-abs_normal_half_angle_tapered_x, abs_normal_half_angle_tapered_y],
             [-abs_normal_max_angle_tapered_x, abs_normal_max_angle_tapered_y],
             # bottom
-            [0.0, -1.0],
-            [abs_normal_half_angle_tapered_x, -abs_normal_half_angle_tapered_y],
             [abs_normal_max_angle_tapered_x, -abs_normal_max_angle_tapered_y],
+            [abs_normal_half_angle_tapered_x, -abs_normal_half_angle_tapered_y],
+            [0.0, -1.0],
             [0.0, -1.0],
             [0.0, -1.0],
             [0.0, -1.0],
@@ -378,6 +406,7 @@ def test_sample_traction_bc__normal(
             ],
         ]
     )
+    print(torch.concat((actual, expected), dim=1))
     torch.testing.assert_close(actual, expected)
 
 

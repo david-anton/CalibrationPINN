@@ -54,6 +54,8 @@ class PlateWithHoleTrainingDataset2D(Dataset):
         super().__init__()
         self._num_parameters = 2
         self._num_traction_bcs = 4
+        self._overlap_distance_bcs = 1e-7
+        self._overlap_distance_angle_bcs = 1e-7
         self._geometry = geometry
         self._traction_right = traction_right
         self._traction_top = torch.tensor([0.0, 0.0], device=traction_right.device)
@@ -183,23 +185,21 @@ class PlateWithHoleTrainingDataset2D(Dataset):
             x_coor_right,
             normal_right,
         ) = self._geometry.create_uniform_points_on_right_boundary(num_points)
+        (x_coor_top, normal_top) = self._geometry.create_uniform_points_on_top_boundary(
+            num_points
+        )
         (
-            x_coor_top_complete_boundary,
-            normal_top_complete_boundary,
-        ) = self._geometry.create_uniform_points_on_top_boundary(num_points + 2)
-        x_coor_top = x_coor_top_complete_boundary[1:-1, :]
-        normal_top = normal_top_complete_boundary[1:-1, :]
-        (
-            x_coor_bottom_complete_boundary,
-            normal_bottom_complete_boundary,
-        ) = self._geometry.create_uniform_points_on_bottom_boundary(num_points + 2)
-        x_coor_bottom = x_coor_bottom_complete_boundary[1:-1, :]
-        normal_bottom = normal_bottom_complete_boundary[1:-1, :]
+            x_coor_bottom,
+            normal_bottom,
+        ) = self._geometry.create_uniform_points_on_bottom_boundary(num_points)
         (
             x_coor_hole,
             normal_hole,
         ) = self._geometry.create_uniform_points_on_hole_boundary(num_points)
 
+        self._avoid_overlapping_traction_bcs(
+            x_coor_top=x_coor_top, x_coor_bottom=x_coor_bottom
+        )
         x_coor = torch.concat(
             (x_coor_right, x_coor_top, x_coor_bottom, x_coor_hole), dim=0
         )
@@ -207,6 +207,20 @@ class PlateWithHoleTrainingDataset2D(Dataset):
             (normal_right, normal_top, normal_bottom, normal_hole), dim=0
         )
         return x_coor, normal
+
+    def _avoid_overlapping_traction_bcs(
+        self,
+        x_coor_top: Tensor,
+        x_coor_bottom: Tensor,
+    ) -> None:
+        distance = self._overlap_distance_bcs
+
+        def _avoid_overlapping_traction_bcs_at_top_or_bottom(x_coor: Tensor) -> None:
+            x_coor[0, 0] += distance
+            x_coor[0, -1] -= distance
+
+        _avoid_overlapping_traction_bcs_at_top_or_bottom(x_coor_top)
+        _avoid_overlapping_traction_bcs_at_top_or_bottom(x_coor_bottom)
 
     def _calculate_area_fractions_for_traction_bcs(self) -> Tensor:
         num_points = self._num_points_per_bc

@@ -13,6 +13,7 @@ from parametricpinn.data.trainingdata_elasticity_2d import (
     PlateWithHoleTrainingDataset2DConfig,
     create_training_dataset,
 )
+from parametricpinn.settings import set_default_dtype
 from parametricpinn.types import ShapelyPolygon, Tensor
 
 plate_length = 20.0
@@ -24,21 +25,25 @@ y_min = -plate_height / 2
 y_max = plate_height / 2
 origin_x = 0.0
 origin_y = 0.0
-volume_foce = torch.tensor([10.0, 10.0])
+volume_foce = torch.tensor([10.0, 10.0], dtype=torch.float64)
 min_youngs_modulus = 180000.0
 max_youngs_modulus = 240000.0
 min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
-traction_right = torch.tensor([-100.0, 0.0])
-traction_top = torch.tensor([0.0, 0.0])
-traction_bottom = torch.tensor([0.0, 0.0])
-traction_hole = torch.tensor([0.0, 0.0])
+traction_right = torch.tensor([-100.0, 0.0], dtype=torch.float64)
+traction_top = torch.tensor([0.0, 0.0], dtype=torch.float64)
+traction_bottom = torch.tensor([0.0, 0.0], dtype=torch.float64)
+traction_hole = torch.tensor([0.0, 0.0], dtype=torch.float64)
 num_samples_per_parameter = 2
 num_samples = num_samples_per_parameter**2
 num_collocation_points = 3
 num_points_per_bc = 3
 num_traction_bcs = 4
 num_points_traction_bcs = num_traction_bcs * num_points_per_bc
+overlap_distance_bcs = 1e-7
+overlap_distance_angle_bcs = 1e-7
+
+set_default_dtype(torch.float64)
 
 
 ### Test TrainingDataset
@@ -167,12 +172,12 @@ def test_sample_traction_bc__x_coordinates(
             [x_max, y_min + 0 * plate_height],
             [x_max, y_min + 1 / 2 * plate_height],
             [x_max, y_min + 1 * plate_height],
-            [x_min + 1 / 4 * plate_length, y_max],
-            [x_min + 2 / 4 * plate_length, y_max],
-            [x_min + 3 / 4 * plate_length, y_max],
-            [x_min + 1 / 4 * plate_length, y_min],
-            [x_min + 2 / 4 * plate_length, y_min],
-            [x_min + 3 / 4 * plate_length, y_min],
+            [x_min + 0 * plate_length + overlap_distance_bcs, y_max],
+            [x_min + 1 / 2 * plate_length, y_max],
+            [x_min + plate_length - overlap_distance_bcs, y_max],
+            [x_min + 0 * plate_length + overlap_distance_bcs, y_min],
+            [x_min + 1 / 2 * plate_length, y_min],
+            [x_min + plate_length - overlap_distance_bcs, y_min],
             [
                 origin_x
                 - torch.cos(torch.deg2rad(torch.tensor(0 * 360))) * hole_radius,

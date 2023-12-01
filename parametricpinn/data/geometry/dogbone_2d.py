@@ -26,21 +26,21 @@ class DogBoneGeometryConfig:
 
 class DogBone2D:
     def __init__(self, geometry_config: DogBoneGeometryConfig) -> None:
-        self._origin_x = geometry_config.origin_x
-        self._origin_y = geometry_config.origin_y
-        self._box_length = geometry_config.box_length
-        self._box_height = geometry_config.box_height
-        self._half_box_length = geometry_config.half_box_length
-        self._half_box_height = geometry_config.half_box_height
-        self._parallel_length = geometry_config.parallel_length
-        self._parallel_height = geometry_config.parallel_height
-        self._half_parallel_length = geometry_config.half_parallel_length
-        self._half_parallel_height = geometry_config.half_parallel_height
-        self._cut_parallel_height = geometry_config.cut_parallel_height
-        self._tapered_radius = geometry_config.tapered_radius
-        self._plate_hole_radius = geometry_config.plate_hole_radius
-        self._angle_min_tapered = 0
-        self._angle_max_tapered = self._calculate_maximum_angle_for_tapered_boundary()
+        self.origin_x = geometry_config.origin_x
+        self.origin_y = geometry_config.origin_y
+        self.box_length = geometry_config.box_length
+        self.box_height = geometry_config.box_height
+        self.half_box_length = geometry_config.half_box_length
+        self.half_box_height = geometry_config.half_box_height
+        self.parallel_length = geometry_config.parallel_length
+        self.parallel_height = geometry_config.parallel_height
+        self.half_parallel_length = geometry_config.half_parallel_length
+        self.half_parallel_height = geometry_config.half_parallel_height
+        self.cut_parallel_height = geometry_config.cut_parallel_height
+        self.tapered_radius = geometry_config.tapered_radius
+        self.plate_hole_radius = geometry_config.plate_hole_radius
+        self.angle_min_tapered = 0
+        self.angle_max_tapered = self._calculate_maximum_angle_for_tapered_boundary()
         self._shape = self._create_shape()
 
     def create_random_points(self, num_points: int) -> Tensor:
@@ -58,14 +58,12 @@ class DogBone2D:
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
         coordinates_x = torch.linspace(
-            -self._half_parallel_length,
-            self._half_parallel_length,
+            -self.half_parallel_length,
+            self.half_parallel_length,
             num_points,
             requires_grad=True,
         ).view(num_points, 1)
-        coordinates_y = torch.full(
-            shape, self._half_parallel_height, requires_grad=True
-        )
+        coordinates_y = torch.full(shape, self.half_parallel_height, requires_grad=True)
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
         normals = torch.tensor([0.0, 1.0]).repeat(shape)
         return coordinates, normals
@@ -79,15 +77,15 @@ class DogBone2D:
         ) = self._calculate_absolute_radial_coordinate_components_for_tapered_boundaries(
             num_points
         )
-        coordinates_x = -self._half_parallel_length - abs_rad_component_x
-        coordinates_y = self._half_parallel_height + (
-            self._tapered_radius - abs_rad_component_y
+        coordinates_x = -self.half_parallel_length - abs_rad_component_x
+        coordinates_y = self.half_parallel_height + (
+            self.tapered_radius - abs_rad_component_y
         )
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
         normals_x = abs_rad_component_x
         normals_y = abs_rad_component_y
-        normals = torch.concat((normals_x, normals_y), dim=1) / self._tapered_radius
-        return coordinates, normals
+        normals = torch.concat((normals_x, normals_y), dim=1) / self.tapered_radius
+        return self._reverse_order_of_data_points(coordinates), self._reverse_order_of_data_points(normals)
 
     def create_uniform_points_on_top_right_tapered_boundary(
         self, num_points: int
@@ -98,14 +96,14 @@ class DogBone2D:
         ) = self._calculate_absolute_radial_coordinate_components_for_tapered_boundaries(
             num_points
         )
-        coordinates_x = self._half_parallel_length + abs_rad_component_x
-        coordinates_y = self._half_parallel_height + (
-            self._tapered_radius - abs_rad_component_y
+        coordinates_x = self.half_parallel_length + abs_rad_component_x
+        coordinates_y = self.half_parallel_height + (
+            self.tapered_radius - abs_rad_component_y
         )
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
         normals_x = -abs_rad_component_x
         normals_y = abs_rad_component_y
-        normals = torch.concat((normals_x, normals_y), dim=1) / self._tapered_radius
+        normals = torch.concat((normals_x, normals_y), dim=1) / self.tapered_radius
         return coordinates, normals
 
     def create_uniform_points_on_bottom_parallel_boundary(
@@ -113,13 +111,13 @@ class DogBone2D:
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
         coordinates_x = torch.linspace(
-            -self._half_parallel_length,
-            self._half_parallel_length,
+            -self.half_parallel_length,
+            self.half_parallel_length,
             num_points,
             requires_grad=True,
         ).view(num_points, 1)
         coordinates_y = torch.full(
-            shape, -self._half_parallel_height, requires_grad=True
+            shape, -self.half_parallel_height, requires_grad=True
         )
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
         normals = torch.tensor([0.0, -1.0]).repeat(shape)
@@ -134,15 +132,15 @@ class DogBone2D:
         ) = self._calculate_absolute_radial_coordinate_components_for_tapered_boundaries(
             num_points
         )
-        coordinates_x = -self._half_parallel_length - abs_rad_component_x
-        coordinates_y = -self._half_parallel_height - (
-            self._tapered_radius - abs_rad_component_y
+        coordinates_x = -self.half_parallel_length - abs_rad_component_x
+        coordinates_y = -self.half_parallel_height - (
+            self.tapered_radius - abs_rad_component_y
         )
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
         normals_x = abs_rad_component_x
         normals_y = -abs_rad_component_y
-        normals = torch.concat((normals_x, normals_y), dim=1) / self._tapered_radius
-        return coordinates, normals
+        normals = torch.concat((normals_x, normals_y), dim=1) / self.tapered_radius
+        return self._reverse_order_of_data_points(coordinates), self._reverse_order_of_data_points(normals)
 
     def create_uniform_points_on_bottom_right_tapered_boundary(
         self, num_points: int
@@ -153,24 +151,24 @@ class DogBone2D:
         ) = self._calculate_absolute_radial_coordinate_components_for_tapered_boundaries(
             num_points
         )
-        coordinates_x = self._half_parallel_length + abs_rad_component_x
-        coordinates_y = -self._half_parallel_height - (
-            self._tapered_radius - abs_rad_component_y
+        coordinates_x = self.half_parallel_length + abs_rad_component_x
+        coordinates_y = -self.half_parallel_height - (
+            self.tapered_radius - abs_rad_component_y
         )
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
         normals_x = -abs_rad_component_x
         normals_y = -abs_rad_component_y
-        normals = torch.concat((normals_x, normals_y), dim=1) / self._tapered_radius
+        normals = torch.concat((normals_x, normals_y), dim=1) / self.tapered_radius
         return coordinates, normals
 
     def create_uniform_points_on_right_boundary(
         self, num_points: int
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
-        coordinates_x = torch.full(shape, self._half_box_length, requires_grad=True)
+        coordinates_x = torch.full(shape, self.half_box_length, requires_grad=True)
         coordinates_y = torch.linspace(
-            -self._half_box_height,
-            self._half_box_height,
+            -self.half_box_height,
+            self.half_box_height,
             num_points,
             requires_grad=True,
         ).view(num_points, 1)
@@ -185,44 +183,44 @@ class DogBone2D:
         angles = torch.linspace(0, 360, extended_num_points).view(
             extended_num_points, 1
         )[:-1, :]
-        delta_x = torch.cos(torch.deg2rad(angles)) * self._plate_hole_radius
-        delta_y = torch.sin(torch.deg2rad(angles)) * self._plate_hole_radius
-        coordinates_x = self._origin_x - delta_x
-        coordinates_y = self._origin_y + delta_y
+        delta_x = torch.cos(torch.deg2rad(angles)) * self.plate_hole_radius
+        delta_y = torch.sin(torch.deg2rad(angles)) * self.plate_hole_radius
+        coordinates_x = self.origin_x - delta_x
+        coordinates_y = self.origin_y + delta_y
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
         normals_x = delta_x
         normals_y = -delta_y
-        normals = torch.concat((normals_x, normals_y), dim=1) / self._plate_hole_radius
+        normals = torch.concat((normals_x, normals_y), dim=1) / self.plate_hole_radius
         return coordinates, normals
 
     def calculate_area_fractions_on_horizontal_parallel_boundary(
         self, num_points
     ) -> Tensor:
         shape = (num_points, 1)
-        return torch.tensor([self._parallel_length / num_points]).repeat(shape)
+        return torch.tensor([self.parallel_length / num_points]).repeat(shape)
 
     def calculate_area_fractions_on_vertical_boundary(self, num_points) -> Tensor:
         shape = (num_points, 1)
-        return torch.tensor([self._box_height / num_points]).repeat(shape)
+        return torch.tensor([self.box_height / num_points]).repeat(shape)
 
     def calculate_area_fraction_on_tapered_boundary(self, num_points) -> Tensor:
         shape = (num_points, 1)
-        angle = self._angle_max_tapered - self._angle_min_tapered
-        full_perimeter = 2.0 * math.pi * self._tapered_radius
+        angle = self.angle_max_tapered - self.angle_min_tapered
+        full_perimeter = 2.0 * math.pi * self.tapered_radius
         edge_length = (angle / 360) * full_perimeter
         return torch.tensor([edge_length / num_points]).repeat(shape)
 
     def calculate_area_fractions_on_hole_boundary(self, num_points) -> Tensor:
         shape = (num_points, 1)
-        edge_length = 2.0 * math.pi * self._plate_hole_radius
+        edge_length = 2.0 * math.pi * self.plate_hole_radius
         return torch.tensor([edge_length / num_points]).repeat(shape)
 
     def _create_one_random_point(self) -> Tensor:
         coordinate_x = self._create_one_random_coordinate(
-            -self._half_box_length, self._half_box_length
+            -self.half_box_length, self.half_box_length
         )
         coordinate_y = self._create_one_random_coordinate(
-            -self._half_box_height, self._half_box_height
+            -self.half_box_height, self.half_box_height
         )
         return torch.concat((coordinate_x, coordinate_y))
 
@@ -240,50 +238,49 @@ class DogBone2D:
     def _calculate_maximum_angle_for_tapered_boundary(self) -> float:
         return math.degrees(
             math.asin(
-                (self._half_box_length - self._half_parallel_length)
-                / self._tapered_radius
+                (self.half_box_length - self.half_parallel_length) / self.tapered_radius
             )
         )
 
     def _create_shape(self) -> ShapelyPolygon:
         box = shapely.box(
-            -self._half_box_length,
-            -self._half_parallel_height,
-            self._box_length,
-            self._box_height,
+            -self.half_box_length,
+            -self.half_parallel_height,
+            self.box_length,
+            self.box_height,
         )
         cut_parallel_top = shapely.box(
-            -self._half_parallel_length,
-            self._half_parallel_height,
-            self._parallel_length,
-            self._cut_parallel_height,
+            -self.half_parallel_length,
+            self.half_parallel_height,
+            self.parallel_length,
+            self.cut_parallel_height,
         )
         cut_parallel_bottom = shapely.box(
-            -self._half_parallel_length,
-            -self._half_box_height,
-            self._parallel_length,
-            self._cut_parallel_height,
+            -self.half_parallel_length,
+            -self.half_box_height,
+            self.parallel_length,
+            self.cut_parallel_height,
         )
         cut_tapered_top_left = shapely.Point(
-            -self._half_parallel_length,
-            self._half_parallel_height + self._tapered_radius,
-        ).buffer(self._tapered_radius)
+            -self.half_parallel_length,
+            self.half_parallel_height + self.tapered_radius,
+        ).buffer(self.tapered_radius)
         cut_tapered_top_right = shapely.Point(
-            self._half_parallel_length,
-            self._half_parallel_height + self._tapered_radius,
-        ).buffer(self._tapered_radius)
+            self.half_parallel_length,
+            self.half_parallel_height + self.tapered_radius,
+        ).buffer(self.tapered_radius)
         cut_tapered_bottom_left = shapely.Point(
-            -self._half_parallel_length,
-            -self._half_parallel_height - self._tapered_radius,
-        ).buffer(self._tapered_radius)
+            -self.half_parallel_length,
+            -self.half_parallel_height - self.tapered_radius,
+        ).buffer(self.tapered_radius)
         cut_tapered_bottom_right = shapely.Point(
-            self._half_parallel_length,
-            -self._half_parallel_height - self._tapered_radius,
-        ).buffer(self._tapered_radius)
+            self.half_parallel_length,
+            -self.half_parallel_height - self.tapered_radius,
+        ).buffer(self.tapered_radius)
         plate_hole = shapely.Point(
-            self._origin_x,
-            self._origin_y,
-        ).buffer(self._plate_hole_radius)
+            self.origin_x,
+            self.origin_y,
+        ).buffer(self.plate_hole_radius)
         dog_bone = (
             box
             - cut_parallel_top
@@ -300,8 +297,11 @@ class DogBone2D:
         self, num_points: int
     ) -> list[Tensor, Tensor]:
         angles = torch.linspace(
-            self._angle_min_tapered, self._angle_max_tapered, num_points
+            self.angle_min_tapered, self.angle_max_tapered, num_points
         ).view(num_points, 1)
-        abs_components_x = torch.sin(torch.deg2rad(angles)) * self._tapered_radius
-        abs_components_y = torch.cos(torch.deg2rad(angles)) * self._tapered_radius
+        abs_components_x = torch.sin(torch.deg2rad(angles)) * self.tapered_radius
+        abs_components_y = torch.cos(torch.deg2rad(angles)) * self.tapered_radius
         return abs_components_x, abs_components_y
+
+    def _reverse_order_of_data_points(self, data_tensors: Tensor) -> Tensor:
+        return torch.flip(data_tensors, dims=[0])

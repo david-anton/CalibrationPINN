@@ -14,6 +14,7 @@ from parametricpinn.data.trainingdata_elasticity_2d import (
     QuarterPlateWithHoleTrainingDataset2DConfig,
     create_training_dataset,
 )
+from parametricpinn.settings import set_default_dtype
 from parametricpinn.types import ShapelyPolygon, Tensor
 
 edge_length = 10.0
@@ -22,14 +23,14 @@ x_min = -edge_length
 x_max = 0.0
 y_min = 0.0
 y_max = edge_length
-volume_foce = torch.tensor([10.0, 10.0])
+volume_foce = torch.tensor([10.0, 10.0], dtype=torch.float64)
 min_youngs_modulus = 180000.0
 max_youngs_modulus = 240000.0
 min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
-traction_left = torch.tensor([-100.0, 0.0])
-traction_top = torch.tensor([0.0, 0.0])
-traction_hole = torch.tensor([0.0, 0.0])
+traction_left = torch.tensor([-100.0, 0.0], dtype=torch.float64)
+traction_top = torch.tensor([0.0, 0.0], dtype=torch.float64)
+traction_hole = torch.tensor([0.0, 0.0], dtype=torch.float64)
 num_samples_per_parameter = 2
 num_samples = num_samples_per_parameter**2
 num_collocation_points = 3
@@ -38,6 +39,10 @@ num_symmetry_bcs = 2
 num_points_symmetry_bcs = num_symmetry_bcs * num_points_per_bc
 num_traction_bcs = 3
 num_points_traction_bcs = num_traction_bcs * num_points_per_bc
+overlap_distance_bcs = 1e-7
+overlap_distance_angle_bcs = 1e-7
+
+set_default_dtype(torch.float64)
 
 
 ### Test TrainingDataset
@@ -71,7 +76,7 @@ def sut() -> QuarterPlateWithHoleTrainingDataset2D:
 def assert_if_coordinates_are_inside_shape(coordinates: Tensor) -> bool:
     coordinates_list = coordinates.tolist()
     for one_coordinate in coordinates_list:
-        if not shape.contains(Point(one_coordinate[0], one_coordinate[1])):
+        if not shape.contains(shapely.Point(one_coordinate[0], one_coordinate[1])):
             return False
     return True
 
@@ -210,23 +215,27 @@ def test_sample_traction_bc__x_coordinates(
 
     expected = torch.tensor(
         [
-            [-edge_length, 1 / 3 * edge_length],
-            [-edge_length, 2 / 3 * edge_length],
+            [-edge_length, overlap_distance_bcs],
+            [-edge_length, 1 / 2 * edge_length],
             [-edge_length, edge_length],
-            [-3 / 4 * edge_length, edge_length],
-            [-2 / 4 * edge_length, edge_length],
-            [-1 / 4 * edge_length, edge_length],
+            [-edge_length + overlap_distance_bcs, edge_length],
+            [-1 / 2 * edge_length, edge_length],
+            [-overlap_distance_bcs, edge_length],
             [
-                -torch.cos(torch.deg2rad(torch.tensor(1 / 4 * 90))) * radius,
-                torch.sin(torch.deg2rad(torch.tensor(1 / 4 * 90))) * radius,
+                -torch.cos(torch.deg2rad(torch.tensor(overlap_distance_angle_bcs)))
+                * radius,
+                torch.sin(torch.deg2rad(torch.tensor(overlap_distance_angle_bcs)))
+                * radius,
             ],
             [
-                -torch.cos(torch.deg2rad(torch.tensor(2 / 4 * 90))) * radius,
-                torch.sin(torch.deg2rad(torch.tensor(2 / 4 * 90))) * radius,
+                -torch.cos(torch.deg2rad(torch.tensor(1 / 2 * 90))) * radius,
+                torch.sin(torch.deg2rad(torch.tensor(1 / 2 * 90))) * radius,
             ],
             [
-                -torch.cos(torch.deg2rad(torch.tensor(3 / 4 * 90))) * radius,
-                torch.sin(torch.deg2rad(torch.tensor(3 / 4 * 90))) * radius,
+                -torch.cos(torch.deg2rad(torch.tensor(90 - overlap_distance_angle_bcs)))
+                * radius,
+                torch.sin(torch.deg2rad(torch.tensor(90 - overlap_distance_angle_bcs)))
+                * radius,
             ],
         ]
     )
@@ -277,16 +286,18 @@ def test_sample_traction_bc__normal(
             [0.0, 1.0],
             [0.0, 1.0],
             [
-                torch.cos(torch.deg2rad(torch.tensor(1 / 4 * 90))),
-                -torch.sin(torch.deg2rad(torch.tensor(1 / 4 * 90))),
+                torch.cos(torch.deg2rad(torch.tensor(overlap_distance_angle_bcs))),
+                -torch.sin(torch.deg2rad(torch.tensor(overlap_distance_angle_bcs))),
             ],
             [
-                torch.cos(torch.deg2rad(torch.tensor(2 / 4 * 90))),
-                -torch.sin(torch.deg2rad(torch.tensor(2 / 4 * 90))),
+                torch.cos(torch.deg2rad(torch.tensor(1 / 2 * 90))),
+                -torch.sin(torch.deg2rad(torch.tensor(1 / 2 * 90))),
             ],
             [
-                torch.cos(torch.deg2rad(torch.tensor(3 / 4 * 90))),
-                -torch.sin(torch.deg2rad(torch.tensor(3 / 4 * 90))),
+                torch.cos(torch.deg2rad(torch.tensor(90 - overlap_distance_angle_bcs))),
+                -torch.sin(
+                    torch.deg2rad(torch.tensor(90 - overlap_distance_angle_bcs))
+                ),
             ],
         ]
     )

@@ -57,8 +57,8 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         self._num_parameters = 2
         self._num_symmetry_bcs = 2
         self._num_traction_bcs = 3
-        self._distance_bcs = 1e-7
-        self._distance_angle_bcs = 1e-7
+        self._overlap_distance_bcs = 1e-7
+        self._overlap_distance_angle_bcs = 1e-7
         self._geometry = geometry
         self._traction_left = traction_left
         self._traction_top = torch.tensor([0.0, 0.0], device=traction_left.device)
@@ -226,44 +226,62 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
             x_coor_left,
             normal_left,
         ) = self._geometry.create_uniform_points_on_left_boundary(num_points)
-        x_coor_left[0,1] += self._distance_bcs
         (
             x_coor_top,
             normal_top,
         ) = self._geometry.create_uniform_points_on_top_boundary(num_points)
-        x_coor_top[0,0] += self._distance_bcs
-        x_coor_top[-1,0] -= self._distance_bcs
         (
             x_coor_hole,
             normal_hole,
         ) = self._geometry.create_uniform_points_on_hole_boundary(num_points)
-        radius = self._geometry.radius
-        x_coor_hole[0,0] = - math.cos(math.radians(self._distance_angle_bcs)) * radius
-        x_coor_hole[0,1] = math.sin(math.radians(self._distance_angle_bcs)) * radius
-        x_coor_hole[-1,0] = -math.sin(math.radians(self._distance_angle_bcs)) * radius
-        x_coor_hole[-1,1] = math.cos(math.radians(self._distance_angle_bcs)) * radius
-        ### Apply only two BCs everywhere
-        # (
-        #     x_coor_left_complete_boundary,
-        #     normal_left_complete_boundary,
-        # ) = self._geometry.create_uniform_points_on_left_boundary(num_points + 1)
-        # x_coor_left = x_coor_left_complete_boundary[1:, :]
-        # normal_left = normal_left_complete_boundary[1:, :]
-        # (
-        #     x_coor_top_complete_boundary,
-        #     normal_top_complete_boundary,
-        # ) = self._geometry.create_uniform_points_on_top_boundary(num_points + 2)
-        # x_coor_top = x_coor_top_complete_boundary[1:-1, :]
-        # normal_top = normal_top_complete_boundary[1:-1, :]
-        # (
-        #     x_coor_hole_complete_boundary,
-        #     normal_hole_complete_boundary,
-        # ) = self._geometry.create_uniform_points_on_hole_boundary(num_points + 2)
-        # x_coor_hole = x_coor_hole_complete_boundary[1:-1, :]
-        # normal_hole = normal_hole_complete_boundary[1:-1, :]
+
+        self._avoid_overlapping_traction_bcs(
+            x_coor_left=x_coor_left,
+            x_coor_top=x_coor_top,
+            x_coor_hole=x_coor_hole,
+            normal_hole=normal_hole,
+        )
         x_coor = torch.concat((x_coor_left, x_coor_top, x_coor_hole), dim=0)
         normal = torch.concat((normal_left, normal_top, normal_hole), dim=0)
         return x_coor, normal
+
+    def _avoid_overlapping_traction_bcs(
+        self,
+        x_coor_left: Tensor,
+        x_coor_top: Tensor,
+        x_coor_hole: Tensor,
+        normal_hole: Tensor,
+    ) -> None:
+        distance = self._overlap_distance_bcs
+        radius = self._geometry.radius
+        angle = math.radians(self._overlap_distance_angle_bcs)
+        sine_angle = math.sin(angle)
+        cosine_angle = math.cos(angle)
+
+        def _avoid_overlapping_traction_bcs_at_left(x_coor_left: Tensor) -> None:
+            x_coor_left[0, 1] += distance
+
+        def _avoid_overlapping_traction_bcs_at_top(x_coor_top: Tensor) -> None:
+            x_coor_top[0, 0] += distance
+            x_coor_top[-1, 0] -= distance
+
+        def _avoid_overlapping_traction_bcs_at_hole(
+            x_coor_hole: Tensor, normal_hole: Tensor
+        ) -> None:
+            # coordinates
+            x_coor_hole[0, 0] = -cosine_angle * radius
+            x_coor_hole[0, 1] = sine_angle * radius
+            x_coor_hole[-1, 0] = -sine_angle * radius
+            x_coor_hole[-1, 1] = cosine_angle * radius
+            # normals
+            normal_hole[0, 0] = cosine_angle
+            normal_hole[0, 1] = -sine_angle
+            normal_hole[-1, 0] = sine_angle
+            normal_hole[-1, 1] = -cosine_angle
+
+        _avoid_overlapping_traction_bcs_at_left(x_coor_left)
+        _avoid_overlapping_traction_bcs_at_top(x_coor_top)
+        _avoid_overlapping_traction_bcs_at_hole(x_coor_hole, normal_hole)
 
     def _calculate_area_fractions_for_traction_bcs(self) -> Tensor:
         area_frac_left = self._geometry.calculate_area_fractions_on_left_boundary(
