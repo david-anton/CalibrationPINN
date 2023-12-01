@@ -580,6 +580,7 @@ def _add_geometry_specific_patches(
             (-half_parallel_length, half_parallel_height),
             width=parallel_length,
             height=cut_parallel_height,
+            color="white",
         )
         tapered_top_right = plt.Circle(
             (half_parallel_length, half_parallel_height + tapered_radius),
@@ -595,6 +596,7 @@ def _add_geometry_specific_patches(
             (-half_parallel_length, -half_box_height),
             width=parallel_length,
             height=cut_parallel_height,
+            color="white",
         )
         tapered_bottom_right = plt.Circle(
             (half_parallel_length, -(half_parallel_height + tapered_radius)),
