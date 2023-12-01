@@ -5,7 +5,10 @@ from parametricpinn.ansatz.hbc_normalizers import (
     HBCAnsatzNormalizer,
     HBCAnsatzRenormalizer,
 )
+from parametricpinn.settings import set_default_dtype
 from parametricpinn.types import Tensor
+
+set_default_dtype(torch.float64)
 
 
 # Test HBCAnsatzNormalizer

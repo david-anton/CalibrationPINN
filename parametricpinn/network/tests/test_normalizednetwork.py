@@ -8,7 +8,12 @@ from parametricpinn.network.normalizednetwork import (
     NormalizedNetwork,
     OutputRenormalizer,
 )
+from parametricpinn.settings import set_default_dtype
 from parametricpinn.types import Tensor
+
+set_default_dtype(torch.float64)
+
+absolute_tolerance = torch.tensor([1e-7])
 
 
 # Test InputNormalizer
@@ -39,7 +44,12 @@ def test_input_normalizer(
 
     actual = sut(inputs)
 
-    expected = torch.tensor([[-1.0, -1.0], [0.0, 0.0], [1.0, 1.0]])
+    input_ranges = max_inputs - min_inputs
+    expected = (
+        ((inputs - min_inputs) + absolute_tolerance)
+        / (input_ranges + 2 * absolute_tolerance)
+    ) * 2.0 - 1
+
     torch.testing.assert_close(actual, expected)
 
 

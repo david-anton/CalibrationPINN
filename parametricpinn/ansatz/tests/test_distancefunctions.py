@@ -2,7 +2,10 @@ import pytest
 import torch
 
 from parametricpinn.ansatz.distancefunctions import distance_function_factory
+from parametricpinn.settings import set_default_dtype
 from parametricpinn.types import Tensor
+
+set_default_dtype(torch.float64)
 
 
 def sigmoid_func(coordinate: Tensor, boundary_coordinate: Tensor) -> Tensor:

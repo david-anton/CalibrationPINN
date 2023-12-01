@@ -103,13 +103,13 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
             index_slice_1 = slice(start_index_1, start_index_1 + num_inputs_1)
             index_slice_2 = slice(start_index_2, start_index_2 + num_inputs_2)
             covar_matrix_i = (
-                self._gps_list[i].kernel(x_1, x_2).evaluate().to(self._device)
+                self._gps_list[i].kernel(x_1, x_2).to_dense().to(self._device)
             )
             covar_matrix[index_slice_1, index_slice_2] = covar_matrix_i
             start_index_1 += num_inputs_1
             start_index_2 += num_inputs_2
         covar_matrix_last = (
-            self._gps_list[-1].kernel(x_1, x_2).evaluate().to(self._device)
+            self._gps_list[-1].kernel(x_1, x_2).to_dense().to(self._device)
         )
         covar_matrix[start_index_1:, start_index_2:] = covar_matrix_last
         return covar_matrix

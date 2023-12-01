@@ -44,7 +44,7 @@ class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
 
     def forward_kernel(self, x_1: Tensor, x_2: Tensor) -> Tensor:
         lazy_covariance_matrix = self.kernel(x_1, x_2)
-        return lazy_covariance_matrix.evaluate().to(self._device)
+        return lazy_covariance_matrix.to_dense().to(self._device)
 
     def set_parameters(self, parameters: Tensor) -> None:
         validate_parameters_size(parameters, torch.Size([self.num_hyperparameters]))

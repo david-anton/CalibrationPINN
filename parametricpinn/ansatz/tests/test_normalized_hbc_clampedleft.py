@@ -6,7 +6,10 @@ from parametricpinn.ansatz import (
     create_standard_normalized_hbc_ansatz_clamped_left,
 )
 from parametricpinn.network import FFNN
+from parametricpinn.settings import set_default_dtype
 from parametricpinn.types import Tensor
+
+set_default_dtype(torch.float64)
 
 displacement_x_left = torch.tensor([0.0])
 coordinate_x_left = torch.tensor([0.0])

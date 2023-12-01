@@ -6,7 +6,10 @@ from parametricpinn.ansatz import (
     create_standard_normalized_hbc_ansatz_stretched_rod,
 )
 from parametricpinn.network import FFNN
+from parametricpinn.settings import set_default_dtype
 from parametricpinn.types import Tensor
+
+set_default_dtype(torch.float64)
 
 displacement_left = torch.tensor([0.0])
 min_inputs = torch.tensor([0.0, 0.0])

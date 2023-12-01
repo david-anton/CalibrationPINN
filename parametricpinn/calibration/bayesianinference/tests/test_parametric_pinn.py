@@ -19,9 +19,12 @@ from parametricpinn.calibration.bayesianinference.parametric_pinn import (
     StandardPPINNLikelihood,
 )
 from parametricpinn.errors import TestConfigurationError
-from parametricpinn.gps import ZeroMeanScaledRBFKernelGP
+from parametricpinn.gps import IndependentMultiOutputGP, ZeroMeanScaledRBFKernelGP
 from parametricpinn.network import BFFNN, FFNN
+from parametricpinn.settings import set_default_dtype
 from parametricpinn.types import Tensor
+
+set_default_dtype(torch.float64)
 
 device = torch.device("cpu")
 
@@ -221,6 +224,30 @@ def test_standard_calibration_likelihood_for_noise_multiple_data_multiple_dimens
 # # is -1 times the number of flattened outputs.
 
 
+class FakeLazyTensor(torch.Tensor):
+    def __init__(self, torch_tensor: Tensor) -> None:
+        self._torch_tensor = torch_tensor
+
+    def to_dense(self) -> Tensor:
+        return self._torch_tensor
+
+class FakeBaseKernel(gpytorch.kernels.Kernel):
+    has_lengthscale = True
+
+class FakeKernel(gpytorch.kernels.Kernel):
+    def __init__(self, variance_error) -> None:
+        super(FakeKernel,self).__init__()
+        self._variance_error = variance_error
+        self.base_kernel = FakeBaseKernel()
+
+    def forward(self, x_1: Tensor, x_2: Tensor, **params) -> FakeLazyTensor:
+        if x_1.size() != x_2.size():
+            raise TestConfigurationError(
+                "Fake GP kernel only defined for inputs with the same shape."
+            )
+        num_inputs = x_1.size()[0]
+        return FakeLazyTensor(self._variance_error * torch.eye(num_inputs))
+
 class FakeZeroMeanScaledRBFKernelGP(ZeroMeanScaledRBFKernelGP):
     def __init__(self, variance_error: float, train_x=None, train_y=None) -> None:
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
@@ -228,6 +255,9 @@ class FakeZeroMeanScaledRBFKernelGP(ZeroMeanScaledRBFKernelGP):
             train_x, train_y, likelihood
         )
         self._variance_error = variance_error
+        self.kernel = FakeKernel(variance_error)
+        self.num_gps = 1
+        self.num_hyperparameters = 2
 
     def forward(self) -> None:
         pass
@@ -328,7 +358,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data
 def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_multiple_dimension():
     model = _create_fake_standard_ansatz_multiple_dimension()
     inputs = torch.tensor([[0.5, 0.5]])
-    parameters = torch.tensor([1.0, 0.0, 0.0])
+    parameters = torch.tensor([1.0, 0.0, 0.0, 0.0, 0.0])
     num_model_parameters = 1
     outputs = torch.tensor([[1.0, 1.0]])
     std_noise = 1 / math.sqrt(4)
@@ -344,7 +374,14 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_m
         num_data_points=1,
         dim_outputs=2,
     )
-    model_error_gp = FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error)
+    model_error_gp = IndependentMultiOutputGP(
+        [
+            FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error),
+            FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error),
+        ],
+        device=device,
+    )
+
     likelihood_strategy = NoiseAndModelErrorLikelihoodStrategy(
         data=data, model_error_gp=model_error_gp, device=device
     )
@@ -369,7 +406,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_m
 def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data_multiple_dimension():
     model = _create_fake_standard_ansatz_multiple_dimension()
     inputs = torch.tensor([[0.5, 0.5], [0.5, 0.5]])
-    parameters = torch.tensor([1.0, 0.0, 0.0])
+    parameters = torch.tensor([1.0, 0.0, 0.0, 0.0, 0.0])
     num_model_parameters = 1
     outputs = torch.tensor([[1.0, 1.0], [1.0, 1.0]])
     std_noise = 1 / math.sqrt(4)
@@ -385,7 +422,13 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data
         num_data_points=2,
         dim_outputs=2,
     )
-    model_error_gp = FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error)
+    model_error_gp = IndependentMultiOutputGP(
+        [
+            FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error),
+            FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error),
+        ],
+        device=device,
+    )
     likelihood_strategy = NoiseAndModelErrorLikelihoodStrategy(
         data=data, model_error_gp=model_error_gp, device=device
     )

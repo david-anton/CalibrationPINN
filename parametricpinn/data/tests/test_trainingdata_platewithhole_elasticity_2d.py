@@ -49,7 +49,7 @@ set_default_dtype(torch.float64)
 ### Test TrainingDataset
 def _create_plate_with_hole_shape() -> ShapelyPolygon:
     plate = shapely.box(x_min, y_min, x_max, y_max)
-    hole = shapely.Point(plate_length / 2, plate_height / 2).buffer(hole_radius)
+    hole = shapely.Point(origin_x, origin_y).buffer(hole_radius)
     return shapely.difference(plate, hole)
 
 
