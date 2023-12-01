@@ -231,12 +231,14 @@ class FakeLazyTensor(torch.Tensor):
     def to_dense(self) -> Tensor:
         return self._torch_tensor
 
+
 class FakeBaseKernel(gpytorch.kernels.Kernel):
     has_lengthscale = True
 
+
 class FakeKernel(gpytorch.kernels.Kernel):
     def __init__(self, variance_error) -> None:
-        super(FakeKernel,self).__init__()
+        super(FakeKernel, self).__init__()
         self._variance_error = variance_error
         self.base_kernel = FakeBaseKernel()
 
@@ -247,6 +249,7 @@ class FakeKernel(gpytorch.kernels.Kernel):
             )
         num_inputs = x_1.size()[0]
         return FakeLazyTensor(self._variance_error * torch.eye(num_inputs))
+
 
 class FakeZeroMeanScaledRBFKernelGP(ZeroMeanScaledRBFKernelGP):
     def __init__(self, variance_error: float, train_x=None, train_y=None) -> None:
