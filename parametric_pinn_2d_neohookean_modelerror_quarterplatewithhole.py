@@ -455,10 +455,14 @@ def calibration_step() -> None:
     prior_mean_poissons_ratio = 0.3
     prior_std_poissons_ratio = 0.015
     prior_youngs_modulus = create_univariate_normal_distributed_prior(
-        mean=prior_mean_youngs_modulus, standard_deviation=prior_std_youngs_modulus
+        mean=prior_mean_youngs_modulus,
+        standard_deviation=prior_std_youngs_modulus,
+        device=device,
     )
     prior_poissons_ratio = create_univariate_normal_distributed_prior(
-        mean=prior_mean_poissons_ratio, standard_deviation=prior_std_poissons_ratio
+        mean=prior_mean_poissons_ratio,
+        standard_deviation=prior_std_poissons_ratio,
+        device=device,
     )
     model_error_prior = model_error_gp.get_uninformed_parameters_prior(device)
     prior = multiply_priors(
