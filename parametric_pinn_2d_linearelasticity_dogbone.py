@@ -342,7 +342,7 @@ def calibration_step() -> None:
         size_data = len(data)
         slice_coordinates = slice(0, 2)
         slice_displacements = slice(2, 4)
-        full_shifted_coordinates = torch.from_numpy(data[:, slice_coordinates]).dtype(
+        full_shifted_coordinates = torch.from_numpy(data[:, slice_coordinates]).type(
             torch.float64
         )
         coordinate_shift_x = geometry_config.half_parallel_length
@@ -350,7 +350,7 @@ def calibration_step() -> None:
         full_coordinates = full_shifted_coordinates - torch.tensor(
             [coordinate_shift_x, coordinate_shift_y], dtype=torch.float64
         )
-        full_displacements = torch.from_numpy(data[:, slice_displacements]).dtype(
+        full_displacements = torch.from_numpy(data[:, slice_displacements]).type(
             torch.float64
         )
         random_indices = torch.randint(
