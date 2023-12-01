@@ -1,15 +1,15 @@
 #!/bin/bash
 #SBATCH --partition=gpu_irmb
 #SBATCH --nodes=1
-#SBATCH --time=96:00:00
-#SBATCH --job-name=PPINN2D
+#SBATCH --time=336:00:00
+#SBATCH --job-name=QPWHNH
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:ampere:1
 
 ## Build command
 ## singularity build --fakeroot --force parametricpinn.sif app/.devcontainer/container_conda.def
 
-SCRIPT=parametric_pinn_2d_linearelasticity.py
+SCRIPT=parametric_pinn_2d_neohookean_quarterplatewithhole.py
 
 srun singularity run \
  --cleanenv \
