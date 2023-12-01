@@ -433,14 +433,28 @@ def _generate_coordinate_grid(
     simulation_config: SimulationConfig,
     plot_config: DisplacementsPlotterConfig2D,
 ) -> list[NPArray]:
+    domain_config = simulation_config.domain_config
+    if isinstance(domain_config, DogBoneDomainConfig):
+        x_min = -domain_config.half_box_length
+        x_max = domain_config.half_box_length
+        y_min = -domain_config.half_box_height
+        y_max = domain_config.half_box_height
+    elif isinstance(domain_config, QuarterPlateWithHoleDomainConfig) or isinstance(
+        domain_config, PlateWithHoleDomainConfig
+    ):
+        x_min = -domain_config.edge_length
+        x_max = 0.0
+        y_min = 0.0
+        y_max = domain_config.edge_length
+
     grid_coordinates_x = np.linspace(
-        -simulation_config.domain_config.edge_length,
-        0.0,
+        x_min,
+        x_max,
         num=plot_config.num_points_per_edge,
     )
     grid_coordinates_y = np.linspace(
-        0.0,
-        simulation_config.domain_config.edge_length,
+        y_min,
+        y_max,
         num=plot_config.num_points_per_edge,
     )
     return np.meshgrid(grid_coordinates_x, grid_coordinates_y)
