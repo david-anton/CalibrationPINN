@@ -91,7 +91,7 @@ class DogBoneDomain:
         test_function: UFLTestFunction,
     ) -> BoundaryConditions:
         u_left = Constant(
-            self.mesh, default_scalar_type(self._u_x_left, self._u_y_left)
+            self.mesh, default_scalar_type((self._u_x_left, self._u_y_left))
         )
         traction_right = Constant(
             self.mesh,
