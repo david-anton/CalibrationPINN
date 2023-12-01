@@ -85,7 +85,9 @@ class DogBone2D:
         normals_x = abs_rad_component_x
         normals_y = abs_rad_component_y
         normals = torch.concat((normals_x, normals_y), dim=1) / self.tapered_radius
-        return self._reverse_order_of_data_points(coordinates), self._reverse_order_of_data_points(normals)
+        return self._reverse_order_of_data_points(
+            coordinates
+        ), self._reverse_order_of_data_points(normals)
 
     def create_uniform_points_on_top_right_tapered_boundary(
         self, num_points: int
@@ -140,7 +142,9 @@ class DogBone2D:
         normals_x = abs_rad_component_x
         normals_y = -abs_rad_component_y
         normals = torch.concat((normals_x, normals_y), dim=1) / self.tapered_radius
-        return self._reverse_order_of_data_points(coordinates), self._reverse_order_of_data_points(normals)
+        return self._reverse_order_of_data_points(
+            coordinates
+        ), self._reverse_order_of_data_points(normals)
 
     def create_uniform_points_on_bottom_right_tapered_boundary(
         self, num_points: int

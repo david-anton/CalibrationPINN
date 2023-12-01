@@ -291,8 +291,8 @@ class DogBoneTrainingDataset2D(Dataset):
             x_coor_top[0, 0] = -half_parallel_length - abs_rad_components_x
             x_coor_top[0, 1] = half_parallel_height + (radius - abs_rad_components_y)
             # normals
-            normal_top[0, 0] = abs_rad_components_x/radius
-            normal_top[0, 1] = abs_rad_components_y/radius
+            normal_top[0, 0] = abs_rad_components_x / radius
+            normal_top[0, 1] = abs_rad_components_y / radius
 
         def _avoid_overlapping_traction_bcs_at_top_right(
             x_coor_top: Tensor, normal_top: Tensor
@@ -301,8 +301,8 @@ class DogBoneTrainingDataset2D(Dataset):
             x_coor_top[-1, 0] = half_parallel_length + abs_rad_components_x
             x_coor_top[-1, 1] = half_parallel_height + (radius - abs_rad_components_y)
             # normals
-            normal_top[-1, 0] = -abs_rad_components_x/radius
-            normal_top[-1, 1] = abs_rad_components_y/radius
+            normal_top[-1, 0] = -abs_rad_components_x / radius
+            normal_top[-1, 1] = abs_rad_components_y / radius
 
         def _avoid_overlapping_traction_bcs_at_bottom_left(
             x_coor_bottom: Tensor, normal_bottom: Tensor
@@ -313,8 +313,8 @@ class DogBoneTrainingDataset2D(Dataset):
                 radius - abs_rad_components_y
             )
             # normals
-            normal_bottom[0, 0] = abs_rad_components_x/radius
-            normal_bottom[0, 1] = -abs_rad_components_y/radius
+            normal_bottom[0, 0] = abs_rad_components_x / radius
+            normal_bottom[0, 1] = -abs_rad_components_y / radius
 
         def _avoid_overlapping_traction_bcs_at_bottom_right(
             x_coor_bottom: Tensor, normal_bottom: Tensor
@@ -325,8 +325,8 @@ class DogBoneTrainingDataset2D(Dataset):
                 radius - abs_rad_components_y
             )
             # normals
-            normal_bottom[-1, 0] = -abs_rad_components_x/radius
-            normal_bottom[-1, 1] = -abs_rad_components_y/radius
+            normal_bottom[-1, 0] = -abs_rad_components_x / radius
+            normal_bottom[-1, 1] = -abs_rad_components_y / radius
 
         _avoid_overlapping_traction_bcs_at_top_left(x_coor_top, normal_top)
         _avoid_overlapping_traction_bcs_at_top_right(x_coor_top, normal_top)

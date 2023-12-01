@@ -225,10 +225,12 @@ def test_sample_traction_bc__x_coordinates(
         math.cos(math.radians(half_angle_tapered)) * tapered_radius
     )
     abs_max_angle_radial_component_tapered_x = (
-        math.sin(math.radians(max_angle_tapered - overlap_distance_angle_bcs)) * tapered_radius
+        math.sin(math.radians(max_angle_tapered - overlap_distance_angle_bcs))
+        * tapered_radius
     )
     abs_max_angle_radial_component_tapered_y = (
-        math.cos(math.radians(max_angle_tapered - overlap_distance_angle_bcs)) * tapered_radius
+        math.cos(math.radians(max_angle_tapered - overlap_distance_angle_bcs))
+        * tapered_radius
     )
     expected = torch.tensor(
         [
@@ -306,7 +308,6 @@ def test_sample_traction_bc__x_coordinates(
                 -half_parallel_height
                 - (tapered_radius - abs_max_angle_radial_component_tapered_y),
             ],
-            
             # plate hole
             [
                 origin_x - math.cos(math.radians(0 / 3 * 360)) * plate_hole_radius,
@@ -362,8 +363,12 @@ def test_sample_traction_bc__normal(
 
     abs_normal_half_angle_tapered_x = math.sin(math.radians(half_angle_tapered))
     abs_normal_half_angle_tapered_y = math.cos(math.radians(half_angle_tapered))
-    abs_normal_max_angle_tapered_x = math.sin(math.radians(max_angle_tapered-overlap_distance_angle_bcs))
-    abs_normal_max_angle_tapered_y = math.cos(math.radians(max_angle_tapered-overlap_distance_angle_bcs))
+    abs_normal_max_angle_tapered_x = math.sin(
+        math.radians(max_angle_tapered - overlap_distance_angle_bcs)
+    )
+    abs_normal_max_angle_tapered_y = math.cos(
+        math.radians(max_angle_tapered - overlap_distance_angle_bcs)
+    )
 
     expected = torch.tensor(
         [
