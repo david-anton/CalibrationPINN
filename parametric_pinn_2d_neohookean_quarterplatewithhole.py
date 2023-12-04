@@ -3,6 +3,7 @@ from datetime import date
 from time import perf_counter
 
 import numpy as np
+import pandas as pd
 import torch
 
 from parametricpinn.ansatz import (
@@ -48,6 +49,7 @@ from parametricpinn.fem import (
 )
 from parametricpinn.gps import IndependentMultiOutputGP, ZeroMeanScaledRBFKernelGP
 from parametricpinn.io import ProjectDirectory
+from parametricpinn.io.readerswriters import CSVDataReader, PandasDataWriter
 from parametricpinn.network import FFNN
 from parametricpinn.postprocessing.plot import (
     DisplacementsPlotterConfig2D,
@@ -106,7 +108,7 @@ fem_element_degree = 2
 fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = 20231201
 output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
@@ -206,101 +208,120 @@ def create_datasets() -> (
 
 
 def create_ansatz() -> StandardAnsatz:
+    normalization_values_subdir = os.path.join(
+        output_subdirectory, "normalization_values"
+    )
+    key_min_inputs = "min_inputs"
+    key_max_inputs = "max_inputs"
+    key_min_outputs = "min_outputs"
+    key_max_outputs = "max_outputs"
+    file_name_min_inputs = "minimum_inputs.csv"
+    file_name_max_inputs = "maximum_inputs.csv"
+    file_name_min_outputs = "minimum_outputs.csv"
+    file_name_max_outputs = "maximum_outputs.csv"
+
+    def _save_normalization_values(normalization_values: dict[str, Tensor]) -> None:
+        data_writer = PandasDataWriter(project_directory)
+
+        def _save_one_value_tensor(key: str, file_name: str) -> None:
+            data_writer.write(
+                data=pd.DataFrame([normalization_values[key].cpu().detach().numpy()]),
+                file_name=file_name,
+                subdir_name=output_subdirectory,
+                header=True,
+            )
+
+        _save_one_value_tensor(key_min_inputs, file_name_min_inputs)
+        _save_one_value_tensor(key_max_inputs, file_name_max_inputs)
+        _save_one_value_tensor(key_min_outputs, file_name_min_outputs)
+        _save_one_value_tensor(key_max_outputs, file_name_max_outputs)
+
+    def _read_normalization_values() -> dict[str, Tensor]:
+        data_reader = CSVDataReader(project_directory)
+        normalization_values = {}
+
+        def _add_one_value_tensor(key: str, file_name: str) -> None:
+            values = data_reader.read(
+                file_name=file_name,
+                subdir_name=normalization_values_subdir,
+                read_from_output_dir=True,
+            )
+
+            normalization_values[key] = (
+                torch.from_numpy(values).type(torch.float64).to(device)
+            )
+
+        _add_one_value_tensor(key_min_inputs, file_name_min_inputs)
+        _add_one_value_tensor(key_max_inputs, file_name_max_inputs)
+        _add_one_value_tensor(key_min_outputs, file_name_min_outputs)
+        _add_one_value_tensor(key_max_outputs, file_name_max_outputs)
+
+        return normalization_values
+
+    def _print_normalization_values(normalization_values: dict[str, Tensor]) -> None:
+        print("###########################")
+        print(f"Min inputs {normalization_values[key_min_inputs]}")
+        print(f"Max inputs {normalization_values[key_max_inputs]}")
+        print(f"Min outputs {normalization_values[key_min_outputs]}")
+        print(f"Max outputs {normalization_values[key_max_outputs]}")
+        print("###########################")
+
     def _determine_normalization_values() -> dict[str, Tensor]:
-        min_coordinate_x = -edge_length
-        max_coordinate_x = 0.0
-        min_coordinate_y = 0.0
-        max_coordinate_y = edge_length
-        min_coordinates = torch.tensor([min_coordinate_x, min_coordinate_y])
-        max_coordinates = torch.tensor([max_coordinate_x, max_coordinate_y])
+        if True:  # retrain_parametric_pinn:
+            min_coordinate_x = -edge_length
+            max_coordinate_x = 0.0
+            min_coordinate_y = 0.0
+            max_coordinate_y = edge_length
+            min_coordinates = torch.tensor([min_coordinate_x, min_coordinate_y])
+            max_coordinates = torch.tensor([max_coordinate_x, max_coordinate_y])
 
-        min_parameters = torch.tensor([min_youngs_modulus, min_poissons_ratio])
-        max_parameters = torch.tensor([max_youngs_modulus, max_poissons_ratio])
+            min_parameters = torch.tensor([min_youngs_modulus, min_poissons_ratio])
+            max_parameters = torch.tensor([max_youngs_modulus, max_poissons_ratio])
 
-        min_inputs = torch.concat((min_coordinates, min_parameters))
-        max_inputs = torch.concat((max_coordinates, max_parameters))
+            min_inputs = torch.concat((min_coordinates, min_parameters))
+            max_inputs = torch.concat((max_coordinates, max_parameters))
 
-        _output_subdir = os.path.join(
-            output_subdirectory_preprocessing,
-            "results_for_determining_normalization_values",
-        )
-        print("Run FE simulations to determine normalization values ...")
-        domain_config = create_fem_domain_config()
-        # problem_config_x = NeoHookeanProblemConfig(
-        #     youngs_modulus=min_youngs_modulus,
-        #     poissons_ratio=min_poissons_ratio,
-        # )
-        # simulation_config_x = SimulationConfig(
-        #     domain_config=domain_config,
-        #     problem_config=problem_config_x,
-        #     volume_force_x=volume_force_x,
-        #     volume_force_y=volume_force_y,
-        # )
-        # simulation_results_x = run_simulation(
-        #     simulation_config=simulation_config_x,
-        #     save_results=False,
-        #     save_metadata=False,
-        #     output_subdir=_output_subdir,
-        #     project_directory=project_directory,
-        # )
-        # problem_config_y = NeoHookeanProblemConfig(
-        #     youngs_modulus=min_youngs_modulus,
-        #     poissons_ratio=max_poissons_ratio,
-        # )
-        # simulation_config_y = SimulationConfig(
-        #     domain_config=domain_config,
-        #     problem_config=problem_config_y,
-        #     volume_force_x=volume_force_x,
-        #     volume_force_y=volume_force_y,
-        # )
-        # simulation_results_y = run_simulation(
-        #     simulation_config=simulation_config_y,
-        #     save_results=False,
-        #     save_metadata=False,
-        #     output_subdir=_output_subdir,
-        #     project_directory=project_directory,
-        # )
+            _output_subdir = os.path.join(
+                output_subdirectory_preprocessing,
+                "results_for_determining_normalization_values",
+            )
+            print("Run FE simulations to determine normalization values ...")
+            domain_config = create_fem_domain_config()
+            problem_config = NeoHookeanProblemConfig(
+                youngs_modulus=min_youngs_modulus,
+                poissons_ratio=max_poissons_ratio,
+            )
+            simulation_config = SimulationConfig(
+                domain_config=domain_config,
+                problem_config=problem_config,
+                volume_force_x=volume_force_x,
+                volume_force_y=volume_force_y,
+            )
+            simulation_results = run_simulation(
+                simulation_config=simulation_config,
+                save_results=False,
+                save_metadata=False,
+                output_subdir=_output_subdir,
+                project_directory=project_directory,
+            )
 
-        # min_displacement_x = float(np.amin(simulation_results_x.displacements_x))
-        # max_displacement_x = float(np.amax(simulation_results_x.displacements_x))
-        # min_displacement_y = float(np.amin(simulation_results_y.displacements_y))
-        # max_displacement_y = float(np.amax(simulation_results_y.displacements_y))
-        problem_config = NeoHookeanProblemConfig(
-            youngs_modulus=min_youngs_modulus,
-            poissons_ratio=max_poissons_ratio,
-        )
-        simulation_config = SimulationConfig(
-            domain_config=domain_config,
-            problem_config=problem_config,
-            volume_force_x=volume_force_x,
-            volume_force_y=volume_force_y,
-        )
-        simulation_results = run_simulation(
-            simulation_config=simulation_config,
-            save_results=False,
-            save_metadata=False,
-            output_subdir=_output_subdir,
-            project_directory=project_directory,
-        )
-
-        min_displacement_x = float(np.amin(simulation_results.displacements_x))
-        max_displacement_x = float(np.amax(simulation_results.displacements_x))
-        min_displacement_y = float(np.amin(simulation_results.displacements_y))
-        max_displacement_y = float(np.amax(simulation_results.displacements_y))
-        min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
-        max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
-        print("###########################")
-        print(f"Min inputs {min_inputs}")
-        print(f"Max inputs {max_inputs}")
-        print(f"Min outputs {min_outputs}")
-        print(f"Max outputs {max_outputs}")
-        print("###########################")
-        return {
-            "min_inputs": min_inputs.to(device),
-            "max_inputs": max_inputs.to(device),
-            "min_outputs": min_outputs.to(device),
-            "max_outputs": max_outputs.to(device),
-        }
+            min_displacement_x = float(np.amin(simulation_results.displacements_x))
+            max_displacement_x = float(np.amax(simulation_results.displacements_x))
+            min_displacement_y = float(np.amin(simulation_results.displacements_y))
+            max_displacement_y = float(np.amax(simulation_results.displacements_y))
+            min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
+            max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
+            normalization_values = {
+                "min_inputs": min_inputs.to(device),
+                "max_inputs": max_inputs.to(device),
+                "min_outputs": min_outputs.to(device),
+                "max_outputs": max_outputs.to(device),
+            }
+            _save_normalization_values(normalization_values)
+        else:
+            normalization_values = _read_normalization_values()
+        _print_normalization_values(normalization_values)
+        return normalization_values
 
     normalization_values = _determine_normalization_values()
     network = FFNN(layer_sizes=layer_sizes)
