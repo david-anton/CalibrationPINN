@@ -80,7 +80,7 @@ distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 1  # 32
 num_collocation_points = 4096  # 128
-number_points_per_bc = 128  # 32
+number_points_per_bc = 1024  # 32
 training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 500  # 20000
 weight_pde_loss = 1.0
