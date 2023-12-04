@@ -249,7 +249,7 @@ class DogBone2D:
     def _create_shape(self) -> ShapelyPolygon:
         box = shapely.box(
             -self.half_box_length,
-            -self.half_parallel_height,
+            -self.half_box_height,
             self.box_length,
             self.box_height,
         )

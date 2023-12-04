@@ -44,7 +44,7 @@ traction_parralel = torch.tensor([0.0, 0.0], dtype=torch.float64)
 traction_hole = torch.tensor([0.0, 0.0], dtype=torch.float64)
 num_samples_per_parameter = 2
 num_samples = num_samples_per_parameter**2
-num_collocation_points = 3
+num_collocation_points = 32
 num_points_per_bc = 3
 num_traction_bcs = 8
 num_points_traction_bcs = num_traction_bcs * num_points_per_bc
@@ -58,7 +58,7 @@ set_default_dtype(torch.float64)
 def _create_dog_bone_shape() -> ShapelyPolygon:
     box = shapely.box(
         -half_box_length,
-        -half_parallel_height,
+        -half_box_height,
         box_length,
         box_height,
     )
