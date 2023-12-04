@@ -227,7 +227,7 @@ def create_ansatz() -> StandardAnsatz:
             data_writer.write(
                 data=pd.DataFrame([normalization_values[key].cpu().detach().numpy()]),
                 file_name=file_name,
-                subdir_name=output_subdirectory,
+                subdir_name=normalization_values_subdir,
                 header=True,
             )
 
@@ -548,36 +548,32 @@ def calibration_step() -> None:
     std_proposal_density_poissons_ratio = 0.0015
     if consider_model_error:
         std_proposal_density_gp_hyperparameters = 0.01
-        cov_proposal_density = (
-            torch.diag(
-                torch.tensor(
-                    [
-                        std_proposal_density_youngs_modulus,
-                        std_proposal_density_poissons_ratio,
-                        std_proposal_density_gp_hyperparameters,
-                        std_proposal_density_gp_hyperparameters,
-                        std_proposal_density_gp_hyperparameters,
-                        std_proposal_density_gp_hyperparameters,
-                    ],
-                    dtype=torch.float64,
-                    device=device,
-                )
-                ** 2
-            ),
+        cov_proposal_density = torch.diag(
+            torch.tensor(
+                [
+                    std_proposal_density_youngs_modulus,
+                    std_proposal_density_poissons_ratio,
+                    std_proposal_density_gp_hyperparameters,
+                    std_proposal_density_gp_hyperparameters,
+                    std_proposal_density_gp_hyperparameters,
+                    std_proposal_density_gp_hyperparameters,
+                ],
+                dtype=torch.float64,
+                device=device,
+            )
+            ** 2
         )
     else:
-        cov_proposal_density = (
-            torch.diag(
-                torch.tensor(
-                    [
-                        std_proposal_density_youngs_modulus,
-                        std_proposal_density_poissons_ratio,
-                    ],
-                    dtype=torch.float64,
-                    device=device,
-                )
-                ** 2
-            ),
+        cov_proposal_density = torch.diag(
+            torch.tensor(
+                [
+                    std_proposal_density_youngs_modulus,
+                    std_proposal_density_poissons_ratio,
+                ],
+                dtype=torch.float64,
+                device=device,
+            )
+            ** 2
         )
 
     mcmc_config_mh = MetropolisHastingsConfig(
