@@ -21,7 +21,7 @@ from parametricpinn.ansatz.hbc_normalizers import (
     HBCAnsatzRenormalizer,
 )
 from parametricpinn.network.normalizednetwork import InputNormalizer
-from parametricpinn.types import Tensor
+from parametricpinn.types import Device, Tensor
 
 NetworkInputNormalizer: TypeAlias = InputNormalizer
 
@@ -82,6 +82,7 @@ def create_standard_normalized_hbc_ansatz_quarter_plate_with_hole(
     max_outputs: Tensor,
     network: StandardNetworks,
     distance_function_type: str,
+    device: Device,
 ) -> StandardAnsatz:
     ansatz_strategy = _create_ansatz_strategy(
         displacement_x_right,
@@ -104,6 +105,7 @@ def create_bayesian_normalized_hbc_ansatz_quarter_plate_with_hole(
     max_outputs: Tensor,
     network: BayesianNetworks,
     distance_function_type: str,
+    device: Device,
 ) -> BayesianAnsatz:
     ansatz_strategy = _create_ansatz_strategy(
         displacement_x_right,

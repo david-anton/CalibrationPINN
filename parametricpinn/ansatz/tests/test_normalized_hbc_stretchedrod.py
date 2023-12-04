@@ -10,6 +10,7 @@ from parametricpinn.settings import set_default_dtype
 from parametricpinn.types import Tensor
 
 set_default_dtype(torch.float64)
+device = torch.device("cpu")
 
 displacement_left = torch.tensor([0.0])
 min_inputs = torch.tensor([0.0, 0.0])
@@ -46,6 +47,7 @@ def sut() -> StandardAnsatz:
         max_outputs=max_outputs,
         network=network,
         distance_function_type=distance_function_type,
+        device=device,
     )
 
 
@@ -69,6 +71,7 @@ def sut_single_input() -> StandardAnsatz:
         max_outputs=max_outputs,
         network=network,
         distance_function_type=distance_function_type,
+        device=device,
     )
 
 

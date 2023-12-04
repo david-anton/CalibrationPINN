@@ -84,6 +84,7 @@ def create_ansatz() -> Module:
         min_outputs=min_outputs,
         max_outputs=max_outputs,
         network=network,
+        device=device,
     ).to(device)
 
 
