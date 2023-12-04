@@ -51,11 +51,17 @@ class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
         self.kernel.outputscale = parameters[0].to(self._device)
         self.kernel.base_kernel.lengthscale = parameters[1].to(self._device)
 
-    def get_uninformed_parameters_prior(self, device: Device) -> Prior:
-        outputscale_prior = create_univariate_uniform_distributed_prior(
-            lower_limit=0.0, upper_limit=10.0, device=device
+    def get_uninformed_parameters_prior(
+        self,
+        upper_limit_ouput_scale: float,
+        upper_limit_length_scale: float,
+        device: Device,
+        **kwargs: float
+    ) -> Prior:
+        output_scale_prior = create_univariate_uniform_distributed_prior(
+            lower_limit=0.0, upper_limit=upper_limit_ouput_scale, device=device
         )
-        lengthscale_prior = create_univariate_uniform_distributed_prior(
-            lower_limit=0.0, upper_limit=10.0, device=device
+        length_scale_prior = create_univariate_uniform_distributed_prior(
+            lower_limit=0.0, upper_limit=upper_limit_length_scale, device=device
         )
-        return multiply_priors([outputscale_prior, lengthscale_prior])
+        return multiply_priors([output_scale_prior, length_scale_prior])

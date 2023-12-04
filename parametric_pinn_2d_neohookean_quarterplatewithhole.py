@@ -10,7 +10,8 @@ from parametricpinn.ansatz import (
     create_standard_normalized_hbc_ansatz_quarter_plate_with_hole,
 )
 from parametricpinn.bayesian.prior import (
-    create_independent_multivariate_normal_distributed_prior,
+    create_univariate_normal_distributed_prior,
+    multiply_priors,
 )
 from parametricpinn.calibration import (
     CalibrationData,
@@ -22,6 +23,7 @@ from parametricpinn.calibration import (
 )
 from parametricpinn.calibration.bayesianinference.parametric_pinn import (
     create_standard_ppinn_likelihood_for_noise,
+    create_standard_ppinn_likelihood_for_noise_and_model_error,
 )
 from parametricpinn.calibration.bayesianinference.plot import (
     plot_posterior_normal_distributions,
@@ -44,6 +46,7 @@ from parametricpinn.fem import (
     generate_validation_data,
     run_simulation,
 )
+from parametricpinn.gps import IndependentMultiOutputGP, ZeroMeanScaledRBFKernelGP
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN
 from parametricpinn.postprocessing.plot import (
@@ -58,7 +61,7 @@ from parametricpinn.training.training_standard_neohookean_quarterplatewithhole i
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 num_material_parameters = 2
 edge_length = 100.0
@@ -85,17 +88,18 @@ weight_pde_loss = 1.0
 weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20231128_validation_data_neohookean_E_1000_3000_nu_02_04_edge_100_radius_10_traction_100_elementsize_01"
 num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
+consider_model_error = False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
-use_hamiltonian = True
-use_efficient_nuts = True
+use_hamiltonian = False
+use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
@@ -103,7 +107,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_4_32_BC_complete"
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -435,30 +439,83 @@ def calibration_step() -> None:
         outputs=noisy_displacements,
         std_noise=std_noise,
     )
-    likelihood = create_standard_ppinn_likelihood_for_noise(
-        model=model,
-        num_model_parameters=num_material_parameters,
-        data=data,
-        device=device,
-    )
 
     prior_mean_youngs_modulus = 2000
     prior_std_youngs_modulus = 100
     prior_mean_poissons_ratio = 0.3
     prior_std_poissons_ratio = 0.015
-    prior_means = torch.tensor([prior_mean_youngs_modulus, prior_mean_poissons_ratio])
-    prior_standard_deviations = torch.tensor(
-        [prior_std_youngs_modulus, prior_std_poissons_ratio]
+    prior_youngs_modulus = create_univariate_normal_distributed_prior(
+        mean=prior_mean_youngs_modulus,
+        standard_deviation=prior_std_youngs_modulus,
+        device=device,
     )
-    prior = create_independent_multivariate_normal_distributed_prior(
-        means=prior_means, standard_deviations=prior_standard_deviations, device=device
+    prior_poissons_ratio = create_univariate_normal_distributed_prior(
+        mean=prior_mean_poissons_ratio,
+        standard_deviation=prior_std_poissons_ratio,
+        device=device,
     )
-
-    parameter_names = ("Youngs modulus", "Poissons ratio")
-    true_parameters = (exact_youngs_modulus, exact_poissons_ratio)
-    initial_parameters = torch.tensor(
+    initial_material_parameters = torch.tensor(
         [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
     )
+
+    if consider_model_error:
+        model_error_gp = IndependentMultiOutputGP(
+            independent_gps=[
+                ZeroMeanScaledRBFKernelGP(device),
+                ZeroMeanScaledRBFKernelGP(device),
+            ]
+        ).to(device)
+        likelihood = create_standard_ppinn_likelihood_for_noise_and_model_error(
+            model=model,
+            num_model_parameters=num_material_parameters,
+            model_error_gp=model_error_gp,
+            data=data,
+            device=device,
+        )
+
+        model_error_prior = model_error_gp.get_uninformed_parameters_prior(
+            device,
+            upper_limit_ouput_scale=10.0,
+            upper_limit_length_scale=edge_length,
+        )
+        prior = multiply_priors(
+            [prior_youngs_modulus, prior_poissons_ratio, model_error_prior]
+        )
+
+        parameter_names = (
+            "Youngs modulus",
+            "Poissons ratio",
+            "error output scale 1",
+            "error length scale 1",
+            "error output scale 2",
+            "error length scale 2",
+        )
+        true_parameters = (
+            exact_youngs_modulus,
+            exact_poissons_ratio,
+            None,
+            None,
+            None,
+            None,
+        )
+        initial_model_error_parameters = torch.ones(
+            (model_error_gp.num_hyperparameters,), dtype=torch.float64, device=device
+        )
+        initial_parameters = torch.concat(
+            [initial_material_parameters, initial_model_error_parameters]
+        )
+    else:
+        likelihood = create_standard_ppinn_likelihood_for_noise(
+            model=model,
+            num_model_parameters=num_material_parameters,
+            data=data,
+            device=device,
+        )
+        prior = multiply_priors([prior_youngs_modulus, prior_poissons_ratio])
+
+        parameter_names = ("Youngs modulus", "Poissons ratio")
+        true_parameters = (exact_youngs_modulus, exact_poissons_ratio)
+        initial_parameters = initial_material_parameters
 
     least_squares_config = LeastSquaresConfig(
         initial_parameters=initial_parameters,
@@ -468,23 +525,47 @@ def calibration_step() -> None:
     )
     std_proposal_density_youngs_modulus = 10
     std_proposal_density_poissons_ratio = 0.0015
+    if consider_model_error:
+        std_proposal_density_gp_hyperparameters = 0.01
+        cov_proposal_density = (
+            torch.diag(
+                torch.tensor(
+                    [
+                        std_proposal_density_youngs_modulus,
+                        std_proposal_density_poissons_ratio,
+                        std_proposal_density_gp_hyperparameters,
+                        std_proposal_density_gp_hyperparameters,
+                        std_proposal_density_gp_hyperparameters,
+                        std_proposal_density_gp_hyperparameters,
+                    ],
+                    dtype=torch.float64,
+                    device=device,
+                )
+                ** 2
+            ),
+        )
+    else:
+        cov_proposal_density = (
+            torch.diag(
+                torch.tensor(
+                    [
+                        std_proposal_density_youngs_modulus,
+                        std_proposal_density_poissons_ratio,
+                    ],
+                    dtype=torch.float64,
+                    device=device,
+                )
+                ** 2
+            ),
+        )
+
     mcmc_config_mh = MetropolisHastingsConfig(
         likelihood=likelihood,
         prior=prior,
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
         num_burn_in_iterations=int(2e4),
-        cov_proposal_density=torch.diag(
-            torch.tensor(
-                [
-                    std_proposal_density_youngs_modulus,
-                    std_proposal_density_poissons_ratio,
-                ],
-                dtype=torch.float64,
-                device=device,
-            )
-            ** 2
-        ),
+        cov_proposal_density=cov_proposal_density,
     )
     mcmc_config_h = HamiltonianConfig(
         likelihood=likelihood,
