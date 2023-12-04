@@ -86,7 +86,7 @@ number_training_epochs = 20000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20231201_validation_data_linearelasticity_dogbone_E_180k_240k_nu_02_04_elementsize_01"
 num_samples_valid = 32
 validation_interval = 1
@@ -260,13 +260,13 @@ def create_ansatz() -> StandardAnsatz:
         coordinate_x_left=torch.tensor(
             [-geometry_config.half_box_length], device=device
         ),
-        displacement_x_left=torch.tensor([0.0], device=device),
         min_inputs=normalization_values["min_inputs"],
         max_inputs=normalization_values["max_inputs"],
         min_outputs=normalization_values["min_outputs"],
         max_outputs=normalization_values["max_outputs"],
         network=network,
         distance_function_type=distance_function,
+        device=device,
     ).to(device)
 
 
