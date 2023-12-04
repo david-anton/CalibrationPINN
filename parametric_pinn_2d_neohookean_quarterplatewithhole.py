@@ -267,7 +267,7 @@ def create_ansatz() -> StandardAnsatz:
         print("###########################")
 
     def _determine_normalization_values() -> dict[str, Tensor]:
-        if True:  # retrain_parametric_pinn:
+        if retrain_parametric_pinn:
             min_coordinate_x = -edge_length
             max_coordinate_x = 0.0
             min_coordinate_y = 0.0
@@ -281,10 +281,6 @@ def create_ansatz() -> StandardAnsatz:
             min_inputs = torch.concat((min_coordinates, min_parameters))
             max_inputs = torch.concat((max_coordinates, max_parameters))
 
-            _output_subdir = os.path.join(
-                output_subdirectory_preprocessing,
-                "results_for_determining_normalization_values",
-            )
             print("Run FE simulations to determine normalization values ...")
             domain_config = create_fem_domain_config()
             problem_config = NeoHookeanProblemConfig(
@@ -299,9 +295,9 @@ def create_ansatz() -> StandardAnsatz:
             )
             simulation_results = run_simulation(
                 simulation_config=simulation_config,
-                save_results=False,
-                save_metadata=False,
-                output_subdir=_output_subdir,
+                save_results=True,
+                save_metadata=True,
+                output_subdir=normalization_values_subdir,
                 project_directory=project_directory,
             )
 
