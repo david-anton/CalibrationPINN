@@ -248,7 +248,7 @@ def create_ansatz() -> StandardAnsatz:
             )
 
             normalization_values[key] = (
-                torch.from_numpy(values).type(torch.float64).to(device)
+                torch.from_numpy(values[0]).type(torch.float64).to(device)
             )
 
         _add_one_value_tensor(key_min_inputs, file_name_min_inputs)
