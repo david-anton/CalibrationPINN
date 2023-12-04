@@ -12,9 +12,9 @@ from parametricpinn.types import Tensor
 set_default_dtype(torch.float64)
 device = torch.device("cpu")
 
-coordinate_x_left = torch.tensor([0.0])
-min_inputs = torch.tensor([0.0, 0.0, 0.0, 0.0])
-max_inputs = torch.tensor([2.0, 2.0, 0.0, 0.0])
+coordinate_x_left = torch.tensor([-1.0])
+min_inputs = torch.tensor([-1.0, -1.0, 0.0, 0.0])
+max_inputs = torch.tensor([1.0, 1.0, 0.0, 0.0])
 min_outputs = torch.tensor([0.0, 0.0])
 max_outputs = torch.tensor([10.0, 20.0])
 distance_function_type = "normalized linear"
@@ -54,15 +54,15 @@ def sut() -> StandardAnsatz:
 def test_normalized_HBC_ansatz(sut: StandardAnsatz) -> None:
     inputs = torch.tensor(
         [
-            [0.0, 2.0, 0.0, 0.0],
-            [1.0, 2.0, 0.0, 0.0],
-            [2.0, 2.0, 0.0, 0.0],
+            [-1.0, 1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0, 0.0],
             [1.0, 1.0, 0.0, 0.0],
-            [2.0, 1.0, 0.0, 0.0],
+            [-1.0, 0.0, 0.0, 0.0],
             [0.0, 0.0, 0.0, 0.0],
             [1.0, 0.0, 0.0, 0.0],
-            [2.0, 0.0, 0.0, 0.0],
+            [-1.0, -1.0, 0.0, 0.0],
+            [0.0, -1.0, 0.0, 0.0],
+            [1.0, -1.0, 0.0, 0.0],
         ]
     )
 
@@ -102,15 +102,15 @@ def sut_single_input() -> StandardAnsatz:
 @pytest.mark.parametrize(
     ("input", "expected"),
     [
-        (torch.tensor([0.0, 2.0, 0.0, 0.0]), torch.tensor([0.0, 0.0])),
-        (torch.tensor([1.0, 2.0, 0.0, 0.0]), torch.tensor([5.0, 10.0])),
-        (torch.tensor([2.0, 2.0, 0.0, 0.0]), torch.tensor([10.0, 20.0])),
-        (torch.tensor([0.0, 1.0, 0.0, 0.0]), torch.tensor([0.0, 0.0])),
-        (torch.tensor([1.0, 1.0, 0.0, 0.0]), torch.tensor([5.0, 10.0])),
-        (torch.tensor([2.0, 1.0, 0.0, 0.0]), torch.tensor([10.0, 20.0])),
-        (torch.tensor([0.0, 0.0, 0.0, 0.0]), torch.tensor([0.0, 0.0])),
-        (torch.tensor([1.0, 0.0, 0.0, 0.0]), torch.tensor([5.0, 10.0])),
-        (torch.tensor([2.0, 0.0, 0.0, 0.0]), torch.tensor([10.0, 20.0])),
+        (torch.tensor([-1.0, 1.0, 0.0, 0.0]), torch.tensor([0.0, 0.0])),
+        (torch.tensor([0.0, 1.0, 0.0, 0.0]), torch.tensor([5.0, 10.0])),
+        (torch.tensor([1.0, 1.0, 0.0, 0.0]), torch.tensor([10.0, 20.0])),
+        (torch.tensor([-1.0, 0.0, 0.0, 0.0]), torch.tensor([0.0, 0.0])),
+        (torch.tensor([0.0, 0.0, 0.0, 0.0]), torch.tensor([5.0, 10.0])),
+        (torch.tensor([1.0, 0.0, 0.0, 0.0]), torch.tensor([10.0, 20.0])),
+        (torch.tensor([-1.0, -1.0, 0.0, 0.0]), torch.tensor([0.0, 0.0])),
+        (torch.tensor([0.0, -1.0, 0.0, 0.0]), torch.tensor([5.0, 10.0])),
+        (torch.tensor([1.0, -1.0, 0.0, 0.0]), torch.tensor([10.0, 20.0])),
     ],
 )
 def test_normalized_HBC_ansatz_for_single_input(
