@@ -69,36 +69,36 @@ traction_right_x = 106.2629
 traction_right_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-min_youngs_modulus = 210000.0  # 180000.0
-max_youngs_modulus = min_youngs_modulus  # 240000.0
-min_poissons_ratio = 0.3  # 0.2
-max_poissons_ratio = min_poissons_ratio  # 0.4
+min_youngs_modulus = 180000.0
+max_youngs_modulus = 240000.0
+min_poissons_ratio = 0.2
+max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_per_parameter = 1  # 32
-num_collocation_points =   16384# 128
-number_points_per_bc = 1024  # 32
+num_samples_per_parameter = 32
+num_collocation_points =   128
+number_points_per_bc = 32
 training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 20000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = True  # False
-input_subdir_valid = "20231204_validation_data_linearelasticity_dogbone_E_210k_nu_03_elementsize_01"  # "20231201_validation_data_linearelasticity_dogbone_E_180k_240k_nu_02_04_elementsize_01"
-num_samples_valid = 1  # 32
+regenerate_valid_data = False
+input_subdir_valid = "20231201_validation_data_linearelasticity_dogbone_E_180k_240k_nu_02_04_elementsize_01"
+num_samples_valid = 32
 validation_interval = 1
-num_points_valid = 4096 #1024
+num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
 input_subdir_calibration = "20231124_experimental_dic_data_dogbone"
 input_file_name_calibration = "displacements.csv"
-use_least_squares = False  # True
-use_random_walk_metropolis_hasting = False  # True
-use_hamiltonian = False  # True
-use_efficient_nuts = False  # True
+use_least_squares = True
+use_random_walk_metropolis_hasting = True
+use_hamiltonian = True
+use_efficient_nuts = True
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
@@ -106,7 +106,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_dogbone_E_210k_nu_03_col_16384_bc_1024_neurons_4_32"  # f"{output_date}_parametric_pinn_linearelasticity_dogbone_E_180k_240k_nu_02_04_samples_32_col_128_bc_32_neurons_4_32"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_dogbone_E_180k_240k_nu_02_04_samples_32_col_128_bc_32_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
