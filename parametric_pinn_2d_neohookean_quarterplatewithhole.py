@@ -536,7 +536,7 @@ def calibration_step() -> None:
         initial_parameters = initial_material_parameters
 
     least_squares_config = LeastSquaresConfig(
-        initial_parameters=initial_parameters,
+        initial_parameters=initial_material_parameters,
         num_iterations=1000,
         ansatz=model,
         calibration_data=data,
