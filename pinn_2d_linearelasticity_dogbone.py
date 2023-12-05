@@ -251,6 +251,12 @@ def create_ansatz() -> StandardAnsatz:
         max_displacement_y = float(np.amax(simulation_results.displacements_y))
         min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
         max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
+        print("###########################")
+        print(f"Min inputs {min_inputs}")
+        print(f"Max inputs {max_inputs}")
+        print(f"Min outputs {min_outputs}")
+        print(f"Max outputs {max_outputs}")
+        print("###########################")
         return {
             "min_inputs": min_inputs.to(device),
             "max_inputs": max_inputs.to(device),
