@@ -411,7 +411,6 @@ def test_sample_traction_bc__normal(
             ],
         ]
     )
-    print(torch.concat((actual, expected), dim=1))
     torch.testing.assert_close(actual, expected)
 
 

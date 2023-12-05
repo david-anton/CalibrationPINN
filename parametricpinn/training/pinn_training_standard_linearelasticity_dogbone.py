@@ -180,15 +180,19 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         collate_fn=valid_dataset.get_collate_func(),
     )
 
-    optimizer = torch.optim.LBFGS(
-        params=ansatz.parameters(),
-        lr=1.0,
-        max_iter=20,
-        max_eval=25,
-        tolerance_grad=1e-9,
-        tolerance_change=1e-12,
-        history_size=100,
-        line_search_fn="strong_wolfe",
+    # optimizer = torch.optim.LBFGS(
+    #     params=ansatz.parameters(),
+    #     lr=1.0,
+    #     max_iter=20,
+    #     max_eval=25,
+    #     tolerance_grad=1e-9,
+    #     tolerance_change=1e-12,
+    #     history_size=100,
+    #     line_search_fn="strong_wolfe",
+    # )
+
+    optimizer = torch.optim.Rprop(
+        params=ansatz.parameters()
     )
 
     loss_hist_pde = []
@@ -224,7 +228,8 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             )
 
             # Update parameters
-            optimizer.step(loss_func_closure)
+            # optimizer.step(loss_func_closure)
+            optimizer.step()
 
             loss_hist_pde_batches.append(loss_pde.detach().cpu().item())
             loss_hist_traction_bc_batches.append(loss_traction_bc.detach().cpu().item())
