@@ -22,6 +22,9 @@ class DogBoneGeometryConfig:
     cut_parallel_height = (box_height - parallel_height) / 2
     tapered_radius = 25
     plate_hole_radius = 4
+    angle_max_tapered = math.degrees(
+        math.asin((half_box_length - half_parallel_length) / tapered_radius)
+    )
 
 
 class DogBone2D:
@@ -40,7 +43,7 @@ class DogBone2D:
         self.tapered_radius = geometry_config.tapered_radius
         self.plate_hole_radius = geometry_config.plate_hole_radius
         self.angle_min_tapered = 0
-        self.angle_max_tapered = self._calculate_maximum_angle_for_tapered_boundary()
+        self.angle_max_tapered = geometry_config.angle_max_tapered
         self._shape = self._create_shape()
 
     def create_random_points(self, num_points: int) -> Tensor:
@@ -238,13 +241,6 @@ class DogBone2D:
     def _is_point_in_shape(self, point: Tensor) -> bool:
         _point = point.detach().numpy()
         return self._shape.contains(shapely.Point(_point[0], _point[1]))
-
-    def _calculate_maximum_angle_for_tapered_boundary(self) -> float:
-        return math.degrees(
-            math.asin(
-                (self.half_box_length - self.half_parallel_length) / self.tapered_radius
-            )
-        )
 
     def _create_shape(self) -> ShapelyPolygon:
         box = shapely.box(

@@ -1,3 +1,4 @@
+import math
 import os
 from datetime import date
 from time import perf_counter
@@ -54,7 +55,7 @@ from parametricpinn.postprocessing.plot import (
     plot_displacements_2d,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.training_standard_linearelasticity_dogbone import (
+from parametricpinn.training.pinn_training_standard_linearelasticity_dogbone import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
@@ -69,36 +70,39 @@ traction_right_x = 106.2629
 traction_right_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-min_youngs_modulus = 180000.0
-max_youngs_modulus = 240000.0
-min_poissons_ratio = 0.2
-max_poissons_ratio = 0.4
+min_youngs_modulus = 210000.0
+max_youngs_modulus = min_youngs_modulus
+min_poissons_ratio = 0.3
+max_poissons_ratio = min_poissons_ratio
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_per_parameter = 32
-num_collocation_points = 128
-number_points_per_bc = 32
+num_samples_per_parameter = 1
+num_collocation_points = 8192
+number_points_per_bc = 128
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 20000
+number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
+weight_energy_loss = 1.0
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = "20231201_validation_data_linearelasticity_dogbone_E_180k_240k_nu_02_04_elementsize_01"
-num_samples_valid = 32
+regenerate_valid_data = True
+input_subdir_valid = (
+    "20231205_validation_data_linearelasticity_dogbone_E_210k_nu_03_elementsize_01"
+)
+num_samples_valid = 1
 validation_interval = 1
-num_points_valid = 1024
+num_points_valid = 4096
 batch_size_valid = num_samples_valid
 # Calibration
 input_subdir_calibration = "20231124_experimental_dic_data_dogbone"
 input_file_name_calibration = "displacements.csv"
-use_least_squares = True
-use_random_walk_metropolis_hasting = True
-use_hamiltonian = True
-use_efficient_nuts = True
+use_least_squares = False
+use_random_walk_metropolis_hasting = False
+use_hamiltonian = False
+use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
@@ -106,7 +110,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_dogbone_E_180k_240k_nu_02_04_samples_32_col_128_bc_32_neurons_4_32"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_dogbone_E_210k_nu_03_col_8192_bc_128_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -274,11 +278,23 @@ ansatz = create_ansatz()
 
 
 def training_step() -> None:
+    area = (geometry_config.box_length * geometry_config.box_height) - (
+        (2 * geometry_config.parallel_length * geometry_config.parallel_height)
+        + (
+            (4 * geometry_config.angle_max_tapered / 360)
+            * math.pi
+            * geometry_config.tapered_radius**2
+        )
+        + (math.pi * geometry_config.plate_hole_radius**2)
+    )
+
     train_config = TrainingConfiguration(
         ansatz=ansatz,
         material_model=material_model,
         weight_pde_loss=weight_pde_loss,
         weight_traction_bc_loss=weight_traction_bc_loss,
+        weight_energy_loss=weight_energy_loss,
+        area=area,
         training_dataset=training_dataset,
         number_training_epochs=number_training_epochs,
         training_batch_size=training_batch_size,
