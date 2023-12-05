@@ -100,7 +100,7 @@ batch_size_valid = num_samples_valid
 consider_model_error = True
 use_least_squares = False
 use_random_walk_metropolis_hasting = True
-use_hamiltonian = False
+use_hamiltonian = True
 use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
@@ -494,7 +494,7 @@ def calibration_step() -> None:
         model_error_prior = model_error_gp.get_uninformed_parameters_prior(
             device,
             upper_limit_output_scale=1.0,
-            upper_limit_length_scale=1.0,
+            upper_limit_length_scale=2.0,
         )
         prior = multiply_priors(
             [prior_youngs_modulus, prior_poissons_ratio, model_error_prior]
@@ -578,7 +578,7 @@ def calibration_step() -> None:
         prior=prior,
         initial_parameters=initial_parameters,
         num_iterations=int(2e4),
-        num_burn_in_iterations=int(5e4),
+        num_burn_in_iterations=int(1e5),
         cov_proposal_density=cov_proposal_density,
     )
     mcmc_config_h = HamiltonianConfig(
