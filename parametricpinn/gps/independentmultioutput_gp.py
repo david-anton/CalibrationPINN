@@ -130,8 +130,9 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
         )
 
     def get_uninformed_parameters_prior(self, device: Device, **kwargs: float) -> Prior:
+        kwargs["device"] = device
         priors = [
-            gp.get_uninformed_parameters_prior(device, **kwargs)
+            gp.get_uninformed_parameters_prior(**kwargs)
             for gp in self._gps_list
         ]
         return MultipliedPriors(priors)

@@ -493,7 +493,7 @@ def calibration_step() -> None:
 
         model_error_prior = model_error_gp.get_uninformed_parameters_prior(
             device,
-            upper_limit_ouput_scale=10.0,
+            upper_limit_output_scale=10.0,
             upper_limit_length_scale=edge_length,
         )
         prior = multiply_priors(
