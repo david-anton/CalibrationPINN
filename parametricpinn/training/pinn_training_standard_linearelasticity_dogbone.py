@@ -229,6 +229,12 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
             # Update parameters
             # optimizer.step(loss_func_closure)
+            optimizer.zero_grad()
+            loss_collocation, loss_traction_bc, loss_energy = loss_func(
+                ansatz, batch_collocation, batch_traction_bc
+            )
+            loss = loss_collocation + loss_traction_bc + loss_energy
+            loss.backward()
             optimizer.step()
 
             loss_hist_pde_batches.append(loss_pde.detach().cpu().item())
