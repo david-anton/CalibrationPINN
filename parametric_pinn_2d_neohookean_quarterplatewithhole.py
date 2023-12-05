@@ -99,7 +99,7 @@ batch_size_valid = num_samples_valid
 # Calibration
 consider_model_error = True
 use_least_squares = False
-use_random_walk_metropolis_hasting = True
+use_random_walk_metropolis_hasting = False
 use_hamiltonian = True
 use_efficient_nuts = False
 # FEM

@@ -73,6 +73,7 @@ class MultipliedPriors(Prior):
         for i, prior in enumerate(self._priors[:-1]):
             dim_parameters_i = self._prior_dims[i]
             parameters_i = parameters[start_index : start_index + dim_parameters_i]
+            print(parameters_i)
             log_probs.append(prior.log_prob(parameters_i))
             start_index += dim_parameters_i
         parameters_last = parameters[start_index:]
