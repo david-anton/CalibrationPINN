@@ -32,7 +32,7 @@ from parametricpinn.types import Device, Tensor
 class TrainingConfiguration:
     ansatz: StandardAnsatz
     material_model: str
-    area: float
+    area_dogbone: float
     weight_pde_loss: float
     weight_traction_bc_loss: float
     weight_energy_loss: float
@@ -49,7 +49,7 @@ class TrainingConfiguration:
 def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     ansatz = train_config.ansatz
     material_model = train_config.material_model
-    area = train_config.area
+    area_dogbone = train_config.area_dogbone
     weight_pde_loss = train_config.weight_pde_loss
     weight_traction_bc_loss = train_config.weight_traction_bc_loss
     weight_energy_loss = train_config.weight_energy_loss
@@ -111,7 +111,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             collocation_data: TrainingData2DCollocation,
             traction_bc_data: TrainingData2DTractionBC,
         ) -> Tensor:
-            area = torch.tensor(area)
+            area = torch.tensor(area_dogbone)
             x_coor_int = collocation_data.x_coor.to(device)
             x_E_int = collocation_data.x_E
             x_nu_int = collocation_data.x_nu

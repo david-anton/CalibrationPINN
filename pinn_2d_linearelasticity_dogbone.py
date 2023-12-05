@@ -278,7 +278,7 @@ ansatz = create_ansatz()
 
 
 def training_step() -> None:
-    area = (geometry_config.box_length * geometry_config.box_height) - (
+    area_dogbone = (geometry_config.box_length * geometry_config.box_height) - (
         (2 * geometry_config.parallel_length * geometry_config.parallel_height)
         + (
             (4 * geometry_config.angle_max_tapered / 360)
@@ -294,7 +294,7 @@ def training_step() -> None:
         weight_pde_loss=weight_pde_loss,
         weight_traction_bc_loss=weight_traction_bc_loss,
         weight_energy_loss=weight_energy_loss,
-        area=area,
+        area_dogbone=area_dogbone,
         training_dataset=training_dataset,
         number_training_epochs=number_training_epochs,
         training_batch_size=training_batch_size,
