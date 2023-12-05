@@ -80,7 +80,7 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
         for gp in self._gps_list:
             gp.to(device)
         self.num_gps = len(self._gps_list)
-        self.num_hyperparameters = self._determine_number_of_hyperparameetrs()
+        self.num_hyperparameters = self._determine_number_of_hyperparameters()
         self._device = device
 
     def forward(self, x) -> GPMultivariateNormalList:
@@ -134,7 +134,7 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
         priors = [gp.get_uninformed_parameters_prior(**kwargs) for gp in self._gps_list]
         return MultipliedPriors(priors)
 
-    def _determine_number_of_hyperparameetrs(self) -> None:
+    def _determine_number_of_hyperparameters(self) -> None:
         num_parameters_list = [gp.num_hyperparameters for gp in self._gps_list]
         return sum(num_parameters_list)
 
