@@ -480,7 +480,8 @@ def calibration_step() -> None:
             independent_gps=[
                 ZeroMeanScaledRBFKernelGP(device),
                 ZeroMeanScaledRBFKernelGP(device),
-            ]
+            ],
+            device=device
         ).to(device)
         likelihood = create_standard_ppinn_likelihood_for_noise_and_model_error(
             model=model,
