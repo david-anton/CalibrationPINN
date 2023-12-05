@@ -36,6 +36,8 @@ class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
         self.num_gps = 1
         self.num_hyperparameters = 2
         self._device = device
+        self._lower_limit_output_scale = 0.0
+        self._lower_limit_length_scale = 0.0
 
     def forward(self, x) -> GPMultivariateNormal:
         mean_x = self.mean(x)
@@ -48,8 +50,10 @@ class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
 
     def set_parameters(self, parameters: Tensor) -> None:
         validate_parameters_size(parameters, torch.Size([self.num_hyperparameters]))
-        self.kernel.outputscale = parameters[0].to(self._device)
-        self.kernel.base_kernel.lengthscale = parameters[1].to(self._device)
+        if parameters[0] >= self._lower_limit_output_scale:
+            self.kernel.outputscale = parameters[0].to(self._device)
+        if parameters[1] >= self._lower_limit_length_scale:
+            self.kernel.base_kernel.lengthscale = parameters[1].to(self._device)
 
     def get_uninformed_parameters_prior(
         self,
@@ -59,9 +63,9 @@ class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
         **kwargs: float
     ) -> Prior:
         output_scale_prior = create_univariate_uniform_distributed_prior(
-            lower_limit=0.0, upper_limit=upper_limit_output_scale, device=device
+            lower_limit=self._lower_limit_output_scale, upper_limit=upper_limit_output_scale, device=device
         )
         length_scale_prior = create_univariate_uniform_distributed_prior(
-            lower_limit=0.0, upper_limit=upper_limit_length_scale, device=device
+            lower_limit=self._lower_limit_length_scale, upper_limit=upper_limit_length_scale, device=device
         )
         return multiply_priors([output_scale_prior, length_scale_prior])

@@ -131,10 +131,7 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
 
     def get_uninformed_parameters_prior(self, device: Device, **kwargs: float) -> Prior:
         kwargs["device"] = device
-        priors = [
-            gp.get_uninformed_parameters_prior(**kwargs)
-            for gp in self._gps_list
-        ]
+        priors = [gp.get_uninformed_parameters_prior(**kwargs) for gp in self._gps_list]
         return MultipliedPriors(priors)
 
     def _determine_number_of_hyperparameetrs(self) -> None:
