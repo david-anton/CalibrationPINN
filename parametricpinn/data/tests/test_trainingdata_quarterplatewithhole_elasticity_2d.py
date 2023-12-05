@@ -33,8 +33,8 @@ traction_top = torch.tensor([0.0, 0.0], dtype=torch.float64)
 traction_hole = torch.tensor([0.0, 0.0], dtype=torch.float64)
 num_samples_per_parameter = 2
 num_samples = num_samples_per_parameter**2
-num_collocation_points = 3
-num_points_per_bc = 32
+num_collocation_points = 32
+num_points_per_bc = 3
 num_symmetry_bcs = 2
 num_points_symmetry_bcs = num_symmetry_bcs * num_points_per_bc
 num_traction_bcs = 3
