@@ -241,7 +241,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         print(f"Epoch {epoch} / {train_num_epochs - 1}")
         print(f"PDE: \t\t {mean_loss_pde}")
         print(f"TRACTION_BC: \t {mean_loss_traction_bc}")
-        # print(f"ENERGY: \t {mean_loss_energy}")
+        print(f"ENERGY: \t {mean_loss_energy}")
         print("##################################################")
         if epoch % valid_interval == 0 or epoch == train_num_epochs:
             mae, rl2 = validate_model(ansatz, valid_dataloader)
