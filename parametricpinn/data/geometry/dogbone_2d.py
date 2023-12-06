@@ -291,7 +291,8 @@ class DogBone2D:
         #     - cut_tapered_bottom_right
         #     - plate_hole
         # )
-        dog_bone = shapely.difference(box, shapely.union_all([cut_parallel_top, cut_parallel_bottom, cut_tapered_top_left, cut_tapered_top_right, cut_tapered_bottom_left, cut_tapered_bottom_right, plate_hole]))
+        # dog_bone = shapely.difference(box, shapely.union_all([cut_parallel_top, cut_parallel_bottom, cut_tapered_top_left, cut_tapered_top_right, cut_tapered_bottom_left, cut_tapered_bottom_right, plate_hole]))
+        dog_bone = shapely.union_all([cut_parallel_top, cut_parallel_bottom, cut_tapered_top_left, cut_tapered_top_right, cut_tapered_bottom_left, cut_tapered_bottom_right, plate_hole])
         return dog_bone
 
     def _calculate_absolute_radial_coordinate_components_for_tapered_boundaries(
