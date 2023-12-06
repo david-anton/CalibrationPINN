@@ -246,20 +246,20 @@ class DogBone2D:
         box = shapely.box(
             -self.half_box_length,
             -self.half_box_height,
-            self.box_length,
-            self.box_height,
+            self.half_box_length,
+            self.half_box_height,
         )
         cut_parallel_top = shapely.box(
             -self.half_parallel_length,
             self.half_parallel_height,
-            self.parallel_length,
-            self.cut_parallel_height,
+            self.half_parallel_length,
+            self.half_box_height,
         )
         cut_parallel_bottom = shapely.box(
             -self.half_parallel_length,
             -self.half_box_height,
-            self.parallel_length,
-            self.cut_parallel_height,
+            self.half_parallel_length,
+            -self.half_parallel_height,
         )
         cut_tapered_top_left = shapely.Point(
             -self.half_parallel_length,
