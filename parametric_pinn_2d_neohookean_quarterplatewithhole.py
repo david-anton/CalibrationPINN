@@ -63,7 +63,7 @@ from parametricpinn.training.training_standard_neohookean_quarterplatewithhole i
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 num_material_parameters = 2
 edge_length = 100.0
@@ -90,25 +90,25 @@ weight_pde_loss = 1.0
 weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20231206_validation_data_neohookean_E_1000_3000_nu_02_04_edge_100_radius_10_traction_100_elementsize_02"
 num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-consider_model_error = False
-use_least_squares = True
-use_random_walk_metropolis_hasting = True
+consider_model_error = True
+use_least_squares = False
+use_random_walk_metropolis_hasting = False
 use_hamiltonian = True
-use_efficient_nuts = True
+use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
 fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = 20231201 #20231206
 output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True

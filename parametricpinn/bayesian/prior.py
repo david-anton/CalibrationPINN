@@ -79,9 +79,6 @@ class MultipliedPriors(Prior):
         log_probs.append(
             torch.unsqueeze(self._priors[-1].log_prob(parameters_last), dim=0)
         )
-        print("############################################")
-        print(torch.sum(torch.concat(log_probs), dim=0))
-        print("############################################")
         return torch.sum(torch.concat(log_probs), dim=0)
 
 
