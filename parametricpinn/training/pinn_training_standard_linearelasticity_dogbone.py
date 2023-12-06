@@ -172,146 +172,175 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         collate_fn=train_dataset.get_collate_func(),
     )
 
-    valid_dataloader = DataLoader(
-        dataset=valid_dataset,
-        batch_size=valid_batch_size,
-        shuffle=False,
-        drop_last=False,
-        collate_fn=valid_dataset.get_collate_func(),
-    )
+    import matplotlib.pyplot as plt
 
-    # optimizer = torch.optim.LBFGS(
-    #     params=ansatz.parameters(),
-    #     lr=1.0,
-    #     max_iter=20,
-    #     max_eval=25,
-    #     tolerance_grad=1e-9,
-    #     tolerance_change=1e-12,
-    #     history_size=100,
-    #     line_search_fn="strong_wolfe",
+    train_batches = iter(train_dataloader)
+
+    for batch_collocation, batch_traction_bc in train_batches:
+        fig_collocation, ax_collocation = plt.subplots()
+        x_collocation = batch_collocation.x_coor[:,0]
+        y_collocation = batch_collocation.x_coor[:,1]
+        ax_collocation.scatter(x_collocation, y_collocation, edgecolors='none')
+        save_path_collocation = project_directory.create_output_file_path("scatter_collocation_points", output_subdir)
+        fig_collocation.savefig(
+            save_path_collocation,
+            format="pdf",
+            bbox_inches="tight",
+            dpi=300,
+        )
+
+        fig_bc, ax_bc = plt.subplots()
+        x_bc = batch_traction_bc.x_coor[:,0]
+        y_bc = batch_traction_bc.x_coor[:,1]
+        ax_bc.scatter(x_bc, y_bc, edgecolors='none')
+        save_path_bc = project_directory.create_output_file_path("scatter_collocation_points", output_subdir)
+        fig_bc.savefig(
+            save_path_bc,
+            format="pdf",
+            bbox_inches="tight",
+            dpi=300,
+        )
+
+    # valid_dataloader = DataLoader(
+    #     dataset=valid_dataset,
+    #     batch_size=valid_batch_size,
+    #     shuffle=False,
+    #     drop_last=False,
+    #     collate_fn=valid_dataset.get_collate_func(),
     # )
 
-    optimizer = torch.optim.Rprop(params=ansatz.parameters())
+    # # optimizer = torch.optim.LBFGS(
+    # #     params=ansatz.parameters(),
+    # #     lr=1.0,
+    # #     max_iter=20,
+    # #     max_eval=25,
+    # #     tolerance_grad=1e-9,
+    # #     tolerance_change=1e-12,
+    # #     history_size=100,
+    # #     line_search_fn="strong_wolfe",
+    # # )
 
-    loss_hist_pde = []
-    loss_hist_traction_bc = []
-    # loss_hist_energy = []
-    valid_hist_mae = []
-    valid_hist_rl2 = []
-    valid_epochs = []
+    # optimizer = torch.optim.Rprop(params=ansatz.parameters())
 
-    # Closure for LBFGS
-    def loss_func_closure() -> float:
-        optimizer.zero_grad()
-        # loss_collocation, loss_traction_bc, loss_energy = loss_func(
-        #     ansatz, batch_collocation, batch_traction_bc
-        # )
-        # loss = loss_collocation + loss_traction_bc + loss_energy
-        loss_collocation, loss_traction_bc = loss_func(
-            ansatz, batch_collocation, batch_traction_bc
-        )
-        loss = loss_collocation + loss_traction_bc
-        loss.backward(retain_graph=True)
-        return loss.item()
+    # loss_hist_pde = []
+    # loss_hist_traction_bc = []
+    # # loss_hist_energy = []
+    # valid_hist_mae = []
+    # valid_hist_rl2 = []
+    # valid_epochs = []
 
-    print("Start training ...")
-    for epoch in range(train_num_epochs):
-        train_batches = iter(train_dataloader)
-        loss_hist_pde_batches = []
-        loss_hist_traction_bc_batches = []
-        # loss_hist_energy_batches = []
+    # # Closure for LBFGS
+    # def loss_func_closure() -> float:
+    #     optimizer.zero_grad()
+    #     # loss_collocation, loss_traction_bc, loss_energy = loss_func(
+    #     #     ansatz, batch_collocation, batch_traction_bc
+    #     # )
+    #     # loss = loss_collocation + loss_traction_bc + loss_energy
+    #     loss_collocation, loss_traction_bc = loss_func(
+    #         ansatz, batch_collocation, batch_traction_bc
+    #     )
+    #     loss = loss_collocation + loss_traction_bc
+    #     loss.backward(retain_graph=True)
+    #     return loss.item()
 
-        for batch_collocation, batch_traction_bc in train_batches:
-            ansatz.train()
+    # print("Start training ...")
+    # for epoch in range(train_num_epochs):
+    #     train_batches = iter(train_dataloader)
+    #     loss_hist_pde_batches = []
+    #     loss_hist_traction_bc_batches = []
+    #     # loss_hist_energy_batches = []
 
-            # Forward pass
-            # loss_pde, loss_traction_bc, loss_energy = loss_func(
-            #     ansatz, batch_collocation, batch_traction_bc
-            # )
+    #     for batch_collocation, batch_traction_bc in train_batches:
+    #         ansatz.train()
 
-            # Update parameters
-            # optimizer.step(loss_func_closure)
-            optimizer.zero_grad()
-            loss_pde, loss_traction_bc = loss_func(
-                ansatz, batch_collocation, batch_traction_bc
-            )
-            loss = loss_pde + loss_traction_bc
-            loss.backward()
-            optimizer.step()
+    #         # Forward pass
+    #         # loss_pde, loss_traction_bc, loss_energy = loss_func(
+    #         #     ansatz, batch_collocation, batch_traction_bc
+    #         # )
 
-            loss_hist_pde_batches.append(loss_pde.detach().cpu().item())
-            loss_hist_traction_bc_batches.append(loss_traction_bc.detach().cpu().item())
-            # loss_hist_energy_batches.append(loss_energy.detach().cpu().item())
+    #         # Update parameters
+    #         # optimizer.step(loss_func_closure)
+    #         optimizer.zero_grad()
+    #         loss_pde, loss_traction_bc = loss_func(
+    #             ansatz, batch_collocation, batch_traction_bc
+    #         )
+    #         loss = loss_pde + loss_traction_bc
+    #         loss.backward()
+    #         optimizer.step()
 
-        mean_loss_pde = statistics.mean(loss_hist_pde_batches)
-        mean_loss_traction_bc = statistics.mean(loss_hist_traction_bc_batches)
-        # mean_loss_energy = statistics.mean(loss_hist_energy_batches)
-        loss_hist_pde.append(mean_loss_pde)
-        loss_hist_traction_bc.append(mean_loss_traction_bc)
-        # loss_hist_energy.append(mean_loss_energy)
+    #         loss_hist_pde_batches.append(loss_pde.detach().cpu().item())
+    #         loss_hist_traction_bc_batches.append(loss_traction_bc.detach().cpu().item())
+    #         # loss_hist_energy_batches.append(loss_energy.detach().cpu().item())
 
-        print("##################################################")
-        print(f"Epoch {epoch} / {train_num_epochs - 1}")
-        print(f"PDE: \t\t {mean_loss_pde}")
-        print(f"TRACTION_BC: \t {mean_loss_traction_bc}")
-        # print(f"ENERGY: \t {mean_loss_energy}")
-        print("##################################################")
-        if epoch % valid_interval == 0 or epoch == train_num_epochs:
-            mae, rl2 = validate_model(ansatz, valid_dataloader)
-            valid_hist_mae.append(mae)
-            valid_hist_rl2.append(rl2)
-            valid_epochs.append(epoch)
-            print(
-                f"Validation: Epoch {epoch} / {train_num_epochs - 1}, MAE: {mae}, rL2: {rl2}"
-            )
+    #     mean_loss_pde = statistics.mean(loss_hist_pde_batches)
+    #     mean_loss_traction_bc = statistics.mean(loss_hist_traction_bc_batches)
+    #     # mean_loss_energy = statistics.mean(loss_hist_energy_batches)
+    #     loss_hist_pde.append(mean_loss_pde)
+    #     loss_hist_traction_bc.append(mean_loss_traction_bc)
+    #     # loss_hist_energy.append(mean_loss_energy)
 
-    ### Postprocessing
-    print("Postprocessing ...")
-    history_plotter_config = HistoryPlotterConfig()
+    #     print("##################################################")
+    #     print(f"Epoch {epoch} / {train_num_epochs - 1}")
+    #     print(f"PDE: \t\t {mean_loss_pde}")
+    #     print(f"TRACTION_BC: \t {mean_loss_traction_bc}")
+    #     # print(f"ENERGY: \t {mean_loss_energy}")
+    #     print("##################################################")
+    #     if epoch % valid_interval == 0 or epoch == train_num_epochs:
+    #         mae, rl2 = validate_model(ansatz, valid_dataloader)
+    #         valid_hist_mae.append(mae)
+    #         valid_hist_rl2.append(rl2)
+    #         valid_epochs.append(epoch)
+    #         print(
+    #             f"Validation: Epoch {epoch} / {train_num_epochs - 1}, MAE: {mae}, rL2: {rl2}"
+    #         )
 
+    # ### Postprocessing
+    # print("Postprocessing ...")
+    # history_plotter_config = HistoryPlotterConfig()
+
+    # # plot_loss_history(
+    # #     loss_hists=[loss_hist_pde, loss_hist_traction_bc, loss_hist_energy],
+    # #     loss_hist_names=["PDE", "Traction BC", "Energy"],
+    # #     file_name="loss_pinn.png",
+    # #     output_subdir=output_subdir,
+    # #     project_directory=project_directory,
+    # #     config=history_plotter_config,
+    # # )
     # plot_loss_history(
-    #     loss_hists=[loss_hist_pde, loss_hist_traction_bc, loss_hist_energy],
-    #     loss_hist_names=["PDE", "Traction BC", "Energy"],
+    #     loss_hists=[loss_hist_pde, loss_hist_traction_bc],
+    #     loss_hist_names=["PDE", "Traction BC"],
     #     file_name="loss_pinn.png",
     #     output_subdir=output_subdir,
     #     project_directory=project_directory,
     #     config=history_plotter_config,
     # )
-    plot_loss_history(
-        loss_hists=[loss_hist_pde, loss_hist_traction_bc],
-        loss_hist_names=["PDE", "Traction BC"],
-        file_name="loss_pinn.png",
-        output_subdir=output_subdir,
-        project_directory=project_directory,
-        config=history_plotter_config,
-    )
 
-    plot_valid_history(
-        valid_epochs=valid_epochs,
-        valid_hist=valid_hist_mae,
-        valid_metric="mean absolute error",
-        file_name="mae_pinn.png",
-        output_subdir=output_subdir,
-        project_directory=project_directory,
-        config=history_plotter_config,
-    )
+    # plot_valid_history(
+    #     valid_epochs=valid_epochs,
+    #     valid_hist=valid_hist_mae,
+    #     valid_metric="mean absolute error",
+    #     file_name="mae_pinn.png",
+    #     output_subdir=output_subdir,
+    #     project_directory=project_directory,
+    #     config=history_plotter_config,
+    # )
 
-    plot_valid_history(
-        valid_epochs=valid_epochs,
-        valid_hist=valid_hist_rl2,
-        valid_metric="rel. L2 norm",
-        file_name="rl2_pinn.png",
-        output_subdir=output_subdir,
-        project_directory=project_directory,
-        config=history_plotter_config,
-    )
+    # plot_valid_history(
+    #     valid_epochs=valid_epochs,
+    #     valid_hist=valid_hist_rl2,
+    #     valid_metric="rel. L2 norm",
+    #     file_name="rl2_pinn.png",
+    #     output_subdir=output_subdir,
+    #     project_directory=project_directory,
+    #     config=history_plotter_config,
+    # )
 
-    ### Save model
-    print("Save model ...")
-    model_saver = PytorchModelSaver(project_directory=project_directory)
-    model_saver.save(
-        model=ansatz,
-        file_name="model_parameters",
-        subdir_name=output_subdir,
-        device=device,
-    )
+    # ### Save model
+    # print("Save model ...")
+    # model_saver = PytorchModelSaver(project_directory=project_directory)
+    # model_saver.save(
+    #     model=ansatz,
+    #     file_name="model_parameters",
+    #     subdir_name=output_subdir,
+    #     device=device,
+    # )
