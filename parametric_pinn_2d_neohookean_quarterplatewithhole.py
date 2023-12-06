@@ -541,8 +541,8 @@ def calibration_step() -> None:
         ansatz=model,
         calibration_data=data,
     )
-    std_proposal_density_youngs_modulus = 0.1 #1
-    std_proposal_density_poissons_ratio = 0.00015 #0.0015
+    std_proposal_density_youngs_modulus = 0.1  # 1
+    std_proposal_density_poissons_ratio = 0.00015  # 0.0015
     if consider_model_error:
         std_proposal_density_gp_hyperparameters = 0.001  # 0.01
         cov_proposal_density = torch.diag(
