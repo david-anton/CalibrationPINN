@@ -63,9 +63,13 @@ class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
         **kwargs: float
     ) -> Prior:
         output_scale_prior = create_univariate_uniform_distributed_prior(
-            lower_limit=self._lower_limit_output_scale, upper_limit=upper_limit_output_scale, device=device
+            lower_limit=self._lower_limit_output_scale,
+            upper_limit=upper_limit_output_scale,
+            device=device,
         )
         length_scale_prior = create_univariate_uniform_distributed_prior(
-            lower_limit=self._lower_limit_length_scale, upper_limit=upper_limit_length_scale, device=device
+            lower_limit=self._lower_limit_length_scale,
+            upper_limit=upper_limit_length_scale,
+            device=device,
         )
         return multiply_priors([output_scale_prior, length_scale_prior])
