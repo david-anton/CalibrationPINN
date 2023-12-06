@@ -193,7 +193,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         x_bc = batch_traction_bc.x_coor[:,0]
         y_bc = batch_traction_bc.x_coor[:,1]
         ax_bc.scatter(x_bc, y_bc, edgecolors='none')
-        save_path_bc = project_directory.create_output_file_path("scatter_collocation_points.pdf", output_subdir)
+        save_path_bc = project_directory.create_output_file_path("scatter_bc_points.pdf", output_subdir)
         fig_bc.savefig(
             save_path_bc,
             format="pdf",
