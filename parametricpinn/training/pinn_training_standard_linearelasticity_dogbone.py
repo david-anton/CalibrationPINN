@@ -1,6 +1,7 @@
 import statistics
 from dataclasses import dataclass
 
+import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
 
@@ -172,10 +173,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         collate_fn=train_dataset.get_collate_func(),
     )
 
-    import matplotlib.pyplot as plt
-
     train_batches = iter(train_dataloader)
-
     for batch_collocation, batch_traction_bc in train_batches:
         fig_collocation, ax_collocation = plt.subplots()
         x_collocation = batch_collocation.x_coor[:, 0]
@@ -213,18 +211,16 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         collate_fn=valid_dataset.get_collate_func(),
     )
 
-    # optimizer = torch.optim.LBFGS(
-    #     params=ansatz.parameters(),
-    #     lr=1.0,
-    #     max_iter=20,
-    #     max_eval=25,
-    #     tolerance_grad=1e-9,
-    #     tolerance_change=1e-12,
-    #     history_size=100,
-    #     line_search_fn="strong_wolfe",
-    # )
-
-    optimizer = torch.optim.Rprop(params=ansatz.parameters())
+    optimizer = torch.optim.LBFGS(
+        params=ansatz.parameters(),
+        lr=1.0,
+        max_iter=20,
+        max_eval=25,
+        tolerance_grad=1e-9,
+        tolerance_change=1e-12,
+        history_size=100,
+        line_search_fn="strong_wolfe",
+    )
 
     loss_hist_pde = []
     loss_hist_traction_bc = []
@@ -258,19 +254,12 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             ansatz.train()
 
             # Forward pass
-            # loss_pde, loss_traction_bc, loss_energy = loss_func(
-            #     ansatz, batch_collocation, batch_traction_bc
-            # )
-
-            # Update parameters
-            # optimizer.step(loss_func_closure)
-            optimizer.zero_grad()
             loss_pde, loss_traction_bc = loss_func(
                 ansatz, batch_collocation, batch_traction_bc
             )
-            loss = loss_pde + loss_traction_bc
-            loss.backward()
-            optimizer.step()
+
+            # Update parameters
+            optimizer.step(loss_func_closure)
 
             loss_hist_pde_batches.append(loss_pde.detach().cpu().item())
             loss_hist_traction_bc_batches.append(loss_traction_bc.detach().cpu().item())

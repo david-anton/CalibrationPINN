@@ -62,7 +62,6 @@ from parametricpinn.training.pinn_training_standard_linearelasticity_dogbone imp
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -77,32 +76,25 @@ max_poissons_ratio = min_poissons_ratio
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Ansatz
-distance_function = "sigmoid"
+distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 1
 num_collocation_points = 8192
 number_points_per_bc = 128
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 5000
+number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_energy_loss = 1.0
 # Validation
 regenerate_valid_data = True
 input_subdir_valid = (
-    "20231205_validation_data_linearelasticity_dogbone_E_210k_nu_03_elementsize_01"
+    "20231206_validation_data_linearelasticity_dogbone_E_210k_nu_03_elementsize_01"
 )
 num_samples_valid = 1
 validation_interval = 1
 num_points_valid = 4096
 batch_size_valid = num_samples_valid
-# Calibration
-input_subdir_calibration = "20231124_experimental_dic_data_dogbone"
-input_file_name_calibration = "displacements.csv"
-use_least_squares = False
-use_random_walk_metropolis_hasting = False
-use_hamiltonian = False
-use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
@@ -110,7 +102,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_dogbone_E_210k_nu_03_col_8192_bc_128_neurons_4_32"
+output_subdirectory = f"{output_date}_pinn_linearelasticity_dogbone_E_210k_nu_03_col_8192_bc_128_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -345,195 +337,5 @@ def training_step() -> None:
     _plot_exemplary_displacement_fields()
 
 
-def calibration_step() -> None:
-    print("Start calibration ...")
-    exact_youngs_modulus = 218454.0
-    exact_poissons_ratio = 0.2513
-    num_data_points = 128
-    std_noise = 5 * 1e-4
-
-    def generate_calibration_data() -> tuple[Tensor, Tensor]:
-        csv_reader = CSVDataReader(project_directory)
-        data = csv_reader.read(
-            file_name=input_file_name_calibration, subdir_name=input_subdir_calibration
-        )
-        size_data = len(data)
-        slice_coordinates = slice(0, 2)
-        slice_displacements = slice(2, 4)
-        full_shifted_coordinates = torch.from_numpy(data[:, slice_coordinates]).type(
-            torch.float64
-        )
-        coordinate_shift_x = geometry_config.half_parallel_length
-        coordinate_shift_y = geometry_config.half_parallel_height
-        full_coordinates = full_shifted_coordinates - torch.tensor(
-            [coordinate_shift_x, coordinate_shift_y], dtype=torch.float64
-        )
-        full_displacements = torch.from_numpy(data[:, slice_displacements]).type(
-            torch.float64
-        )
-        random_indices = torch.randint(
-            low=0, high=size_data + 1, size=(num_data_points,)
-        )
-        coordinates = full_coordinates[random_indices, :].to(device)
-        displacements = full_displacements[random_indices, :].to(device)
-        return coordinates, displacements
-
-    name_model_parameters_file = "model_parameters"
-    model = load_model(
-        model=ansatz,
-        name_model_parameters_file=name_model_parameters_file,
-        input_subdir=output_subdirectory,
-        project_directory=project_directory,
-        device=device,
-    )
-
-    coordinates, displacements = generate_calibration_data()
-    data = CalibrationData(
-        inputs=coordinates,
-        outputs=displacements,
-        std_noise=std_noise,
-    )
-    likelihood = create_standard_ppinn_likelihood_for_noise(
-        model=model,
-        data=data,
-        num_model_parameters=num_material_parameters,
-        device=device,
-    )
-
-    prior_mean_youngs_modulus = 210000
-    prior_std_youngs_modulus = 10000
-    prior_mean_poissons_ratio = 0.3
-    prior_std_poissons_ratio = 0.015
-    prior_youngs_modulus = create_univariate_normal_distributed_prior(
-        mean=prior_mean_youngs_modulus,
-        standard_deviation=prior_std_youngs_modulus,
-        device=device,
-    )
-    prior_poissons_ratio = create_univariate_normal_distributed_prior(
-        mean=prior_mean_poissons_ratio,
-        standard_deviation=prior_std_poissons_ratio,
-        device=device,
-    )
-    prior = multiply_priors([prior_youngs_modulus, prior_poissons_ratio])
-
-    parameter_names = ("Youngs modulus", "Poissons ratio")
-    true_parameters = (exact_youngs_modulus, exact_poissons_ratio)
-    initial_parameters = torch.tensor(
-        [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
-    )
-
-    least_squares_config = LeastSquaresConfig(
-        initial_parameters=initial_parameters,
-        num_iterations=100,
-        ansatz=model,
-        calibration_data=data,
-    )
-    std_proposal_density_youngs_modulus = 1000
-    std_proposal_density_poissons_ratio = 0.0015
-    mcmc_config_mh = MetropolisHastingsConfig(
-        likelihood=likelihood,
-        prior=prior,
-        initial_parameters=initial_parameters,
-        num_iterations=int(1e4),
-        num_burn_in_iterations=int(5e3),
-        cov_proposal_density=torch.diag(
-            torch.tensor(
-                [
-                    std_proposal_density_youngs_modulus,
-                    std_proposal_density_poissons_ratio,
-                ],
-                dtype=torch.float64,
-                device=device,
-            )
-            ** 2
-        ),
-    )
-    mcmc_config_h = HamiltonianConfig(
-        likelihood=likelihood,
-        prior=prior,
-        initial_parameters=initial_parameters,
-        num_iterations=int(5e3),
-        num_burn_in_iterations=int(1e3),
-        num_leabfrog_steps=256,
-        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
-    )
-    mcmc_config_enuts = EfficientNUTSConfig(
-        likelihood=likelihood,
-        prior=prior,
-        initial_parameters=initial_parameters,
-        num_iterations=int(1e3),
-        num_burn_in_iterations=int(1e3),
-        max_tree_depth=8,
-        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
-    )
-    if use_least_squares:
-        start = perf_counter()
-        identified_parameters, _ = calibrate(
-            calibration_config=least_squares_config,
-            device=device,
-        )
-        end = perf_counter()
-        time = end - start
-        print(f"Identified parameter: {identified_parameters}")
-        print(f"Run time least squares: {time}")
-    if use_random_walk_metropolis_hasting:
-        start = perf_counter()
-        posterior_moments_mh, samples_mh = calibrate(
-            calibration_config=mcmc_config_mh,
-            device=device,
-        )
-        end = perf_counter()
-        time = end - start
-        print(f"Run time Metropolis-Hasting: {time}")
-        plot_posterior_normal_distributions(
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
-            moments=posterior_moments_mh,
-            samples=samples_mh,
-            mcmc_algorithm="metropolis_hastings",
-            output_subdir=output_subdirectory,
-            project_directory=project_directory,
-        )
-    if use_hamiltonian:
-        start = perf_counter()
-        posterior_moments_h, samples_h = calibrate(
-            calibration_config=mcmc_config_h,
-            device=device,
-        )
-        end = perf_counter()
-        time = end - start
-        print(f"Run time Hamiltonian: {time}")
-        plot_posterior_normal_distributions(
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
-            moments=posterior_moments_h,
-            samples=samples_h,
-            mcmc_algorithm="hamiltonian",
-            output_subdir=output_subdirectory,
-            project_directory=project_directory,
-        )
-    if use_efficient_nuts:
-        start = perf_counter()
-        posterior_moments_enuts, samples_enuts = calibrate(
-            calibration_config=mcmc_config_enuts,
-            device=device,
-        )
-        end = perf_counter()
-        time = end - start
-        print(f"Run time efficient NUTS: {time}")
-        plot_posterior_normal_distributions(
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
-            moments=posterior_moments_enuts,
-            samples=samples_enuts,
-            mcmc_algorithm="efficient_nuts",
-            output_subdir=output_subdirectory,
-            project_directory=project_directory,
-        )
-    print("Calibration finished.")
-
-
-if retrain_parametric_pinn:
-    training_dataset, validation_dataset = create_datasets()
-    training_step()
-calibration_step()
+training_dataset, validation_dataset = create_datasets()
+training_step()
