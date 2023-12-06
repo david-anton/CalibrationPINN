@@ -315,10 +315,6 @@ def training_step() -> None:
         displacements_plotter_config = DisplacementsPlotterConfig2D()
         youngs_modulus_and_poissons_ratio_list = [
             (min_youngs_modulus, min_poissons_ratio),
-            (min_youngs_modulus, max_poissons_ratio),
-            (max_youngs_modulus, min_poissons_ratio),
-            (max_youngs_modulus, max_poissons_ratio),
-            (210000, 0.3),
         ]
         youngs_moduli, poissons_ratios = zip(*youngs_modulus_and_poissons_ratio_list)
 

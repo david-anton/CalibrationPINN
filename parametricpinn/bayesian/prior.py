@@ -40,13 +40,12 @@ class Prior:
             return self._log_prob(parameters)
 
     def grad_log_prob(self, parameters: Tensor) -> Tensor:
-        with torch.autograd.set_detect_anomaly(True):
-            return torch.autograd.grad(
-                self._log_prob(parameters),
-                parameters,
-                retain_graph=False,
-                create_graph=False,
-            )[0]
+        return torch.autograd.grad(
+            self._log_prob(parameters),
+            parameters,
+            retain_graph=False,
+            create_graph=False,
+        )[0]
 
     def sample(self) -> Tensor:
         return self.distribution.sample()
@@ -80,6 +79,9 @@ class MultipliedPriors(Prior):
         log_probs.append(
             torch.unsqueeze(self._priors[-1].log_prob(parameters_last), dim=0)
         )
+        print("############################################")
+        print(torch.sum(torch.concat(log_probs), dim=0))
+        print("############################################")
         return torch.sum(torch.concat(log_probs), dim=0)
 
 
