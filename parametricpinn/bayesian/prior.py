@@ -74,9 +74,12 @@ class MultipliedPriors(Prior):
             dim_parameters_i = self._prior_dims[i]
             parameters_i = parameters[start_index : start_index + dim_parameters_i]
             log_probs.append(torch.unsqueeze(prior.log_prob(parameters_i), dim=0))
+            print(prior.log_prob(parameters_i))
+            print(torch.unsqueeze(prior.log_prob(parameters_i), dim=0))
             start_index += dim_parameters_i
         parameters_last = parameters[start_index:]
         log_probs.append(self._priors[-1].log_prob(parameters_last))
+        print(log_probs)
         return torch.sum(torch.concat(log_probs), dim=0)
 
 
