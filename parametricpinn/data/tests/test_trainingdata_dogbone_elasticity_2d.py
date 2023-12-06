@@ -59,20 +59,20 @@ def _create_dog_bone_shape() -> ShapelyPolygon:
     box = shapely.box(
         -half_box_length,
         -half_box_height,
-        box_length,
-        box_height,
+        half_box_length,
+        half_box_height,
     )
     cut_parallel_top = shapely.box(
         -half_parallel_length,
         half_parallel_height,
-        parallel_length,
-        cut_parallel_height,
+        half_parallel_length,
+        half_box_height,
     )
     cut_parallel_bottom = shapely.box(
         -half_parallel_length,
         -half_box_height,
-        parallel_length,
-        cut_parallel_height,
+        half_parallel_length,
+        -half_parallel_height,
     )
     cut_tapered_top_left = shapely.Point(
         -half_parallel_length,
