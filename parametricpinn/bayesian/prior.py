@@ -40,12 +40,13 @@ class Prior:
             return self._log_prob(parameters)
 
     def grad_log_prob(self, parameters: Tensor) -> Tensor:
-        return torch.autograd.grad(
-            self._log_prob(parameters),
-            parameters,
-            retain_graph=False,
-            create_graph=False,
-        )[0]
+        with torch.autograd.set_detect_anomaly(True):
+            return torch.autograd.grad(
+                self._log_prob(parameters),
+                parameters,
+                retain_graph=False,
+                create_graph=False,
+            )[0]
 
     def sample(self) -> Tensor:
         return self.distribution.sample()
