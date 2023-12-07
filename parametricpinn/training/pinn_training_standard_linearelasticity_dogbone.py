@@ -162,7 +162,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
             loss_dirichlet = _loss_func_dirichlet_bc()
             loss_sigma_xy = _loss_func_sigma_xy_bc()
-            return loss_dirichlet + loss_sigma_xy
+            return 1000*loss_dirichlet + loss_sigma_xy
 
         # def loss_func_energy(
         #     ansatz: StandardAnsatz,
