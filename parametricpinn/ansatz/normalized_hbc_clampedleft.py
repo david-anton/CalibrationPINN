@@ -251,7 +251,7 @@ class NormalizedHBCAnsatzStrategyClampedLeft:
 
     def __call__(self, input: Tensor, network: Networks) -> Tensor:
         coor_x, _ = extract_coordinates_2d(input)
-        norm_netwotk_input = self._network_input_normalizer(input)       
+        norm_netwotk_input = self._network_input_normalizer(input)
         norm_network_output = network(norm_netwotk_input)
         norm_network_output_x, norm_network_output_y = unbind_output(
             norm_network_output
