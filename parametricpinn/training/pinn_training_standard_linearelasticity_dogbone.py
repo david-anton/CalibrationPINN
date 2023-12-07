@@ -123,10 +123,10 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             x_coor_y = torch.linspace(
                 coor_y_min, coor_y_max, steps=num_points, dtype=torch.float64, requires_grad=True
             ).reshape((-1, 1))
-            x_coor = torch.concat((x_coor_x, x_coor_y), dim=1)
+            x_coor = torch.concat((x_coor_x, x_coor_y), dim=1).to(device)
             x_E = torch.full((num_points, 1), youngs_modulus)
             x_nu = torch.full((num_points, 1), poissons_ratio)
-            x_param = torch.concat((x_E, x_nu), dim=1)
+            x_param = torch.concat((x_E, x_nu), dim=1).to(device)
             x = torch.concat((x_coor, x_param), dim=1).to(device)
 
             def _loss_func_dirichlet_bc() -> Tensor:
