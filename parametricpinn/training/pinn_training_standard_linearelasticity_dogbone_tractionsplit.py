@@ -76,9 +76,9 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
     lambda_pde_loss = torch.tensor(weight_pde_loss, requires_grad=True).to(device)
     lambda_free_traction_bc_loss = torch.tensor(
-        weight_traction_bc_loss, requires_grad=True
+        0.0, requires_grad=True
     ).to(device)
-    lambda_traction_bc_loss = torch.tensor(1000.0, requires_grad=True).to(device)
+    lambda_traction_bc_loss = torch.tensor(1.0, requires_grad=True).to(device)
     # lambda_energy_loss = torch.tensor(weight_energy_loss, requires_grad=True).to(device)
 
     def loss_func(
