@@ -111,29 +111,38 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
         def loss_func_dirichlet_bc(ansatz: StandardAnsatz) -> Tensor:
             num_points = 128
+            coor_x_max = 60
             coor_y_min = -15
             coor_y_max = 15
             youngs_modulus = 210000.0
             poissons_ratio = 0.3
             u_x = 0.1158
 
-            x_coor_x = torch.zeros(
-                (num_points, 1), dtype=torch.float64, requires_grad=True
+            x_coor_x = torch.full(
+                (num_points, 1), coor_x_max, dtype=torch.float64, requires_grad=True
             )
             x_coor_y = torch.linspace(
-                coor_y_min, coor_y_max, steps=num_points, dtype=torch.float64, requires_grad=True
+                coor_y_min,
+                coor_y_max,
+                steps=num_points,
+                dtype=torch.float64,
+                requires_grad=True,
             ).reshape((-1, 1))
             x_coor = torch.concat((x_coor_x, x_coor_y), dim=1).to(device)
-            x_E = torch.full((num_points, 1), youngs_modulus)
-            x_nu = torch.full((num_points, 1), poissons_ratio)
+            x_E = torch.full(
+                (num_points, 1), youngs_modulus, dtype=torch.float64, requires_grad=True
+            )
+            x_nu = torch.full(
+                (num_points, 1), poissons_ratio, dtype=torch.float64, requires_grad=True
+            )
             x_param = torch.concat((x_E, x_nu), dim=1).to(device)
             x = torch.concat((x_coor, x_param), dim=1).to(device)
 
             def _loss_func_dirichlet_bc() -> Tensor:
-                y = ansatz(x)[:,0].reshape((-1, 1))
+                y = ansatz(x)[:, 0].reshape((-1, 1))
                 y_true = torch.full((num_points, 1), u_x).to(device)
                 return loss_metric(y_true, y)
-            
+
             def _loss_func_sigma_xy_bc() -> Tensor:
                 shear_stress_filter = (
                     torch.tensor([[0.0, 1.0], [1.0, 0.0]])
@@ -148,10 +157,10 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
                     .to(device)
                 )
                 return loss_metric(y_true, y)
-            
+
             loss_dirichlet = _loss_func_dirichlet_bc()
             loss_sigma_xy = _loss_func_sigma_xy_bc()
-            return loss_dirichlet + loss_sigma_xy  
+            return loss_dirichlet + loss_sigma_xy
 
         # def loss_func_energy(
         #     ansatz: StandardAnsatz,
@@ -312,7 +321,9 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
             loss_hist_pde_batches.append(loss_pde.detach().cpu().item())
             loss_hist_traction_bc_batches.append(loss_traction_bc.detach().cpu().item())
-            loss_hist_dirichlet_bc_batches.append(loss_dirichlet_bc.detach().cpu().item())
+            loss_hist_dirichlet_bc_batches.append(
+                loss_dirichlet_bc.detach().cpu().item()
+            )
             # loss_hist_energy_batches.append(loss_energy.detach().cpu().item())
 
         mean_loss_pde = statistics.mean(loss_hist_pde_batches)
