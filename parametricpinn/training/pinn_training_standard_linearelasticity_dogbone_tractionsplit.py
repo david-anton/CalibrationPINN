@@ -217,7 +217,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         ax_bc.scatter(x_bc, y_bc, edgecolors="none", c="r", label="traction BC")
         ax_bc.scatter(x_bc_free, y_bc_free, edgecolors="none", c="b", label="free BC")
 
-        for i, coordinate in enumerate(batch_traction_bc.c_coor):
+        for i, coordinate in enumerate(batch_traction_bc.x_coor):
             coor_x = coordinate[0]
             coor_y = coordinate[1]
             norm_x = batch_traction_bc.normal[i, 0]
