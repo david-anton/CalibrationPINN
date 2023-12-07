@@ -87,7 +87,7 @@ weight_pde_loss = 1.0
 weight_traction_bc_loss = 100.0
 weight_energy_loss = 1.0
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = (
     "20231206_validation_data_linearelasticity_dogbone_E_210k_nu_03_elementsize_01"
 )
