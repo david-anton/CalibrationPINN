@@ -64,7 +64,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     project_directory = train_config.project_directory
     device = train_config.device
 
-    num_points_per_bc = 128
+    num_points_per_bc = 4
 
     loss_metric = torch.nn.MSELoss()
 
@@ -216,6 +216,14 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         y_bc_free = batch_traction_bc.x_coor[num_points_per_bc:, 1]
         ax_bc.scatter(x_bc, y_bc, edgecolors="none", c="r", label="traction BC")
         ax_bc.scatter(x_bc_free, y_bc_free, edgecolors="none", c="b", label="free BC")
+
+        for i, coordinate in enumerate(batch_traction_bc.c_coor):
+            coor_x = coordinate[0]
+            coor_y = coordinate[1]
+            norm_x = batch_traction_bc.normal[i, 0]
+            norm_y = batch_traction_bc.normal[i, 1]
+            ax_bc.arrow(coor_x, coor_y, norm_x, norm_y)
+
         ax_bc.legend()
         save_path_bc = project_directory.create_output_file_path(
             "scatter_bc_points.pdf", output_subdir
