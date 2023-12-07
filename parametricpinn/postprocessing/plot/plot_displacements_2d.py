@@ -490,6 +490,11 @@ def _plot_once(
 ) -> PLTFigure:
     figure, axes = plt.subplots()
 
+    def _set_figure_size(figure: PLTFigure) -> None:
+        if isinstance(simulation_config.domain_config, DogBoneDomainConfig):
+            figure.set_figheight(4)
+            figure.set_figwidth(16)
+
     def _set_title_and_labels(axes: PLTAxes) -> None:
         axes.set_title(title, pad=plot_config.title_pad, **plot_config.font)
         axes.set_xlabel(plot_config.x_label, **plot_config.font)
@@ -522,6 +527,7 @@ def _plot_once(
         cbar.ax.minorticks_off()
         figure.axes[1].tick_params(labelsize=plot_config.font_size)
 
+    _set_figure_size(figure)
     _set_title_and_labels(axes)
     _configure_ticks(axes)
     plot = axes.pcolormesh(
