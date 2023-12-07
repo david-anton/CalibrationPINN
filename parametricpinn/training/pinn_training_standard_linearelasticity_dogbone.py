@@ -100,12 +100,14 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         def loss_func_traction_bc(
             ansatz: StandardAnsatz, traction_bc_data: TrainingData2DTractionBC
         ) -> Tensor:
-            x_coor = traction_bc_data.x_coor.to(device)
-            x_E = traction_bc_data.x_E
-            x_nu = traction_bc_data.x_nu
+            num_points_per_bc = 128
+            slice_0 = slice(num_points_per_bc:-1)
+            x_coor = traction_bc_data.x_coor[slice_0, :].to(device)
+            x_E = traction_bc_data.x_E[slice_0, :]
+            x_nu = traction_bc_data.x_nu[slice_0, :]
             x_param = torch.concat((x_E, x_nu), dim=1).to(device)
-            normal = traction_bc_data.normal.to(device)
-            y_true = traction_bc_data.y_true.to(device)
+            normal = traction_bc_data.normal[slice_0, :].to(device)
+            y_true = traction_bc_data.y_true[slice_0, :].to(device)
             y = traction_func(ansatz, x_coor, x_param, normal)
             return loss_metric(y_true, y)
 
