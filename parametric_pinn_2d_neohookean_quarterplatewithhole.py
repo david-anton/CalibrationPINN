@@ -68,7 +68,7 @@ retrain_parametric_pinn = True
 num_material_parameters = 2
 edge_length = 100.0
 radius = 10.0
-traction_left_x = -200.0 #-100.0
+traction_left_x = -300.0 #-100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
@@ -91,7 +91,7 @@ weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20231207_validation_data_neohookean_E_1000_3000_nu_02_04_edge_100_radius_10_traction_200_elementsize_02"
+input_subdir_valid = "20231207_validation_data_neohookean_E_1000_3000_nu_02_04_edge_100_radius_10_traction_300_elementsize_02"
 num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
@@ -109,7 +109,7 @@ fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_4_32_traction_200"
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_4_32_traction_300"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
