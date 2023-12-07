@@ -101,7 +101,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             ansatz: StandardAnsatz, traction_bc_data: TrainingData2DTractionBC
         ) -> Tensor:
             num_points_per_bc = 128
-            slice_0 = slice(num_points_per_bc:-1)
+            slice_0 = slice(num_points_per_bc,-1)
             x_coor = traction_bc_data.x_coor[slice_0, :].to(device)
             x_E = traction_bc_data.x_E[slice_0, :]
             x_nu = traction_bc_data.x_nu[slice_0, :]
