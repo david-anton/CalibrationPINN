@@ -130,7 +130,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             x = torch.concat((x_coor, x_param), dim=1).to(device)
 
             def _loss_func_dirichlet_bc() -> Tensor:
-                y = ansatz(x)[:,0]
+                y = ansatz(x)[:,0].reshape((-1, 1))
                 y_true = torch.full((num_points, 1), u_x).to(device)
                 return loss_metric(y_true, y)
             
