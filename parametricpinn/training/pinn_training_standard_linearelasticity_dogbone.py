@@ -349,8 +349,10 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             loss_dirichlet_bc,
         ) = loss_func(ansatz, batch_collocation, batch_traction_bc)
         loss = (
-            loss_collocation + loss_traction_bc + loss_free_traction_bc,
-            loss_dirichlet_bc,
+            loss_collocation
+            + loss_traction_bc
+            + loss_free_traction_bc
+            + loss_dirichlet_bc
         )
         loss.backward(retain_graph=True)
         return loss.item()
