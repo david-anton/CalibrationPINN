@@ -79,7 +79,7 @@ max_youngs_modulus = min_youngs_modulus
 min_poissons_ratio = 0.3
 max_poissons_ratio = min_poissons_ratio
 # Network
-layer_sizes = [4, 32, 32, 32, 32, 2]
+layer_sizes = [4, 64, 64, 64, 64, 2] #[4, 32, 32, 32, 32, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
@@ -89,9 +89,9 @@ number_points_per_bc = 128
 training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 1000
 weight_pde_loss = 1.0
-weight_traction_bc_loss = 0.0
+weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss = 1.0
-weight_dirichlet_bc_loss = 1.0
+weight_dirichlet_bc_loss = 0.0
 bcs_overlap_angle_distance = 30.0
 # Validation
 regenerate_valid_data = False
@@ -109,7 +109,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_dogbone_E_210k_nu_03_col_8192_bc_128_PDE_dirichlet_free_overlap_dist_30"
+output_subdirectory = f"{output_date}_pinn_linearelasticity_dogbone_E_210k_nu_03_col_8192_bc_128_neurons_64_PDE_traction_free_overlap_dist_30"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
