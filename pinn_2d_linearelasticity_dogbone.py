@@ -60,7 +60,7 @@ from parametricpinn.settings import Settings, get_device, set_default_dtype, set
 #     TrainingConfiguration,
 #     train_parametric_pinn,
 # )
-from parametricpinn.training.pinn_training_standard_linearelasticity_dogbone_tractionsplit import (
+from parametricpinn.training.pinn_training_standard_linearelasticity_dogbone import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
@@ -87,10 +87,11 @@ num_samples_per_parameter = 1
 num_collocation_points = 8192
 number_points_per_bc = 128
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 200
+number_training_epochs = 500
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
-weight_energy_loss = 1.0
+weight_free_traction_bc_loss = 0.0
+weight_dirichlet_bc_loss = 0.0
 # Validation
 regenerate_valid_data = False
 input_subdir_valid = (
@@ -294,10 +295,12 @@ def training_step() -> None:
     train_config = TrainingConfiguration(
         ansatz=ansatz,
         material_model=material_model,
+        area_dogbone=area_dogbone,
+        num_points_per_bc=number_points_per_bc,
         weight_pde_loss=weight_pde_loss,
         weight_traction_bc_loss=weight_traction_bc_loss,
-        weight_energy_loss=weight_energy_loss,
-        area_dogbone=area_dogbone,
+        weight_free_traction_bc_loss=weight_free_traction_bc_loss,
+        weight_dirichlet_bc_loss=weight_dirichlet_bc_loss,
         training_dataset=training_dataset,
         number_training_epochs=number_training_epochs,
         training_batch_size=training_batch_size,
