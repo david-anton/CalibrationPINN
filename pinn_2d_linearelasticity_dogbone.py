@@ -109,7 +109,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_dogbone_E_210k_nu_03_col_8192_bc_128_PDE_dirichlet_free_overlap_0"
+output_subdirectory = f"{output_date}_pinn_linearelasticity_dogbone_E_210k_nu_03_col_8192_bc_128_PDE_dirichlet_free_overlap_dist_0"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
