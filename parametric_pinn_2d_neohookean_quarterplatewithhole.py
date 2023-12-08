@@ -63,12 +63,12 @@ from parametricpinn.training.training_standard_neohookean_quarterplatewithhole i
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 num_material_parameters = 2
 edge_length = 100.0
 radius = 10.0
-traction_left_x = -300.0  # -100.0
+traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
@@ -92,7 +92,7 @@ weight_pde_loss = 1.0
 weight_symmetry_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20231207_validation_data_neohookean_E_1000_3000_nu_02_04_edge_100_radius_10_traction_300_elementsize_02"
 num_samples_valid = 32
 validation_interval = 1
@@ -110,8 +110,8 @@ fem_element_degree = 2
 fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_4_32_traction_300"
+output_date = 20231206
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_4_32_traction_100"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -581,7 +581,7 @@ def calibration_step() -> None:
         likelihood=likelihood,
         prior=prior,
         initial_parameters=initial_parameters,
-        num_iterations=int(2e4),
+        num_iterations=int(1e5),
         num_burn_in_iterations=int(1e5),
         cov_proposal_density=cov_proposal_density,
     )
@@ -589,8 +589,8 @@ def calibration_step() -> None:
         likelihood=likelihood,
         prior=prior,
         initial_parameters=initial_parameters,
-        num_iterations=int(1e3),
-        num_burn_in_iterations=int(1e3),
+        num_iterations=int(1e4),
+        num_burn_in_iterations=int(1e4),
         num_leabfrog_steps=256,
         leapfrog_step_sizes=torch.tensor([1, 0.01], device=device),
     )
@@ -598,8 +598,8 @@ def calibration_step() -> None:
         likelihood=likelihood,
         prior=prior,
         initial_parameters=initial_parameters,
-        num_iterations=int(1e3),
-        num_burn_in_iterations=int(1e3),
+        num_iterations=int(1e4),
+        num_burn_in_iterations=int(1e4),
         max_tree_depth=8,
         leapfrog_step_sizes=torch.tensor([1, 0.01], device=device),
     )
@@ -613,6 +613,7 @@ def calibration_step() -> None:
         time = end - start
         print(f"Identified parameter: {identified_parameters}")
         print(f"Run time least squares: {time}")
+        print("############################################################")
     if use_random_walk_metropolis_hasting:
         start = perf_counter()
         posterior_moments_mh, samples_mh = calibrate(
@@ -621,7 +622,9 @@ def calibration_step() -> None:
         )
         end = perf_counter()
         time = end - start
+        print(f"Identified moments: {posterior_moments_mh}")
         print(f"Run time Metropolis-Hasting: {time}")
+        print("############################################################")
         plot_posterior_normal_distributions(
             parameter_names=parameter_names,
             true_parameters=true_parameters,
@@ -639,7 +642,9 @@ def calibration_step() -> None:
         )
         end = perf_counter()
         time = end - start
+        print(f"Identified moments: {posterior_moments_h}")
         print(f"Run time Hamiltonian: {time}")
+        print("############################################################")
         plot_posterior_normal_distributions(
             parameter_names=parameter_names,
             true_parameters=true_parameters,
@@ -657,7 +662,9 @@ def calibration_step() -> None:
         )
         end = perf_counter()
         time = end - start
+        print(f"Identified moments: {posterior_moments_enuts}")
         print(f"Run time efficient NUTS: {time}")
+        print("############################################################")
         plot_posterior_normal_distributions(
             parameter_names=parameter_names,
             true_parameters=true_parameters,
