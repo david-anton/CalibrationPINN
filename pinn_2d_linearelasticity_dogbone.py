@@ -91,8 +91,8 @@ number_training_epochs = 500
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss = 1.0
-weight_dirichlet_bc_loss =0.0
-overlap_distance_angle_bcs=10.0
+weight_dirichlet_bc_loss = 0.0
+bcs_overlap_angle_distance = 10.0
 # Validation
 regenerate_valid_data = False
 input_subdir_valid = (
@@ -150,7 +150,7 @@ def create_datasets() -> tuple[DogBoneTrainingDataset2D, ValidationDataset2D]:
             num_collocation_points=num_collocation_points,
             num_points_per_bc=number_points_per_bc,
             num_samples_per_parameter=num_samples_per_parameter,
-            overlap_distance_angle_bcs=overlap_distance_angle_bcs
+            bcs_overlap_angle_distance=bcs_overlap_angle_distance,
         )
         return create_training_dataset(config_training_data)
 
