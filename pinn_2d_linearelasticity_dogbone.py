@@ -92,7 +92,7 @@ weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss = 1.0
 weight_dirichlet_bc_loss = 0.0
-bcs_overlap_angle_distance = 0.0
+bcs_overlap_angle_distance = 10.0
 # Validation
 regenerate_valid_data = False
 input_subdir_valid = (
@@ -109,7 +109,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_dogbone_E_210k_nu_03_col_8192_bc_128_PDE_traction_free_overlap_dist_0"
+output_subdirectory = f"{output_date}_pinn_linearelasticity_dogbone_E_210k_nu_03_col_8192_bc_128_PDE_traction_free_overlap_dist_10"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
