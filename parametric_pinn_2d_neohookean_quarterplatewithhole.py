@@ -603,6 +603,8 @@ def calibration_step() -> None:
         max_tree_depth=8,
         leapfrog_step_sizes=torch.tensor([1, 0.01], device=device),
     )
+    if consider_model_error:
+        output_subdirectory = f"{output_subdirectory}_model_error"
     if use_least_squares:
         start = perf_counter()
         identified_parameters, _ = calibrate(
