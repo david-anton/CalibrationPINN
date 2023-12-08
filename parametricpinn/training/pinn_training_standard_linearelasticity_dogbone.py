@@ -231,12 +231,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         # loss_energy = lambda_energy_loss * loss_func_energy(
         #     ansatz, collocation_data, traction_bc_data
         # )
-        return (
-            loss_pde,
-            loss_traction_bc,
-            loss_free_traction_bc,
-            loss_dirichlet_bc,
-        )  # , loss_energy
+        return loss_pde, loss_traction_bc, loss_free_traction_bc, loss_dirichlet_bc
 
     ### Validation
     def validate_model(
