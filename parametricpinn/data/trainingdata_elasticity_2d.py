@@ -77,6 +77,7 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
             num_collocation_points=config.num_collocation_points,
             num_points_per_bc=config.num_points_per_bc,
             num_samples_per_parameter=config.num_samples_per_parameter,
+            overlap_distance_angle_bcs=config.overlap_distance_angle_bcs
         )
     else:
         raise DatasetConfigError(

@@ -33,6 +33,7 @@ class DogBoneTrainingDataset2DConfig:
     num_collocation_points: int
     num_points_per_bc: int
     num_samples_per_parameter: int
+    overlap_distance_angle_bcs: float
 
 
 class DogBoneTrainingDataset2D(Dataset):
@@ -48,12 +49,12 @@ class DogBoneTrainingDataset2D(Dataset):
         num_collocation_points: int,
         num_points_per_bc: int,
         num_samples_per_parameter: int,
+        overlap_distance_angle_bcs: float
     ):
         super().__init__()
         self._num_parameters = 2
         self._num_traction_bcs = 8
-        self._overlap_distance_bcs = 1e-7
-        self._overlap_distance_angle_bcs = 1e-7
+        self._overlap_distance_angle_bcs = overlap_distance_angle_bcs
         self._geometry = geometry
         self._traction_right = traction_right
         self._traction_tapered = torch.tensor([0.0, 0.0], device=traction_right.device)

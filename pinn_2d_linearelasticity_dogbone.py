@@ -92,6 +92,7 @@ weight_pde_loss = 1.0
 weight_traction_bc_loss = 0.0
 weight_free_traction_bc_loss = 1.0
 weight_dirichlet_bc_loss =1.0
+overlap_distance_angle_bcs=10.0
 # Validation
 regenerate_valid_data = False
 input_subdir_valid = (
@@ -108,7 +109,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_dogbone_E_210k_nu_03_col_8192_bc_128_PDE_dirichlet_free"
+output_subdirectory = f"{output_date}_pinn_linearelasticity_dogbone_E_210k_nu_03_col_8192_bc_128_PDE_traction_free_overlap_10"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -149,6 +150,7 @@ def create_datasets() -> tuple[DogBoneTrainingDataset2D, ValidationDataset2D]:
             num_collocation_points=num_collocation_points,
             num_points_per_bc=number_points_per_bc,
             num_samples_per_parameter=num_samples_per_parameter,
+            overlap_distance_angle_bcs=overlap_distance_angle_bcs
         )
         return create_training_dataset(config_training_data)
 
