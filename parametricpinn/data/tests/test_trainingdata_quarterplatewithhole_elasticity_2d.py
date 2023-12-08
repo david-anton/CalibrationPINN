@@ -39,8 +39,8 @@ num_symmetry_bcs = 2
 num_points_symmetry_bcs = num_symmetry_bcs * num_points_per_bc
 num_traction_bcs = 3
 num_points_traction_bcs = num_traction_bcs * num_points_per_bc
-overlap_distance_bcs = 1e-7
-overlap_distance_angle_bcs = 1e-7
+bcs_overlap_distance = 1.0
+bcs_overlap_angle_distance = 2.0
 
 set_default_dtype(torch.float64)
 
@@ -69,6 +69,8 @@ def sut() -> QuarterPlateWithHoleTrainingDataset2D:
         num_collocation_points=num_collocation_points,
         num_points_per_bc=num_points_per_bc,
         num_samples_per_parameter=num_samples_per_parameter,
+        bcs_overlap_distance=bcs_overlap_distance,
+        bcs_overlap_angle_distance=bcs_overlap_angle_distance,
     )
     return create_training_dataset(config=config)
 
@@ -213,32 +215,36 @@ def test_sample_traction_bc__x_coordinates(
 
     actual = sample_traction_bc.x_coor
 
+    y_min = bcs_overlap_distance
+    x_min = -edge_length + bcs_overlap_distance
+    x_max = -bcs_overlap_distance
+    min_angle = bcs_overlap_angle_distance
+    max_angle = 90 - bcs_overlap_angle_distance
+    half_angle = 90 / 2
+
     expected = torch.tensor(
         [
-            [-edge_length, overlap_distance_bcs],
-            [-edge_length, 1 / 2 * edge_length],
+            [-edge_length, y_min],
+            [-edge_length, y_min + (1 / 2 * (edge_length - y_min))],
             [-edge_length, edge_length],
-            [-edge_length + overlap_distance_bcs, edge_length],
+            [x_min, edge_length],
             [-1 / 2 * edge_length, edge_length],
-            [-overlap_distance_bcs, edge_length],
+            [x_max, edge_length],
             [
-                -torch.cos(torch.deg2rad(torch.tensor(overlap_distance_angle_bcs)))
-                * radius,
-                torch.sin(torch.deg2rad(torch.tensor(overlap_distance_angle_bcs)))
-                * radius,
+                -torch.cos(torch.deg2rad(torch.tensor(min_angle))) * radius,
+                torch.sin(torch.deg2rad(torch.tensor(min_angle))) * radius,
             ],
             [
-                -torch.cos(torch.deg2rad(torch.tensor(1 / 2 * 90))) * radius,
-                torch.sin(torch.deg2rad(torch.tensor(1 / 2 * 90))) * radius,
+                -torch.cos(torch.deg2rad(torch.tensor(half_angle))) * radius,
+                torch.sin(torch.deg2rad(torch.tensor(half_angle))) * radius,
             ],
             [
-                -torch.cos(torch.deg2rad(torch.tensor(90 - overlap_distance_angle_bcs)))
-                * radius,
-                torch.sin(torch.deg2rad(torch.tensor(90 - overlap_distance_angle_bcs)))
-                * radius,
+                -torch.cos(torch.deg2rad(torch.tensor(max_angle))) * radius,
+                torch.sin(torch.deg2rad(torch.tensor(max_angle))) * radius,
             ],
         ]
     )
+    print(torch.concat((actual, expected), dim=1))
     torch.testing.assert_close(actual, expected)
 
 
@@ -277,6 +283,10 @@ def test_sample_traction_bc__normal(
 
     actual = sample_traction_bc.normal
 
+    min_angle = bcs_overlap_angle_distance
+    max_angle = 90 - bcs_overlap_angle_distance
+    half_angle = 90 / 2
+
     expected = torch.tensor(
         [
             [-1.0, 0.0],
@@ -286,18 +296,16 @@ def test_sample_traction_bc__normal(
             [0.0, 1.0],
             [0.0, 1.0],
             [
-                torch.cos(torch.deg2rad(torch.tensor(overlap_distance_angle_bcs))),
-                -torch.sin(torch.deg2rad(torch.tensor(overlap_distance_angle_bcs))),
+                torch.cos(torch.deg2rad(torch.tensor(min_angle))),
+                -torch.sin(torch.deg2rad(torch.tensor(min_angle))),
             ],
             [
-                torch.cos(torch.deg2rad(torch.tensor(1 / 2 * 90))),
-                -torch.sin(torch.deg2rad(torch.tensor(1 / 2 * 90))),
+                torch.cos(torch.deg2rad(torch.tensor(half_angle))),
+                -torch.sin(torch.deg2rad(torch.tensor(half_angle))),
             ],
             [
-                torch.cos(torch.deg2rad(torch.tensor(90 - overlap_distance_angle_bcs))),
-                -torch.sin(
-                    torch.deg2rad(torch.tensor(90 - overlap_distance_angle_bcs))
-                ),
+                torch.cos(torch.deg2rad(torch.tensor(max_angle))),
+                -torch.sin(torch.deg2rad(torch.tensor(max_angle))),
             ],
         ]
     )

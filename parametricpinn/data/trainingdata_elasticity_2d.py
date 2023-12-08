@@ -44,6 +44,8 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
             num_collocation_points=config.num_collocation_points,
             num_points_per_bc=config.num_points_per_bc,
             num_samples_per_parameter=config.num_samples_per_parameter,
+            bcs_overlap_distance=config.bcs_overlap_distance,
+            bcs_overlap_angle_distance=config.bcs_overlap_angle_distance,
         )
     elif isinstance(config, PlateWithHoleTrainingDataset2DConfig):
         geometry_pwh = PlateWithHole2D(
@@ -62,6 +64,7 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
             num_collocation_points=config.num_collocation_points,
             num_points_per_bc=config.num_points_per_bc,
             num_samples_per_parameter=config.num_samples_per_parameter,
+            bcs_overlap_distance=config.bcs_overlap_distance,
         )
     elif isinstance(config, DogBoneTrainingDataset2DConfig):
         geometry_config_dogbone = DogBoneGeometryConfig()
@@ -77,7 +80,7 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
             num_collocation_points=config.num_collocation_points,
             num_points_per_bc=config.num_points_per_bc,
             num_samples_per_parameter=config.num_samples_per_parameter,
-            overlap_distance_angle_bcs=config.overlap_distance_angle_bcs
+            bcs_overlap_angle_distance=config.bcs_overlap_angle_distance,
         )
     else:
         raise DatasetConfigError(

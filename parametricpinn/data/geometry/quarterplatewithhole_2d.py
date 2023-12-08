@@ -31,23 +31,27 @@ class QuarterPlateWithHole2D:
         return torch.vstack(point_list)
 
     def create_uniform_points_on_left_boundary(
-        self, num_points: int
+        self, num_points: int, bcs_overlap_distance: float
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
+        y_min = self._y_min + bcs_overlap_distance
+        y_max = self._y_max
         coordinates_x = torch.full(shape, self._x_min, requires_grad=True)
         coordinates_y = torch.linspace(
-            self._y_min, self._y_max, num_points, requires_grad=True
+            y_min, y_max, num_points, requires_grad=True
         ).view(num_points, 1)
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
         normals = torch.tensor([-1.0, 0.0]).repeat(shape)
         return coordinates, normals
 
     def create_uniform_points_on_top_boundary(
-        self, num_points: int
+        self, num_points: int, bcs_overlap_distance: float
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
+        x_min = self._x_min + bcs_overlap_distance
+        x_max = self._x_max - bcs_overlap_distance
         coordinates_x = torch.linspace(
-            self._x_min, self._x_max, num_points, requires_grad=True
+            x_min, x_max, num_points, requires_grad=True
         ).view(num_points, 1)
         coordinates_y = torch.full(shape, self._y_max, requires_grad=True)
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
@@ -67,11 +71,11 @@ class QuarterPlateWithHole2D:
         return coordinates, normals
 
     def create_uniform_points_on_hole_boundary(
-        self, num_points: int
+        self, num_points: int, bcs_overlap_angle_distance: float
     ) -> tuple[Tensor, Tensor]:
-        angles = torch.linspace(self._angle_min, self._angle_max, num_points).view(
-            num_points, 1
-        )
+        min_angle = self._angle_min + bcs_overlap_angle_distance
+        max_angle = self._angle_max - bcs_overlap_angle_distance
+        angles = torch.linspace(min_angle, max_angle, num_points).view(num_points, 1)
         delta_x = torch.cos(torch.deg2rad(angles)) * self.radius
         delta_y = torch.sin(torch.deg2rad(angles)) * self.radius
         coordinates_x = self._x_center - delta_x

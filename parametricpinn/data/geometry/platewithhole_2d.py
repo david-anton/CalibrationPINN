@@ -46,11 +46,13 @@ class PlateWithHole2D:
         return coordinates, normals
 
     def create_uniform_points_on_top_boundary(
-        self, num_points: int
+        self, num_points: int, bcs_overlap_distance: float
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
+        x_min = self._x_min + bcs_overlap_distance
+        x_max = self._x_max - bcs_overlap_distance
         coordinates_x = torch.linspace(
-            self._x_min, self._x_max, num_points, requires_grad=True
+            x_min, x_max, num_points, requires_grad=True
         ).view(num_points, 1)
         coordinates_y = torch.full(shape, self._y_max, requires_grad=True)
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
@@ -70,11 +72,13 @@ class PlateWithHole2D:
         return coordinates, normals
 
     def create_uniform_points_on_bottom_boundary(
-        self, num_points: int
+        self, num_points: int, bcs_overlap_distance: float
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
+        x_min = self._x_min + bcs_overlap_distance
+        x_max = self._x_max - bcs_overlap_distance
         coordinates_x = torch.linspace(
-            self._x_min, self._x_max, num_points, requires_grad=True
+            x_min, x_max, num_points, requires_grad=True
         ).view(num_points, 1)
         coordinates_y = torch.full(shape, self._y_min, requires_grad=True)
         coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)

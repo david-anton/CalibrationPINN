@@ -37,6 +37,8 @@ class QuarterPlateWithHoleTrainingDataset2DConfig:
     num_collocation_points: int
     num_points_per_bc: int
     num_samples_per_parameter: int
+    bcs_overlap_distance: float
+    bcs_overlap_angle_distance: float
 
 
 class QuarterPlateWithHoleTrainingDataset2D(Dataset):
@@ -52,6 +54,8 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         num_collocation_points: int,
         num_points_per_bc: int,
         num_samples_per_parameter: int,
+        bcs_overlap_distance: float,
+        bcs_overlap_angle_distance: float,
     ):
         super().__init__()
         self._num_parameters = 2
@@ -72,6 +76,8 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         self._num_points_per_bc = num_points_per_bc
         self._num_samples_per_parameter = num_samples_per_parameter
         self._total_num_samples = num_samples_per_parameter**self._num_parameters
+        self._bcs_overlap_distance = bcs_overlap_distance
+        self._bcs_overlap_angle_distance = bcs_overlap_angle_distance
         self._samples_collocation: list[TrainingData2DCollocation] = []
         self._samples_symmetry_bc: list[TrainingData2DSymmetryBC] = []
         self._samples_traction_bc: list[TrainingData2DTractionBC] = []
@@ -225,63 +231,25 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         (
             x_coor_left,
             normal_left,
-        ) = self._geometry.create_uniform_points_on_left_boundary(num_points)
+        ) = self._geometry.create_uniform_points_on_left_boundary(
+            num_points, self._bcs_overlap_distance
+        )
         (
             x_coor_top,
             normal_top,
-        ) = self._geometry.create_uniform_points_on_top_boundary(num_points)
+        ) = self._geometry.create_uniform_points_on_top_boundary(
+            num_points, self._bcs_overlap_distance
+        )
         (
             x_coor_hole,
             normal_hole,
-        ) = self._geometry.create_uniform_points_on_hole_boundary(num_points)
-
-        self._avoid_overlapping_traction_bcs(
-            x_coor_left=x_coor_left,
-            x_coor_top=x_coor_top,
-            x_coor_hole=x_coor_hole,
-            normal_hole=normal_hole,
+        ) = self._geometry.create_uniform_points_on_hole_boundary(
+            num_points, self._bcs_overlap_angle_distance
         )
+
         x_coor = torch.concat((x_coor_left, x_coor_top, x_coor_hole), dim=0)
         normal = torch.concat((normal_left, normal_top, normal_hole), dim=0)
         return x_coor, normal
-
-    def _avoid_overlapping_traction_bcs(
-        self,
-        x_coor_left: Tensor,
-        x_coor_top: Tensor,
-        x_coor_hole: Tensor,
-        normal_hole: Tensor,
-    ) -> None:
-        distance = self._overlap_distance_bcs
-        radius = self._geometry.radius
-        angle = math.radians(self._overlap_distance_angle_bcs)
-        sine_angle = math.sin(angle)
-        cosine_angle = math.cos(angle)
-
-        def _avoid_overlapping_traction_bcs_at_left(x_coor_left: Tensor) -> None:
-            x_coor_left[0, 1] += distance
-
-        def _avoid_overlapping_traction_bcs_at_top(x_coor_top: Tensor) -> None:
-            x_coor_top[0, 0] += distance
-            x_coor_top[-1, 0] -= distance
-
-        def _avoid_overlapping_traction_bcs_at_hole(
-            x_coor_hole: Tensor, normal_hole: Tensor
-        ) -> None:
-            # coordinates
-            x_coor_hole[0, 0] = -cosine_angle * radius
-            x_coor_hole[0, 1] = sine_angle * radius
-            x_coor_hole[-1, 0] = -sine_angle * radius
-            x_coor_hole[-1, 1] = cosine_angle * radius
-            # normals
-            normal_hole[0, 0] = cosine_angle
-            normal_hole[0, 1] = -sine_angle
-            normal_hole[-1, 0] = sine_angle
-            normal_hole[-1, 1] = -cosine_angle
-
-        _avoid_overlapping_traction_bcs_at_left(x_coor_left)
-        _avoid_overlapping_traction_bcs_at_top(x_coor_top)
-        _avoid_overlapping_traction_bcs_at_hole(x_coor_hole, normal_hole)
 
     def _calculate_area_fractions_for_traction_bcs(self) -> Tensor:
         area_frac_left = self._geometry.calculate_area_fractions_on_left_boundary(

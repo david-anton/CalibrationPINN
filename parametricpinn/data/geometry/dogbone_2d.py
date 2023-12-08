@@ -72,13 +72,13 @@ class DogBone2D:
         return coordinates, normals
 
     def create_uniform_points_on_top_left_tapered_boundary(
-        self, num_points: int
+        self, num_points: int, overlap_angle_distance: float
     ) -> tuple[Tensor, Tensor]:
         (
             abs_rad_component_x,
             abs_rad_component_y,
         ) = self._calculate_absolute_radial_coordinate_components_for_tapered_boundaries(
-            num_points
+            num_points, overlap_angle_distance
         )
         coordinates_x = -self.half_parallel_length - abs_rad_component_x
         coordinates_y = self.half_parallel_height + (
@@ -93,13 +93,13 @@ class DogBone2D:
         ), self._reverse_order_of_data_points(normals)
 
     def create_uniform_points_on_top_right_tapered_boundary(
-        self, num_points: int
+        self, num_points: int, overlap_angle_distance: float
     ) -> tuple[Tensor, Tensor]:
         (
             abs_rad_component_x,
             abs_rad_component_y,
         ) = self._calculate_absolute_radial_coordinate_components_for_tapered_boundaries(
-            num_points
+            num_points, overlap_angle_distance
         )
         coordinates_x = self.half_parallel_length + abs_rad_component_x
         coordinates_y = self.half_parallel_height + (
@@ -129,13 +129,13 @@ class DogBone2D:
         return coordinates, normals
 
     def create_uniform_points_on_bottom_left_tapered_boundary(
-        self, num_points: int
+        self, num_points: int, overlap_angle_distance: float
     ) -> tuple[Tensor, Tensor]:
         (
             abs_rad_component_x,
             abs_rad_component_y,
         ) = self._calculate_absolute_radial_coordinate_components_for_tapered_boundaries(
-            num_points
+            num_points, overlap_angle_distance
         )
         coordinates_x = -self.half_parallel_length - abs_rad_component_x
         coordinates_y = -self.half_parallel_height - (
@@ -150,13 +150,13 @@ class DogBone2D:
         ), self._reverse_order_of_data_points(normals)
 
     def create_uniform_points_on_bottom_right_tapered_boundary(
-        self, num_points: int
+        self, num_points: int, overlap_angle_distance: float
     ) -> tuple[Tensor, Tensor]:
         (
             abs_rad_component_x,
             abs_rad_component_y,
         ) = self._calculate_absolute_radial_coordinate_components_for_tapered_boundaries(
-            num_points
+            num_points, overlap_angle_distance
         )
         coordinates_x = self.half_parallel_length + abs_rad_component_x
         coordinates_y = -self.half_parallel_height - (
@@ -294,11 +294,11 @@ class DogBone2D:
         return dog_bone
 
     def _calculate_absolute_radial_coordinate_components_for_tapered_boundaries(
-        self, num_points: int
+        self, num_points: int, overlap_angle_distance: float
     ) -> list[Tensor, Tensor]:
-        angles = torch.linspace(
-            self.angle_min_tapered, self.angle_max_tapered, num_points
-        ).view(num_points, 1)
+        min_angle = self.angle_min_tapered
+        max_angle = self.angle_max_tapered - overlap_angle_distance
+        angles = torch.linspace(min_angle, max_angle, num_points).view(num_points, 1)
         abs_components_x = torch.sin(torch.deg2rad(angles)) * self.tapered_radius
         abs_components_y = torch.cos(torch.deg2rad(angles)) * self.tapered_radius
         return abs_components_x, abs_components_y

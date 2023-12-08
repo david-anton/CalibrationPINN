@@ -33,7 +33,7 @@ class DogBoneTrainingDataset2DConfig:
     num_collocation_points: int
     num_points_per_bc: int
     num_samples_per_parameter: int
-    overlap_distance_angle_bcs: float
+    bcs_overlap_angle_distance: float
 
 
 class DogBoneTrainingDataset2D(Dataset):
@@ -49,12 +49,12 @@ class DogBoneTrainingDataset2D(Dataset):
         num_collocation_points: int,
         num_points_per_bc: int,
         num_samples_per_parameter: int,
-        overlap_distance_angle_bcs: float
+        bcs_overlap_angle_distance: float,
     ):
         super().__init__()
         self._num_parameters = 2
         self._num_traction_bcs = 8
-        self._overlap_distance_angle_bcs = overlap_distance_angle_bcs
+        self._bcs_overlap_angle_distance = bcs_overlap_angle_distance
         self._geometry = geometry
         self._traction_right = traction_right
         self._traction_tapered = torch.tensor([0.0, 0.0], device=traction_right.device)
@@ -190,13 +190,13 @@ class DogBoneTrainingDataset2D(Dataset):
             x_coor_top_left_tapered,
             normal_top_left_tapered,
         ) = self._geometry.create_uniform_points_on_top_left_tapered_boundary(
-            num_points
+            num_points, self._bcs_overlap_angle_distance
         )
         (
             x_coor_top_right_tapered,
             normal_top_right_tapered,
         ) = self._geometry.create_uniform_points_on_top_right_tapered_boundary(
-            num_points
+            num_points, self._bcs_overlap_angle_distance
         )
         (
             x_coor_top_parallel_complete,
@@ -219,13 +219,13 @@ class DogBoneTrainingDataset2D(Dataset):
             x_coor_bottom_left_tapered,
             normal_bottom_left_tapered,
         ) = self._geometry.create_uniform_points_on_bottom_left_tapered_boundary(
-            num_points
+            num_points, self._bcs_overlap_angle_distance
         )
         (
             x_coor_bottom_right_tapered,
             normal_bottom_right_tapered,
         ) = self._geometry.create_uniform_points_on_bottom_right_tapered_boundary(
-            num_points
+            num_points, self._bcs_overlap_angle_distance
         )
         (
             x_coor_bottom_parallel_complete,
@@ -257,12 +257,6 @@ class DogBoneTrainingDataset2D(Dataset):
             normal_hole,
         ) = self._geometry.create_uniform_points_on_hole_boundary(num_points)
 
-        self._avoid_overlapping_traction_bcs(
-            x_coor_top=x_coor_top,
-            normal_top=normal_top,
-            x_coor_bottom=x_coor_bottom,
-            normal_bottom=normal_bottom,
-        )
         x_coor = torch.concat(
             (x_coor_right, x_coor_top, x_coor_bottom, x_coor_hole), dim=0
         )
@@ -270,69 +264,6 @@ class DogBoneTrainingDataset2D(Dataset):
             (normal_right, normal_top, normal_bottom, normal_hole), dim=0
         )
         return x_coor, normal
-
-    def _avoid_overlapping_traction_bcs(
-        self,
-        x_coor_top: Tensor,
-        normal_top: Tensor,
-        x_coor_bottom: Tensor,
-        normal_bottom: Tensor,
-    ) -> None:
-        radius = self._geometry.tapered_radius
-        half_parallel_length = self._geometry.half_parallel_length
-        half_parallel_height = self._geometry.half_parallel_height
-        angle = self._geometry.angle_max_tapered - self._overlap_distance_angle_bcs
-        abs_rad_components_x = math.sin(math.radians(angle)) * radius
-        abs_rad_components_y = math.cos(math.radians(angle)) * radius
-
-        def _avoid_overlapping_traction_bcs_at_top_left(
-            x_coor_top: Tensor, normal_top: Tensor
-        ) -> None:
-            # coordinates
-            x_coor_top[0, 0] = -half_parallel_length - abs_rad_components_x
-            x_coor_top[0, 1] = half_parallel_height + (radius - abs_rad_components_y)
-            # normals
-            normal_top[0, 0] = abs_rad_components_x / radius
-            normal_top[0, 1] = abs_rad_components_y / radius
-
-        def _avoid_overlapping_traction_bcs_at_top_right(
-            x_coor_top: Tensor, normal_top: Tensor
-        ) -> None:
-            # coordinates
-            x_coor_top[-1, 0] = half_parallel_length + abs_rad_components_x
-            x_coor_top[-1, 1] = half_parallel_height + (radius - abs_rad_components_y)
-            # normals
-            normal_top[-1, 0] = -abs_rad_components_x / radius
-            normal_top[-1, 1] = abs_rad_components_y / radius
-
-        def _avoid_overlapping_traction_bcs_at_bottom_left(
-            x_coor_bottom: Tensor, normal_bottom: Tensor
-        ) -> None:
-            # coordinates
-            x_coor_bottom[0, 0] = -half_parallel_length - abs_rad_components_x
-            x_coor_bottom[0, 1] = -half_parallel_height - (
-                radius - abs_rad_components_y
-            )
-            # normals
-            normal_bottom[0, 0] = abs_rad_components_x / radius
-            normal_bottom[0, 1] = -abs_rad_components_y / radius
-
-        def _avoid_overlapping_traction_bcs_at_bottom_right(
-            x_coor_bottom: Tensor, normal_bottom: Tensor
-        ) -> None:
-            # coordinates
-            x_coor_bottom[-1, 0] = half_parallel_length + abs_rad_components_x
-            x_coor_bottom[-1, 1] = -half_parallel_height - (
-                radius - abs_rad_components_y
-            )
-            # normals
-            normal_bottom[-1, 0] = -abs_rad_components_x / radius
-            normal_bottom[-1, 1] = -abs_rad_components_y / radius
-
-        _avoid_overlapping_traction_bcs_at_top_left(x_coor_top, normal_top)
-        _avoid_overlapping_traction_bcs_at_top_right(x_coor_top, normal_top)
-        _avoid_overlapping_traction_bcs_at_bottom_left(x_coor_bottom, normal_bottom)
-        _avoid_overlapping_traction_bcs_at_bottom_right(x_coor_bottom, normal_bottom)
 
     def _calculate_area_fractions_for_traction_bcs(self) -> Tensor:
         num_points = self._num_points_per_bc

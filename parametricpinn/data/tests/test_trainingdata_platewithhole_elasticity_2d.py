@@ -40,8 +40,7 @@ num_collocation_points = 32
 num_points_per_bc = 3
 num_traction_bcs = 4
 num_points_traction_bcs = num_traction_bcs * num_points_per_bc
-overlap_distance_bcs = 1e-7
-overlap_distance_angle_bcs = 1e-7
+bcs_overlap_distance = 1.0
 
 set_default_dtype(torch.float64)
 
@@ -71,6 +70,7 @@ def sut() -> PlateWithHoleTrainingDataset2D:
         num_collocation_points=num_collocation_points,
         num_points_per_bc=num_points_per_bc,
         num_samples_per_parameter=num_samples_per_parameter,
+        bcs_overlap_distance=bcs_overlap_distance,
     )
     return create_training_dataset(config=config)
 
@@ -167,17 +167,20 @@ def test_sample_traction_bc__x_coordinates(
 
     actual = sample_traction_bc.x_coor
 
+    x_min_without_overlap = x_min + bcs_overlap_distance
+    plate_length_without_overlap = plate_length - (2 * bcs_overlap_distance)
+
     expected = torch.tensor(
         [
             [x_max, y_min + 0 * plate_height],
             [x_max, y_min + 1 / 2 * plate_height],
             [x_max, y_min + 1 * plate_height],
-            [x_min + 0 * plate_length + overlap_distance_bcs, y_max],
-            [x_min + 1 / 2 * plate_length, y_max],
-            [x_min + plate_length - overlap_distance_bcs, y_max],
-            [x_min + 0 * plate_length + overlap_distance_bcs, y_min],
-            [x_min + 1 / 2 * plate_length, y_min],
-            [x_min + plate_length - overlap_distance_bcs, y_min],
+            [x_min_without_overlap + 0 * plate_length_without_overlap, y_max],
+            [x_min_without_overlap + 1 / 2 * plate_length_without_overlap, y_max],
+            [x_min_without_overlap + plate_length_without_overlap, y_max],
+            [x_min_without_overlap + 0 * plate_length_without_overlap, y_min],
+            [x_min_without_overlap + 1 / 2 * plate_length_without_overlap, y_min],
+            [x_min_without_overlap + plate_length_without_overlap, y_min],
             [
                 origin_x
                 - torch.cos(torch.deg2rad(torch.tensor(0 * 360))) * hole_radius,
