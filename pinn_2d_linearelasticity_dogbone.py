@@ -89,7 +89,7 @@ number_points_per_bc = 128
 training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 500
 weight_pde_loss = 1.0
-weight_traction_bc_loss = 0.0
+weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss = 1.0
 weight_dirichlet_bc_loss =1.0
 # Validation
@@ -108,7 +108,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_dogbone_E_210k_nu_03_col_8192_bc_128_PDE_dirichlet_free"
+output_subdirectory = f"{output_date}_pinn_linearelasticity_dogbone_E_210k_nu_03_col_8192_bc_128_PDE_dirichlet_traction_free"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
