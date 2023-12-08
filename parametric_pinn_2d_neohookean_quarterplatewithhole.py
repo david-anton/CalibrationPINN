@@ -99,11 +99,11 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-consider_model_error = False
+consider_model_error = True
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
-use_hamiltonian = True
-use_efficient_nuts = True
+use_hamiltonian = False
+use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
@@ -581,7 +581,7 @@ def calibration_step() -> None:
         likelihood=likelihood,
         prior=prior,
         initial_parameters=initial_parameters,
-        num_iterations=int(1e5),
+        num_iterations=int(1e6),
         num_burn_in_iterations=int(1e5),
         cov_proposal_density=cov_proposal_density,
     )
