@@ -99,11 +99,11 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-consider_model_error = True
+consider_model_error = False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
-use_hamiltonian = False
-use_efficient_nuts = False
+use_hamiltonian = True
+use_efficient_nuts = True
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
@@ -604,7 +604,9 @@ def calibration_step() -> None:
         leapfrog_step_sizes=torch.tensor([1, 0.01], device=device),
     )
     if consider_model_error:
-        output_subdirectory = f"{output_subdirectory}_model_error"
+        output_subdir_calibration = os.path.join(output_subdirectory, "calibration_with_model_error")
+    else:
+        output_subdir_calibration = os.path.join(output_subdirectory, "calibration_without_model_error")
     if use_least_squares:
         start = perf_counter()
         identified_parameters, _ = calibrate(
@@ -633,7 +635,7 @@ def calibration_step() -> None:
             moments=posterior_moments_mh,
             samples=samples_mh,
             mcmc_algorithm="metropolis_hastings",
-            output_subdir=output_subdirectory,
+            output_subdir=output_subdir_calibration,
             project_directory=project_directory,
         )
     if use_hamiltonian:
@@ -653,7 +655,7 @@ def calibration_step() -> None:
             moments=posterior_moments_h,
             samples=samples_h,
             mcmc_algorithm="hamiltonian",
-            output_subdir=output_subdirectory,
+            output_subdir=output_subdir_calibration,
             project_directory=project_directory,
         )
     if use_efficient_nuts:
@@ -673,7 +675,7 @@ def calibration_step() -> None:
             moments=posterior_moments_enuts,
             samples=samples_enuts,
             mcmc_algorithm="efficient_nuts",
-            output_subdir=output_subdirectory,
+            output_subdir=output_subdir_calibration,
             project_directory=project_directory,
         )
     print("Calibration finished.")
