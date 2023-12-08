@@ -89,9 +89,9 @@ number_points_per_bc = 128
 training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 500
 weight_pde_loss = 1.0
-weight_traction_bc_loss = 0.0
+weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss = 1.0
-weight_dirichlet_bc_loss =1.0
+weight_dirichlet_bc_loss =0.0
 overlap_distance_angle_bcs=10.0
 # Validation
 regenerate_valid_data = False
