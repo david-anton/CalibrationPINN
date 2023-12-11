@@ -29,7 +29,7 @@ half_parallel_height = parallel_height / 2
 cut_parallel_height = (box_height - parallel_height) / 2
 tapered_radius = 25
 plate_hole_radius = 4
-max_angle_tapered = math.degrees(
+angle_max_tapered = math.degrees(
     math.asin((half_box_length - half_parallel_length) / tapered_radius)
 )
 volume_foce = torch.tensor([10.0, 10.0], dtype=torch.float64)
@@ -217,7 +217,7 @@ def test_sample_traction_bc__x_coordinates(
 
     actual = sample_traction_bc.x_coor
 
-    max_angle = max_angle_tapered - bcs_overlap_angle_distance
+    max_angle = angle_max_tapered - bcs_overlap_angle_distance
     half_angle = max_angle / 2
     abs_max_angle_radial_component_tapered_x = (
         math.sin(math.radians(max_angle)) * tapered_radius
@@ -360,7 +360,7 @@ def test_sample_traction_bc__normal(
 
     actual = sample_traction_bc.normal
 
-    max_angle = max_angle_tapered - bcs_overlap_angle_distance
+    max_angle = angle_max_tapered - bcs_overlap_angle_distance
     half_angle = max_angle / 2
     abs_normal_max_angle_tapered_x = math.sin(math.radians(max_angle))
     abs_normal_max_angle_tapered_y = math.cos(math.radians(max_angle))
@@ -420,7 +420,7 @@ def test_sample_traction_bc__area_fractions(
     actual = sample_traction_bc.area_frac
 
     plate_hole_length = 2.0 * math.pi * plate_hole_radius
-    tapered_length = (max_angle_tapered / 360) * 2.0 * math.pi * tapered_radius
+    tapered_length = (angle_max_tapered / 360) * 2.0 * math.pi * tapered_radius
 
     expected = torch.tensor(
         [

@@ -6,7 +6,9 @@ from dolfinx import default_scalar_type
 from dolfinx.fem import Constant
 from dolfinx.mesh import meshtags
 
-from parametricpinn.data.geometry.dogbone_2d import DogBoneGeometryConfig
+from parametricpinn.data.geometry.simplified_dogbone_2d import (
+    SimplifiedDogBoneGeometryConfig,
+)
 from parametricpinn.fem.base import (
     DFunctionSpace,
     DMesh,
@@ -30,10 +32,10 @@ from parametricpinn.io import ProjectDirectory
 
 
 @dataclass
-class DogBoneDomainConfig:
+class SimplifiedDogBoneDomainConfig:
     def __init__(
         self,
-        geometry_config: DogBoneGeometryConfig,
+        geometry_config: SimplifiedDogBoneGeometryConfig,
         traction_right_x: float,
         traction_right_y: float,
         element_family: str,
@@ -42,15 +44,17 @@ class DogBoneDomainConfig:
     ):
         self.origin_x = geometry_config.origin_x
         self.origin_y = geometry_config.origin_y
+        self.left_half_box_length = geometry_config.left_half_box_length
+        self.right_half_box_length = geometry_config.right_half_box_length
         self.box_length = geometry_config.box_length
         self.box_height = geometry_config.box_height
-        self.half_box_length = geometry_config.half_box_length
         self.half_box_height = geometry_config.half_box_height
+        self.left_half_parallel_length = geometry_config.left_half_parallel_length
+        self.right_half_parallel_length = geometry_config.right_half_parallel_length
         self.parallel_length = geometry_config.parallel_length
         self.parallel_height = geometry_config.parallel_height
-        self.half_parallel_length = geometry_config.half_parallel_length
         self.half_parallel_height = geometry_config.half_parallel_height
-        self.cut_parallel_height = geometry_config.cut_parallel_height
+        self.cut_parallel_height = geometry_config.cut_parallel_height 
         self.tapered_radius = geometry_config.tapered_radius
         self.plate_hole_radius = geometry_config.plate_hole_radius
         self.traction_right_x = traction_right_x
@@ -60,10 +64,10 @@ class DogBoneDomainConfig:
         self.element_size = element_size
 
 
-class DogBoneDomain:
+class SimplifiedDogBoneDomain:
     def __init__(
         self,
-        config: DogBoneDomainConfig,
+        config: SimplifiedDogBoneDomainConfig,
         save_mesh: bool,
         output_subdir: str,
         project_directory: ProjectDirectory,
@@ -136,14 +140,17 @@ class DogBoneDomain:
     def _generate_gmesh(self) -> GMesh:
         origin_x = self.config.origin_x
         origin_y = self.config.origin_y
+        left_half_box_length = self.config.left_half_box_length
+        right_half_box_length = self.config.right_half_box_length
         box_length = self.config.box_length
         box_height = self.config.box_height
-        half_box_length = self.config.half_box_length
         half_box_height = self.config.half_box_height
+        left_half_parallel_length = self.config.left_half_parallel_length
+        right_half_parallel_length = self.config.right_half_parallel_length
         parallel_length = self.config.parallel_length
-        half_parallel_length = self.config.half_parallel_length
+        parallel_height = self.config.parallel_height
         half_parallel_height = self.config.half_parallel_height
-        cut_parallel_height = self.config.cut_parallel_height
+        cut_parallel_height = self.config.cut_parallel_height 
         tapered_radius = self.config.tapered_radius
         plate_hole_radius = self.config.plate_hole_radius
         element_size = self.config.element_size
@@ -153,45 +160,31 @@ class DogBoneDomain:
         def create_geometry() -> GGeometry:
             gmsh.model.add("domain")
             box = geometry_kernel.add_rectangle(
-                -half_box_length, -half_box_height, 0, box_length, box_height
+                -left_half_box_length, -half_box_height, 0, box_length, box_height
             )
             cut_parallel_top = geometry_kernel.add_rectangle(
-                -half_parallel_length,
+                -left_half_parallel_length,
                 half_parallel_height,
                 0,
                 parallel_length,
                 cut_parallel_height,
             )
             cut_parallel_bottom = geometry_kernel.add_rectangle(
-                -half_parallel_length,
+                -left_half_parallel_length,
                 -half_box_height,
                 0,
                 parallel_length,
                 cut_parallel_height,
             )
             cut_tapered_top_left = geometry_kernel.add_disk(
-                -half_parallel_length,
-                half_parallel_height + tapered_radius,
-                0,
-                tapered_radius,
-                tapered_radius,
-            )
-            cut_tapered_top_right = geometry_kernel.add_disk(
-                half_parallel_length,
+                -left_half_parallel_length,
                 half_parallel_height + tapered_radius,
                 0,
                 tapered_radius,
                 tapered_radius,
             )
             cut_tapered_bottom_left = geometry_kernel.add_disk(
-                -half_parallel_length,
-                -half_parallel_height - tapered_radius,
-                0,
-                tapered_radius,
-                tapered_radius,
-            )
-            cut_tapered_bottom_right = geometry_kernel.add_disk(
-                half_parallel_length,
+                -left_half_parallel_length,
                 -half_parallel_height - tapered_radius,
                 0,
                 tapered_radius,
@@ -206,9 +199,7 @@ class DogBoneDomain:
                     (2, cut_parallel_top),
                     (2, cut_parallel_bottom),
                     (2, cut_tapered_top_left),
-                    (2, cut_tapered_top_right),
                     (2, cut_tapered_bottom_left),
-                    (2, cut_tapered_bottom_right),
                     (2, plate_hole),
                 ],
             )
@@ -242,8 +233,8 @@ class DogBoneDomain:
         return gmsh.model
 
     def _tag_boundaries(self) -> DMeshTags:
-        locate_left_facet = lambda x: np.isclose(x[0], -self.config.half_box_length)
-        locate_right_facet = lambda x: np.isclose(x[0], self.config.half_box_length)
+        locate_left_facet = lambda x: np.isclose(x[0], -self.config.left_half_box_length)
+        locate_right_facet = lambda x: np.isclose(x[0], self.config.right_half_box_length)
         boundaries = [
             (self._tag_left, locate_left_facet),
             (self._tag_right, locate_right_facet),
