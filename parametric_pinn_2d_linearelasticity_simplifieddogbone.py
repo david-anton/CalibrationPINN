@@ -260,7 +260,7 @@ def create_ansatz() -> StandardAnsatz:
     network = FFNN(layer_sizes=layer_sizes)
     return create_standard_normalized_hbc_ansatz_clamped_left(
         coordinate_x_left=torch.tensor(
-            [-geometry_config.half_box_length], device=device
+            [-geometry_config.left_half_box_length], device=device
         ),
         min_inputs=normalization_values["min_inputs"],
         max_inputs=normalization_values["max_inputs"],
