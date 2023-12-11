@@ -1,5 +1,6 @@
 import statistics
 from dataclasses import dataclass
+from typing import TypeAlias, Union
 
 import torch
 from torch.utils.data import DataLoader
@@ -9,7 +10,10 @@ from parametricpinn.data.dataset import (
     TrainingData2DCollocation,
     TrainingData2DTractionBC,
 )
-from parametricpinn.data.trainingdata_elasticity_2d import DogBoneTrainingDataset2D
+from parametricpinn.data.trainingdata_elasticity_2d import (
+    DogBoneTrainingDataset2D,
+    SimplifiedDogBoneTrainingDataset2D,
+)
 from parametricpinn.data.validationdata_elasticity_2d import ValidationDataset2D
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.loaderssavers import PytorchModelSaver
@@ -25,6 +29,7 @@ from parametricpinn.training.loss_2d.momentum_linearelasticity import (
 from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm
 from parametricpinn.types import Device, Tensor
 
+TrainingDatasetDogboneLike2D: TypeAlias = Union[DogBoneTrainingDataset2D, SimplifiedDogBoneTrainingDataset2D]
 
 @dataclass
 class TrainingConfiguration:
@@ -32,7 +37,7 @@ class TrainingConfiguration:
     material_model: str
     weight_pde_loss: float
     weight_traction_bc_loss: float
-    training_dataset: DogBoneTrainingDataset2D
+    training_dataset: TrainingDatasetDogboneLike2D
     number_training_epochs: int
     training_batch_size: int
     validation_dataset: ValidationDataset2D
