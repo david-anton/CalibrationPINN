@@ -184,7 +184,7 @@ class DogBoneTrainingDataset2D(Dataset):
         (
             x_coor_right,
             normal_right,
-        ) = self._geometry.create_uniform_points_on_right_boundary(num_points)
+        ) = self._geometry.create_uniform_points_on_right_box_boundary(num_points)
         # top
         (
             x_coor_top_left_tapered,
@@ -268,7 +268,7 @@ class DogBoneTrainingDataset2D(Dataset):
     def _calculate_area_fractions_for_traction_bcs(self) -> Tensor:
         num_points = self._num_points_per_bc
         # right
-        area_frac_right = self._geometry.calculate_area_fractions_on_vertical_boundary(
+        area_frac_right = self._geometry.calculate_area_fractions_on_vertical_box_boundary(
             num_points
         )
         # top and bottom
