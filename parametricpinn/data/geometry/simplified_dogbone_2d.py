@@ -10,21 +10,21 @@ from parametricpinn.types import ShapelyPolygon, Tensor
 
 @dataclass
 class SimplifiedDogBoneGeometryConfig:
-    origin_x = 0
-    origin_y = 0
-    left_half_box_length = 60
-    right_half_box_length = 40
+    origin_x = 0.0
+    origin_y = 0.0
+    left_half_box_length = 60.0
+    right_half_box_length = 40.0
     box_length = left_half_box_length + right_half_box_length
-    box_height = 30
+    box_height = 30.0
     half_box_height = box_height / 2
-    left_half_parallel_length = 45
-    right_half_parallel_length = 40
+    left_half_parallel_length = 45.0
+    right_half_parallel_length = 40.0
     parallel_length = left_half_parallel_length + right_half_parallel_length
-    parallel_height = 20
+    parallel_height = 20.0
     half_parallel_height = parallel_height / 2
     cut_parallel_height = half_box_height - half_parallel_height
-    tapered_radius = 25
-    plate_hole_radius = 4
+    tapered_radius = 25.0
+    plate_hole_radius = 4.0
     angle_max_tapered = math.degrees(
         math.asin((box_length - parallel_length) / tapered_radius)
     )
@@ -48,7 +48,7 @@ class SimplifiedDogBone2D(DogBone2DBase):
             cut_parallel_height=geometry_config.cut_parallel_height,
             tapered_radius=geometry_config.tapered_radius,
             plate_hole_radius=geometry_config.plate_hole_radius,
-            angle_max_tapered=geometry_config.angle_max_tapered
+            angle_max_tapered=geometry_config.angle_max_tapered,
         )
         self._shape = self._create_shape()
 
@@ -69,7 +69,9 @@ class SimplifiedDogBone2D(DogBone2DBase):
         normals = torch.tensor([1.0, 0.0]).repeat(shape)
         return coordinates, normals
 
-    def calculate_area_fractions_on_vertical_parallel_boundary(self, num_points) -> Tensor:
+    def calculate_area_fractions_on_vertical_parallel_boundary(
+        self, num_points
+    ) -> Tensor:
         shape = (num_points, 1)
         return torch.tensor([self.parallel_height / num_points]).repeat(shape)
 
@@ -93,7 +95,7 @@ class SimplifiedDogBone2D(DogBone2DBase):
             -self.half_parallel_height,
         )
         cut_tapered_top_left = shapely.Point(
-            -self.left_parallel_length,
+            -self.left_half_parallel_length,
             self.half_parallel_height + self.tapered_radius,
         ).buffer(self.tapered_radius)
         cut_tapered_bottom_left = shapely.Point(
@@ -113,4 +115,3 @@ class SimplifiedDogBone2D(DogBone2DBase):
             - plate_hole
         )
         return dog_bone
-

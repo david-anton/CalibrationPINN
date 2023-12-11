@@ -17,6 +17,10 @@ from .trainingdataset_quarterplatewithhole_2d import (
     QuarterPlateWithHoleTrainingDataset2D,
     QuarterPlateWithHoleTrainingDataset2DConfig,
 )
+from .trainingdataset_simplified_dogbone_2d import (
+    SimplifiedDogBoneTrainingDataset2D,
+    SimplifiedDogBoneTrainingDataset2DConfig,
+)
 from .trainingdataset_stretchedrod_1d import (
     StretchedRodTrainingDataset1D,
     StretchedRodTrainingDataset1DConfig,
@@ -39,6 +43,8 @@ __all__ = [
     "PlateWithHoleTrainingDataset2DConfig",
     "QuarterPlateWithHoleTrainingDataset2D",
     "QuarterPlateWithHoleTrainingDataset2DConfig",
+    "SimplifiedDogBoneTrainingDataset2D",
+    "SimplifiedDogBoneTrainingDataset2DConfig",
     "StretchedRodTrainingDataset1D",
     "StretchedRodTrainingDataset1DConfig",
     "ValidationDataset2D",

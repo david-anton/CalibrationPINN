@@ -7,12 +7,16 @@ from parametricpinn.data.dataset import (
     PlateWithHoleTrainingDataset2DConfig,
     QuarterPlateWithHoleTrainingDataset2D,
     QuarterPlateWithHoleTrainingDataset2DConfig,
+    SimplifiedDogBoneTrainingDataset2D,
+    SimplifiedDogBoneTrainingDataset2DConfig,
 )
 from parametricpinn.data.geometry import (
     DogBone2D,
     DogBoneGeometryConfig,
     PlateWithHole2D,
     QuarterPlateWithHole2D,
+    SimplifiedDogBone2D,
+    SimplifiedDogBoneGeometryConfig,
 )
 from parametricpinn.errors import DatasetConfigError
 
@@ -20,11 +24,13 @@ TrainingDatasetConfig: TypeAlias = Union[
     QuarterPlateWithHoleTrainingDataset2DConfig,
     PlateWithHoleTrainingDataset2DConfig,
     DogBoneTrainingDataset2DConfig,
+    SimplifiedDogBoneTrainingDataset2DConfig
 ]
 TrainingDataset: TypeAlias = Union[
     QuarterPlateWithHoleTrainingDataset2D,
     PlateWithHoleTrainingDataset2D,
     DogBoneTrainingDataset2D,
+    SimplifiedDogBoneTrainingDataset2D
 ]
 
 
@@ -71,6 +77,22 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
         geometry_dogbone = DogBone2D(geometry_config_dogbone)
         return DogBoneTrainingDataset2D(
             geometry=geometry_dogbone,
+            traction_right=config.traction_right,
+            volume_force=config.volume_force,
+            min_youngs_modulus=config.min_youngs_modulus,
+            max_youngs_modulus=config.max_youngs_modulus,
+            min_poissons_ratio=config.min_poissons_ratio,
+            max_poissons_ratio=config.max_poissons_ratio,
+            num_collocation_points=config.num_collocation_points,
+            num_points_per_bc=config.num_points_per_bc,
+            num_samples_per_parameter=config.num_samples_per_parameter,
+            bcs_overlap_angle_distance=config.bcs_overlap_angle_distance,
+        )
+    elif isinstance(config, SimplifiedDogBoneTrainingDataset2DConfig):
+        geometry_config_simplified_dogbone = SimplifiedDogBoneGeometryConfig()
+        geometry_simplified_dogbone = SimplifiedDogBone2D(geometry_config_simplified_dogbone)
+        return SimplifiedDogBoneTrainingDataset2D(
+            geometry=geometry_simplified_dogbone,
             traction_right=config.traction_right,
             volume_force=config.volume_force,
             min_youngs_modulus=config.min_youngs_modulus,

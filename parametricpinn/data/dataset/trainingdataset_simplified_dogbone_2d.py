@@ -10,7 +10,7 @@ from parametricpinn.data.dataset.dataset import (
     TrainingData2DCollocation,
     TrainingData2DTractionBC,
 )
-from parametricpinn.data.geometry import DogBone2D
+from parametricpinn.data.geometry import SimplifiedDogBone2D
 from parametricpinn.types import Tensor
 
 TrainingBatch: TypeAlias = tuple[
@@ -22,7 +22,7 @@ TrainingCollateFunc: TypeAlias = Callable[[TrainingBatchList], TrainingBatch]
 
 
 @dataclass
-class DogBoneTrainingDataset2DConfig:
+class SimplifiedDogBoneTrainingDataset2DConfig:
     traction_right: Tensor
     volume_force: Tensor
     min_youngs_modulus: float
@@ -35,10 +35,10 @@ class DogBoneTrainingDataset2DConfig:
     bcs_overlap_angle_distance: float
 
 
-class DogBoneTrainingDataset2D(Dataset):
+class SimplifiedDogBoneTrainingDataset2D(Dataset):
     def __init__(
         self,
-        geometry: DogBone2D,
+        geometry: SimplifiedDogBone2D,
         traction_right: Tensor,
         volume_force: Tensor,
         min_youngs_modulus: float,
@@ -52,7 +52,7 @@ class DogBoneTrainingDataset2D(Dataset):
     ):
         super().__init__()
         self._num_parameters = 2
-        self._num_traction_bcs = 8
+        self._num_traction_bcs = 6
         self._bcs_overlap_angle_distance = bcs_overlap_angle_distance
         self._geometry = geometry
         self._traction_right = traction_right
@@ -183,7 +183,7 @@ class DogBoneTrainingDataset2D(Dataset):
         (
             x_coor_right,
             normal_right,
-        ) = self._geometry.create_uniform_points_on_right_box_boundary(num_points)
+        ) = self._geometry.create_uniform_points_on_right_parallel_boundary(num_points)
         # top
         (
             x_coor_top_left_tapered,
@@ -192,25 +192,19 @@ class DogBoneTrainingDataset2D(Dataset):
             num_points, self._bcs_overlap_angle_distance
         )
         (
-            x_coor_top_right_tapered,
-            normal_top_right_tapered,
-        ) = self._geometry.create_uniform_points_on_top_right_tapered_boundary(
-            num_points, self._bcs_overlap_angle_distance
-        )
-        (
             x_coor_top_parallel_complete,
             normal_top_parallel_complete,
         ) = self._geometry.create_uniform_points_on_top_parallel_boundary(
-            num_points + 2
+            num_points + 1
         )
-        x_coor_top_parallel = x_coor_top_parallel_complete[1:-1, :]
-        normal_top_parallel = normal_top_parallel_complete[1:-1, :]
+        x_coor_top_parallel = x_coor_top_parallel_complete[1:, :]
+        normal_top_parallel = normal_top_parallel_complete[1:, :]
         x_coor_top = torch.concat(
-            (x_coor_top_left_tapered, x_coor_top_parallel, x_coor_top_right_tapered),
+            (x_coor_top_left_tapered, x_coor_top_parallel),
             dim=0,
         )
         normal_top = torch.concat(
-            (normal_top_left_tapered, normal_top_parallel, normal_top_right_tapered),
+            (normal_top_left_tapered, normal_top_parallel),
             dim=0,
         )
         # bottom
@@ -221,24 +215,17 @@ class DogBoneTrainingDataset2D(Dataset):
             num_points, self._bcs_overlap_angle_distance
         )
         (
-            x_coor_bottom_right_tapered,
-            normal_bottom_right_tapered,
-        ) = self._geometry.create_uniform_points_on_bottom_right_tapered_boundary(
-            num_points, self._bcs_overlap_angle_distance
-        )
-        (
             x_coor_bottom_parallel_complete,
             normal_bottom_parallel_complete,
         ) = self._geometry.create_uniform_points_on_bottom_parallel_boundary(
-            num_points + 2
+            num_points + 1
         )
-        x_coor_bottom_parallel = x_coor_bottom_parallel_complete[1:-1, :]
-        normal_bottom_parallel = normal_bottom_parallel_complete[1:-1, :]
+        x_coor_bottom_parallel = x_coor_bottom_parallel_complete[1:, :]
+        normal_bottom_parallel = normal_bottom_parallel_complete[1:, :]
         x_coor_bottom = torch.concat(
             (
                 x_coor_bottom_left_tapered,
                 x_coor_bottom_parallel,
-                x_coor_bottom_right_tapered,
             ),
             dim=0,
         )
@@ -246,7 +233,6 @@ class DogBoneTrainingDataset2D(Dataset):
             (
                 normal_bottom_left_tapered,
                 normal_bottom_parallel,
-                normal_bottom_right_tapered,
             ),
             dim=0,
         )
@@ -268,7 +254,7 @@ class DogBoneTrainingDataset2D(Dataset):
         num_points = self._num_points_per_bc
         # right
         area_frac_right = (
-            self._geometry.calculate_area_fractions_on_vertical_box_boundary(num_points)
+            self._geometry.calculate_area_fractions_on_vertical_parallel_boundary(num_points)
         )
         # top and bottom
         area_frac_tapered = self._geometry.calculate_area_fraction_on_tapered_boundary(
@@ -280,7 +266,7 @@ class DogBoneTrainingDataset2D(Dataset):
             )
         )
         area_frac_top = area_frac_bottom = torch.concat(
-            (area_frac_tapered, area_frac_parallel, area_frac_tapered), dim=0
+            (area_frac_tapered, area_frac_parallel), dim=0
         )
         # hole
         area_frac_hole = self._geometry.calculate_area_fractions_on_hole_boundary(
@@ -304,7 +290,6 @@ class DogBoneTrainingDataset2D(Dataset):
             (
                 self._traction_tapered.repeat(shape),
                 self._traction_parallel.repeat(shape),
-                self._traction_tapered.repeat(shape),
             ),
             dim=0,
         )

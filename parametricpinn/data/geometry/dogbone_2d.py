@@ -206,19 +206,19 @@ class DogBone2DBase(ABC):
 
 @dataclass
 class DogBoneGeometryConfig:
-    origin_x = 0
-    origin_y = 0
-    box_length = 120
-    box_height = 30
+    origin_x = 0.0
+    origin_y = 0.0
+    box_length = 120.0
+    box_height = 30.0
     half_box_length = box_length / 2
     half_box_height = box_height / 2
-    parallel_length = 90
-    parallel_height = 20
+    parallel_length = 90.0
+    parallel_height = 20.0
     half_parallel_length = parallel_length / 2
     half_parallel_height = parallel_height / 2
     cut_parallel_height = half_box_height - half_parallel_height
-    tapered_radius = 25
-    plate_hole_radius = 4
+    tapered_radius = 25.0
+    plate_hole_radius = 4.0
     angle_max_tapered = math.degrees(
         math.asin((half_box_length - half_parallel_length) / tapered_radius)
     )
@@ -242,7 +242,7 @@ class DogBone2D(DogBone2DBase):
             cut_parallel_height=geometry_config.cut_parallel_height,
             tapered_radius=geometry_config.tapered_radius,
             plate_hole_radius=geometry_config.plate_hole_radius,
-            angle_max_tapered=geometry_config.angle_max_tapered
+            angle_max_tapered=geometry_config.angle_max_tapered,
         )
         self._shape = self._create_shape()
 
@@ -288,7 +288,9 @@ class DogBone2D(DogBone2DBase):
         self, num_points: int
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
-        coordinates_x = torch.full(shape, self.right_half_box_length, requires_grad=True)
+        coordinates_x = torch.full(
+            shape, self.right_half_box_length, requires_grad=True
+        )
         coordinates_y = torch.linspace(
             -self.half_box_height,
             self.half_box_height,
