@@ -16,6 +16,7 @@ from parametricpinn.fem import (
     PlateWithHoleDomainConfig,
     ProblemConfigs,
     QuarterPlateWithHoleDomainConfig,
+    SimplifiedDogBoneDomainConfig,
 )
 from parametricpinn.fem import SimulationConfig as FEMSimulationConfig
 from parametricpinn.fem import run_simulation
@@ -26,7 +27,7 @@ ProblemConfigLists: TypeAlias = Union[
     list[LinearElasticityProblemConfig], list[NeoHookeanProblemConfig]
 ]
 DomainConfigs: TypeAlias = Union[
-    QuarterPlateWithHoleDomainConfig, PlateWithHoleDomainConfig, DogBoneDomainConfig
+    QuarterPlateWithHoleDomainConfig, PlateWithHoleDomainConfig, DogBoneDomainConfig, SimplifiedDogBoneDomainConfig
 ]
 
 
@@ -439,6 +440,11 @@ def _generate_coordinate_grid(
         x_max = domain_config.half_box_length
         y_min = -domain_config.half_box_height
         y_max = domain_config.half_box_height
+    if isinstance(domain_config, SimplifiedDogBoneDomainConfig):
+        x_min = -domain_config.left_half_box_length
+        x_max = domain_config.right_half_box_length
+        y_min = -domain_config.half_box_height
+        y_max = domain_config.half_box_height
     elif isinstance(domain_config, QuarterPlateWithHoleDomainConfig) or isinstance(
         domain_config, PlateWithHoleDomainConfig
     ):
@@ -492,8 +498,17 @@ def _plot_once(
 
     def _set_figure_size(figure: PLTFigure) -> None:
         if isinstance(simulation_config.domain_config, DogBoneDomainConfig):
-            figure.set_figheight(4)
-            figure.set_figwidth(16)
+            fig_height = 4
+            box_length = simulation_config.domain_config.box_length
+            box_height = simulation_config.domain_config.box_height
+            figure.set_figheight(fig_height)
+            figure.set_figwidth((box_length / box_height) * fig_height)
+        if isinstance(simulation_config.domain_config, SimplifiedDogBoneDomainConfig):
+            fig_height = 4
+            box_length = simulation_config.domain_config.box_length
+            box_height = simulation_config.domain_config.box_height
+            figure.set_figheight(fig_height)
+            figure.set_figwidth((box_length / box_height) * fig_height)
 
     def _set_title_and_labels(axes: PLTAxes) -> None:
         axes.set_title(title, pad=plot_config.title_pad, **plot_config.font)
@@ -622,6 +637,50 @@ def _add_geometry_specific_patches(
         axes.add_patch(tapered_bottom_right)
         axes.add_patch(plate_hole)
 
+    def cut_simplified_dog_bone(axes: PLTAxes, domain_config: SimplifiedDogBoneDomainConfig) -> None:
+        origin_x = domain_config.origin_x
+        origin_y = domain_config.origin_y
+        half_box_height = domain_config.half_box_height
+        left_half_parallel_length = domain_config.left_half_parallel_length
+        right_half_parallel_length = domain_config.right_half_parallel_length
+        parallel_length = domain_config.parallel_length
+        half_parallel_height = domain_config.half_parallel_height
+        cut_parallel_height = domain_config.cut_parallel_height
+        tapered_radius = domain_config.tapered_radius
+        plate_hole_radius = domain_config.plate_hole_radius
+        tapered_top_left = plt.Circle(
+            (-left_half_parallel_length, half_parallel_height + tapered_radius),
+            radius=tapered_radius,
+            color="white",
+        )
+        parallel_top = plt.Rectangle(
+            (-left_half_parallel_length, half_parallel_height),
+            width=parallel_length,
+            height=cut_parallel_height,
+            color="white",
+        )
+        tapered_bottom_left = plt.Circle(
+            (-left_half_parallel_length, -(half_parallel_height + tapered_radius)),
+            radius=tapered_radius,
+            color="white",
+        )
+        parallel_bottom = plt.Rectangle(
+            (-left_half_parallel_length, -half_box_height),
+            width=parallel_length,
+            height=cut_parallel_height,
+            color="white",
+        )
+        plate_hole = plt.Circle(
+            (origin_x, origin_y),
+            radius=plate_hole_radius,
+            color="white",
+        )
+        axes.add_patch(tapered_top_left)
+        axes.add_patch(parallel_top)
+        axes.add_patch(tapered_bottom_left)
+        axes.add_patch(parallel_bottom)
+        axes.add_patch(plate_hole)
+
     domain_config = simulation_config.domain_config
     if isinstance(domain_config, QuarterPlateWithHoleDomainConfig):
         add_quarter_hole(axes=axes, domain_config=domain_config)
@@ -629,6 +688,8 @@ def _add_geometry_specific_patches(
         add_hole(axes=axes, domain_config=domain_config)
     elif isinstance(domain_config, DogBoneDomainConfig):
         cut_dog_bone(axes=axes, domain_config=domain_config)
+    elif isinstance(domain_config, SimplifiedDogBoneDomainConfig):
+        cut_simplified_dog_bone(axes=axes, domain_config=domain_config)
     else:
         raise FEMDomainConfigError(
             f"There is no implementation for the requested FEM domain {domain_config}."

@@ -2,6 +2,7 @@ from .domains import (
     DogBoneDomainConfig,
     PlateWithHoleDomainConfig,
     QuarterPlateWithHoleDomainConfig,
+    SimplifiedDogBoneDomainConfig,
 )
 from .problems import (
     LinearElasticityProblemConfig,
@@ -14,6 +15,7 @@ __all__ = [
     "DogBoneDomainConfig",
     "PlateWithHoleDomainConfig",
     "QuarterPlateWithHoleDomainConfig",
+    "SimplifiedDogBoneDomainConfig",
     "LinearElasticityProblemConfig",
     "NeoHookeanProblemConfig",
     "ProblemConfigs",
