@@ -70,7 +70,7 @@ from parametricpinn.types import Tensor
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
-traction_right_x = 106.2629
+traction_right_x = 106.2629 * 2/3
 traction_right_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
