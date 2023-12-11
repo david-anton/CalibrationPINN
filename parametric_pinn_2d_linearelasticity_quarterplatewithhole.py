@@ -151,7 +151,7 @@ def create_datasets() -> (
             num_points_per_bc=number_points_per_bc,
             num_samples_per_parameter=num_samples_per_parameter,
             bcs_overlap_distance=bcs_overlap_distance,
-            bcs_overlap_angle_distance=bcs_overlap_angle_distance
+            bcs_overlap_angle_distance=bcs_overlap_angle_distance,
         )
         return create_training_dataset(config_training_data)
 
