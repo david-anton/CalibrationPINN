@@ -347,7 +347,7 @@ def calibration_step() -> None:
         full_shifted_coordinates = torch.from_numpy(data[:, slice_coordinates]).type(
             torch.float64
         )
-        coordinate_shift_x = geometry_config.half_parallel_length
+        coordinate_shift_x = geometry_config.left_half_parallel_length
         coordinate_shift_y = geometry_config.half_parallel_height
         full_coordinates = full_shifted_coordinates - torch.tensor(
             [coordinate_shift_x, coordinate_shift_y], dtype=torch.float64
