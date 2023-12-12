@@ -57,18 +57,18 @@ layer_sizes = [4, 32, 32, 32, 32, 2]
 distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 1
-num_collocation_points = 4096
+num_collocation_points = 8192
 number_points_per_bc = 128
-bcs_overlap_angle_distance = 30
+bcs_overlap_angle_distance = 0
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 200
+number_training_epochs = 20000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss=1.0
 weight_dirichlet_bc_loss=0.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20231212_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_rectangle"
+input_subdir_valid = "20231212_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_plate"
 num_samples_valid = 1
 validation_interval = 1
 num_points_valid = 1024
@@ -80,7 +80,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_rectangle" 
+output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_plate" 
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
