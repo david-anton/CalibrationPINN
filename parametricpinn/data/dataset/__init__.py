@@ -17,7 +17,7 @@ from .trainingdataset_quarterplatewithhole_2d import (
     QuarterPlateWithHoleTrainingDataset2D,
     QuarterPlateWithHoleTrainingDataset2DConfig,
 )
-from .trainingdataset_simplified_dogbone_2d import (
+from .trainingdataset_simplifieddogbone_2d import (
     SimplifiedDogBoneTrainingDataset2D,
     SimplifiedDogBoneTrainingDataset2DConfig,
 )
