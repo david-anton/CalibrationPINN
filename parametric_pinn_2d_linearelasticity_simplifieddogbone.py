@@ -83,7 +83,7 @@ num_collocation_points = 4096 # 128
 number_points_per_bc = 128 # 32
 bcs_overlap_angle_distance = 1e-6 # 1e-7
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 2000 # 20000
+number_training_epochs = 200 # 20000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
@@ -107,7 +107,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_180k_nu_02_col_4096_bc_128_neurons_4_32" # f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_180k_240k_nu_02_04_samples_32_col_128_bc_32_neurons_4_32"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_180k_nu_02_col_4096_bc_128_neurons_4_32_epochs_200" # f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_180k_240k_nu_02_04_samples_32_col_128_bc_32_neurons_4_32"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
