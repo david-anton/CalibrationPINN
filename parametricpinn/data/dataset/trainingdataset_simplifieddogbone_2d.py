@@ -52,7 +52,7 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
     ):
         super().__init__()
         self._num_parameters = 2
-        self._num_traction_bcs = 6
+        self._num_traction_bcs = 4 # 6
         self._bcs_overlap_angle_distance = bcs_overlap_angle_distance
         self._geometry = geometry
         self._traction_right = traction_right
