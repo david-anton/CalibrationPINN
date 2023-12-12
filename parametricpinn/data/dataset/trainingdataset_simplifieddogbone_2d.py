@@ -246,11 +246,17 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
             normal_hole,
         ) = self._geometry.create_uniform_points_on_hole_boundary(num_points)
 
+        # x_coor = torch.concat(
+        #     (x_coor_right, x_coor_top, x_coor_bottom, x_coor_hole), dim=0
+        # )
         x_coor = torch.concat(
-            (x_coor_right, x_coor_top, x_coor_bottom, x_coor_hole), dim=0
+            (x_coor_right, x_coor_top, x_coor_bottom), dim=0
         )
+        # normal = torch.concat(
+        #     (normal_right, normal_top, normal_bottom, normal_hole), dim=0
+        # )
         normal = torch.concat(
-            (normal_right, normal_top, normal_bottom, normal_hole), dim=0
+            (normal_right, normal_top, normal_bottom), dim=0
         )
         return x_coor, normal
 
