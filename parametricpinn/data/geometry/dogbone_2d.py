@@ -57,13 +57,28 @@ class DogBone2DBase(ABC):
                 point_count += 1
         return torch.vstack(point_list)
 
+    # def create_uniform_points_on_top_parallel_boundary(
+    #     self, num_points: int
+    # ) -> tuple[Tensor, Tensor]:
+    #     shape = (num_points, 1)
+    #     coordinates_x = torch.linspace(
+    #         -self.left_half_parallel_length,
+    #         self.right_half_parallel_length,
+    #         num_points,
+    #         requires_grad=True,
+    #     ).view(num_points, 1)
+    #     coordinates_y = torch.full(shape, self.half_parallel_height, requires_grad=True)
+    #     coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
+    #     normals = torch.tensor([0.0, 1.0]).repeat(shape)
+    #     return coordinates, normals
+    
     def create_uniform_points_on_top_parallel_boundary(
         self, num_points: int
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
         coordinates_x = torch.linspace(
-            -self.left_half_parallel_length,
-            self.right_half_parallel_length,
+            -self.left_half_box_length,
+            self.right_half_box_length,
             num_points,
             requires_grad=True,
         ).view(num_points, 1)
@@ -93,13 +108,30 @@ class DogBone2DBase(ABC):
             coordinates
         ), self._reverse_order_of_data_points(normals)
 
+    # def create_uniform_points_on_bottom_parallel_boundary(
+    #     self, num_points: int
+    # ) -> tuple[Tensor, Tensor]:
+    #     shape = (num_points, 1)
+    #     coordinates_x = torch.linspace(
+    #         -self.left_half_parallel_length,
+    #         self.right_half_parallel_length,
+    #         num_points,
+    #         requires_grad=True,
+    #     ).view(num_points, 1)
+    #     coordinates_y = torch.full(
+    #         shape, -self.half_parallel_height, requires_grad=True
+    #     )
+    #     coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
+    #     normals = torch.tensor([0.0, -1.0]).repeat(shape)
+    #     return coordinates, normals
+
     def create_uniform_points_on_bottom_parallel_boundary(
         self, num_points: int
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
         coordinates_x = torch.linspace(
-            -self.left_half_parallel_length,
-            self.right_half_parallel_length,
+            -self.left_half_box_length,
+            self.right_half_box_length,
             num_points,
             requires_grad=True,
         ).view(num_points, 1)

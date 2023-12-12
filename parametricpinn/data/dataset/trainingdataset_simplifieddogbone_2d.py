@@ -199,14 +199,16 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
         )
         x_coor_top_parallel = x_coor_top_parallel_complete[1:, :]
         normal_top_parallel = normal_top_parallel_complete[1:, :]
-        x_coor_top = torch.concat(
-            (x_coor_top_left_tapered, x_coor_top_parallel),
-            dim=0,
-        )
-        normal_top = torch.concat(
-            (normal_top_left_tapered, normal_top_parallel),
-            dim=0,
-        )
+        # x_coor_top = torch.concat(
+        #     (x_coor_top_left_tapered, x_coor_top_parallel),
+        #     dim=0,
+        # )
+        x_coor_top = x_coor_top_parallel
+        # normal_top = torch.concat(
+        #     (normal_top_left_tapered, normal_top_parallel),
+        #     dim=0,
+        # )
+        normal_top = normal_top_parallel
         # bottom
         (
             x_coor_bottom_left_tapered,
@@ -222,20 +224,22 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
         )
         x_coor_bottom_parallel = x_coor_bottom_parallel_complete[1:, :]
         normal_bottom_parallel = normal_bottom_parallel_complete[1:, :]
-        x_coor_bottom = torch.concat(
-            (
-                x_coor_bottom_left_tapered,
-                x_coor_bottom_parallel,
-            ),
-            dim=0,
-        )
-        normal_bottom = torch.concat(
-            (
-                normal_bottom_left_tapered,
-                normal_bottom_parallel,
-            ),
-            dim=0,
-        )
+        # x_coor_bottom = torch.concat(
+        #     (
+        #         x_coor_bottom_left_tapered,
+        #         x_coor_bottom_parallel,
+        #     ),
+        #     dim=0,
+        # )
+        x_coor_bottom = x_coor_bottom_parallel
+        # normal_bottom = torch.concat(
+        #     (
+        #         normal_bottom_left_tapered,
+        #         normal_bottom_parallel,
+        #     ),
+        #     dim=0,
+        # )
+        normal_bottom = normal_bottom_parallel
         # hole
         (
             x_coor_hole,

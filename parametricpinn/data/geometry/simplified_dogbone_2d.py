@@ -82,16 +82,28 @@ class SimplifiedDogBone2D(DogBone2DBase):
             self.right_half_box_length,
             self.half_box_height,
         )
+        # cut_parallel_top = shapely.box(
+        #     -self.left_half_parallel_length,
+        #     self.half_parallel_height,
+        #     self.right_half_parallel_length,
+        #     self.half_box_height,
+        # )
+        # cut_parallel_bottom = shapely.box(
+        #     -self.left_half_parallel_length,
+        #     -self.half_box_height,
+        #     self.right_half_parallel_length,
+        #     -self.half_parallel_height,
+        # )
         cut_parallel_top = shapely.box(
-            -self.left_half_parallel_length,
+            -self.left_half_box_length,
             self.half_parallel_height,
-            self.right_half_parallel_length,
+            self.right_half_box_length,
             self.half_box_height,
         )
         cut_parallel_bottom = shapely.box(
-            -self.left_half_parallel_length,
+            -self.left_half_box_length,
             -self.half_box_height,
-            self.right_half_parallel_length,
+            self.right_half_box_length,
             -self.half_parallel_height,
         )
         cut_tapered_top_left = shapely.Point(
@@ -110,8 +122,8 @@ class SimplifiedDogBone2D(DogBone2DBase):
             box
             - cut_parallel_top
             - cut_parallel_bottom
-            - cut_tapered_top_left
-            - cut_tapered_bottom_left
-            - plate_hole
+            # - cut_tapered_top_left
+            # - cut_tapered_bottom_left
+            # - plate_hole
         )
         return dog_bone
