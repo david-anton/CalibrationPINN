@@ -240,7 +240,7 @@ class SimplifiedDogBoneDomain:
             gmsh.model.mesh.generate(self._geometric_dim)
 
         geometry = create_geometry()
-        tag_physical_enteties(geometry)
+        #tag_physical_enteties(geometry)
         configure_mesh()
         generate_mesh()
 
