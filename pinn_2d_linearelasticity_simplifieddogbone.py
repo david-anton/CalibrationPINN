@@ -54,7 +54,7 @@ max_poissons_ratio = min_poissons_ratio
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Ansatz
-distance_function = "sigmoid"
+distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 1
 num_collocation_points = 8192
@@ -82,7 +82,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_sigmoid" 
+output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_reference" 
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
