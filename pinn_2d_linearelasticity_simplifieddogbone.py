@@ -54,7 +54,7 @@ max_poissons_ratio = min_poissons_ratio
 # Network
 layer_sizes = [4, 32, 32, 32, 32, 2]
 # Ansatz
-distance_function = "normalized linear"
+distance_function = "sigmoid"
 # Training
 num_samples_per_parameter = 1
 num_collocation_points = 8192
@@ -68,7 +68,7 @@ weight_free_traction_bc_loss=1.0
 weight_dirichlet_bc_loss=0.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20231213_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_plate"
+input_subdir_valid = "20231213_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_plate_sigmoid"
 num_samples_valid = 1
 validation_interval = 1
 num_points_valid = 1024
