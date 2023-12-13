@@ -238,7 +238,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             x_top = torch.concat((x_coor_top, x_param_top), dim=1).to(device)
             y_top = ansatz(x_top)
 
-            slice_bottom = slice(2*num_points_per_bc, -1)
+            slice_bottom = slice(2*num_points_per_bc,3*num_points_per_bc)
             x_coor_bottom = traction_bc_data.x_coor[slice_bottom, :].to(device)
             x_E_bottom = traction_bc_data.x_E[slice_bottom, :]
             x_nu_bottom = traction_bc_data.x_nu[slice_bottom, :]
