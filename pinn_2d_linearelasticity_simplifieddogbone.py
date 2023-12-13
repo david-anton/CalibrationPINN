@@ -66,7 +66,8 @@ weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss=1.0
 weight_dirichlet_bc_loss=0.0
-weight_energy_loss=1.0
+weight_energy_loss=0.0
+weight_symmetry_loss=1.0
 # Validation
 regenerate_valid_data = True
 input_subdir_valid = "20231213_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_plate"
@@ -81,7 +82,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_energy" 
+output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_symmetry" 
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -261,6 +262,7 @@ def training_step() -> None:
         weight_free_traction_bc_loss=weight_free_traction_bc_loss,
         weight_dirichlet_bc_loss=weight_dirichlet_bc_loss,
         weight_energy_loss=weight_energy_loss,
+        weight_symmetry_loss=weight_symmetry_loss,
         training_dataset=training_dataset,
         number_training_epochs=number_training_epochs,
         training_batch_size=training_batch_size,
