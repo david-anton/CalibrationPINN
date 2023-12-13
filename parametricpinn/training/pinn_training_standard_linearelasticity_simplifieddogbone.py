@@ -37,7 +37,9 @@ class TrainingConfiguration:
     ansatz: StandardAnsatz
     material_model: str
     num_points_per_bc: int
+    area_plate: float
     weight_pde_loss: float
+    weight_energy_loss: float
     weight_traction_bc_loss: float
     weight_free_traction_bc_loss: float
     weight_dirichlet_bc_loss: float
@@ -55,7 +57,9 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     ansatz = train_config.ansatz
     material_model = train_config.material_model
     num_points_per_bc = train_config.num_points_per_bc
+    area_plate = train_config.area_plate
     weight_pde_loss = train_config.weight_pde_loss
+    weight_energy_loss = train_config.weight_energy_loss
     weight_traction_bc_loss = train_config.weight_traction_bc_loss
     weight_free_traction_bc_loss = train_config.weight_free_traction_bc_loss
     weight_dirichlet_bc_loss = train_config.weight_dirichlet_bc_loss
@@ -75,8 +79,8 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     momentum_equation_func = momentum_equation_func_factory(material_model)
     traction_func = traction_func_factory(material_model)
     stress_func = stress_func_factory(material_model)
-    # traction_energy_func = traction_energy_func_factory(material_model)
-    # strain_energy_func = strain_energy_func_factory(material_model)
+    traction_energy_func = traction_energy_func_factory(material_model)
+    strain_energy_func = strain_energy_func_factory(material_model)
 
     lambda_pde_loss = torch.tensor(weight_pde_loss, requires_grad=True).to(device)
     lambda_traction_bc_loss = torch.tensor(
@@ -88,7 +92,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     lambda_dirichlet_bc_loss = torch.tensor(
         weight_dirichlet_bc_loss, requires_grad=True
     ).to(device)
-    # lambda_energy_loss = torch.tensor(weight_energy_loss, requires_grad=True).to(device)
+    lambda_energy_loss = torch.tensor(weight_energy_loss, requires_grad=True).to(device)
 
     def loss_func(
         ansatz: StandardAnsatz,
@@ -194,30 +198,30 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             loss_sigma_xy = _loss_func_sigma_xy_bc()
             return loss_dirichlet + loss_sigma_xy
 
-        # def loss_func_energy(
-        #     ansatz: StandardAnsatz,
-        #     collocation_data: TrainingData2DCollocation,
-        #     traction_bc_data: TrainingData2DTractionBC,
-        # ) -> Tensor:
-        #     area = torch.tensor(area_dogbone)
-        #     x_coor_int = collocation_data.x_coor.to(device)
-        #     x_E_int = collocation_data.x_E
-        #     x_nu_int = collocation_data.x_nu
-        #     x_param_int = torch.concat((x_E_int, x_nu_int), dim=1).to(device)
-        #     strain_energy = strain_energy_func(ansatz, x_coor_int, x_param_int, area)
+        def loss_func_energy(
+            ansatz: StandardAnsatz,
+            collocation_data: TrainingData2DCollocation,
+            traction_bc_data: TrainingData2DTractionBC,
+        ) -> Tensor:
+            area = torch.tensor(area_plate)
+            x_coor_int = collocation_data.x_coor.to(device)
+            x_E_int = collocation_data.x_E
+            x_nu_int = collocation_data.x_nu
+            x_param_int = torch.concat((x_E_int, x_nu_int), dim=1).to(device)
+            strain_energy = strain_energy_func(ansatz, x_coor_int, x_param_int, area)
 
-        #     x_coor_ext = traction_bc_data.x_coor.to(device)
-        #     x_E_ext = traction_bc_data.x_E
-        #     x_nu_ext = traction_bc_data.x_nu
-        #     x_param_ext = torch.concat((x_E_ext, x_nu_ext), dim=1).to(device)
-        #     normal_ext = traction_bc_data.normal.to(device)
-        #     area_frac_ext = traction_bc_data.area_frac.to(device)
-        #     traction_energy = traction_energy_func(
-        #         ansatz, x_coor_ext, x_param_ext, normal_ext, area_frac_ext
-        #     )
-        #     y = strain_energy - traction_energy
-        #     y_true = torch.tensor(0.0).to(device)
-        #     return loss_metric(y_true, y)
+            x_coor_ext = traction_bc_data.x_coor.to(device)
+            x_E_ext = traction_bc_data.x_E
+            x_nu_ext = traction_bc_data.x_nu
+            x_param_ext = torch.concat((x_E_ext, x_nu_ext), dim=1).to(device)
+            normal_ext = traction_bc_data.normal.to(device)
+            area_frac_ext = traction_bc_data.area_frac.to(device)
+            traction_energy = traction_energy_func(
+                ansatz, x_coor_ext, x_param_ext, normal_ext, area_frac_ext
+            )
+            y = strain_energy - traction_energy
+            y_true = torch.tensor(0.0).to(device)
+            return loss_metric(y_true, y)
 
         loss_pde = lambda_pde_loss * loss_func_pde(ansatz, collocation_data)
         loss_traction_bc = lambda_traction_bc_loss * loss_func_traction_bc(
@@ -228,10 +232,11 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             * loss_func_free_traction_bc(ansatz, traction_bc_data)
         )
         loss_dirichlet_bc = lambda_dirichlet_bc_loss * loss_func_dirichlet_bc(ansatz)
-        # loss_energy = lambda_energy_loss * loss_func_energy(
-        #     ansatz, collocation_data, traction_bc_data
-        # )
-        return loss_pde, loss_traction_bc, loss_free_traction_bc, loss_dirichlet_bc
+        loss_energy = lambda_energy_loss * loss_func_energy(
+            ansatz, collocation_data, traction_bc_data
+        )
+
+        return loss_pde, loss_traction_bc, loss_free_traction_bc, loss_dirichlet_bc, loss_energy
 
     ### Validation
     def validate_model(
@@ -334,7 +339,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     loss_hist_traction_bc = []
     loss_hist_free_traction_bc = []
     loss_hist_dirichlet_bc = []
-    # loss_hist_energy = []
+    loss_hist_energy = []
     valid_hist_mae = []
     valid_hist_rl2 = []
     valid_epochs = []
@@ -347,12 +352,14 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             loss_traction_bc,
             loss_free_traction_bc,
             loss_dirichlet_bc,
+            loss_energy
         ) = loss_func(ansatz, batch_collocation, batch_traction_bc)
         loss = (
             loss_collocation
             + loss_traction_bc
             + loss_free_traction_bc
             + loss_dirichlet_bc
+            + loss_energy
         )
         loss.backward(retain_graph=True)
         return loss.item()
@@ -364,7 +371,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         loss_hist_traction_bc_batches = []
         loss_hist_free_traction_bc_batches = []
         loss_hist_dirichlet_bc_batches = []
-        # loss_hist_energy_batches = []
+        loss_hist_energy_batches = []
 
         for batch_collocation, batch_traction_bc in train_batches:
             ansatz.train()
@@ -375,6 +382,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
                 loss_traction_bc,
                 loss_free_traction_bc,
                 loss_dirichlet_bc,
+                loss_energy
             ) = loss_func(ansatz, batch_collocation, batch_traction_bc)
 
             # Update parameters
@@ -388,18 +396,18 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             loss_hist_dirichlet_bc_batches.append(
                 loss_dirichlet_bc.detach().cpu().item()
             )
-            # loss_hist_energy_batches.append(loss_energy.detach().cpu().item())
+            loss_hist_energy_batches.append(loss_energy.detach().cpu().item())
 
         mean_loss_pde = statistics.mean(loss_hist_pde_batches)
         mean_loss_traction_bc = statistics.mean(loss_hist_traction_bc_batches)
         mean_loss_free_traction_bc = statistics.mean(loss_hist_free_traction_bc_batches)
         mean_loss_dirichlet_bc = statistics.mean(loss_hist_dirichlet_bc_batches)
-        # mean_loss_energy = statistics.mean(loss_hist_energy_batches)
+        mean_loss_energy = statistics.mean(loss_hist_energy_batches)
         loss_hist_pde.append(mean_loss_pde)
         loss_hist_traction_bc.append(mean_loss_traction_bc)
         loss_hist_free_traction_bc.append(mean_loss_free_traction_bc)
         loss_hist_dirichlet_bc.append(mean_loss_dirichlet_bc)
-        # loss_hist_energy.append(mean_loss_energy)
+        loss_hist_energy.append(mean_loss_energy)
 
         print("##################################################")
         print(f"Epoch {epoch} / {train_num_epochs - 1}")
@@ -407,7 +415,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         print(f"TRACTION BC: \t {mean_loss_traction_bc}")
         print(f"FREE TRACTION BC: \t {mean_loss_free_traction_bc}")
         print(f"DIRICHLET BC: \t {mean_loss_dirichlet_bc}")
-        # print(f"ENERGY: \t {mean_loss_energy}")
+        print(f"ENERGY: \t {mean_loss_energy}")
         print("##################################################")
         if epoch % valid_interval == 0 or epoch == train_num_epochs:
             mae, rl2 = validate_model(ansatz, valid_dataloader)
@@ -428,8 +436,9 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             loss_hist_traction_bc,
             loss_hist_free_traction_bc,
             loss_hist_dirichlet_bc,
+            loss_hist_energy
         ],
-        loss_hist_names=["PDE", "Traction BC", "Free Traction BC", "Dirichlet BC"],
+        loss_hist_names=["PDE", "Traction BC", "Free Traction BC", "Dirichlet BC", "Energy"],
         file_name="loss_pinn.png",
         output_subdir=output_subdir,
         project_directory=project_directory,
