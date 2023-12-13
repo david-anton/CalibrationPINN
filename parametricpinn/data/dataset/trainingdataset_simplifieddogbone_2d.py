@@ -277,15 +277,19 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
                 num_points
             )
         )
-        area_frac_top = area_frac_bottom = torch.concat(
-            (area_frac_tapered, area_frac_parallel), dim=0
-        )
+        # area_frac_top = area_frac_bottom = torch.concat(
+        #     (area_frac_tapered, area_frac_parallel), dim=0
+        # )
+        area_frac_top = area_frac_bottom = area_frac_parallel
         # hole
         area_frac_hole = self._geometry.calculate_area_fractions_on_hole_boundary(
             num_points
         )
+        # return torch.concat(
+        #     (area_frac_right, area_frac_top, area_frac_bottom, area_frac_hole), dim=0
+        # )
         return torch.concat(
-            (area_frac_right, area_frac_top, area_frac_bottom, area_frac_hole), dim=0
+            (area_frac_right, area_frac_top, area_frac_bottom), dim=0
         )
 
     def _create_parameters_for_bcs(
