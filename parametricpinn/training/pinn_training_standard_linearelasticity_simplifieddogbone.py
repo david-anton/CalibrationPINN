@@ -246,7 +246,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             x_bottom = torch.concat((x_coor_bottom, x_param_bottom), dim=1).to(device)
             y_bottom = ansatz(x_bottom)
 
-            y = y_top - y_bottom
+            y = y_top + y_bottom
             y_true = torch.zeros_like(y, device=device)
             return loss_metric(y_true, y)
 
