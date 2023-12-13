@@ -130,7 +130,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         def loss_func_free_traction_bc(
             ansatz: StandardAnsatz, traction_bc_data: TrainingData2DTractionBC
         ) -> Tensor:
-            slice_0 = slice(num_points_per_bc, -1)
+            slice_0 = slice(num_points_per_bc, len(traction_bc_data.x_coor))
             x_coor = traction_bc_data.x_coor[slice_0, :].to(device)
             x_E = traction_bc_data.x_E[slice_0, :]
             x_nu = traction_bc_data.x_nu[slice_0, :]
