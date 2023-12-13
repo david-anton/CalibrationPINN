@@ -645,6 +645,9 @@ def _add_geometry_specific_patches(
     ) -> None:
         origin_x = domain_config.origin_x
         origin_y = domain_config.origin_y
+        left_half_box_length = domain_config.left_half_box_length
+        right_half_box_length = domain_config.right_half_box_length
+        box_length = domain_config.box_length
         half_box_height = domain_config.half_box_height
         left_half_parallel_length = domain_config.left_half_parallel_length
         right_half_parallel_length = domain_config.right_half_parallel_length
@@ -658,9 +661,15 @@ def _add_geometry_specific_patches(
             radius=tapered_radius,
             color="white",
         )
+        # parallel_top = plt.Rectangle(
+        #     (-left_half_parallel_length, half_parallel_height),
+        #     width=parallel_length,
+        #     height=cut_parallel_height,
+        #     color="white",
+        # )
         parallel_top = plt.Rectangle(
-            (-left_half_parallel_length, half_parallel_height),
-            width=parallel_length,
+            (-left_half_box_length, half_parallel_height),
+            width=box_length,
             height=cut_parallel_height,
             color="white",
         )
@@ -669,9 +678,15 @@ def _add_geometry_specific_patches(
             radius=tapered_radius,
             color="white",
         )
+        # parallel_bottom = plt.Rectangle(
+        #     (-left_half_parallel_length, -half_box_height),
+        #     width=parallel_length,
+        #     height=cut_parallel_height,
+        #     color="white",
+        # )
         parallel_bottom = plt.Rectangle(
-            (-left_half_parallel_length, -half_box_height),
-            width=parallel_length,
+            (-left_half_box_length, -half_box_height),
+            width=box_length,
             height=cut_parallel_height,
             color="white",
         )
@@ -680,11 +695,11 @@ def _add_geometry_specific_patches(
             radius=plate_hole_radius,
             color="white",
         )
-        axes.add_patch(tapered_top_left)
+        # axes.add_patch(tapered_top_left)
         axes.add_patch(parallel_top)
-        axes.add_patch(tapered_bottom_left)
+        # axes.add_patch(tapered_bottom_left)
         axes.add_patch(parallel_bottom)
-        axes.add_patch(plate_hole)
+        # axes.add_patch(plate_hole)
 
     domain_config = simulation_config.domain_config
     if isinstance(domain_config, QuarterPlateWithHoleDomainConfig):
