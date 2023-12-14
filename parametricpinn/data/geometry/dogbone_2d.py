@@ -73,12 +73,12 @@ class DogBone2DBase(ABC):
     #     return coordinates, normals
     
     def create_uniform_points_on_top_parallel_boundary(
-        self, num_points: int
+        self, num_points: int, bcs_overlap_distance_left, bcs_overlap_distance_right
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
         coordinates_x = torch.linspace(
-            -self.left_half_box_length,
-            self.right_half_box_length,
+            -self.left_half_box_length + bcs_overlap_distance_left,
+            self.right_half_box_length - bcs_overlap_distance_right,
             num_points,
             requires_grad=True,
         ).view(num_points, 1)
@@ -126,12 +126,12 @@ class DogBone2DBase(ABC):
     #     return coordinates, normals
 
     def create_uniform_points_on_bottom_parallel_boundary(
-        self, num_points: int
+        self, num_points: int, bcs_overlap_distance_left, bcs_overlap_distance_right
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
         coordinates_x = torch.linspace(
-            -self.left_half_box_length,
-            self.right_half_box_length,
+            -self.left_half_box_length + bcs_overlap_distance_left,
+            self.right_half_box_length - bcs_overlap_distance_right,
             num_points,
             requires_grad=True,
         ).view(num_points, 1)
