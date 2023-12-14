@@ -54,7 +54,7 @@ class SimplifiedDogBoneDomainConfig:
         self.parallel_length = geometry_config.parallel_length
         self.parallel_height = geometry_config.parallel_height
         self.half_parallel_height = geometry_config.half_parallel_height
-        self.cut_parallel_height = geometry_config.cut_parallel_height 
+        self.cut_parallel_height = geometry_config.cut_parallel_height
         self.tapered_radius = geometry_config.tapered_radius
         self.plate_hole_radius = geometry_config.plate_hole_radius
         self.traction_right_x = traction_right_x
@@ -150,7 +150,7 @@ class SimplifiedDogBoneDomain:
         parallel_length = self.config.parallel_length
         parallel_height = self.config.parallel_height
         half_parallel_height = self.config.half_parallel_height
-        cut_parallel_height = self.config.cut_parallel_height 
+        cut_parallel_height = self.config.cut_parallel_height
         tapered_radius = self.config.tapered_radius
         plate_hole_radius = self.config.plate_hole_radius
         element_size = self.config.element_size
@@ -233,8 +233,12 @@ class SimplifiedDogBoneDomain:
         return gmsh.model
 
     def _tag_boundaries(self) -> DMeshTags:
-        locate_left_facet = lambda x: np.isclose(x[0], -self.config.left_half_box_length)
-        locate_right_facet = lambda x: np.isclose(x[0], self.config.right_half_box_length)
+        locate_left_facet = lambda x: np.isclose(
+            x[0], -self.config.left_half_box_length
+        )
+        locate_right_facet = lambda x: np.isclose(
+            x[0], self.config.right_half_box_length
+        )
         boundaries = [
             (self._tag_left, locate_left_facet),
             (self._tag_right, locate_right_facet),

@@ -13,5 +13,5 @@ __all__ = [
     "create_domain",
     "PlateWithHoleDomainConfig",
     "QuarterPlateWithHoleDomainConfig",
-    "SimplifiedDogBoneDomainConfig"
+    "SimplifiedDogBoneDomainConfig",
 ]

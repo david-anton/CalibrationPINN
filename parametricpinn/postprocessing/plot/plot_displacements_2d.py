@@ -27,7 +27,10 @@ ProblemConfigLists: TypeAlias = Union[
     list[LinearElasticityProblemConfig], list[NeoHookeanProblemConfig]
 ]
 DomainConfigs: TypeAlias = Union[
-    QuarterPlateWithHoleDomainConfig, PlateWithHoleDomainConfig, DogBoneDomainConfig, SimplifiedDogBoneDomainConfig
+    QuarterPlateWithHoleDomainConfig,
+    PlateWithHoleDomainConfig,
+    DogBoneDomainConfig,
+    SimplifiedDogBoneDomainConfig,
 ]
 
 
@@ -637,7 +640,9 @@ def _add_geometry_specific_patches(
         axes.add_patch(tapered_bottom_right)
         axes.add_patch(plate_hole)
 
-    def cut_simplified_dog_bone(axes: PLTAxes, domain_config: SimplifiedDogBoneDomainConfig) -> None:
+    def cut_simplified_dog_bone(
+        axes: PLTAxes, domain_config: SimplifiedDogBoneDomainConfig
+    ) -> None:
         origin_x = domain_config.origin_x
         origin_y = domain_config.origin_y
         half_box_height = domain_config.half_box_height

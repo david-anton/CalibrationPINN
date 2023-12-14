@@ -24,13 +24,13 @@ TrainingDatasetConfig: TypeAlias = Union[
     QuarterPlateWithHoleTrainingDataset2DConfig,
     PlateWithHoleTrainingDataset2DConfig,
     DogBoneTrainingDataset2DConfig,
-    SimplifiedDogBoneTrainingDataset2DConfig
+    SimplifiedDogBoneTrainingDataset2DConfig,
 ]
 TrainingDataset: TypeAlias = Union[
     QuarterPlateWithHoleTrainingDataset2D,
     PlateWithHoleTrainingDataset2D,
     DogBoneTrainingDataset2D,
-    SimplifiedDogBoneTrainingDataset2D
+    SimplifiedDogBoneTrainingDataset2D,
 ]
 
 
@@ -90,7 +90,9 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
         )
     elif isinstance(config, SimplifiedDogBoneTrainingDataset2DConfig):
         geometry_config_simplified_dogbone = SimplifiedDogBoneGeometryConfig()
-        geometry_simplified_dogbone = SimplifiedDogBone2D(geometry_config_simplified_dogbone)
+        geometry_simplified_dogbone = SimplifiedDogBone2D(
+            geometry_config_simplified_dogbone
+        )
         return SimplifiedDogBoneTrainingDataset2D(
             geometry=geometry_simplified_dogbone,
             traction_right=config.traction_right,
