@@ -497,7 +497,7 @@ def calibration_step() -> None:
 
         model_error_prior = model_error_gp.get_uninformed_parameters_prior(
             device,
-            upper_limit_output_scale=1.0,
+            upper_limit_output_scale=2.0,
             upper_limit_length_scale=2.0,
         )
         prior = multiply_priors(
@@ -520,7 +520,7 @@ def calibration_step() -> None:
             None,
             None,
         )
-        initial_gp_output_scale = 0.0
+        initial_gp_output_scale = 1.0
         initial_gp_length_scale = 1.0
         initial_model_error_parameters = torch.tensor(
             [
