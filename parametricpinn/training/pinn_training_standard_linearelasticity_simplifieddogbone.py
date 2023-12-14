@@ -105,16 +105,6 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         def loss_func_pde(
             ansatz: StandardAnsatz, collocation_data: TrainingData2DCollocation
         ) -> Tensor:
-            ############################################################
-            linspace_x = torch.linspace(-60, 40, steps=128, device=device)
-            linspace_y = torch.linspace(-10, 10, steps=32, device=device)
-            grid_x, grid_y = torch.meshgrid(linspace_x, linspace_y)
-            coordinates_x = grid_x.reshape((-1, 1))
-            coordinates_y = grid_y.reshape((-1, 1))
-            coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
-            collocation_data.x_coor = coordinates
-            ############################################################
-
             x_coor = collocation_data.x_coor.to(device)
             x_E = collocation_data.x_E
             x_nu = collocation_data.x_nu
