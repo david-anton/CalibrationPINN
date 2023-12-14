@@ -520,8 +520,17 @@ def calibration_step() -> None:
             None,
             None,
         )
-        initial_model_error_parameters = torch.ones(
-            (model_error_gp.num_hyperparameters,), dtype=torch.float64, device=device
+        initial_gp_output_scale = 0.0
+        initial_gp_length_scale = 1.0
+        initial_model_error_parameters = torch.tensor(
+            [
+                initial_gp_output_scale,
+                initial_gp_length_scale,
+                initial_gp_output_scale,
+                initial_gp_length_scale,
+            ],
+            dtype=torch.float64,
+            device=device,
         )
         initial_parameters = torch.concat(
             [initial_material_parameters, initial_model_error_parameters]
@@ -545,19 +554,20 @@ def calibration_step() -> None:
         ansatz=model,
         calibration_data=data,
     )
-    std_proposal_density_youngs_modulus = 0.1  # 1
-    std_proposal_density_poissons_ratio = 0.00015  # 0.0015
+    std_proposal_density_youngs_modulus = 1.0  # 0.1
+    std_proposal_density_poissons_ratio = 1.5 * 1e-4
     if consider_model_error:
-        std_proposal_density_gp_hyperparameters = 0.001  # 0.01
+        std_proposal_density_gp_output_scale = 1e-6  # 0.001
+        std_proposal_density_gp_length_scale = 1e-4  # 0.001
         cov_proposal_density = torch.diag(
             torch.tensor(
                 [
                     std_proposal_density_youngs_modulus,
                     std_proposal_density_poissons_ratio,
-                    std_proposal_density_gp_hyperparameters,
-                    std_proposal_density_gp_hyperparameters,
-                    std_proposal_density_gp_hyperparameters,
-                    std_proposal_density_gp_hyperparameters,
+                    std_proposal_density_gp_output_scale,
+                    std_proposal_density_gp_length_scale,
+                    std_proposal_density_gp_output_scale,
+                    std_proposal_density_gp_length_scale,
                 ],
                 dtype=torch.float64,
                 device=device,
@@ -581,7 +591,7 @@ def calibration_step() -> None:
         likelihood=likelihood,
         prior=prior,
         initial_parameters=initial_parameters,
-        num_iterations=int(1e6),
+        num_iterations=int(1e5),
         num_burn_in_iterations=int(1e5),
         cov_proposal_density=cov_proposal_density,
     )
