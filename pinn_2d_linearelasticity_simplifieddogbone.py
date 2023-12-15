@@ -27,11 +27,7 @@ from parametricpinn.fem import (
     run_simulation,
 )
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.network import (
-    FFNN,
-    create_normalized_network,
-    create_normalized_sine_network,
-)
+from parametricpinn.network import FFNN, SineFFNN, create_normalized_network
 from parametricpinn.postprocessing.plot import (
     DisplacementsPlotterConfig2D,
     plot_displacements_2d,
@@ -240,8 +236,8 @@ def create_ansatz() -> StandardAnsatz:
         }
 
     normalization_values = _determine_normalization_values()
-    network = FFNN(layer_sizes=layer_sizes)
-    return create_normalized_sine_network(
+    network = SineFFNN(layer_sizes=layer_sizes)
+    return create_normalized_network(
         network=network,
         min_inputs=normalization_values["min_inputs"],
         max_inputs=normalization_values["max_inputs"],
