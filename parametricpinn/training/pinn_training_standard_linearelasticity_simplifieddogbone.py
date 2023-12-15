@@ -360,8 +360,8 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         #     ansatz, collocation_data, traction_bc_data
         # )
         loss_energy = torch.tensor(0.0, device=device, requires_grad=True)
-        # loss_symmetry = lambda_symmetry_loss * loss_func_symmetry(ansatz, traction_bc_data)
-        loss_symmetry = torch.tensor(0.0, device=device, requires_grad=True)
+        loss_symmetry = lambda_symmetry_loss * loss_func_symmetry(ansatz, traction_bc_data)
+        # loss_symmetry = torch.tensor(0.0, device=device, requires_grad=True)
 
         return loss_pde, loss_traction_bc, loss_free_traction_bc, loss_dirichlet_bc, loss_energy, loss_symmetry
 
