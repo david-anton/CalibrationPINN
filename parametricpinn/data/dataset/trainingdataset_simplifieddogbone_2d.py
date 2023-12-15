@@ -164,14 +164,15 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
         coordinates_y_all = grid_y_all.reshape((-1, 1))
         x_coor_all = torch.concat((coordinates_x_all, coordinates_y_all), dim=1)
 
-        linspace_x_start = torch.linspace(-60, -35, steps=32 + 1)
-        linspace_y_start = torch.linspace(-10, 10, steps=32 +1)
-        grid_x_start, grid_y_start = torch.meshgrid(linspace_x_start, linspace_y_start)
-        coordinates_x_start = grid_x_start.reshape((-1, 1))
-        coordinates_y_start = grid_y_start.reshape((-1, 1))
-        x_coor_start = torch.concat((coordinates_x_start, coordinates_y_start), dim=1)
+        # linspace_x_start = torch.linspace(-60, -35, steps=32 + 1)
+        # linspace_y_start = torch.linspace(-10, 10, steps=32 +1)
+        # grid_x_start, grid_y_start = torch.meshgrid(linspace_x_start, linspace_y_start)
+        # coordinates_x_start = grid_x_start.reshape((-1, 1))
+        # coordinates_y_start = grid_y_start.reshape((-1, 1))
+        # x_coor_start = torch.concat((coordinates_x_start, coordinates_y_start), dim=1)
 
-        x_coor = torch.concat((x_coor_all, x_coor_start), dim=0)
+        # x_coor = torch.concat((x_coor_all, x_coor_start), dim=0)
+        x_coor = x_coor_all
         ############################################################
         shape = (len(x_coor), 1)
         x_E = repeat_tensor(torch.tensor([youngs_modulus]), shape)

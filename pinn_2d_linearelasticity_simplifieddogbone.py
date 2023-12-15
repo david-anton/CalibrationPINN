@@ -63,7 +63,7 @@ bcs_overlap_angle_distance = 0
 bcs_overlap_distance_left = 0
 bcs_overlap_distance_right = 0
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 2000
+number_training_epochs = 1 #2000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss=1.0
@@ -84,7 +84,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_uniform_refined" 
+output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_uniform_test" 
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -228,6 +228,12 @@ def create_ansatz() -> StandardAnsatz:
         max_displacement_y = float(np.amax(simulation_results.displacements_y))
         min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
         max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
+        print("###########################")
+        print(f"Min inputs {min_inputs}")
+        print(f"Max inputs {max_inputs}")
+        print(f"Min outputs {min_outputs}")
+        print(f"Max outputs {max_outputs}")
+        print("###########################")
         return {
             "min_inputs": min_inputs.to(device),
             "max_inputs": max_inputs.to(device),
