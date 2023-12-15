@@ -39,6 +39,9 @@ class UnivariateNormalPlotterConfig:
         self.pdf_mean_linestyle = "solid"
         self.pdf_interval_color = "tab:red"
         self.pdf_interval_linestyle = "dashed"
+        
+        # interval
+        self.interval_num_stds = 1.959964 # quantile for 95% interval
 
         # major ticks
         self.major_tick_label_size = 12
@@ -183,13 +186,13 @@ def plot_univariate_normal_distribution(
         label=r"$\mu$",
     )
     axes.axvline(
-        x=mean - 3 * standard_deviation,
+        x=mean - config.interval_num_stds * standard_deviation,
         color=config.pdf_interval_color,
         linestyle=config.pdf_interval_linestyle,
         label=r"$3\sigma$",
     )
     axes.axvline(
-        x=mean + 3 * standard_deviation,
+        x=mean + config.interval_num_stds * standard_deviation,
         color=config.pdf_interval_color,
         linestyle=config.pdf_interval_linestyle,
     )
