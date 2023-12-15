@@ -63,11 +63,11 @@ bcs_overlap_angle_distance = 0
 bcs_overlap_distance_left = 0
 bcs_overlap_distance_right = 0
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 5000
-weight_pde_loss = 100.0
+number_training_epochs = 2000
+weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss=1.0
-weight_dirichlet_bc_loss=1.0
+weight_dirichlet_bc_loss=0.0
 weight_energy_loss=0.0
 weight_symmetry_loss=0.0
 # Validation
@@ -84,7 +84,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_uniform_without_pde_100" 
+output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_uniform_refined" 
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -237,26 +237,26 @@ def create_ansatz() -> StandardAnsatz:
 
     normalization_values = _determine_normalization_values()
     network = FFNN(layer_sizes=layer_sizes)
-    return create_normalized_network(
-        network=network,
-        min_inputs=normalization_values["min_inputs"],
-        max_inputs=normalization_values["max_inputs"],
-        min_outputs=normalization_values["min_outputs"],
-        max_outputs=normalization_values["max_outputs"],
-    ).to(device)
-    # network = FFNN(layer_sizes=layer_sizes)
-    # return create_standard_normalized_hbc_ansatz_clamped_left(
-    #     coordinate_x_left=torch.tensor(
-    #         [-geometry_config.left_half_box_length], device=device
-    #     ),
+    # return create_normalized_network(
+    #     network=network,
     #     min_inputs=normalization_values["min_inputs"],
     #     max_inputs=normalization_values["max_inputs"],
     #     min_outputs=normalization_values["min_outputs"],
     #     max_outputs=normalization_values["max_outputs"],
-    #     network=network,
-    #     distance_function_type=distance_function,
-    #     device=device,
     # ).to(device)
+    network = FFNN(layer_sizes=layer_sizes)
+    return create_standard_normalized_hbc_ansatz_clamped_left(
+        coordinate_x_left=torch.tensor(
+            [-geometry_config.left_half_box_length], device=device
+        ),
+        min_inputs=normalization_values["min_inputs"],
+        max_inputs=normalization_values["max_inputs"],
+        min_outputs=normalization_values["min_outputs"],
+        max_outputs=normalization_values["max_outputs"],
+        network=network,
+        distance_function_type=distance_function,
+        device=device,
+    ).to(device)
 
 
 ansatz = create_ansatz()

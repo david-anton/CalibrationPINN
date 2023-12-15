@@ -154,16 +154,26 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
     def _add_collocation_sample(
         self, youngs_modulus: float, poissons_ratio: float
     ) -> None:
-        shape = (self._num_collocation_points, 1)
+        # shape = (self._num_collocation_points, 1)
         # x_coor = self._geometry.create_random_points(self._num_collocation_points)
         ############################################################
-        linspace_x = torch.linspace(-60, 40, steps=128)
-        linspace_y = torch.linspace(-10, 10, steps=32)
-        grid_x, grid_y = torch.meshgrid(linspace_x, linspace_y)
-        coordinates_x = grid_x.reshape((-1, 1))
-        coordinates_y = grid_y.reshape((-1, 1))
-        x_coor = torch.concat((coordinates_x, coordinates_y), dim=1)
+        linspace_x_all = torch.linspace(-60, 40, steps=128)
+        linspace_y_all = torch.linspace(-10, 10, steps=32)
+        grid_x_all, grid_y_all = torch.meshgrid(linspace_x_all, linspace_y_all)
+        coordinates_x_all = grid_x_all.reshape((-1, 1))
+        coordinates_y_all = grid_y_all.reshape((-1, 1))
+        x_coor_all = torch.concat((coordinates_x_all, coordinates_y_all), dim=1)
+
+        linspace_x_start = torch.linspace(-60, -35, steps=32 + 1)
+        linspace_y_start = torch.linspace(-10, 10, steps=32 +1)
+        grid_x_start, grid_y_start = torch.meshgrid(linspace_x_start, linspace_y_start)
+        coordinates_x_start = grid_x_start.reshape((-1, 1))
+        coordinates_y_start = grid_y_start.reshape((-1, 1))
+        x_coor_start = torch.concat((coordinates_x_start, coordinates_y_start), dim=1)
+
+        x_coor = torch.concat((x_coor_all, x_coor_start), dim=0)
         ############################################################
+        shape = (len(x_coor), 1)
         x_E = repeat_tensor(torch.tensor([youngs_modulus]), shape)
         x_nu = repeat_tensor(torch.tensor([poissons_ratio]), shape)
         f = repeat_tensor(self._volume_force, shape)
