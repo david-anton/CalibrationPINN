@@ -141,16 +141,16 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             return loss_metric(y_true, y)
 
         def loss_func_dirichlet_bc(ansatz: StandardAnsatz) -> Tensor:
-            coor_x_max = 40
-            coor_y_min = -15
-            coor_y_max = 15
+            coor_x = -60.0
+            coor_y_min = -10.0
+            coor_y_max = 10.0
             youngs_modulus = 210000.0
             poissons_ratio = 0.3
-            u_x = 0.07
+            u_x = u_y = 0.0
 
             x_coor_x = torch.full(
                 (num_points_per_bc, 1),
-                coor_x_max,
+                coor_x,
                 dtype=torch.float64,
                 requires_grad=True,
             )
@@ -178,28 +178,70 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             x = torch.concat((x_coor, x_param), dim=1).to(device)
 
             def _loss_func_dirichlet_bc() -> Tensor:
-                y = ansatz(x)[:, 0].reshape((-1, 1))
-                y_true = torch.full((num_points_per_bc, 1), u_x).to(device)
+                y = ansatz(x)
+                y_true = torch.tensor([u_x, u_y], requires_grad=True, dtype=torch.float64).repeat((num_points_per_bc, 1)).to(device)
                 return loss_metric(y_true, y)
 
-            def _loss_func_sigma_xy_bc() -> Tensor:
-                shear_stress_filter = (
-                    torch.tensor([[0.0, 1.0], [1.0, 0.0]])
-                    .repeat(num_points_per_bc, 1, 1)
-                    .to(device)
-                )
-                stress_tensors = stress_func(ansatz, x_coor, x_param)
-                y = shear_stress_filter * stress_tensors
-                y_true = (
-                    torch.tensor([[0.0, 0.0], [0.0, 0.0]])
-                    .repeat(num_points_per_bc, 1, 1)
-                    .to(device)
-                )
-                return loss_metric(y_true, y)
+            return _loss_func_dirichlet_bc() 
+            # coor_x_max = 40
+            # coor_y_min = -15
+            # coor_y_max = 15
+            # youngs_modulus = 210000.0
+            # poissons_ratio = 0.3
+            # u_x = 0.07
 
-            loss_dirichlet = _loss_func_dirichlet_bc()
-            loss_sigma_xy = _loss_func_sigma_xy_bc()
-            return loss_dirichlet + loss_sigma_xy
+            # x_coor_x = torch.full(
+            #     (num_points_per_bc, 1),
+            #     coor_x_max,
+            #     dtype=torch.float64,
+            #     requires_grad=True,
+            # )
+            # x_coor_y = torch.linspace(
+            #     coor_y_min,
+            #     coor_y_max,
+            #     steps=num_points_per_bc,
+            #     dtype=torch.float64,
+            #     requires_grad=True,
+            # ).reshape((-1, 1))
+            # x_coor = torch.concat((x_coor_x, x_coor_y), dim=1).to(device)
+            # x_E = torch.full(
+            #     (num_points_per_bc, 1),
+            #     youngs_modulus,
+            #     dtype=torch.float64,
+            #     requires_grad=True,
+            # )
+            # x_nu = torch.full(
+            #     (num_points_per_bc, 1),
+            #     poissons_ratio,
+            #     dtype=torch.float64,
+            #     requires_grad=True,
+            # )
+            # x_param = torch.concat((x_E, x_nu), dim=1).to(device)
+            # x = torch.concat((x_coor, x_param), dim=1).to(device)
+
+            # def _loss_func_dirichlet_bc() -> Tensor:
+            #     y = ansatz(x)[:, 0].reshape((-1, 1))
+            #     y_true = torch.full((num_points_per_bc, 1), u_x).to(device)
+            #     return loss_metric(y_true, y)
+
+            # def _loss_func_sigma_xy_bc() -> Tensor:
+            #     shear_stress_filter = (
+            #         torch.tensor([[0.0, 1.0], [1.0, 0.0]])
+            #         .repeat(num_points_per_bc, 1, 1)
+            #         .to(device)
+            #     )
+            #     stress_tensors = stress_func(ansatz, x_coor, x_param)
+            #     y = shear_stress_filter * stress_tensors
+            #     y_true = (
+            #         torch.tensor([[0.0, 0.0], [0.0, 0.0]])
+            #         .repeat(num_points_per_bc, 1, 1)
+            #         .to(device)
+            #     )
+            #     return loss_metric(y_true, y)
+
+            # loss_dirichlet = _loss_func_dirichlet_bc()
+            # loss_sigma_xy = _loss_func_sigma_xy_bc()
+            # return loss_dirichlet + loss_sigma_xy
 
         def loss_func_energy(
             ansatz: StandardAnsatz,
@@ -313,13 +355,13 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             lambda_free_traction_bc_loss
             * loss_func_free_traction_bc(ansatz, traction_bc_data)
         )
-        # loss_dirichlet_bc = lambda_dirichlet_bc_loss * loss_func_dirichlet_bc(ansatz)
-        loss_dirichlet_bc = torch.tensor(0.0, device=device)
+        loss_dirichlet_bc = lambda_dirichlet_bc_loss * loss_func_dirichlet_bc(ansatz)
         # loss_energy = lambda_energy_loss * loss_func_energy(
         #     ansatz, collocation_data, traction_bc_data
         # )
         loss_energy = torch.tensor(0.0, device=device, requires_grad=True)
-        loss_symmetry = lambda_symmetry_loss * loss_func_symmetry(ansatz, traction_bc_data)
+        # loss_symmetry = lambda_symmetry_loss * loss_func_symmetry(ansatz, traction_bc_data)
+        loss_symmetry = torch.tensor(0.0, device=device, requires_grad=True)
 
         return loss_pde, loss_traction_bc, loss_free_traction_bc, loss_dirichlet_bc, loss_energy, loss_symmetry
 
