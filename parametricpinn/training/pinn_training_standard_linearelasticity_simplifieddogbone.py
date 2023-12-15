@@ -112,9 +112,6 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             volume_force = collocation_data.f.to(device)
             y_true = torch.zeros_like(x_coor).to(device)
             y = momentum_equation_func(ansatz, x_coor, x_param, volume_force)
-            # print("PDE")
-            # print(f"y_true: {y_true.shape}")
-            # print(f"y: {y.shape}")
             return loss_metric(y_true, y)
 
         def loss_func_traction_bc(
@@ -128,9 +125,6 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             normal = traction_bc_data.normal[slice_0, :].to(device)
             y_true = traction_bc_data.y_true[slice_0, :].to(device)
             y = traction_func(ansatz, x_coor, x_param, normal)
-            # print("Traction BC")
-            # print(f"y_true: {y_true.shape}")
-            # print(f"y: {y.shape}")
             return loss_metric(y_true, y)
 
         def loss_func_free_traction_bc(
@@ -144,9 +138,6 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             normal = traction_bc_data.normal[slice_0, :].to(device)
             y_true = traction_bc_data.y_true[slice_0, :].to(device)
             y = traction_func(ansatz, x_coor, x_param, normal)
-            # print("Free traction BC")
-            # print(f"y_true: {y_true.shape}")
-            # print(f"y: {y.shape}")
             return loss_metric(y_true, y)
 
         def loss_func_dirichlet_bc(ansatz: StandardAnsatz) -> Tensor:
@@ -514,6 +505,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         loss_hist_energy_batches = []
         loss_hist_symmetry_batches = []
 
+        print(f"Number of batches: {len(train_batches)}")
         for batch_collocation, batch_traction_bc in train_batches:
             ansatz.train()
 

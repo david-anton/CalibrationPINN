@@ -157,22 +157,52 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
         # shape = (self._num_collocation_points, 1)
         # x_coor = self._geometry.create_random_points(self._num_collocation_points)
         ############################################################
-        linspace_x_all = torch.linspace(-60, 40, steps=128)
-        linspace_y_all = torch.linspace(-10, 10, steps=32)
-        grid_x_all, grid_y_all = torch.meshgrid(linspace_x_all, linspace_y_all)
-        coordinates_x_all = grid_x_all.reshape((-1, 1))
-        coordinates_y_all = grid_y_all.reshape((-1, 1))
-        x_coor_all = torch.concat((coordinates_x_all, coordinates_y_all), dim=1)
+        ### Level 1
+        x_l1 = 100.0
+        min_x_l1 = -60.0
+        num_points_x_l1 = 128
+        dist_x_l1 = x_l1/(num_points_x_l1-1)
+        half_dist_x_l1 = dist_x_l1 / 2
+        min_y_l1 = -10.0
+        y_l1 = 20.0
+        num_points_y_l1 = 32
+        dist_y_l1 = y_l1/(num_points_y_l1-1)
+        half_dist_y_l1 = dist_y_l1/2
+        linspace_x_l1 = torch.linspace(min_x_l1, min_x_l1+x_l1, steps=num_points_x_l1)
+        linspace_y_l1 = torch.linspace(min_y_l1, min_y_l1+y_l1, steps=num_points_y_l1)
+        grid_x_l1, grid_y_l1 = torch.meshgrid(linspace_x_l1, linspace_y_l1)
+        coordinates_x_l1 = grid_x_l1.reshape((-1, 1))
+        coordinates_y_l1 = grid_y_l1.reshape((-1, 1))
+        x_coor_l1 = torch.concat((coordinates_x_l1, coordinates_y_l1), dim=1)
 
-        # linspace_x_start = torch.linspace(-60, -35, steps=32 + 1)
-        # linspace_y_start = torch.linspace(-10, 10, steps=32 +1)
-        # grid_x_start, grid_y_start = torch.meshgrid(linspace_x_start, linspace_y_start)
-        # coordinates_x_start = grid_x_start.reshape((-1, 1))
-        # coordinates_y_start = grid_y_start.reshape((-1, 1))
-        # x_coor_start = torch.concat((coordinates_x_start, coordinates_y_start), dim=1)
+        ### Level 2
+        min_x_l2 = min_x_l1
+        num_points_x_l2 = 32
+        linspace_x_l2 = torch.linspace(min_x_l2 + half_dist_x_l1, min_x_l2 + (num_points_x_l2 * dist_x_l1)-half_dist_x_l1 , steps=num_points_x_l2)
+        num_points_y_l2 = num_points_y_l1-1
+        linspace_y_l2 = torch.linspace(min_y_l1 + half_dist_y_l1, min_y_l1 + y_l1 - half_dist_y_l1, steps=num_points_y_l2)
+        grid_x_l2, grid_y_l2 = torch.meshgrid(linspace_x_l2, linspace_y_l2)
+        coordinates_x_l2 = grid_x_l2.reshape((-1, 1))
+        coordinates_y_l2 = grid_y_l2.reshape((-1, 1))
+        x_coor_l2 = torch.concat((coordinates_x_l2, coordinates_y_l2), dim=1)
 
-        # x_coor = torch.concat((x_coor_all, x_coor_start), dim=0)
-        x_coor = x_coor_all
+        ### Level 3
+        num_points_l3 = 32
+        linspace_x_l3_top = torch.linspace(-60.0, -55.0, steps=num_points_l3)
+        linspace_y_l3_top = torch.linspace(10.0, 5.0, steps=num_points_l3)
+        grid_x_l3_top, grid_y_l3_top = torch.meshgrid(linspace_x_l3_top, linspace_y_l3_top)
+        coordinates_x_l3_top = grid_x_l3_top.reshape((-1, 1))
+        coordinates_y_l3_top = grid_y_l3_top.reshape((-1, 1))
+        x_coor_l3_top = torch.concat((coordinates_x_l3_top, coordinates_y_l3_top), dim=1)
+
+        linspace_x_l3_bottom = torch.linspace(-60.0, -55.0, steps=num_points_l3)
+        linspace_y_l3_bottom = torch.linspace(-10.0, -5.0, steps=num_points_l3)
+        grid_x_l3_bottom, grid_y_l3_bottom = torch.meshgrid(linspace_x_l3_bottom, linspace_y_l3_bottom)
+        coordinates_x_l3_bottom = grid_x_l3_bottom.reshape((-1, 1))
+        coordinates_y_l3_bottom = grid_y_l3_bottom.reshape((-1, 1))
+        x_coor_l3_bottom = torch.concat((coordinates_x_l3_bottom, coordinates_y_l3_bottom), dim=1)
+
+        x_coor = torch.concat((x_coor_l1, x_coor_l2, x_coor_l3_top, x_coor_l3_bottom), dim=0)
         ############################################################
         shape = (len(x_coor), 1)
         x_E = repeat_tensor(torch.tensor([youngs_modulus]), shape)
