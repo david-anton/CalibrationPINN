@@ -110,7 +110,7 @@ fem_element_degree = 2
 fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = 20231206
+output_date = 20231207 # 20231206
 output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_4_32_traction_300"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
