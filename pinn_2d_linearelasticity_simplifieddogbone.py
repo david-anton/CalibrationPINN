@@ -27,7 +27,11 @@ from parametricpinn.fem import (
     run_simulation,
 )
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.network import FFNN, create_normalized_network
+from parametricpinn.network import (
+    FFNN,
+    create_normalized_network,
+    create_normalized_sine_network,
+)
 from parametricpinn.postprocessing.plot import (
     DisplacementsPlotterConfig2D,
     plot_displacements_2d,
@@ -69,7 +73,7 @@ weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss=1.0
 weight_dirichlet_bc_loss=100.0
 weight_energy_loss=0.0
-weight_symmetry_loss=1.0
+weight_symmetry_loss=0.0
 # Validation
 regenerate_valid_data = True
 input_subdir_valid = "20231213_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_plate"
@@ -84,7 +88,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_uniform_without_HBC_symmetry" 
+output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_uniform_without_HBC_sine" 
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -237,7 +241,7 @@ def create_ansatz() -> StandardAnsatz:
 
     normalization_values = _determine_normalization_values()
     network = FFNN(layer_sizes=layer_sizes)
-    return create_normalized_network(
+    return create_normalized_sine_network(
         network=network,
         min_inputs=normalization_values["min_inputs"],
         max_inputs=normalization_values["max_inputs"],
