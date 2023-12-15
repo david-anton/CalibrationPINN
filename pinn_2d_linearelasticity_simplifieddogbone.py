@@ -27,7 +27,7 @@ from parametricpinn.fem import (
     run_simulation,
 )
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.network import FFNN, SineFFNN, create_normalized_network
+from parametricpinn.network import FFNN, create_normalized_network
 from parametricpinn.postprocessing.plot import (
     DisplacementsPlotterConfig2D,
     plot_displacements_2d,
@@ -43,7 +43,7 @@ from parametricpinn.types import Tensor
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
-traction_right_x = 106.2629
+traction_right_x = 1000.0 #106.2629
 traction_right_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
@@ -63,16 +63,16 @@ bcs_overlap_angle_distance = 0
 bcs_overlap_distance_left = 0
 bcs_overlap_distance_right = 0
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 2000
+number_training_epochs = 5000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss=1.0
-weight_dirichlet_bc_loss=100.0
+weight_dirichlet_bc_loss=1.0
 weight_energy_loss=0.0
 weight_symmetry_loss=0.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20231213_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_plate"
+input_subdir_valid = "20231213_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_plate_traction_1000"
 num_samples_valid = 1
 validation_interval = 10
 num_points_valid = 1024
@@ -84,7 +84,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_uniform_without_HBC_sine" 
+output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_uniform_without_traction_1000" 
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -236,7 +236,7 @@ def create_ansatz() -> StandardAnsatz:
         }
 
     normalization_values = _determine_normalization_values()
-    network = SineFFNN(layer_sizes=layer_sizes)
+    network = FFNN(layer_sizes=layer_sizes)
     return create_normalized_network(
         network=network,
         min_inputs=normalization_values["min_inputs"],
