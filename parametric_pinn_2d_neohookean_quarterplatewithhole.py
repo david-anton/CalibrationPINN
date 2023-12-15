@@ -111,7 +111,7 @@ fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = 20231206
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_4_32_traction_100"
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_4_32_traction_300"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -557,7 +557,7 @@ def calibration_step() -> None:
     std_proposal_density_youngs_modulus = 1.0
     std_proposal_density_poissons_ratio = 1.5 * 1e-4
     if consider_model_error:
-        std_proposal_density_gp_output_scale = 5e-7
+        std_proposal_density_gp_output_scale = 1e-6
         std_proposal_density_gp_length_scale = 1e-4
         cov_proposal_density = torch.diag(
             torch.tensor(
