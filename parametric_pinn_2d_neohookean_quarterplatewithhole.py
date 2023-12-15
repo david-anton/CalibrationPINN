@@ -591,8 +591,8 @@ def calibration_step() -> None:
         likelihood=likelihood,
         prior=prior,
         initial_parameters=initial_parameters,
-        num_iterations=int(1e4),
-        num_burn_in_iterations=int(2e5),
+        num_iterations=int(1e5),
+        num_burn_in_iterations=int(1e5),
         cov_proposal_density=cov_proposal_density,
     )
     mcmc_config_h = HamiltonianConfig(
