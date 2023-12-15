@@ -85,7 +85,7 @@ class NormalizedSineNetwork(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         normalized_x = self._input_normalizer(x)
-        sine_x = torch.sin(normalized_x * torch.tensor(math.pi, requires_grad=True, device=x.device))
+        sine_x = torch.sin(normalized_x * torch.tensor(math.pi/2, requires_grad=True, device=x.device))
         normalized_y = self._network(sine_x)
         y = self._output_renormalizer(normalized_y)
         return y
