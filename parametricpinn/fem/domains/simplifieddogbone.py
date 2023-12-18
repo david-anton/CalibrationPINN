@@ -55,7 +55,7 @@ class SimplifiedDogBoneDomainConfig:
         self.parallel_height = geometry_config.parallel_height
         self.half_parallel_height = geometry_config.half_parallel_height
         self.left_half_measurement_length = geometry_config.left_half_measurement_length
-        self.cut_parallel_height = geometry_config.cut_parallel_height 
+        self.cut_parallel_height = geometry_config.cut_parallel_height
         self.tapered_radius = geometry_config.tapered_radius
         self.plate_hole_radius = geometry_config.plate_hole_radius
         self.traction_right_x = traction_right_x
@@ -152,7 +152,7 @@ class SimplifiedDogBoneDomain:
         parallel_height = self.config.parallel_height
         half_parallel_height = self.config.half_parallel_height
         left_half_measurement_length = self.config.left_half_measurement_length
-        cut_parallel_height = self.config.cut_parallel_height 
+        cut_parallel_height = self.config.cut_parallel_height
         tapered_radius = self.config.tapered_radius
         plate_hole_radius = self.config.plate_hole_radius
         element_size = self.config.element_size
@@ -225,7 +225,7 @@ class SimplifiedDogBoneDomain:
 
             def tag_solid_surface() -> None:
                 surface = geometry_kernel.getEntities(dim=2)
-                #assert surface == geometry[0]
+                # assert surface == geometry[0]
                 gmsh.model.addPhysicalGroup(
                     surface[0][0], [surface[0][1]], solid_marker
                 )

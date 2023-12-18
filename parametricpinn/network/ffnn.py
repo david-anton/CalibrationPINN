@@ -151,7 +151,7 @@ class FFNN(Module):
             state_dict[parameter_set.name] = parameters
             start = end
         return state_dict
-    
+
 
 class SineFFNN(Module):
     def __init__(
@@ -169,7 +169,9 @@ class SineFFNN(Module):
         self._parameter_structure = self._determine_parameter_structure()
 
     def forward(self, x: Tensor) -> Tensor:
-        sine_x = torch.sin(torch.tensor(math.pi/2, requires_grad=True, device=x.device) * x)
+        sine_x = torch.sin(
+            torch.tensor(math.pi / 2, requires_grad=True, device=x.device) * x
+        )
         return self._output(sine_x)
 
     def get_flattened_parameters(self) -> FlattenedParameters:

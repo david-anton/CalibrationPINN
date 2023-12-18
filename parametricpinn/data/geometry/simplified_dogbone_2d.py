@@ -46,14 +46,13 @@ class SimplifiedDogBone2D(DogBone2DBase):
             parallel_length=geometry_config.parallel_length,
             parallel_height=geometry_config.parallel_height,
             half_parallel_height=geometry_config.half_parallel_height,
-            left_half_measurement_length = geometry_config.left_half_measurement_length,
+            left_half_measurement_length=geometry_config.left_half_measurement_length,
             cut_parallel_height=geometry_config.cut_parallel_height,
             tapered_radius=geometry_config.tapered_radius,
             plate_hole_radius=geometry_config.plate_hole_radius,
             angle_max_tapered=geometry_config.angle_max_tapered,
         )
         self._shape = self._create_shape()
-
 
     def create_uniform_points_on_right_parallel_boundary(
         self, num_points: int
@@ -72,8 +71,7 @@ class SimplifiedDogBone2D(DogBone2DBase):
         normals = torch.tensor([1.0, 0.0]).repeat(shape)
         return coordinates, normals
 
-
-    def create_uniform_points_on_left_measurement_boundary(    
+    def create_uniform_points_on_left_measurement_boundary(
         self, num_points: int
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
@@ -90,13 +88,11 @@ class SimplifiedDogBone2D(DogBone2DBase):
         normals = torch.tensor([1.0, 0.0]).repeat(shape)
         return coordinates, normals
 
-
     def calculate_area_fractions_on_vertical_parallel_boundary(
         self, num_points
     ) -> Tensor:
         shape = (num_points, 1)
         return torch.tensor([self.parallel_height / num_points]).repeat(shape)
-
 
     def _create_shape(self) -> ShapelyPolygon:
         box = shapely.box(

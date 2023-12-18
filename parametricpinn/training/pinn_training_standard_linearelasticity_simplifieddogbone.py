@@ -95,7 +95,9 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         weight_dirichlet_bc_loss, requires_grad=True
     ).to(device)
     lambda_energy_loss = torch.tensor(weight_energy_loss, requires_grad=True).to(device)
-    lambda_symmetry_loss = torch.tensor(weight_symmetry_loss, requires_grad=True).to(device)
+    lambda_symmetry_loss = torch.tensor(weight_symmetry_loss, requires_grad=True).to(
+        device
+    )
 
     def loss_func(
         ansatz: StandardAnsatz,
@@ -179,10 +181,14 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
             def _loss_func_dirichlet_bc() -> Tensor:
                 y = ansatz(x)
-                y_true = torch.tensor([u_x, u_y], requires_grad=True, dtype=torch.float64).repeat((num_points_per_bc, 1)).to(device)
+                y_true = (
+                    torch.tensor([u_x, u_y], requires_grad=True, dtype=torch.float64)
+                    .repeat((num_points_per_bc, 1))
+                    .to(device)
+                )
                 return loss_metric(y_true, y)
 
-            return _loss_func_dirichlet_bc() 
+            return _loss_func_dirichlet_bc()
             # coor_x_max = 40
             # coor_y_min = -15
             # coor_y_max = 15
@@ -273,7 +279,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             traction_bc_data: TrainingData2DTractionBC,
         ) -> Tensor:
             def _loss_func_dirichlet_bc() -> Tensor:
-                slice_top = slice(num_points_per_bc, 2*num_points_per_bc)
+                slice_top = slice(num_points_per_bc, 2 * num_points_per_bc)
                 x_coor_top = traction_bc_data.x_coor[slice_top, :].to(device)
                 x_E_top = traction_bc_data.x_E[slice_top, :]
                 x_nu_top = traction_bc_data.x_nu[slice_top, :]
@@ -281,12 +287,16 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
                 x_top = torch.concat((x_coor_top, x_param_top), dim=1).to(device)
                 y_top = ansatz(x_top)
 
-                slice_bottom = slice(2*num_points_per_bc,3*num_points_per_bc)
+                slice_bottom = slice(2 * num_points_per_bc, 3 * num_points_per_bc)
                 x_coor_bottom = traction_bc_data.x_coor[slice_bottom, :].to(device)
                 x_E_bottom = traction_bc_data.x_E[slice_bottom, :]
                 x_nu_bottom = traction_bc_data.x_nu[slice_bottom, :]
-                x_param_bottom = torch.concat((x_E_bottom, x_nu_bottom), dim=1).to(device)
-                x_bottom = torch.concat((x_coor_bottom, x_param_bottom), dim=1).to(device)
+                x_param_bottom = torch.concat((x_E_bottom, x_nu_bottom), dim=1).to(
+                    device
+                )
+                x_bottom = torch.concat((x_coor_bottom, x_param_bottom), dim=1).to(
+                    device
+                )
                 y_bottom = ansatz(x_bottom)
 
                 y = y_top + y_bottom
@@ -341,11 +351,10 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
                     .to(device)
                 )
                 return loss_metric(y_true, y)
-            
+
             # loss_dirichlet = _loss_func_dirichlet_bc()
             loss_sigma_xy = _loss_func_sigma_xy_bc()
-            return loss_sigma_xy  #+ loss_dirichlet
-
+            return loss_sigma_xy  # + loss_dirichlet
 
         loss_pde = lambda_pde_loss * loss_func_pde(ansatz, collocation_data)
         loss_traction_bc = lambda_traction_bc_loss * loss_func_traction_bc(
@@ -364,7 +373,14 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         # loss_symmetry = lambda_symmetry_loss * loss_func_symmetry(ansatz, traction_bc_data)
         loss_symmetry = torch.tensor(0.0, device=device, requires_grad=True)
 
-        return loss_pde, loss_traction_bc, loss_free_traction_bc, loss_dirichlet_bc, loss_energy, loss_symmetry
+        return (
+            loss_pde,
+            loss_traction_bc,
+            loss_free_traction_bc,
+            loss_dirichlet_bc,
+            loss_energy,
+            loss_symmetry,
+        )
 
     ### Validation
     def validate_model(
@@ -486,7 +502,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             loss_free_traction_bc,
             loss_dirichlet_bc,
             loss_energy,
-            loss_symmetry
+            loss_symmetry,
         ) = loss_func(ansatz, batch_collocation, batch_traction_bc)
         loss = (
             loss_collocation
@@ -520,7 +536,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
                 loss_free_traction_bc,
                 loss_dirichlet_bc,
                 loss_energy,
-                loss_symmetry
+                loss_symmetry,
             ) = loss_func(ansatz, batch_collocation, batch_traction_bc)
 
             # Update parameters
@@ -586,9 +602,16 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             loss_hist_free_traction_bc,
             loss_hist_dirichlet_bc,
             loss_hist_energy,
-            loss_hist_symmetry
+            loss_hist_symmetry,
         ],
-        loss_hist_names=["PDE", "Traction BC", "Free Traction BC", "Dirichlet BC", "Energy", "Symmetry"],
+        loss_hist_names=[
+            "PDE",
+            "Traction BC",
+            "Free Traction BC",
+            "Dirichlet BC",
+            "Energy",
+            "Symmetry",
+        ],
         file_name="loss_pinn.png",
         output_subdir=output_subdir,
         project_directory=project_directory,

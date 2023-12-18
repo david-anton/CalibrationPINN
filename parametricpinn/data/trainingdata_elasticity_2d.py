@@ -106,7 +106,7 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
             num_samples_per_parameter=config.num_samples_per_parameter,
             bcs_overlap_angle_distance=config.bcs_overlap_angle_distance,
             bcs_overlap_distance_left=config.bcs_overlap_distance_left,
-            bcs_overlap_distance_right=config.bcs_overlap_distance_right
+            bcs_overlap_distance_right=config.bcs_overlap_distance_right,
         )
     else:
         raise DatasetConfigError(
