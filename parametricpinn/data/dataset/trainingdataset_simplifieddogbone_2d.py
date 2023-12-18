@@ -344,14 +344,13 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
 
     def _create_tractions_for_traction_bcs(self) -> Tensor:
         shape = (self._num_points_per_bc, 1)
-        # traction_top = traction_bottom = torch.concat(
-        #     (
-        #         self._traction_tapered.repeat(shape),
-        #         self._traction_parallel.repeat(shape),
-        #     ),
-        #     dim=0,
-        # )
-        traction_top = traction_bottom = self._traction_parallel.repeat(shape)
+        traction_top = traction_bottom = torch.concat(
+            (
+                self._traction_tapered.repeat(shape),
+                self._traction_parallel.repeat(shape),
+            ),
+            dim=0,
+        )
         return torch.concat(
             (
                 self._traction_right.repeat(shape),
