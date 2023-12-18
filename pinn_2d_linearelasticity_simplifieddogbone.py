@@ -1,3 +1,4 @@
+import math
 import os
 from datetime import date
 
@@ -72,7 +73,7 @@ weight_energy_loss=0.0
 weight_symmetry_loss=0.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20231213_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_plate"
+input_subdir_valid = "20231213_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_tapered"
 num_samples_valid = 1
 validation_interval = 1
 num_points_valid = 1024
@@ -84,7 +85,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_refined" 
+output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_tapered" 
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -269,12 +270,21 @@ ansatz = create_ansatz()
 
 
 def training_step() -> None:
-    area_plate = geometry_config.box_length * geometry_config.parallel_height
+    box_length = geometry_config.left_half_box_length-geometry_config.left_half_measurement_length
+    parallel_length = geometry_config.left_half_parallel_length-geometry_config.left_half_measurement_length
+    area_dogbone = (box_length * geometry_config.box_height) - (
+        (2 * parallel_length * geometry_config.cut_parallel_height)
+        + (
+            (2 * geometry_config.angle_max_tapered / 360)
+            * math.pi
+            * geometry_config.tapered_radius**2
+        )
+    )
     train_config = TrainingConfiguration(
         ansatz=ansatz,
         material_model=material_model,
         num_points_per_bc = number_points_per_bc,
-        area_plate=area_plate,
+        area_plate=area_dogbone,
         weight_pde_loss=weight_pde_loss,
         weight_traction_bc_loss=weight_traction_bc_loss,
         weight_free_traction_bc_loss=weight_free_traction_bc_loss,

@@ -56,7 +56,7 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
     ):
         super().__init__()
         self._num_parameters = 2
-        self._num_traction_bcs = 3 # 6
+        self._num_traction_bcs = 5 # 6
         self._bcs_overlap_distance_left = bcs_overlap_distance_left
         self._bcs_overlap_distance_right = bcs_overlap_distance_right
         self._bcs_overlap_angle_distance = bcs_overlap_angle_distance
@@ -154,56 +154,57 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
     def _add_collocation_sample(
         self, youngs_modulus: float, poissons_ratio: float
     ) -> None:
-        # shape = (self._num_collocation_points, 1)
-        # x_coor = self._geometry.create_random_points(self._num_collocation_points)
-        ############################################################
-        ### Level 1
-        x_l1 = 100.0
-        min_x_l1 = -60.0
-        num_points_x_l1 = 128
-        dist_x_l1 = x_l1/(num_points_x_l1-1)
-        half_dist_x_l1 = dist_x_l1 / 2
-        min_y_l1 = -10.0
-        y_l1 = 20.0
-        num_points_y_l1 = 32
-        dist_y_l1 = y_l1/(num_points_y_l1-1)
-        half_dist_y_l1 = dist_y_l1/2
-        linspace_x_l1 = torch.linspace(min_x_l1, min_x_l1+x_l1, steps=num_points_x_l1)
-        linspace_y_l1 = torch.linspace(min_y_l1, min_y_l1+y_l1, steps=num_points_y_l1)
-        grid_x_l1, grid_y_l1 = torch.meshgrid(linspace_x_l1, linspace_y_l1)
-        coordinates_x_l1 = grid_x_l1.reshape((-1, 1))
-        coordinates_y_l1 = grid_y_l1.reshape((-1, 1))
-        x_coor_l1 = torch.concat((coordinates_x_l1, coordinates_y_l1), dim=1)
+        shape = (self._num_collocation_points, 1)
+        x_coor = self._geometry.create_random_points(self._num_collocation_points)
 
-        ### Level 2
-        min_x_l2 = min_x_l1
-        num_points_x_l2 = 32
-        linspace_x_l2 = torch.linspace(min_x_l2 + half_dist_x_l1, min_x_l2 + (num_points_x_l2 * dist_x_l1)-half_dist_x_l1 , steps=num_points_x_l2)
-        num_points_y_l2 = num_points_y_l1-1
-        linspace_y_l2 = torch.linspace(min_y_l1 + half_dist_y_l1, min_y_l1 + y_l1 - half_dist_y_l1, steps=num_points_y_l2)
-        grid_x_l2, grid_y_l2 = torch.meshgrid(linspace_x_l2, linspace_y_l2)
-        coordinates_x_l2 = grid_x_l2.reshape((-1, 1))
-        coordinates_y_l2 = grid_y_l2.reshape((-1, 1))
-        x_coor_l2 = torch.concat((coordinates_x_l2, coordinates_y_l2), dim=1)
+        # ############################################################
+        # ### Level 1
+        # x_l1 = 100.0
+        # min_x_l1 = -60.0
+        # num_points_x_l1 = 128
+        # dist_x_l1 = x_l1/(num_points_x_l1-1)
+        # half_dist_x_l1 = dist_x_l1 / 2
+        # min_y_l1 = -10.0
+        # y_l1 = 20.0
+        # num_points_y_l1 = 32
+        # dist_y_l1 = y_l1/(num_points_y_l1-1)
+        # half_dist_y_l1 = dist_y_l1/2
+        # linspace_x_l1 = torch.linspace(min_x_l1, min_x_l1+x_l1, steps=num_points_x_l1)
+        # linspace_y_l1 = torch.linspace(min_y_l1, min_y_l1+y_l1, steps=num_points_y_l1)
+        # grid_x_l1, grid_y_l1 = torch.meshgrid(linspace_x_l1, linspace_y_l1)
+        # coordinates_x_l1 = grid_x_l1.reshape((-1, 1))
+        # coordinates_y_l1 = grid_y_l1.reshape((-1, 1))
+        # x_coor_l1 = torch.concat((coordinates_x_l1, coordinates_y_l1), dim=1)
 
-        ### Level 3
-        num_points_l3 = 32
-        linspace_x_l3_top = torch.linspace(-60.0, -55.0, steps=num_points_l3)
-        linspace_y_l3_top = torch.linspace(10.0, 5.0, steps=num_points_l3)
-        grid_x_l3_top, grid_y_l3_top = torch.meshgrid(linspace_x_l3_top, linspace_y_l3_top)
-        coordinates_x_l3_top = grid_x_l3_top.reshape((-1, 1))
-        coordinates_y_l3_top = grid_y_l3_top.reshape((-1, 1))
-        x_coor_l3_top = torch.concat((coordinates_x_l3_top, coordinates_y_l3_top), dim=1)
+        # ### Level 2
+        # min_x_l2 = min_x_l1
+        # num_points_x_l2 = 32
+        # linspace_x_l2 = torch.linspace(min_x_l2 + half_dist_x_l1, min_x_l2 + (num_points_x_l2 * dist_x_l1)-half_dist_x_l1 , steps=num_points_x_l2)
+        # num_points_y_l2 = num_points_y_l1-1
+        # linspace_y_l2 = torch.linspace(min_y_l1 + half_dist_y_l1, min_y_l1 + y_l1 - half_dist_y_l1, steps=num_points_y_l2)
+        # grid_x_l2, grid_y_l2 = torch.meshgrid(linspace_x_l2, linspace_y_l2)
+        # coordinates_x_l2 = grid_x_l2.reshape((-1, 1))
+        # coordinates_y_l2 = grid_y_l2.reshape((-1, 1))
+        # x_coor_l2 = torch.concat((coordinates_x_l2, coordinates_y_l2), dim=1)
 
-        linspace_x_l3_bottom = torch.linspace(-60.0, -55.0, steps=num_points_l3)
-        linspace_y_l3_bottom = torch.linspace(-10.0, -5.0, steps=num_points_l3)
-        grid_x_l3_bottom, grid_y_l3_bottom = torch.meshgrid(linspace_x_l3_bottom, linspace_y_l3_bottom)
-        coordinates_x_l3_bottom = grid_x_l3_bottom.reshape((-1, 1))
-        coordinates_y_l3_bottom = grid_y_l3_bottom.reshape((-1, 1))
-        x_coor_l3_bottom = torch.concat((coordinates_x_l3_bottom, coordinates_y_l3_bottom), dim=1)
+        # ### Level 3
+        # num_points_l3 = 32
+        # linspace_x_l3_top = torch.linspace(-60.0, -55.0, steps=num_points_l3)
+        # linspace_y_l3_top = torch.linspace(10.0, 5.0, steps=num_points_l3)
+        # grid_x_l3_top, grid_y_l3_top = torch.meshgrid(linspace_x_l3_top, linspace_y_l3_top)
+        # coordinates_x_l3_top = grid_x_l3_top.reshape((-1, 1))
+        # coordinates_y_l3_top = grid_y_l3_top.reshape((-1, 1))
+        # x_coor_l3_top = torch.concat((coordinates_x_l3_top, coordinates_y_l3_top), dim=1)
 
-        x_coor = torch.concat((x_coor_l1, x_coor_l2, x_coor_l3_top, x_coor_l3_bottom), dim=0)
-        ############################################################
+        # linspace_x_l3_bottom = torch.linspace(-60.0, -55.0, steps=num_points_l3)
+        # linspace_y_l3_bottom = torch.linspace(-10.0, -5.0, steps=num_points_l3)
+        # grid_x_l3_bottom, grid_y_l3_bottom = torch.meshgrid(linspace_x_l3_bottom, linspace_y_l3_bottom)
+        # coordinates_x_l3_bottom = grid_x_l3_bottom.reshape((-1, 1))
+        # coordinates_y_l3_bottom = grid_y_l3_bottom.reshape((-1, 1))
+        # x_coor_l3_bottom = torch.concat((coordinates_x_l3_bottom, coordinates_y_l3_bottom), dim=1)
+
+        # x_coor = torch.concat((x_coor_l1, x_coor_l2, x_coor_l3_top, x_coor_l3_bottom), dim=0)
+        # ############################################################
         shape = (len(x_coor), 1)
         x_E = repeat_tensor(torch.tensor([youngs_modulus]), shape)
         x_nu = repeat_tensor(torch.tensor([poissons_ratio]), shape)
@@ -233,12 +234,12 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
         self._samples_traction_bc.append(sample)
 
     def _create_coordinates_and_normals_for_traction_bcs(self) -> tuple[Tensor, Tensor]:
-        # right
         num_points = self._num_points_per_bc
+        # right
         (
             x_coor_right,
             normal_right,
-        ) = self._geometry.create_uniform_points_on_right_parallel_boundary(num_points)
+        ) = self._geometry.create_uniform_points_on_left_measurement_boundary(num_points)
         # top
         (
             x_coor_top_left_tapered,
@@ -246,26 +247,22 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
         ) = self._geometry.create_uniform_points_on_top_left_tapered_boundary(
             num_points, self._bcs_overlap_angle_distance
         )
-        #     x_coor_top_parallel_complete,
-        #     normal_top_parallel_complete,
-        # ) = self._geometry.create_uniform_points_on_top_parallel_boundary(
-        #     num_points + 1
-        # )
-        # x_coor_top_parallel = x_coor_top_parallel_complete[1:, :]
-        # normal_top_parallel = normal_top_parallel_complete[1:, :]
-        x_coor_top_parallel, normal_top_parallel = self._geometry.create_uniform_points_on_top_parallel_boundary(
-            num_points, self._bcs_overlap_distance_left, self._bcs_overlap_distance_right
+        (
+            x_coor_top_parallel_complete,
+            normal_top_parallel_complete,
+        ) = self._geometry.create_uniform_points_on_top_parallel_boundary(
+            num_points + 1, self._bcs_overlap_distance_left, self._bcs_overlap_distance_right
         )
-        # x_coor_top = torch.concat(
-        #     (x_coor_top_left_tapered, x_coor_top_parallel),
-        #     dim=0,
-        # )
-        x_coor_top = x_coor_top_parallel
-        # normal_top = torch.concat(
-        #     (normal_top_left_tapered, normal_top_parallel),
-        #     dim=0,
-        # )
-        normal_top = normal_top_parallel
+        x_coor_top_parallel = x_coor_top_parallel_complete[1:, :]
+        normal_top_parallel = normal_top_parallel_complete[1:, :]
+        x_coor_top = torch.concat(
+            (x_coor_top_left_tapered, x_coor_top_parallel),
+            dim=0,
+        )
+        normal_top = torch.concat(
+            (normal_top_left_tapered, normal_top_parallel),
+            dim=0,
+        )
         # bottom
         (
             x_coor_bottom_left_tapered,
@@ -273,48 +270,37 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
         ) = self._geometry.create_uniform_points_on_bottom_left_tapered_boundary(
             num_points, self._bcs_overlap_angle_distance
         )
-        # (
-        #     x_coor_bottom_parallel_complete,
-        #     normal_bottom_parallel_complete,
-        # ) = self._geometry.create_uniform_points_on_bottom_parallel_boundary(
-        #     num_points + 1
-        # )
-        # x_coor_bottom_parallel = x_coor_bottom_parallel_complete[1:, :]
-        # normal_bottom_parallel = normal_bottom_parallel_complete[1:, :]
-        x_coor_bottom_parallel, normal_bottom_parallel = self._geometry.create_uniform_points_on_bottom_parallel_boundary(
-            num_points, self._bcs_overlap_distance_left, self._bcs_overlap_distance_right
-        )
-        # x_coor_bottom = torch.concat(
-        #     (
-        #         x_coor_bottom_left_tapered,
-        #         x_coor_bottom_parallel,
-        #     ),
-        #     dim=0,
-        # )
-        x_coor_bottom = x_coor_bottom_parallel
-        # normal_bottom = torch.concat(
-        #     (
-        #         normal_bottom_left_tapered,
-        #         normal_bottom_parallel,
-        #     ),
-        #     dim=0,
-        # )
-        normal_bottom = normal_bottom_parallel
-        # hole
         (
-            x_coor_hole,
-            normal_hole,
-        ) = self._geometry.create_uniform_points_on_hole_boundary(num_points)
+            x_coor_bottom_parallel_complete,
+            normal_bottom_parallel_complete,
+        ) = self._geometry.create_uniform_points_on_bottom_parallel_boundary(
+            num_points + 1, self._bcs_overlap_distance_left, self._bcs_overlap_distance_right
+        )
+        x_coor_bottom_parallel = x_coor_bottom_parallel_complete[1:, :]
+        normal_bottom_parallel = normal_bottom_parallel_complete[1:, :]
+        x_coor_bottom = torch.concat(
+            (
+                x_coor_bottom_left_tapered,
+                x_coor_bottom_parallel,
+            ),
+            dim=0,
+        )
+        normal_bottom = torch.concat(
+            (
+                normal_bottom_left_tapered,
+                normal_bottom_parallel,
+            ),
+            dim=0,
+        )
+        # # hole
+        # (
+        #     x_coor_hole,
+        #     normal_hole,
+        # ) = self._geometry.create_uniform_points_on_hole_boundary(num_points)
 
-        # x_coor = torch.concat(
-        #     (x_coor_right, x_coor_top, x_coor_bottom, x_coor_hole), dim=0
-        # )
         x_coor = torch.concat(
             (x_coor_right, x_coor_top, x_coor_bottom), dim=0
         )
-        # normal = torch.concat(
-        #     (normal_right, normal_top, normal_bottom, normal_hole), dim=0
-        # )
         normal = torch.concat(
             (normal_right, normal_top, normal_bottom), dim=0
         )
@@ -337,16 +323,12 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
                 num_points
             )
         )
-        # area_frac_top = area_frac_bottom = torch.concat(
-        #     (area_frac_tapered, area_frac_parallel), dim=0
-        # )
-        area_frac_top = area_frac_bottom = area_frac_parallel
-        # hole
-        area_frac_hole = self._geometry.calculate_area_fractions_on_hole_boundary(
-            num_points
+        area_frac_top = area_frac_bottom = torch.concat(
+            (area_frac_tapered, area_frac_parallel), dim=0
         )
-        # return torch.concat(
-        #     (area_frac_right, area_frac_top, area_frac_bottom, area_frac_hole), dim=0
+        # # hole
+        # area_frac_hole = self._geometry.calculate_area_fractions_on_hole_boundary(
+        #     num_points
         # )
         return torch.concat(
             (area_frac_right, area_frac_top, area_frac_bottom), dim=0

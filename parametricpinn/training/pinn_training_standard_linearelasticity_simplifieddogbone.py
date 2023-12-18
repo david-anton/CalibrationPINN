@@ -142,8 +142,8 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
         def loss_func_dirichlet_bc(ansatz: StandardAnsatz) -> Tensor:
             coor_x = -60.0
-            coor_y_min = -10.0
-            coor_y_max = 10.0
+            coor_y_min = -15.0
+            coor_y_max = 15.0
             youngs_modulus = 210000.0
             poissons_ratio = 0.3
             u_x = u_y = 0.0
@@ -295,7 +295,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
             def _loss_func_sigma_xy_bc() -> Tensor:
                 coor_x_min = -60.0
-                coor_x_max = 40.0
+                coor_x_max = -40.0
                 coor_y = 0.0
                 youngs_modulus = 210000.0
                 poissons_ratio = 0.3

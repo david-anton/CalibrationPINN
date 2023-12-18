@@ -54,7 +54,8 @@ class SimplifiedDogBoneDomainConfig:
         self.parallel_length = geometry_config.parallel_length
         self.parallel_height = geometry_config.parallel_height
         self.half_parallel_height = geometry_config.half_parallel_height
-        self.cut_parallel_height = geometry_config.cut_parallel_height
+        self.left_half_measurement_length = geometry_config.left_half_measurement_length
+        self.cut_parallel_height = geometry_config.cut_parallel_height 
         self.tapered_radius = geometry_config.tapered_radius
         self.plate_hole_radius = geometry_config.plate_hole_radius
         self.traction_right_x = traction_right_x
@@ -150,7 +151,8 @@ class SimplifiedDogBoneDomain:
         parallel_length = self.config.parallel_length
         parallel_height = self.config.parallel_height
         half_parallel_height = self.config.half_parallel_height
-        cut_parallel_height = self.config.cut_parallel_height
+        left_half_measurement_length = self.config.left_half_measurement_length
+        cut_parallel_height = self.config.cut_parallel_height 
         tapered_radius = self.config.tapered_radius
         plate_hole_radius = self.config.plate_hole_radius
         element_size = self.config.element_size
@@ -162,34 +164,34 @@ class SimplifiedDogBoneDomain:
             box = geometry_kernel.add_rectangle(
                 -left_half_box_length, -half_box_height, 0, box_length, box_height
             )
-            # cut_parallel_top = geometry_kernel.add_rectangle(
-            #     -left_half_parallel_length,
-            #     half_parallel_height,
-            #     0,
-            #     parallel_length,
-            #     cut_parallel_height,
-            # )
-            # cut_parallel_bottom = geometry_kernel.add_rectangle(
-            #     -left_half_parallel_length,
-            #     -half_box_height,
-            #     0,
-            #     parallel_length,
-            #     cut_parallel_height,
-            # )
             cut_parallel_top = geometry_kernel.add_rectangle(
-                -left_half_box_length,
+                -left_half_parallel_length,
                 half_parallel_height,
                 0,
-                box_length,
+                left_half_parallel_length - left_half_measurement_length,
                 cut_parallel_height,
             )
             cut_parallel_bottom = geometry_kernel.add_rectangle(
-                -left_half_box_length,
+                -left_half_parallel_length,
                 -half_box_height,
                 0,
-                box_length,
+                left_half_parallel_length - left_half_measurement_length,
                 cut_parallel_height,
             )
+            # cut_parallel_top = geometry_kernel.add_rectangle(
+            #     -left_half_box_length,
+            #     half_parallel_height,
+            #     0,
+            #     box_length,
+            #     cut_parallel_height,
+            # )
+            # cut_parallel_bottom = geometry_kernel.add_rectangle(
+            #     -left_half_box_length,
+            #     -half_box_height,
+            #     0,
+            #     box_length,
+            #     cut_parallel_height,
+            # )
             cut_tapered_top_left = geometry_kernel.add_disk(
                 -left_half_parallel_length,
                 half_parallel_height + tapered_radius,
@@ -204,16 +206,16 @@ class SimplifiedDogBoneDomain:
                 tapered_radius,
                 tapered_radius,
             )
-            plate_hole = geometry_kernel.add_disk(
-                origin_x, origin_y, 0, plate_hole_radius, plate_hole_radius
-            )
+            # plate_hole = geometry_kernel.add_disk(
+            #     origin_x, origin_y, 0, plate_hole_radius, plate_hole_radius
+            # )
             return geometry_kernel.cut(
                 [(2, box)],
                 [
                     (2, cut_parallel_top),
                     (2, cut_parallel_bottom),
-                    # (2, cut_tapered_top_left),
-                    # (2, cut_tapered_bottom_left),
+                    (2, cut_tapered_top_left),
+                    (2, cut_tapered_bottom_left),
                     # (2, plate_hole),
                 ],
             )

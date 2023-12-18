@@ -444,8 +444,12 @@ def _generate_coordinate_grid(
         y_min = -domain_config.half_box_height
         y_max = domain_config.half_box_height
     if isinstance(domain_config, SimplifiedDogBoneDomainConfig):
+        # x_min = -domain_config.left_half_box_length
+        # x_max = domain_config.right_half_box_length
+        # y_min = -domain_config.half_box_height
+        # y_max = domain_config.half_box_height
         x_min = -domain_config.left_half_box_length
-        x_max = domain_config.right_half_box_length
+        x_max = -domain_config.left_half_measurement_length
         y_min = -domain_config.half_box_height
         y_max = domain_config.half_box_height
     elif isinstance(domain_config, QuarterPlateWithHoleDomainConfig) or isinstance(
@@ -653,23 +657,19 @@ def _add_geometry_specific_patches(
         right_half_parallel_length = domain_config.right_half_parallel_length
         parallel_length = domain_config.parallel_length
         half_parallel_height = domain_config.half_parallel_height
+        left_half_measurement_length = domain_config.left_half_measurement_length
         cut_parallel_height = domain_config.cut_parallel_height
         tapered_radius = domain_config.tapered_radius
         plate_hole_radius = domain_config.plate_hole_radius
+
         tapered_top_left = plt.Circle(
             (-left_half_parallel_length, half_parallel_height + tapered_radius),
             radius=tapered_radius,
             color="white",
         )
-        # parallel_top = plt.Rectangle(
-        #     (-left_half_parallel_length, half_parallel_height),
-        #     width=parallel_length,
-        #     height=cut_parallel_height,
-        #     color="white",
-        # )
         parallel_top = plt.Rectangle(
-            (-left_half_box_length, half_parallel_height),
-            width=box_length,
+            (-left_half_parallel_length, half_parallel_height),
+            width=left_half_parallel_length-left_half_measurement_length,
             height=cut_parallel_height,
             color="white",
         )
@@ -678,26 +678,20 @@ def _add_geometry_specific_patches(
             radius=tapered_radius,
             color="white",
         )
-        # parallel_bottom = plt.Rectangle(
-        #     (-left_half_parallel_length, -half_box_height),
-        #     width=parallel_length,
-        #     height=cut_parallel_height,
-        #     color="white",
-        # )
         parallel_bottom = plt.Rectangle(
-            (-left_half_box_length, -half_box_height),
-            width=box_length,
+            (-left_half_parallel_length, -half_box_height),
+            width=left_half_parallel_length-left_half_measurement_length,
             height=cut_parallel_height,
             color="white",
         )
-        plate_hole = plt.Circle(
-            (origin_x, origin_y),
-            radius=plate_hole_radius,
-            color="white",
-        )
-        # axes.add_patch(tapered_top_left)
+        # plate_hole = plt.Circle(
+        #     (origin_x, origin_y),
+        #     radius=plate_hole_radius,
+        #     color="white",
+        # )
+        axes.add_patch(tapered_top_left)
         axes.add_patch(parallel_top)
-        # axes.add_patch(tapered_bottom_left)
+        axes.add_patch(tapered_bottom_left)
         axes.add_patch(parallel_bottom)
         # axes.add_patch(plate_hole)
 

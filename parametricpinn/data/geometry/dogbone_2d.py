@@ -23,6 +23,7 @@ class DogBone2DBase(ABC):
         parallel_length: float,
         parallel_height: float,
         half_parallel_height: float,
+        left_half_measurement_length : float,
         cut_parallel_height: float,
         tapered_radius: float,
         plate_hole_radius: float,
@@ -40,6 +41,7 @@ class DogBone2DBase(ABC):
         self.parallel_length = parallel_length
         self.parallel_height = parallel_height
         self.half_parallel_height = half_parallel_height
+        self.left_half_measurement_length = left_half_measurement_length
         self.cut_parallel_height = cut_parallel_height
         self.tapered_radius = tapered_radius
         self.plate_hole_radius = plate_hole_radius
@@ -77,8 +79,8 @@ class DogBone2DBase(ABC):
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
         coordinates_x = torch.linspace(
-            -self.left_half_box_length + bcs_overlap_distance_left,
-            self.right_half_box_length - bcs_overlap_distance_right,
+            -self.left_half_parallel_length + bcs_overlap_distance_left,
+            self.left_half_measurement_length - bcs_overlap_distance_right,
             num_points,
             requires_grad=True,
         ).view(num_points, 1)
@@ -130,8 +132,8 @@ class DogBone2DBase(ABC):
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
         coordinates_x = torch.linspace(
-            -self.left_half_box_length + bcs_overlap_distance_left,
-            self.right_half_box_length - bcs_overlap_distance_right,
+            -self.left_half_parallel_length + bcs_overlap_distance_left,
+            self.left_half_measurement_length - bcs_overlap_distance_right,
             num_points,
             requires_grad=True,
         ).view(num_points, 1)
@@ -184,7 +186,7 @@ class DogBone2DBase(ABC):
         self, num_points
     ) -> Tensor:
         shape = (num_points, 1)
-        return torch.tensor([self.parallel_length / num_points]).repeat(shape)
+        return torch.tensor([(self.left_half_parallel_length - self.left_half_measurement_length) / num_points]).repeat(shape)
 
     def calculate_area_fraction_on_tapered_boundary(self, num_points) -> Tensor:
         shape = (num_points, 1)
