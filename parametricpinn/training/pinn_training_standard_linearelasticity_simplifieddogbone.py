@@ -526,15 +526,8 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             # Update parameters
             # Adam
             optimizer.zero_grad()
-            loss = (
-            loss_pde
-            + loss_traction_bc
-            + loss_free_traction_bc
-            + loss_dirichlet_bc
-            + loss_energy
-            + loss_symmetry
-            ).item()
-            loss.backward(retain_graph=True)
+            loss = loss_pde + loss_traction_bc + loss_free_traction_bc + loss_dirichlet_bc + loss_energy + loss_symmetry
+            loss.backward()
             optimizer.step()
 
             # BFGS
