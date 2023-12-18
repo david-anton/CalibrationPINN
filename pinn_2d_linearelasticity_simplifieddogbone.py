@@ -271,16 +271,8 @@ ansatz = create_ansatz()
 
 
 def training_step() -> None:
-    box_length = geometry_config.left_half_box_length-geometry_config.left_half_measurement_length
-    parallel_length = geometry_config.left_half_parallel_length-geometry_config.left_half_measurement_length
-    area_dogbone = (box_length * geometry_config.box_height) - (
-        (2 * parallel_length * geometry_config.cut_parallel_height)
-        + (
-            (2 * geometry_config.angle_max_tapered / 360)
-            * math.pi
-            * geometry_config.tapered_radius**2
-        )
-    )
+    area_dogbone = training_dataset._geometry._shape.area
+    print(f"Area: {area_dogbone}")
     train_config = TrainingConfiguration(
         ansatz=ansatz,
         material_model=material_model,
