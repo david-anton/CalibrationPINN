@@ -511,11 +511,14 @@ def _plot_once(
             figure.set_figheight(fig_height)
             figure.set_figwidth((box_length / box_height) * fig_height)
         if isinstance(simulation_config.domain_config, SimplifiedDogBoneDomainConfig):
-            fig_height = 4
-            box_length = simulation_config.domain_config.box_length
-            box_height = simulation_config.domain_config.box_height
+            # fig_height = 4
+            # box_length = simulation_config.domain_config.box_length
+            # box_height = simulation_config.domain_config.box_height
+            # figure.set_figheight(fig_height)
+            # figure.set_figwidth((box_length / box_height) * fig_height)
+            fig_height = 6
             figure.set_figheight(fig_height)
-            figure.set_figwidth((box_length / box_height) * fig_height)
+            figure.set_figwidth(4 + 1)
 
     def _set_title_and_labels(axes: PLTAxes) -> None:
         axes.set_title(title, pad=plot_config.title_pad, **plot_config.font)

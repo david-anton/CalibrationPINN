@@ -80,7 +80,7 @@ class DogBone2DBase(ABC):
         shape = (num_points, 1)
         coordinates_x = torch.linspace(
             -self.left_half_parallel_length + bcs_overlap_distance_left,
-            self.left_half_measurement_length - bcs_overlap_distance_right,
+            -self.left_half_measurement_length - bcs_overlap_distance_right,
             num_points,
             requires_grad=True,
         ).view(num_points, 1)
@@ -133,7 +133,7 @@ class DogBone2DBase(ABC):
         shape = (num_points, 1)
         coordinates_x = torch.linspace(
             -self.left_half_parallel_length + bcs_overlap_distance_left,
-            self.left_half_measurement_length - bcs_overlap_distance_right,
+            -self.left_half_measurement_length - bcs_overlap_distance_right,
             num_points,
             requires_grad=True,
         ).view(num_points, 1)
