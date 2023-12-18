@@ -94,7 +94,7 @@ save_metadata = True
 settings = Settings()
 project_directory = ProjectDirectory(settings)
 device = get_device()
-set_default_dtype(torch.float64)
+# set_default_dtype(torch.float64)
 set_seed(0)
 
 geometry_config = SimplifiedDogBoneGeometryConfig()
