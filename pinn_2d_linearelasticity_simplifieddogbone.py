@@ -65,7 +65,7 @@ bcs_overlap_distance_left = 0
 bcs_overlap_distance_right = 1e-2
 training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 1000
-weight_pde_loss = 0.0
+weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss = 1.0
 weight_dirichlet_bc_loss = 0.0
@@ -85,7 +85,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_tapered_energy_wo_pde_sobol"
+output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_tapered_energy_sobol"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
