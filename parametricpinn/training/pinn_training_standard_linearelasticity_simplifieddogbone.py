@@ -357,10 +357,10 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         )
         # loss_dirichlet_bc = lambda_dirichlet_bc_loss * loss_func_dirichlet_bc(ansatz)
         loss_dirichlet_bc = torch.tensor(0.0, device=device, requires_grad=True)
-        # loss_energy = lambda_energy_loss * loss_func_energy(
-        #     ansatz, collocation_data, traction_bc_data
-        # )
-        loss_energy = torch.tensor(0.0, device=device, requires_grad=True)
+        loss_energy = lambda_energy_loss * loss_func_energy(
+            ansatz, collocation_data, traction_bc_data
+        )
+        # loss_energy = torch.tensor(0.0, device=device, requires_grad=True)
         # loss_symmetry = lambda_symmetry_loss * loss_func_symmetry(ansatz, traction_bc_data)
         loss_symmetry = torch.tensor(0.0, device=device, requires_grad=True)
 
@@ -452,20 +452,20 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         collate_fn=valid_dataset.get_collate_func(),
     )
 
-    # optimizer = torch.optim.LBFGS(
-    #     params=ansatz.parameters(),
-    #     lr=1.0,
-    #     max_iter=20,
-    #     max_eval=25,
-    #     tolerance_grad=1e-9,
-    #     tolerance_change=1e-12,
-    #     history_size=100,
-    #     line_search_fn="strong_wolfe",
-    # )
-
-    optimizer = torch.optim.Rprop(
+    optimizer = torch.optim.LBFGS(
         params=ansatz.parameters(),
+        lr=1.0,
+        max_iter=20,
+        max_eval=25,
+        tolerance_grad=1e-9,
+        tolerance_change=1e-12,
+        history_size=100,
+        line_search_fn="strong_wolfe",
     )
+
+    # optimizer = torch.optim.Rprop(
+    #     params=ansatz.parameters(),
+    # )
 
     loss_hist_pde = []
     loss_hist_traction_bc = []
@@ -525,13 +525,13 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
             # Update parameters
             # Adam
-            optimizer.zero_grad()
-            loss = loss_pde + loss_traction_bc + loss_free_traction_bc + loss_dirichlet_bc + loss_energy + loss_symmetry
-            loss.backward()
-            optimizer.step()
+            # optimizer.zero_grad()
+            # loss = loss_pde + loss_traction_bc + loss_free_traction_bc + loss_dirichlet_bc + loss_energy + loss_symmetry
+            # loss.backward()
+            # optimizer.step()
 
             # BFGS
-            # optimizer.step(loss_func_closure)
+            optimizer.step(loss_func_closure)
 
             loss_hist_pde_batches.append(loss_pde.detach().cpu().item())
             loss_hist_traction_bc_batches.append(loss_traction_bc.detach().cpu().item())
