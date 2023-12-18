@@ -23,7 +23,7 @@ class DogBone2DBase(ABC):
         parallel_length: float,
         parallel_height: float,
         half_parallel_height: float,
-        left_half_measurement_length : float,
+        left_half_measurement_length: float,
         cut_parallel_height: float,
         tapered_radius: float,
         plate_hole_radius: float,
@@ -47,6 +47,7 @@ class DogBone2DBase(ABC):
         self.plate_hole_radius = plate_hole_radius
         self.angle_min_tapered = 0
         self.angle_max_tapered = angle_max_tapered
+        self._sobol_engine = torch.quasirandom.SobolEngine(dimension=2)
         self._shape = self._create_shape()
 
     def create_random_points(self, num_points: int) -> Tensor:
@@ -73,7 +74,7 @@ class DogBone2DBase(ABC):
     #     coordinates = torch.concat((coordinates_x, coordinates_y), dim=1)
     #     normals = torch.tensor([0.0, 1.0]).repeat(shape)
     #     return coordinates, normals
-    
+
     def create_uniform_points_on_top_parallel_boundary(
         self, num_points: int, bcs_overlap_distance_left, bcs_overlap_distance_right
     ) -> tuple[Tensor, Tensor]:
@@ -186,7 +187,12 @@ class DogBone2DBase(ABC):
         self, num_points
     ) -> Tensor:
         shape = (num_points, 1)
-        return torch.tensor([(self.left_half_parallel_length - self.left_half_measurement_length) / num_points]).repeat(shape)
+        return torch.tensor(
+            [
+                (self.left_half_parallel_length - self.left_half_measurement_length)
+                / num_points
+            ]
+        ).repeat(shape)
 
     def calculate_area_fraction_on_tapered_boundary(self, num_points) -> Tensor:
         shape = (num_points, 1)
@@ -201,13 +207,22 @@ class DogBone2DBase(ABC):
         return torch.tensor([edge_length / num_points]).repeat(shape)
 
     def _create_one_random_point(self) -> Tensor:
-        coordinate_x = self._create_one_random_coordinate(
-            -self.left_half_box_length, self.right_half_box_length
+        normalized_lengths = self._sobol_engine.draw()
+        coordinates = torch.tensor(
+            [-self.left_half_box_length, -self.half_box_height]
+        ) + normalized_lengths * torch.tensor(
+            [
+                self.left_half_box_length - self.left_half_measurement_length,
+                self.box_height,
+            ]
         )
-        coordinate_y = self._create_one_random_coordinate(
-            -self.half_box_height, self.half_box_height
-        )
-        return torch.concat((coordinate_x, coordinate_y))
+        # coordinate_x = self._create_one_random_coordinate(
+        #     -self.left_half_box_length, self.right_half_box_length
+        # )
+        # coordinate_y = self._create_one_random_coordinate(
+        #     -self.half_box_height, self.half_box_height
+        # )
+        return coordinates
 
     def _create_one_random_coordinate(
         self, min_coordinate: float, max_coordinate: float
