@@ -207,7 +207,7 @@ class DogBone2DBase(ABC):
         return torch.tensor([edge_length / num_points]).repeat(shape)
 
     def _create_one_random_point(self) -> Tensor:
-        normalized_lengths = self._sobol_engine.draw()
+        normalized_lengths = self._sobol_engine.draw()[0]
         coordinates = torch.tensor(
             [-self.left_half_box_length, -self.half_box_height]
         ) + normalized_lengths * torch.tensor(
