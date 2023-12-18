@@ -533,7 +533,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             + loss_dirichlet_bc
             + loss_energy
             + loss_symmetry
-            )
+            ).item()
             loss.backward(retain_graph=True)
             optimizer.step()
 
