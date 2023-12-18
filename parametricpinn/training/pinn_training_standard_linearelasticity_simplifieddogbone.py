@@ -463,7 +463,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     #     line_search_fn="strong_wolfe",
     # )
 
-    optimizer = torch.optim.Adam(
+    optimizer = torch.optim.Rprop(
         params=ansatz.parameters(),
     )
 
