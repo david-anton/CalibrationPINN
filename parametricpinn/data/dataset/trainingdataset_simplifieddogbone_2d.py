@@ -372,7 +372,7 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
         #     ),
         #     dim=0,
         # )
-        traction_top = traction_bottom = self._traction_parallel
+        traction_top = traction_bottom = self._traction_parallel.repeat(shape)
         return torch.concat(
             (
                 self._traction_right.repeat(shape),
