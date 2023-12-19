@@ -73,7 +73,7 @@ weight_energy_loss = 0.0
 weight_symmetry_loss = 0.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20231219_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_rectangle"
+input_subdir_valid = "20231219_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_rectangle_tapered"
 num_samples_valid = 1
 validation_interval = 1
 num_points_valid = 1024
@@ -85,7 +85,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_64_rectangle_pdeonly"
+output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_64_rectangle_tapered"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
