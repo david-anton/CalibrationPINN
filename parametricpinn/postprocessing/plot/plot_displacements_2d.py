@@ -673,8 +673,12 @@ def _add_geometry_specific_patches(
             color="white",
         )
         parallel_top = plt.Rectangle(
-            (-left_half_box_length, half_parallel_height), #(-left_half_parallel_length, half_parallel_height),
-            width=left_half_box_length - left_half_measurement_length, #width=left_half_parallel_length - left_half_measurement_length,
+            (
+                -left_half_box_length,
+                half_parallel_height,
+            ),  # (-left_half_parallel_length, half_parallel_height),
+            width=left_half_box_length
+            - left_half_measurement_length,  # width=left_half_parallel_length - left_half_measurement_length,
             height=cut_parallel_height,
             color="white",
         )
@@ -684,8 +688,12 @@ def _add_geometry_specific_patches(
             color="white",
         )
         parallel_bottom = plt.Rectangle(
-            (-left_half_box_length, -half_box_height), #(-left_half_parallel_length, -half_box_height),
-            width=left_half_box_length - left_half_measurement_length, #width=left_half_parallel_length - left_half_measurement_length,
+            (
+                -left_half_box_length,
+                -half_box_height,
+            ),  # (-left_half_parallel_length, -half_box_height),
+            width=left_half_box_length
+            - left_half_measurement_length,  # width=left_half_parallel_length - left_half_measurement_length,
             height=cut_parallel_height,
             color="white",
         )

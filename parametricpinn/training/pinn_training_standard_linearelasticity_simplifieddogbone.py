@@ -351,7 +351,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             #         .to(device)
             #     )
             #     return loss_metric(y_true, y)
-            
+
             def _loss_func_sigma_xy_bc() -> Tensor:
                 coor_x = -60.0
                 coor_y_min = -15.0
@@ -399,7 +399,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
                     .to(device)
                 )
                 return loss_metric(y_true, y)
-        
+
             # loss_dirichlet = _loss_func_dirichlet_bc()
             loss_sigma_xy = _loss_func_sigma_xy_bc()
             return loss_sigma_xy  # + loss_dirichlet
@@ -418,7 +418,9 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             ansatz, collocation_data, traction_bc_data
         )
         # loss_energy = torch.tensor(0.0, device=device, requires_grad=True)
-        loss_symmetry = lambda_symmetry_loss * loss_func_symmetry(ansatz, traction_bc_data)
+        loss_symmetry = lambda_symmetry_loss * loss_func_symmetry(
+            ansatz, traction_bc_data
+        )
         # loss_symmetry = torch.tensor(0.0, device=device, requires_grad=True)
 
         return (
