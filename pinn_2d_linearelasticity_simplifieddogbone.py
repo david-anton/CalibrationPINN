@@ -69,7 +69,7 @@ weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss = 1.0
 weight_dirichlet_bc_loss = 0.0
-weight_energy_loss = 1.0
+weight_energy_loss = 0.0
 weight_symmetry_loss = 0.0
 # Validation
 regenerate_valid_data = True
@@ -85,7 +85,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_64_rectangle"
+output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_64_rectangle_pdeonly"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
