@@ -102,13 +102,13 @@ class SimplifiedDogBone2D(DogBone2DBase):
             self.half_box_height,
         )
         cut_parallel_top = shapely.box(
-            -self.left_half_box_length,  # -self.left_half_parallel_length,
+            -self.left_half_parallel_length,
             self.half_parallel_height,
             -self.left_half_measurement_length,
             self.half_box_height,
         )
         cut_parallel_bottom = shapely.box(
-            -self.left_half_box_length,  # -self.left_half_parallel_length,
+            -self.left_half_parallel_length,
             -self.half_box_height,
             -self.left_half_measurement_length,
             -self.half_parallel_height,
@@ -125,8 +125,8 @@ class SimplifiedDogBone2D(DogBone2DBase):
             box
             - cut_parallel_top
             - cut_parallel_bottom
-            # - cut_tapered_top_left
-            # - cut_tapered_bottom_left
+            - cut_tapered_top_left
+            - cut_tapered_bottom_left
         )
 
         # box = shapely.box(

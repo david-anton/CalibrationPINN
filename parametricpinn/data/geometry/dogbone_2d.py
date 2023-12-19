@@ -80,7 +80,7 @@ class DogBone2DBase(ABC):
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
         coordinates_x = torch.linspace(
-            -self.left_half_box_length + bcs_overlap_distance_left,
+            -self.left_half_parallel_length + bcs_overlap_distance_left,
             -self.left_half_measurement_length - bcs_overlap_distance_right,
             num_points,
             requires_grad=True,
@@ -133,7 +133,7 @@ class DogBone2DBase(ABC):
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
         coordinates_x = torch.linspace(
-            -self.left_half_box_length + bcs_overlap_distance_left,
+            -self.left_half_parallel_length + bcs_overlap_distance_left,
             -self.left_half_measurement_length - bcs_overlap_distance_right,
             num_points,
             requires_grad=True,
@@ -189,7 +189,7 @@ class DogBone2DBase(ABC):
         shape = (num_points, 1)
         return torch.tensor(
             [
-                (self.left_half_box_length - self.left_half_measurement_length)
+                (self.left_half_parallel_length - self.left_half_measurement_length)
                 / num_points
             ]
         ).repeat(shape)

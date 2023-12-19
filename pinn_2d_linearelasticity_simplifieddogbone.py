@@ -186,10 +186,9 @@ def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, ValidationDat
 def create_ansatz() -> StandardAnsatz:
     def _determine_normalization_values() -> dict[str, Tensor]:
         min_coordinate_x = -geometry_config.left_half_box_length
-        # max_coordinate_x = geometry_config.right_half_box_length
         max_coordinate_x = -geometry_config.left_half_measurement_length
-        min_coordinate_y = -geometry_config.half_parallel_height
-        max_coordinate_y = geometry_config.half_parallel_height
+        min_coordinate_y = -geometry_config.half_box_height
+        max_coordinate_y = geometry_config.half_box_height
         min_coordinates = torch.tensor([min_coordinate_x, min_coordinate_y])
         max_coordinates = torch.tensor([max_coordinate_x, max_coordinate_y])
 
