@@ -239,7 +239,7 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
         (
             x_coor_right,
             normal_right,
-        ) = self._geometry.create_uniform_points_on_left_measurement_boundary(
+        ) = self._geometry.create_uniform_points_on_right_parallel_boundary(
             num_points
         )
         # top

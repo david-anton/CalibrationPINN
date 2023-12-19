@@ -53,7 +53,7 @@ max_youngs_modulus = min_youngs_modulus
 min_poissons_ratio = 0.3
 max_poissons_ratio = min_poissons_ratio
 # Network
-layer_sizes = [4, 64, 64, 64, 64, 64, 64, 2] #[4, 64, 64, 64, 64, 2]
+layer_sizes = [4, 64, 64, 64, 64, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
@@ -61,10 +61,10 @@ num_samples_per_parameter = 1
 num_collocation_points = 4096
 number_points_per_bc = 128
 bcs_overlap_angle_distance = 1e-2
-bcs_overlap_distance_left = 1e-2
+bcs_overlap_distance_left = 0.0
 bcs_overlap_distance_right = 1e-2
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 1000
+number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss = 1.0
@@ -73,7 +73,7 @@ weight_energy_loss = 0.0
 weight_symmetry_loss = 0.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20231219_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_rectangle_tapered"
+input_subdir_valid = "20231219_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_dogbone_without_hole"
 num_samples_valid = 1
 validation_interval = 1
 num_points_valid = 1024
@@ -85,7 +85,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_6_64_rectangle_tapered"
+output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_64_dogbone_without_hole"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -186,7 +186,7 @@ def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, ValidationDat
 def create_ansatz() -> StandardAnsatz:
     def _determine_normalization_values() -> dict[str, Tensor]:
         min_coordinate_x = -geometry_config.left_half_box_length
-        max_coordinate_x = -geometry_config.left_half_measurement_length
+        max_coordinate_x = geometry_config.right_half_box_length
         min_coordinate_y = -geometry_config.half_box_height
         max_coordinate_y = geometry_config.half_box_height
         min_coordinates = torch.tensor([min_coordinate_x, min_coordinate_y])

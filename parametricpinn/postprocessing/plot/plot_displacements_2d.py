@@ -444,12 +444,8 @@ def _generate_coordinate_grid(
         y_min = -domain_config.half_box_height
         y_max = domain_config.half_box_height
     if isinstance(domain_config, SimplifiedDogBoneDomainConfig):
-        # x_min = -domain_config.left_half_box_length
-        # x_max = domain_config.right_half_box_length
-        # y_min = -domain_config.half_box_height
-        # y_max = domain_config.half_box_height
         x_min = -domain_config.left_half_box_length
-        x_max = -domain_config.left_half_measurement_length
+        x_max = domain_config.right_half_box_length
         y_min = -domain_config.half_box_height
         y_max = domain_config.half_box_height
     elif isinstance(domain_config, QuarterPlateWithHoleDomainConfig) or isinstance(
@@ -509,16 +505,13 @@ def _plot_once(
             box_length = simulation_config.domain_config.box_length
             box_height = simulation_config.domain_config.box_height
             figure.set_figheight(fig_height)
-            figure.set_figwidth((box_length / box_height) * fig_height)
+            figure.set_figwidth((box_length / box_height) * fig_height + 1)
         if isinstance(simulation_config.domain_config, SimplifiedDogBoneDomainConfig):
-            # fig_height = 4
-            # box_length = simulation_config.domain_config.box_length
-            # box_height = simulation_config.domain_config.box_height
-            # figure.set_figheight(fig_height)
-            # figure.set_figwidth((box_length / box_height) * fig_height)
-            fig_height = 6
+            fig_height = 4
+            box_length = simulation_config.domain_config.box_length
+            box_height = simulation_config.domain_config.box_height
             figure.set_figheight(fig_height)
-            figure.set_figwidth(4 + 1)
+            figure.set_figwidth((box_length / box_height) * fig_height + 1)
 
     def _set_title_and_labels(axes: PLTAxes) -> None:
         axes.set_title(title, pad=plot_config.title_pad, **plot_config.font)
@@ -672,7 +665,7 @@ def _add_geometry_specific_patches(
         )
         parallel_top = plt.Rectangle(
             (-left_half_parallel_length, half_parallel_height),
-            width=left_half_parallel_length - left_half_measurement_length,
+            width=parallel_length,
             height=cut_parallel_height,
             color="white",
         )
@@ -683,7 +676,7 @@ def _add_geometry_specific_patches(
         )
         parallel_bottom = plt.Rectangle(
             (-left_half_parallel_length, -half_box_height),
-            width=left_half_parallel_length - left_half_measurement_length,
+            width=parallel_length,
             height=cut_parallel_height,
             color="white",
         )
