@@ -64,7 +64,7 @@ bcs_overlap_angle_distance = 1e-2
 bcs_overlap_distance_left = 0
 bcs_overlap_distance_right = 1e-2
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 100 #1000
+number_training_epochs = 100
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss = 1.0
@@ -72,8 +72,8 @@ weight_dirichlet_bc_loss = 0.0
 weight_energy_loss = 0.0
 weight_symmetry_loss = 1.0
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = "20231213_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_rectangle_symetric"
+regenerate_valid_data = True
+input_subdir_valid = "20231219_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_rectangle_symetric"
 num_samples_valid = 1
 validation_interval = 1
 num_points_valid = 1024
@@ -188,8 +188,8 @@ def create_ansatz() -> StandardAnsatz:
         min_coordinate_x = -geometry_config.left_half_box_length
         # max_coordinate_x = geometry_config.right_half_box_length
         max_coordinate_x = -geometry_config.left_half_measurement_length
-        min_coordinate_y = -geometry_config.half_box_height
-        max_coordinate_y = geometry_config.half_box_height
+        min_coordinate_y = -geometry_config.half_parallel_height
+        max_coordinate_y = geometry_config.half_parallel_height
         min_coordinates = torch.tensor([min_coordinate_x, min_coordinate_y])
         max_coordinates = torch.tensor([max_coordinate_x, max_coordinate_y])
 
@@ -244,7 +244,7 @@ def create_ansatz() -> StandardAnsatz:
         }
 
     normalization_values = _determine_normalization_values()
-    network = FFNN(layer_sizes=layer_sizes)
+    # network = FFNN(layer_sizes=layer_sizes)
     # return create_normalized_network(
     #     network=network,
     #     min_inputs=normalization_values["min_inputs"],

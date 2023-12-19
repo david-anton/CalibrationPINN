@@ -171,25 +171,28 @@ class SimplifiedDogBoneDomain:
 
         def create_geometry() -> GGeometry:
             gmsh.model.add("domain")
+            # box = geometry_kernel.add_rectangle(
+            #     -left_half_box_length, -half_box_height, 0, box_length, box_height
+            # )
             box = geometry_kernel.add_rectangle(
-                -left_half_box_length, -half_box_height, 0, box_length, box_height
+                -left_half_box_length, -half_parallel_height, 0, left_half_box_length-left_half_measurement_length, parallel_height
             )
-            cut_parallel_top = geometry_kernel.add_rectangle(
-                -left_half_box_length,  # -left_half_parallel_length,
-                half_parallel_height,
-                0,
-                left_half_box_length
-                - left_half_measurement_length,  # left_half_parallel_length - left_half_measurement_length,
-                cut_parallel_height,
-            )
-            cut_parallel_bottom = geometry_kernel.add_rectangle(
-                -left_half_box_length,  # -left_half_parallel_length,
-                -half_box_height,
-                0,
-                left_half_box_length
-                - left_half_measurement_length,  # left_half_parallel_length - left_half_measurement_length,
-                cut_parallel_height,
-            )
+            # cut_parallel_top = geometry_kernel.add_rectangle(
+            #     -left_half_parallel_length,
+            #     half_parallel_height,
+            #     0,
+            #     left_half_box_length
+            #     - left_half_parallel_length - left_half_measurement_length,
+            #     cut_parallel_height,
+            # )
+            # cut_parallel_bottom = geometry_kernel.add_rectangle(
+            #     -left_half_parallel_length,
+            #     -half_box_height,
+            #     0,
+            #     left_half_box_length
+            #     -left_half_parallel_length - left_half_measurement_length,
+            #     cut_parallel_height,
+            # )
             # cut_parallel_top = geometry_kernel.add_rectangle(
             #     -left_half_box_length,
             #     half_parallel_height,
@@ -221,16 +224,17 @@ class SimplifiedDogBoneDomain:
             # plate_hole = geometry_kernel.add_disk(
             #     origin_x, origin_y, 0, plate_hole_radius, plate_hole_radius
             # )
-            return geometry_kernel.cut(
-                [(2, box)],
-                [
-                    (2, cut_parallel_top),
-                    (2, cut_parallel_bottom),
-                    # (2, cut_tapered_top_left),
-                    # (2, cut_tapered_bottom_left),
-                    # (2, plate_hole),
-                ],
-            )
+            # return geometry_kernel.cut(
+            #     [(2, box)],
+            #     [
+            #         (2, cut_parallel_top),
+            #         (2, cut_parallel_bottom),
+            #         # (2, cut_tapered_top_left),
+            #         # (2, cut_tapered_bottom_left),
+            #         # (2, plate_hole),
+            #     ],
+            # )
+            return box
 
         def tag_physical_enteties(geometry: GGeometry) -> None:
             geometry_kernel.synchronize()
@@ -264,8 +268,11 @@ class SimplifiedDogBoneDomain:
         locate_left_facet = lambda x: np.isclose(
             x[0], -self.config.left_half_box_length
         )
+        # locate_right_facet = lambda x: np.isclose(
+        #     x[0], self.config.right_half_box_length
+        # )
         locate_right_facet = lambda x: np.isclose(
-            x[0], self.config.right_half_box_length
+            x[0], -self.config.left_half_measurement_length
         )
         boundaries = [
             (self._tag_left, locate_left_facet),
