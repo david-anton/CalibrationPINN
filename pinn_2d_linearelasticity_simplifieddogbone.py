@@ -69,7 +69,7 @@ weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss = 1.0
 weight_dirichlet_bc_loss = 0.0
-weight_energy_loss = 0.0
+weight_energy_loss = 1.0
 weight_symmetry_loss = 0.0
 # Validation
 regenerate_valid_data = True
