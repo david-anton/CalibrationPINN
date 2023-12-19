@@ -72,8 +72,8 @@ weight_dirichlet_bc_loss = 0.0
 weight_energy_loss = 0.0
 weight_symmetry_loss = 1.0
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = "20231213_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_tapered"
+regenerate_valid_data = True
+input_subdir_valid = "20231213_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01_tapered_symmetric"
 num_samples_valid = 1
 validation_interval = 1
 num_points_valid = 1024
