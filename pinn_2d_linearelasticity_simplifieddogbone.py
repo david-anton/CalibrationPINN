@@ -58,7 +58,7 @@ layer_sizes = [4, 32, 32, 32, 32, 2]
 distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 1
-num_collocation_points = 4096
+num_collocation_points = 4096 * 4
 number_points_per_bc = 128
 bcs_overlap_angle_distance = 1e-2
 bcs_overlap_distance_left = 0
@@ -66,10 +66,10 @@ bcs_overlap_distance_right = 1e-2
 training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 1000
 weight_pde_loss = 1.0
-weight_traction_bc_loss = 100.0
+weight_traction_bc_loss = 1.0
 weight_free_traction_bc_loss = 1.0
 weight_dirichlet_bc_loss = 0.0
-weight_energy_loss = 1.0
+weight_energy_loss = 0.0
 weight_symmetry_loss = 0.0
 # Validation
 regenerate_valid_data = False
@@ -85,7 +85,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_tapered_energy_sobol_traction_100"
+output_subdirectory = f"{output_date}_pinn_linearelasticity_simplifieddogbone_E_210k_nu_03_col_4096_bc_128_neurons_4_32_tapered_energy_sobol_morepoints"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
