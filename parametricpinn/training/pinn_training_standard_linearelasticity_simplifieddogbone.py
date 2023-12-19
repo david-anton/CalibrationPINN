@@ -278,51 +278,100 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             ansatz: StandardAnsatz,
             traction_bc_data: TrainingData2DTractionBC,
         ) -> Tensor:
-            def _loss_func_dirichlet_bc() -> Tensor:
-                slice_top = slice(num_points_per_bc, 2 * num_points_per_bc)
-                x_coor_top = traction_bc_data.x_coor[slice_top, :].to(device)
-                x_E_top = traction_bc_data.x_E[slice_top, :]
-                x_nu_top = traction_bc_data.x_nu[slice_top, :]
-                x_param_top = torch.concat((x_E_top, x_nu_top), dim=1).to(device)
-                x_top = torch.concat((x_coor_top, x_param_top), dim=1).to(device)
-                y_top = ansatz(x_top)
+            # def _loss_func_dirichlet_bc() -> Tensor:
+            #     slice_top = slice(num_points_per_bc, 2 * num_points_per_bc)
+            #     x_coor_top = traction_bc_data.x_coor[slice_top, :].to(device)
+            #     x_E_top = traction_bc_data.x_E[slice_top, :]
+            #     x_nu_top = traction_bc_data.x_nu[slice_top, :]
+            #     x_param_top = torch.concat((x_E_top, x_nu_top), dim=1).to(device)
+            #     x_top = torch.concat((x_coor_top, x_param_top), dim=1).to(device)
+            #     y_top = ansatz(x_top)
 
-                slice_bottom = slice(2 * num_points_per_bc, 3 * num_points_per_bc)
-                x_coor_bottom = traction_bc_data.x_coor[slice_bottom, :].to(device)
-                x_E_bottom = traction_bc_data.x_E[slice_bottom, :]
-                x_nu_bottom = traction_bc_data.x_nu[slice_bottom, :]
-                x_param_bottom = torch.concat((x_E_bottom, x_nu_bottom), dim=1).to(
-                    device
-                )
-                x_bottom = torch.concat((x_coor_bottom, x_param_bottom), dim=1).to(
-                    device
-                )
-                y_bottom = ansatz(x_bottom)
+            #     slice_bottom = slice(2 * num_points_per_bc, 3 * num_points_per_bc)
+            #     x_coor_bottom = traction_bc_data.x_coor[slice_bottom, :].to(device)
+            #     x_E_bottom = traction_bc_data.x_E[slice_bottom, :]
+            #     x_nu_bottom = traction_bc_data.x_nu[slice_bottom, :]
+            #     x_param_bottom = torch.concat((x_E_bottom, x_nu_bottom), dim=1).to(
+            #         device
+            #     )
+            #     x_bottom = torch.concat((x_coor_bottom, x_param_bottom), dim=1).to(
+            #         device
+            #     )
+            #     y_bottom = ansatz(x_bottom)
 
-                y = y_top + y_bottom
-                y_true = torch.zeros_like(y, device=device)
-                return loss_metric(y_true, y)
+            #     y = y_top + y_bottom
+            #     y_true = torch.zeros_like(y, device=device)
+            #     return loss_metric(y_true, y)
 
+            # def _loss_func_sigma_xy_bc() -> Tensor:
+            #     coor_x_min = -60.0
+            #     coor_x_max = -40.0
+            #     coor_y = 0.0
+            #     youngs_modulus = 210000.0
+            #     poissons_ratio = 0.3
+
+            #     x_coor_x = torch.linspace(
+            #         coor_x_min,
+            #         coor_x_max,
+            #         steps=num_points_per_bc,
+            #         dtype=torch.float64,
+            #         requires_grad=True,
+            #     ).reshape((-1, 1))
+            #     x_coor_y = torch.full(
+            #         (num_points_per_bc, 1),
+            #         coor_y,
+            #         dtype=torch.float64,
+            #         requires_grad=True,
+            #     )
+            #     x_coor = torch.concat((x_coor_x, x_coor_y), dim=1).to(device)
+            #     x_E = torch.full(
+            #         (num_points_per_bc, 1),
+            #         youngs_modulus,
+            #         dtype=torch.float64,
+            #         requires_grad=True,
+            #     )
+            #     x_nu = torch.full(
+            #         (num_points_per_bc, 1),
+            #         poissons_ratio,
+            #         dtype=torch.float64,
+            #         requires_grad=True,
+            #     )
+            #     x_param = torch.concat((x_E, x_nu), dim=1).to(device)
+            #     x = torch.concat((x_coor, x_param), dim=1).to(device)
+            #     shear_stress_filter = (
+            #         torch.tensor([[0.0, 1.0], [1.0, 0.0]])
+            #         .repeat(num_points_per_bc, 1, 1)
+            #         .to(device)
+            #     )
+            #     stress_tensors = stress_func(ansatz, x_coor, x_param)
+            #     y = shear_stress_filter * stress_tensors
+            #     y_true = (
+            #         torch.tensor([[0.0, 0.0], [0.0, 0.0]])
+            #         .repeat(num_points_per_bc, 1, 1)
+            #         .to(device)
+            #     )
+            #     return loss_metric(y_true, y)
+            
             def _loss_func_sigma_xy_bc() -> Tensor:
-                coor_x_min = -60.0
-                coor_x_max = -40.0
-                coor_y = 0.0
+                coor_x = -60.0
+                coor_y_min = -15.0
+                coor_y_max = 15.0
                 youngs_modulus = 210000.0
                 poissons_ratio = 0.3
 
-                x_coor_x = torch.linspace(
-                    coor_x_min,
-                    coor_x_max,
+                x_coor_x = torch.full(
+                    (num_points_per_bc, 1),
+                    coor_x,
+                    dtype=torch.float64,
+                    requires_grad=True,
+                )
+                x_coor_y = torch.linspace(
+                    coor_y_min,
+                    coor_y_max,
                     steps=num_points_per_bc,
                     dtype=torch.float64,
                     requires_grad=True,
                 ).reshape((-1, 1))
-                x_coor_y = torch.full(
-                    (num_points_per_bc, 1),
-                    coor_y,
-                    dtype=torch.float64,
-                    requires_grad=True,
-                )
                 x_coor = torch.concat((x_coor_x, x_coor_y), dim=1).to(device)
                 x_E = torch.full(
                     (num_points_per_bc, 1),
@@ -337,7 +386,6 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
                     requires_grad=True,
                 )
                 x_param = torch.concat((x_E, x_nu), dim=1).to(device)
-                x = torch.concat((x_coor, x_param), dim=1).to(device)
                 shear_stress_filter = (
                     torch.tensor([[0.0, 1.0], [1.0, 0.0]])
                     .repeat(num_points_per_bc, 1, 1)
@@ -351,7 +399,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
                     .to(device)
                 )
                 return loss_metric(y_true, y)
-
+        
             # loss_dirichlet = _loss_func_dirichlet_bc()
             loss_sigma_xy = _loss_func_sigma_xy_bc()
             return loss_sigma_xy  # + loss_dirichlet
@@ -370,8 +418,8 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             ansatz, collocation_data, traction_bc_data
         )
         # loss_energy = torch.tensor(0.0, device=device, requires_grad=True)
-        # loss_symmetry = lambda_symmetry_loss * loss_func_symmetry(ansatz, traction_bc_data)
-        loss_symmetry = torch.tensor(0.0, device=device, requires_grad=True)
+        loss_symmetry = lambda_symmetry_loss * loss_func_symmetry(ansatz, traction_bc_data)
+        # loss_symmetry = torch.tensor(0.0, device=device, requires_grad=True)
 
         return (
             loss_pde,

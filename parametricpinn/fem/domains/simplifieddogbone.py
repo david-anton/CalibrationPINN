@@ -22,6 +22,7 @@ from parametricpinn.fem.boundaryconditions import (
     BoundaryConditions,
     DirichletBC,
     NeumannBC,
+    SubDirichletBC,
 )
 from parametricpinn.fem.domains.base import (
     list_sorted_facet_indices_and_tags,
@@ -95,9 +96,10 @@ class SimplifiedDogBoneDomain:
         measure: UFLMeasure,
         test_function: UFLTestFunction,
     ) -> BoundaryConditions:
-        u_left = Constant(
-            self.mesh, default_scalar_type((self._u_x_left, self._u_y_left))
-        )
+        # u_left = Constant(
+        #     self.mesh, default_scalar_type((self._u_x_left, self._u_y_left))
+        # )
+        u_left_x = Constant(self.mesh, self._u_x_left)
         traction_right = Constant(
             self.mesh,
             (
@@ -107,9 +109,17 @@ class SimplifiedDogBoneDomain:
             ),
         )
         return [
-            DirichletBC(
+            # DirichletBC(
+            #     tag=self._tag_left,
+            #     value=u_left,
+            #     function_space=function_space,
+            #     boundary_tags=self.boundary_tags,
+            #     bc_facets_dim=self._bc_facets_dim,
+            # ),
+            SubDirichletBC(
                 tag=self._tag_left,
-                value=u_left,
+                value=u_left_x,
+                dim=0,
                 function_space=function_space,
                 boundary_tags=self.boundary_tags,
                 bc_facets_dim=self._bc_facets_dim,
