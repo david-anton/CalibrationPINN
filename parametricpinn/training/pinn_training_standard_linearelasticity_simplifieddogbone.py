@@ -465,7 +465,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     train_batches = iter(train_dataloader)
     for batch_collocation, batch_traction_bc in train_batches:
         fig_collocation, ax_collocation = plt.subplots()
-        fig_collocation.set_figheight(6)
+        fig_collocation.set_figheight(4)
         fig_collocation.set_figwidth(4 + 1)
         x_collocation = batch_collocation.x_coor[:, 0]
         y_collocation = batch_collocation.x_coor[:, 1]
@@ -481,7 +481,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         )
 
         fig_bc, ax_bc = plt.subplots()
-        fig_bc.set_figheight(6)
+        fig_bc.set_figheight(4)
         fig_bc.set_figwidth(4 + 1)
         x_bc = batch_traction_bc.x_coor[:num_points_per_bc, 0]
         y_bc = batch_traction_bc.x_coor[:num_points_per_bc, 1]

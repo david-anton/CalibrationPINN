@@ -450,8 +450,10 @@ def _generate_coordinate_grid(
         # y_max = domain_config.half_box_height
         x_min = -domain_config.left_half_box_length
         x_max = -domain_config.left_half_measurement_length
-        y_min = -domain_config.half_box_height
-        y_max = domain_config.half_box_height
+        # y_min = -domain_config.half_box_height
+        # y_max = domain_config.half_box_height
+        y_min = -domain_config.half_parallel_height
+        y_max = domain_config.half_parallel_height
     elif isinstance(domain_config, QuarterPlateWithHoleDomainConfig) or isinstance(
         domain_config, PlateWithHoleDomainConfig
     ):
@@ -516,7 +518,7 @@ def _plot_once(
             # box_height = simulation_config.domain_config.box_height
             # figure.set_figheight(fig_height)
             # figure.set_figwidth((box_length / box_height) * fig_height)
-            fig_height = 6
+            fig_height = 4
             figure.set_figheight(fig_height)
             figure.set_figwidth(4 + 1)
 
@@ -671,8 +673,8 @@ def _add_geometry_specific_patches(
             color="white",
         )
         parallel_top = plt.Rectangle(
-            (-left_half_parallel_length, half_parallel_height),
-            width=left_half_parallel_length - left_half_measurement_length,
+            (-left_half_box_length, half_parallel_height), #(-left_half_parallel_length, half_parallel_height),
+            width=left_half_box_length - left_half_measurement_length, #width=left_half_parallel_length - left_half_measurement_length,
             height=cut_parallel_height,
             color="white",
         )
@@ -682,8 +684,8 @@ def _add_geometry_specific_patches(
             color="white",
         )
         parallel_bottom = plt.Rectangle(
-            (-left_half_parallel_length, -half_box_height),
-            width=left_half_parallel_length - left_half_measurement_length,
+            (-left_half_box_length, -half_box_height), #(-left_half_parallel_length, -half_box_height),
+            width=left_half_box_length - left_half_measurement_length, #width=left_half_parallel_length - left_half_measurement_length,
             height=cut_parallel_height,
             color="white",
         )
@@ -692,10 +694,10 @@ def _add_geometry_specific_patches(
         #     radius=plate_hole_radius,
         #     color="white",
         # )
-        axes.add_patch(tapered_top_left)
-        axes.add_patch(parallel_top)
-        axes.add_patch(tapered_bottom_left)
-        axes.add_patch(parallel_bottom)
+        # axes.add_patch(tapered_top_left)
+        # axes.add_patch(parallel_top)
+        # axes.add_patch(tapered_bottom_left)
+        # axes.add_patch(parallel_bottom)
         # axes.add_patch(plate_hole)
 
     domain_config = simulation_config.domain_config

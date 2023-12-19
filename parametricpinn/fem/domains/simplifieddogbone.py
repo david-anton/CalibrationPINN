@@ -175,17 +175,17 @@ class SimplifiedDogBoneDomain:
                 -left_half_box_length, -half_box_height, 0, box_length, box_height
             )
             cut_parallel_top = geometry_kernel.add_rectangle(
-                -left_half_parallel_length,
+                -left_half_box_length, #-left_half_parallel_length,
                 half_parallel_height,
                 0,
-                left_half_parallel_length - left_half_measurement_length,
+                left_half_box_length - left_half_measurement_length, #left_half_parallel_length - left_half_measurement_length,
                 cut_parallel_height,
             )
             cut_parallel_bottom = geometry_kernel.add_rectangle(
-                -left_half_parallel_length,
+                -left_half_box_length, #-left_half_parallel_length,
                 -half_box_height,
                 0,
-                left_half_parallel_length - left_half_measurement_length,
+                left_half_box_length - left_half_measurement_length, #left_half_parallel_length - left_half_measurement_length,
                 cut_parallel_height,
             )
             # cut_parallel_top = geometry_kernel.add_rectangle(
@@ -224,8 +224,8 @@ class SimplifiedDogBoneDomain:
                 [
                     (2, cut_parallel_top),
                     (2, cut_parallel_bottom),
-                    (2, cut_tapered_top_left),
-                    (2, cut_tapered_bottom_left),
+                    # (2, cut_tapered_top_left),
+                    # (2, cut_tapered_bottom_left),
                     # (2, plate_hole),
                 ],
             )
