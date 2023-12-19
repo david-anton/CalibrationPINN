@@ -96,10 +96,10 @@ class SimplifiedDogBoneDomain:
         measure: UFLMeasure,
         test_function: UFLTestFunction,
     ) -> BoundaryConditions:
-        # u_left = Constant(
-        #     self.mesh, default_scalar_type((self._u_x_left, self._u_y_left))
-        # )
-        u_left_x = Constant(self.mesh, self._u_x_left)
+        u_left = Constant(
+            self.mesh, default_scalar_type((self._u_x_left, self._u_y_left))
+        )
+        # u_left_x = Constant(self.mesh, self._u_x_left)
         traction_right = Constant(
             self.mesh,
             (
@@ -109,21 +109,21 @@ class SimplifiedDogBoneDomain:
             ),
         )
         return [
-            # DirichletBC(
-            #     tag=self._tag_left,
-            #     value=u_left,
-            #     function_space=function_space,
-            #     boundary_tags=self.boundary_tags,
-            #     bc_facets_dim=self._bc_facets_dim,
-            # ),
-            SubDirichletBC(
+            DirichletBC(
                 tag=self._tag_left,
-                value=u_left_x,
-                dim=0,
+                value=u_left,
                 function_space=function_space,
                 boundary_tags=self.boundary_tags,
                 bc_facets_dim=self._bc_facets_dim,
             ),
+            # SubDirichletBC(
+            #     tag=self._tag_left,
+            #     value=u_left_x,
+            #     dim=0,
+            #     function_space=function_space,
+            #     boundary_tags=self.boundary_tags,
+            #     bc_facets_dim=self._bc_facets_dim,
+            # ),
             NeumannBC(
                 tag=self._tag_right,
                 value=traction_right,

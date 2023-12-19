@@ -260,11 +260,10 @@ class NormalizedHBCAnsatzStrategyClampedLeft:
             self._boundary_data_func_x()
             + self._distance_func_x(coor_x) * norm_network_output_x
         )
-        # norm_ansatz_output_y = (
-        #     self._boundary_data_func_y()
-        #     + self._distance_func_x(coor_x) * norm_network_output_y
-        # )
-        norm_ansatz_output_y = norm_network_output_y
+        norm_ansatz_output_y = (
+            self._boundary_data_func_y()
+            + self._distance_func_x(coor_x) * norm_network_output_y
+        )
         norm_ansatz_output = bind_output(norm_ansatz_output_x, norm_ansatz_output_y)
         return self._ansatz_output_renormalizer(norm_ansatz_output)
 
