@@ -56,7 +56,7 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
     ):
         super().__init__()
         self._num_parameters = 2
-        self._num_traction_bcs = 5  # 6
+        self._num_traction_bcs = 6
         self._bcs_overlap_distance_left = bcs_overlap_distance_left
         self._bcs_overlap_distance_right = bcs_overlap_distance_right
         self._bcs_overlap_angle_distance = bcs_overlap_angle_distance
@@ -298,14 +298,14 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
             ),
             dim=0,
         )
-        # # hole
-        # (
-        #     x_coor_hole,
-        #     normal_hole,
-        # ) = self._geometry.create_uniform_points_on_hole_boundary(num_points)
+        # hole
+        (
+            x_coor_hole,
+            normal_hole,
+        ) = self._geometry.create_uniform_points_on_hole_boundary(num_points)
 
-        x_coor = torch.concat((x_coor_right, x_coor_top, x_coor_bottom), dim=0)
-        normal = torch.concat((normal_right, normal_top, normal_bottom), dim=0)
+        x_coor = torch.concat((x_coor_right, x_coor_top, x_coor_bottom, x_coor_hole), dim=0)
+        normal = torch.concat((normal_right, normal_top, normal_bottom, normal_hole), dim=0)
         return x_coor, normal
 
     def _calculate_area_fractions_for_traction_bcs(self) -> Tensor:
@@ -328,11 +328,11 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
         area_frac_top = area_frac_bottom = torch.concat(
             (area_frac_tapered, area_frac_parallel), dim=0
         )
-        # # hole
-        # area_frac_hole = self._geometry.calculate_area_fractions_on_hole_boundary(
-        #     num_points
-        # )
-        return torch.concat((area_frac_right, area_frac_top, area_frac_bottom), dim=0)
+        # hole
+        area_frac_hole = self._geometry.calculate_area_fractions_on_hole_boundary(
+            num_points
+        )
+        return torch.concat((area_frac_right, area_frac_top, area_frac_bottom, area_frac_hole), dim=0)
 
     def _create_parameters_for_bcs(
         self, youngs_modulus: float, poissons_ratio: float, num_bcs: int
@@ -356,7 +356,7 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
                 self._traction_right.repeat(shape),
                 traction_top,
                 traction_bottom,
-                # self._traction_hole.repeat(shape),
+                self._traction_hole.repeat(shape),
             ),
             dim=0,
         )

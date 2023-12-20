@@ -680,16 +680,16 @@ def _add_geometry_specific_patches(
             height=cut_parallel_height,
             color="white",
         )
-        # plate_hole = plt.Circle(
-        #     (origin_x, origin_y),
-        #     radius=plate_hole_radius,
-        #     color="white",
-        # )
+        plate_hole = plt.Circle(
+            (origin_x, origin_y),
+            radius=plate_hole_radius,
+            color="white",
+        )
         axes.add_patch(tapered_top_left)
         axes.add_patch(parallel_top)
         axes.add_patch(tapered_bottom_left)
         axes.add_patch(parallel_bottom)
-        # axes.add_patch(plate_hole)
+        axes.add_patch(plate_hole)
 
     domain_config = simulation_config.domain_config
     if isinstance(domain_config, QuarterPlateWithHoleDomainConfig):

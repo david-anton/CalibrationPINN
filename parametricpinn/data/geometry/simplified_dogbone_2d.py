@@ -131,6 +131,6 @@ class SimplifiedDogBone2D(DogBone2DBase):
             - cut_parallel_bottom
             - cut_tapered_top_left
             - cut_tapered_bottom_left
-            # - plate_hole
+            - plate_hole
         )
         return dog_bone

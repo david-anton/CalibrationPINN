@@ -193,9 +193,9 @@ class SimplifiedDogBoneDomain:
                 tapered_radius,
                 tapered_radius,
             )
-            # plate_hole = geometry_kernel.add_disk(
-            #     origin_x, origin_y, 0, plate_hole_radius, plate_hole_radius
-            # )
+            plate_hole = geometry_kernel.add_disk(
+                origin_x, origin_y, 0, plate_hole_radius, plate_hole_radius
+            )
             return geometry_kernel.cut(
                 [(2, box)],
                 [
@@ -203,7 +203,7 @@ class SimplifiedDogBoneDomain:
                     (2, cut_parallel_bottom),
                     (2, cut_tapered_top_left),
                     (2, cut_tapered_bottom_left),
-                    # (2, plate_hole),
+                    (2, plate_hole),
                 ],
             )
 
