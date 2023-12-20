@@ -71,7 +71,7 @@ weight_free_traction_bc_loss = 1.0
 weight_dirichlet_bc_loss = 0.0
 weight_energy_loss = 0.0
 weight_symmetry_loss = 0.0
-weight_regularization_loss = 1e-3
+weight_regularization_loss = 1e-2
 # Validation
 regenerate_valid_data = True
 input_subdir_valid = "20231220_validation_data_linearelasticity_simplifieddogbone_E_210k_nu_03_elementsize_01"
