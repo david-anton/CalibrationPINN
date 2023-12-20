@@ -44,6 +44,7 @@ class TrainingConfiguration:
     weight_free_traction_bc_loss: float
     weight_dirichlet_bc_loss: float
     weight_symmetry_loss: float
+    weight_regularization_loss: float
     training_dataset: SimplifiedDogBoneTrainingDataset2D
     number_training_epochs: int
     training_batch_size: int
@@ -65,6 +66,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     weight_free_traction_bc_loss = train_config.weight_free_traction_bc_loss
     weight_dirichlet_bc_loss = train_config.weight_dirichlet_bc_loss
     weight_symmetry_loss = train_config.weight_symmetry_loss
+    weight_regularization_loss = train_config.weight_regularization_loss
     train_dataset = train_config.training_dataset
     train_num_epochs = train_config.number_training_epochs
     train_batch_size = train_config.training_batch_size
@@ -98,6 +100,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     lambda_symmetry_loss = torch.tensor(weight_symmetry_loss, requires_grad=True).to(
         device
     )
+    lambda_regularization_loss = torch.tensor(weight_regularization_loss, requires_grad=True).to(device)
 
     def loss_func(
         ansatz: StandardAnsatz,
@@ -404,6 +407,17 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             loss_sigma_xy = _loss_func_sigma_xy_bc()
             return loss_sigma_xy  # + loss_dirichlet
 
+        def loss_func_regularization(
+            ansatz: StandardAnsatz, collocation_data: TrainingData2DCollocation
+        ) -> Tensor:
+            x_coor = collocation_data.x_coor.to(device)
+            x_E = collocation_data.x_E
+            x_nu = collocation_data.x_nu
+            x_param = torch.concat((x_E, x_nu), dim=1).to(device)
+            x = torch.concat((x_coor, x_param), dim=1)
+            y = torch.mean(ansatz(x), dtype=torch.float64)
+            return torch.abs(1 / y)
+
         loss_pde = lambda_pde_loss * loss_func_pde(ansatz, collocation_data)
         loss_traction_bc = lambda_traction_bc_loss * loss_func_traction_bc(
             ansatz, traction_bc_data
@@ -414,14 +428,15 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         )
         # loss_dirichlet_bc = lambda_dirichlet_bc_loss * loss_func_dirichlet_bc(ansatz)
         loss_dirichlet_bc = torch.tensor(0.0, device=device, requires_grad=True)
-        loss_energy = lambda_energy_loss * loss_func_energy(
-            ansatz, collocation_data, traction_bc_data
-        )
-        # loss_energy = torch.tensor(0.0, device=device, requires_grad=True)
+        # loss_energy = lambda_energy_loss * loss_func_energy(
+        #     ansatz, collocation_data, traction_bc_data
+        # )
+        loss_energy = torch.tensor(0.0, device=device, requires_grad=True)
         # loss_symmetry = lambda_symmetry_loss * loss_func_symmetry(
         #     ansatz, traction_bc_data
         # )
         loss_symmetry = torch.tensor(0.0, device=device, requires_grad=True)
+        loss_regularization = lambda_regularization_loss * loss_func_regularization(ansatz, collocation_data)
 
         return (
             loss_pde,
@@ -430,6 +445,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             loss_dirichlet_bc,
             loss_energy,
             loss_symmetry,
+            loss_regularization
         )
 
     ### Validation
@@ -534,16 +550,13 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         line_search_fn="strong_wolfe",
     )
 
-    # optimizer = torch.optim.Rprop(
-    #     params=ansatz.parameters(),
-    # )
-
     loss_hist_pde = []
     loss_hist_traction_bc = []
     loss_hist_free_traction_bc = []
     loss_hist_dirichlet_bc = []
     loss_hist_energy = []
     loss_hist_symmetry = []
+    loss_hist_regularization = []
     valid_hist_mae = []
     valid_hist_rl2 = []
     valid_epochs = []
@@ -558,6 +571,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             loss_dirichlet_bc,
             loss_energy,
             loss_symmetry,
+            loss_regularization
         ) = loss_func(ansatz, batch_collocation, batch_traction_bc)
         loss = (
             loss_collocation
@@ -566,6 +580,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             + loss_dirichlet_bc
             + loss_energy
             + loss_symmetry
+            + loss_regularization
         )
         loss.backward(retain_graph=True)
         return loss.item()
@@ -579,6 +594,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         loss_hist_dirichlet_bc_batches = []
         loss_hist_energy_batches = []
         loss_hist_symmetry_batches = []
+        loss_hist_regularization_batches = []
 
         print(f"Number of batches: {len(train_batches)}")
         for batch_collocation, batch_traction_bc in train_batches:
@@ -592,16 +608,9 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
                 loss_dirichlet_bc,
                 loss_energy,
                 loss_symmetry,
+                loss_regularization
             ) = loss_func(ansatz, batch_collocation, batch_traction_bc)
 
-            # Update parameters
-            # Adam
-            # optimizer.zero_grad()
-            # loss = loss_pde + loss_traction_bc + loss_free_traction_bc + loss_dirichlet_bc + loss_energy + loss_symmetry
-            # loss.backward()
-            # optimizer.step()
-
-            # BFGS
             optimizer.step(loss_func_closure)
 
             loss_hist_pde_batches.append(loss_pde.detach().cpu().item())
@@ -614,6 +623,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             )
             loss_hist_energy_batches.append(loss_energy.detach().cpu().item())
             loss_hist_symmetry_batches.append(loss_symmetry.detach().cpu().item())
+            loss_hist_regularization_batches.append(loss_regularization.detach().cpu().item())
 
         mean_loss_pde = statistics.mean(loss_hist_pde_batches)
         mean_loss_traction_bc = statistics.mean(loss_hist_traction_bc_batches)
@@ -621,12 +631,14 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         mean_loss_dirichlet_bc = statistics.mean(loss_hist_dirichlet_bc_batches)
         mean_loss_energy = statistics.mean(loss_hist_energy_batches)
         mean_loss_symmetry = statistics.mean(loss_hist_symmetry_batches)
+        mean_loss_regularization = statistics.mean(loss_hist_regularization_batches)
         loss_hist_pde.append(mean_loss_pde)
         loss_hist_traction_bc.append(mean_loss_traction_bc)
         loss_hist_free_traction_bc.append(mean_loss_free_traction_bc)
         loss_hist_dirichlet_bc.append(mean_loss_dirichlet_bc)
         loss_hist_energy.append(mean_loss_energy)
         loss_hist_symmetry.append(mean_loss_symmetry)
+        loss_hist_regularization.append(mean_loss_regularization)
 
         print("##################################################")
         print(f"Epoch {epoch} / {train_num_epochs - 1}")
@@ -636,6 +648,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         print(f"DIRICHLET BC: \t {mean_loss_dirichlet_bc}")
         print(f"ENERGY: \t {mean_loss_energy}")
         print(f"SYMMETRY: \t {mean_loss_symmetry}")
+        print(f"REGULARIZATION: \t {mean_loss_regularization}")
         print("##################################################")
         if epoch % valid_interval == 0 or epoch == train_num_epochs:
             mae, rl2 = validate_model(ansatz, valid_dataloader)
@@ -658,6 +671,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             loss_hist_dirichlet_bc,
             loss_hist_energy,
             loss_hist_symmetry,
+            loss_hist_regularization
         ],
         loss_hist_names=[
             "PDE",
@@ -666,6 +680,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             "Dirichlet BC",
             "Energy",
             "Symmetry",
+            "Regularization"
         ],
         file_name="loss_pinn.png",
         output_subdir=output_subdir,
