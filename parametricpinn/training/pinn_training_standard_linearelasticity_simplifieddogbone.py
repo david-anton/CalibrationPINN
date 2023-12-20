@@ -414,10 +414,10 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         )
         # loss_dirichlet_bc = lambda_dirichlet_bc_loss * loss_func_dirichlet_bc(ansatz)
         loss_dirichlet_bc = torch.tensor(0.0, device=device, requires_grad=True)
-        # loss_energy = lambda_energy_loss * loss_func_energy(
-        #     ansatz, collocation_data, traction_bc_data
-        # )
-        loss_energy = torch.tensor(0.0, device=device, requires_grad=True)
+        loss_energy = lambda_energy_loss * loss_func_energy(
+            ansatz, collocation_data, traction_bc_data
+        )
+        # loss_energy = torch.tensor(0.0, device=device, requires_grad=True)
         # loss_symmetry = lambda_symmetry_loss * loss_func_symmetry(
         #     ansatz, traction_bc_data
         # )
