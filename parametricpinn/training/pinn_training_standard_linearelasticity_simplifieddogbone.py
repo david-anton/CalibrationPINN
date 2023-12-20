@@ -436,7 +436,8 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         #     ansatz, traction_bc_data
         # )
         loss_symmetry = torch.tensor(0.0, device=device, requires_grad=True)
-        loss_regularization = lambda_regularization_loss * loss_func_regularization(ansatz, collocation_data)
+        # loss_regularization = lambda_regularization_loss * loss_func_regularization(ansatz, collocation_data)
+        loss_regularization = torch.tensor(0.0, device=device, requires_grad=True)
 
         return (
             loss_pde,
