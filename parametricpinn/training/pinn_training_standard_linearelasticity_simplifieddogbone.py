@@ -415,7 +415,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             x_nu = collocation_data.x_nu
             x_param = torch.concat((x_E, x_nu), dim=1).to(device)
             x = torch.concat((x_coor, x_param), dim=1)
-            y = torch.mean(ansatz(x), dtype=torch.float64)
+            y = torch.mean(ansatz(x)[:, 1], dtype=torch.float64)
             return torch.abs(1 / y)
 
         loss_pde = lambda_pde_loss * loss_func_pde(ansatz, collocation_data)
