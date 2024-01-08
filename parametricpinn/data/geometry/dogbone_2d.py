@@ -176,29 +176,15 @@ class DogBone2DBase(ABC):
         return torch.tensor([edge_length / num_points]).repeat(shape)
 
     def _create_one_random_point(self) -> Tensor:
+        min_coordinates = torch.tensor([-self.left_half_box_length, -self.half_box_height])
         normalized_lengths = self._sobol_engine.draw()[0]
-        coordinates = torch.tensor(
-            [-self.left_half_box_length, -self.half_box_height]
-        ) + normalized_lengths * torch.tensor(
+        length = normalized_lengths * torch.tensor(
             [
                 self.box_length,
                 self.box_height,
             ]
         )
-        # coordinate_x = self._create_one_random_coordinate(
-        #     -self.left_half_box_length, self.right_half_box_length
-        # )
-        # coordinate_y = self._create_one_random_coordinate(
-        #     -self.half_box_height, self.half_box_height
-        # )
-        return coordinates
-
-    def _create_one_random_coordinate(
-        self, min_coordinate: float, max_coordinate: float
-    ) -> Tensor:
-        return min_coordinate + torch.rand((1), requires_grad=True) * (
-            max_coordinate - min_coordinate
-        )
+        return min_coordinates + length
 
     def _is_point_in_shape(self, point: Tensor) -> bool:
         _point = point.detach().numpy()
