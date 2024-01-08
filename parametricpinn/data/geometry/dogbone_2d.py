@@ -61,7 +61,10 @@ class DogBone2DBase(ABC):
         return torch.vstack(point_list)
 
     def create_uniform_points_on_top_parallel_boundary(
-        self, num_points: int, bcs_overlap_distance_left, bcs_overlap_distance_right
+        self,
+        num_points: int,
+        bcs_overlap_distance_left: float,
+        bcs_overlap_distance_right: float,
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
         coordinates_x = torch.linspace(
@@ -97,7 +100,10 @@ class DogBone2DBase(ABC):
         ), self._reverse_order_of_data_points(normals)
 
     def create_uniform_points_on_bottom_parallel_boundary(
-        self, num_points: int, bcs_overlap_distance_left, bcs_overlap_distance_right
+        self,
+        num_points: int,
+        bcs_overlap_distance_left: float,
+        bcs_overlap_distance_right: float,
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
         coordinates_x = torch.linspace(

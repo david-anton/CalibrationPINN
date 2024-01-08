@@ -53,7 +53,16 @@ max_youngs_modulus = min_youngs_modulus
 min_poissons_ratio = 0.3
 max_poissons_ratio = min_poissons_ratio
 # Network
-layer_sizes = [4, 256, 256, 256, 256, 256, 256, 2] #[4, 128, 128, 128, 128, 128, 128, 2]
+layer_sizes = [
+    4,
+    256,
+    256,
+    256,
+    256,
+    256,
+    256,
+    2,
+]  # [4, 128, 128, 128, 128, 128, 128, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training

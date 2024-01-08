@@ -100,7 +100,9 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     lambda_symmetry_loss = torch.tensor(weight_symmetry_loss, requires_grad=True).to(
         device
     )
-    lambda_regularization_loss = torch.tensor(weight_regularization_loss, requires_grad=True).to(device)
+    lambda_regularization_loss = torch.tensor(
+        weight_regularization_loss, requires_grad=True
+    ).to(device)
 
     def loss_func(
         ansatz: StandardAnsatz,
@@ -354,7 +356,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             loss_dirichlet_bc,
             loss_energy,
             loss_symmetry,
-            loss_regularization
+            loss_regularization,
         )
 
     ### Validation
@@ -480,7 +482,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             loss_dirichlet_bc,
             loss_energy,
             loss_symmetry,
-            loss_regularization
+            loss_regularization,
         ) = loss_func(ansatz, batch_collocation, batch_traction_bc)
         loss = (
             loss_collocation
@@ -517,7 +519,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
                 loss_dirichlet_bc,
                 loss_energy,
                 loss_symmetry,
-                loss_regularization
+                loss_regularization,
             ) = loss_func(ansatz, batch_collocation, batch_traction_bc)
 
             optimizer.step(loss_func_closure)
@@ -532,7 +534,9 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             )
             loss_hist_energy_batches.append(loss_energy.detach().cpu().item())
             loss_hist_symmetry_batches.append(loss_symmetry.detach().cpu().item())
-            loss_hist_regularization_batches.append(loss_regularization.detach().cpu().item())
+            loss_hist_regularization_batches.append(
+                loss_regularization.detach().cpu().item()
+            )
 
         mean_loss_pde = statistics.mean(loss_hist_pde_batches)
         mean_loss_traction_bc = statistics.mean(loss_hist_traction_bc_batches)
@@ -580,7 +584,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             loss_hist_dirichlet_bc,
             loss_hist_energy,
             loss_hist_symmetry,
-            loss_hist_regularization
+            loss_hist_regularization,
         ],
         loss_hist_names=[
             "PDE",
@@ -589,7 +593,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             "Dirichlet BC",
             "Energy",
             "Symmetry",
-            "Regularization"
+            "Regularization",
         ],
         file_name="loss_pinn.png",
         output_subdir=output_subdir,
