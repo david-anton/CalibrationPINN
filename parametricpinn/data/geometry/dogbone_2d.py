@@ -23,7 +23,6 @@ class DogBone2DBase(ABC):
         parallel_length: float,
         parallel_height: float,
         half_parallel_height: float,
-        left_half_measurement_length: float,
         cut_parallel_height: float,
         tapered_radius: float,
         plate_hole_radius: float,
@@ -41,7 +40,6 @@ class DogBone2DBase(ABC):
         self.parallel_length = parallel_length
         self.parallel_height = parallel_height
         self.half_parallel_height = half_parallel_height
-        self.left_half_measurement_length = left_half_measurement_length
         self.cut_parallel_height = cut_parallel_height
         self.tapered_radius = tapered_radius
         self.plate_hole_radius = plate_hole_radius
@@ -288,7 +286,7 @@ class DogBone2D(DogBone2DBase):
         normals = torch.concat((normals_x, normals_y), dim=1) / self.tapered_radius
         return coordinates, normals
 
-    def create_uniform_points_on_right_box_boundary(
+    def create_uniform_points_on_right_tapered_boundary(
         self, num_points: int
     ) -> tuple[Tensor, Tensor]:
         shape = (num_points, 1)
@@ -305,7 +303,7 @@ class DogBone2D(DogBone2DBase):
         normals = torch.tensor([1.0, 0.0]).repeat(shape)
         return coordinates, normals
 
-    def calculate_area_fractions_on_vertical_box_boundary(self, num_points) -> Tensor:
+    def calculate_area_fractions_on_vertical_tapered_boundary(self, num_points) -> Tensor:
         shape = (num_points, 1)
         return torch.tensor([self.box_height / num_points]).repeat(shape)
 
