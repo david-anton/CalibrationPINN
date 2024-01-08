@@ -22,7 +22,6 @@ from parametricpinn.fem.boundaryconditions import (
     BoundaryConditions,
     DirichletBC,
     NeumannBC,
-    SubDirichletBC,
 )
 from parametricpinn.fem.domains.base import (
     list_sorted_facet_indices_and_tags,
@@ -210,6 +209,7 @@ class SimplifiedDogBoneDomain:
 
             def tag_solid_surface() -> None:
                 surface = geometry_kernel.getEntities(dim=2)
+                # Causes error
                 # assert surface == geometry[0]
                 gmsh.model.addPhysicalGroup(
                     surface[0][0], [surface[0][1]], solid_marker
