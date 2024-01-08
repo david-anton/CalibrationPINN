@@ -40,7 +40,7 @@ class UnivariateNormalPlotterConfig:
         self.pdf_interval_color = "tab:red"
         self.pdf_interval_linestyle = "dashed"
         
-        # interval
+        # confidence interval
         self.interval_num_stds = 1.959964 # quantile for 95% interval
 
         # major ticks
