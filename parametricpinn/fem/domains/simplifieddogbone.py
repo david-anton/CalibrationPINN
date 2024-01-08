@@ -55,7 +55,6 @@ class SimplifiedDogBoneDomainConfig:
         self.parallel_length = geometry_config.parallel_length
         self.parallel_height = geometry_config.parallel_height
         self.half_parallel_height = geometry_config.half_parallel_height
-        self.left_half_measurement_length = geometry_config.left_half_measurement_length
         self.cut_parallel_height = geometry_config.cut_parallel_height
         self.tapered_radius = geometry_config.tapered_radius
         self.plate_hole_radius = geometry_config.plate_hole_radius
@@ -152,7 +151,6 @@ class SimplifiedDogBoneDomain:
         parallel_length = self.config.parallel_length
         parallel_height = self.config.parallel_height
         half_parallel_height = self.config.half_parallel_height
-        left_half_measurement_length = self.config.left_half_measurement_length
         cut_parallel_height = self.config.cut_parallel_height
         tapered_radius = self.config.tapered_radius
         plate_hole_radius = self.config.plate_hole_radius

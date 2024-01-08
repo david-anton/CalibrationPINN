@@ -653,7 +653,6 @@ def _add_geometry_specific_patches(
         right_half_parallel_length = domain_config.right_half_parallel_length
         parallel_length = domain_config.parallel_length
         half_parallel_height = domain_config.half_parallel_height
-        left_half_measurement_length = domain_config.left_half_measurement_length
         cut_parallel_height = domain_config.cut_parallel_height
         tapered_radius = domain_config.tapered_radius
         plate_hole_radius = domain_config.plate_hole_radius
