@@ -25,7 +25,7 @@ class FakeNetwork(FFNN):
         super().__init__(layer_sizes=[2, 2])
 
     def forward(self, x: Tensor) -> Tensor:
-        return torch.full(size=(x.shape[0], 2), fill_value=1.0)
+        return torch.full(size=(x.shape[0], 2), fill_value=2.0)
 
 
 class FakeNetworkSingleInput(FFNN):
@@ -33,7 +33,7 @@ class FakeNetworkSingleInput(FFNN):
         super().__init__(layer_sizes=[2, 2])
 
     def forward(self, x: Tensor) -> Tensor:
-        return torch.tensor([1.0, 1.0])
+        return torch.tensor([2.0, 2.0])
 
 
 @pytest.fixture

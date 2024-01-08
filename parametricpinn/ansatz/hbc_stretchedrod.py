@@ -12,15 +12,15 @@ from parametricpinn.ansatz.distancefunctions import (
     DistanceFunction,
     distance_function_factory,
 )
-from parametricpinn.types import Tensor
+from parametricpinn.types import Device, Tensor
 
 
 class HBCAnsatzStrategyStretchedRod:
     def __init__(
-        self, displacement_left: Tensor, distance_func: DistanceFunction
+        self, distance_func: DistanceFunction, device: Device
     ) -> None:
         super().__init__()
-        self._displacement_left = displacement_left
+        self._displacement_left = torch.tensor([0.0], device=device)
         self._distance_func = distance_func
 
     def _boundary_data_func(self) -> Tensor:
@@ -34,24 +34,24 @@ class HBCAnsatzStrategyStretchedRod:
 
 
 def create_standard_hbc_ansatz_stretched_rod(
-    displacement_left: Tensor,
     range_coordinate: Tensor,
     network: StandardNetworks,
     distance_function_type: str,
+    device: Device
 ) -> StandardAnsatz:
     distance_func = _create_distance_function(distance_function_type, range_coordinate)
-    ansatz_strategy = HBCAnsatzStrategyStretchedRod(displacement_left, distance_func)
+    ansatz_strategy = HBCAnsatzStrategyStretchedRod(distance_func, device)
     return StandardAnsatz(network, ansatz_strategy)
 
 
 def create_bayesian_hbc_ansatz_stretched_rod(
-    displacement_left: Tensor,
     range_coordinate: Tensor,
     network: BayesianNetworks,
     distance_function_type: str,
+    device: Device
 ) -> BayesianAnsatz:
     distance_func = _create_distance_function(distance_function_type, range_coordinate)
-    ansatz_strategy = HBCAnsatzStrategyStretchedRod(displacement_left, distance_func)
+    ansatz_strategy = HBCAnsatzStrategyStretchedRod(distance_func, device)
     return BayesianAnsatz(network, ansatz_strategy)
 
 
