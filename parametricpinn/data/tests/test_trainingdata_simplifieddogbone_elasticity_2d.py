@@ -49,7 +49,8 @@ num_collocation_points = 32
 num_points_per_bc = 3
 num_traction_bcs = 6
 num_points_traction_bcs = num_traction_bcs * num_points_per_bc
-bcs_overlap_angle_distance = 1.0
+bcs_overlap_angle_distance_left = 1.0
+bcs_overlap_distance_parallel_right = 1.0
 
 set_default_dtype(torch.float64)
 
@@ -112,7 +113,8 @@ def sut() -> SimplifiedDogBoneTrainingDataset2D:
         num_collocation_points=num_collocation_points,
         num_points_per_bc=num_points_per_bc,
         num_samples_per_parameter=num_samples_per_parameter,
-        bcs_overlap_angle_distance=bcs_overlap_angle_distance,
+        bcs_overlap_distance_parallel_right=bcs_overlap_distance_parallel_right,
+        bcs_overlap_angle_distance_left=bcs_overlap_angle_distance_left,
     )
     return create_training_dataset(config=config)
 
@@ -209,7 +211,7 @@ def test_sample_traction_bc__x_coordinates(
 
     actual = sample_traction_bc.x_coor
 
-    max_angle = angle_max_tapered - bcs_overlap_angle_distance
+    max_angle = angle_max_tapered - bcs_overlap_angle_distance_left
     half_angle = max_angle / 2
     abs_max_angle_radial_component_tapered_x = (
         math.sin(math.radians(max_angle)) * tapered_radius
@@ -223,6 +225,7 @@ def test_sample_traction_bc__x_coordinates(
     abs_half_angle_radial_component_tapered_y = (
         math.cos(math.radians(half_angle)) * tapered_radius
     )
+    corrected_parallel_length = parallel_length - bcs_overlap_distance_parallel_right
     expected = torch.tensor(
         [
             # right
@@ -242,15 +245,15 @@ def test_sample_traction_bc__x_coordinates(
             ],
             [-left_half_parallel_length, half_parallel_height],
             [
-                -left_half_parallel_length + 1 / 3 * parallel_length,
+                -left_half_parallel_length + 1 / 3 * corrected_parallel_length,
                 half_parallel_height,
             ],
             [
-                -left_half_parallel_length + 2 / 3 * parallel_length,
+                -left_half_parallel_length + 2 / 3 * corrected_parallel_length,
                 half_parallel_height,
             ],
             [
-                -left_half_parallel_length + 3 / 3 * parallel_length,
+                -left_half_parallel_length + 3 / 3 * corrected_parallel_length,
                 half_parallel_height,
             ],
             # bottom
@@ -266,15 +269,15 @@ def test_sample_traction_bc__x_coordinates(
             ],
             [-left_half_parallel_length, -half_parallel_height],
             [
-                -left_half_parallel_length + 1 / 3 * parallel_length,
+                -left_half_parallel_length + 1 / 3 * corrected_parallel_length,
                 -half_parallel_height,
             ],
             [
-                -left_half_parallel_length + 2 / 3 * parallel_length,
+                -left_half_parallel_length + 2 / 3 * corrected_parallel_length,
                 -half_parallel_height,
             ],
             [
-                -left_half_parallel_length + 3 / 3 * parallel_length,
+                -left_half_parallel_length + 3 / 3 * corrected_parallel_length,
                 -half_parallel_height,
             ],
             # plate hole
@@ -331,7 +334,7 @@ def test_sample_traction_bc__normal(
 
     actual = sample_traction_bc.normal
 
-    max_angle = angle_max_tapered - bcs_overlap_angle_distance
+    max_angle = angle_max_tapered - bcs_overlap_angle_distance_left
     half_angle = max_angle / 2
     abs_normal_max_angle_tapered_x = math.sin(math.radians(max_angle))
     abs_normal_max_angle_tapered_y = math.cos(math.radians(max_angle))

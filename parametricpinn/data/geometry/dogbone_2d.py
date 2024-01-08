@@ -177,14 +177,14 @@ class DogBone2DBase(ABC):
         min_coordinates = torch.tensor(
             [-self.left_half_box_length, -self.half_box_height]
         )
-        normalized_lengths = self._sobol_engine.draw()[0]
-        length = normalized_lengths * torch.tensor(
+        normalized_delta = self._sobol_engine.draw()[0]
+        delta = normalized_delta * torch.tensor(
             [
                 self.box_length,
                 self.box_height,
             ]
         )
-        return min_coordinates + length
+        return min_coordinates + delta
 
     def _is_point_in_shape(self, point: Tensor) -> bool:
         _point = point.detach().numpy()

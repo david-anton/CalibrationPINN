@@ -56,6 +56,7 @@ class PlateWithHoleTrainingDataset2D(Dataset):
         super().__init__()
         self._num_parameters = 2
         self._num_traction_bcs = 4
+        self._bcs_overlap_distance = bcs_overlap_distance
         self._geometry = geometry
         self._traction_right = traction_right
         self._traction_top = torch.tensor([0.0, 0.0], device=traction_right.device)
@@ -70,7 +71,6 @@ class PlateWithHoleTrainingDataset2D(Dataset):
         self._num_points_per_bc = num_points_per_bc
         self._num_samples_per_parameter = num_samples_per_parameter
         self._total_num_samples = num_samples_per_parameter**self._num_parameters
-        self._bcs_overlap_distance = bcs_overlap_distance
         self._samples_collocation: list[TrainingData2DCollocation] = []
         self._samples_traction_bc: list[TrainingData2DTractionBC] = []
         self._generate_samples()

@@ -18,6 +18,7 @@ class QuarterPlateWithHole2D:
         self._y_center = 0.0
         self._angle_min = 0.0
         self._angle_max = 90.0
+        self._sobol_engine = torch.quasirandom.SobolEngine(dimension=2)
         self._shape = self._create_shape()
 
     def create_random_points(self, num_points: int) -> Tensor:
@@ -112,16 +113,10 @@ class QuarterPlateWithHole2D:
         return torch.tensor([edge_length_hole / num_points]).repeat(shape)
 
     def _create_one_random_point(self) -> Tensor:
-        coordinate_x = self._create_one_random_coordinate(self._x_min, self._x_max)
-        coordinate_y = self._create_one_random_coordinate(self._y_min, self._y_max)
-        return torch.concat((coordinate_x, coordinate_y))
-
-    def _create_one_random_coordinate(
-        self, min_coordinate: float, max_coordinate: float
-    ) -> Tensor:
-        return min_coordinate + torch.rand((1), requires_grad=True) * (
-            max_coordinate - min_coordinate
-        )
+        min_coordinates = torch.tensor([self._x_min, self._y_min])
+        normalized_delta = self._sobol_engine.draw()[0]
+        delta = normalized_delta * torch.tensor([self.edge_length, self.edge_length])
+        return min_coordinates + delta
 
     def _is_point_in_shape(self, point: Tensor) -> bool:
         _point = point.detach().numpy()

@@ -69,9 +69,8 @@ distance_function = "normalized linear"
 num_samples_per_parameter = 1
 num_collocation_points = 4096 * 4
 number_points_per_bc = 128 * 4
-bcs_overlap_angle_distance = 1e-2
-bcs_overlap_distance_left = 0.0
-bcs_overlap_distance_right = 1e-2
+bcs_overlap_angle_distance_left = 1e-2
+bcs_overlap_distance_parallel_right = 1e-2
 training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 20000
 weight_pde_loss = 1.0
@@ -136,9 +135,8 @@ def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, ValidationDat
             num_collocation_points=num_collocation_points,
             num_points_per_bc=number_points_per_bc,
             num_samples_per_parameter=num_samples_per_parameter,
-            bcs_overlap_angle_distance=bcs_overlap_angle_distance,
-            bcs_overlap_distance_left=bcs_overlap_distance_left,
-            bcs_overlap_distance_right=bcs_overlap_distance_right,
+            bcs_overlap_angle_distance_left=bcs_overlap_angle_distance_left,
+            bcs_overlap_distance_parallel_right=bcs_overlap_distance_parallel_right,
         )
         return create_training_dataset(config_training_data)
 

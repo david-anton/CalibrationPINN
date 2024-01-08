@@ -61,8 +61,8 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         self._num_parameters = 2
         self._num_symmetry_bcs = 2
         self._num_traction_bcs = 3
-        self._overlap_distance_bcs = 1e-7
-        self._overlap_distance_angle_bcs = 1e-7
+        self._bcs_overlap_distance = bcs_overlap_distance
+        self._bcs_overlap_angle_distance = bcs_overlap_angle_distance
         self._geometry = geometry
         self._traction_left = traction_left
         self._traction_top = torch.tensor([0.0, 0.0], device=traction_left.device)
@@ -76,8 +76,6 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         self._num_points_per_bc = num_points_per_bc
         self._num_samples_per_parameter = num_samples_per_parameter
         self._total_num_samples = num_samples_per_parameter**self._num_parameters
-        self._bcs_overlap_distance = bcs_overlap_distance
-        self._bcs_overlap_angle_distance = bcs_overlap_angle_distance
         self._samples_collocation: list[TrainingData2DCollocation] = []
         self._samples_symmetry_bc: list[TrainingData2DSymmetryBC] = []
         self._samples_traction_bc: list[TrainingData2DTractionBC] = []

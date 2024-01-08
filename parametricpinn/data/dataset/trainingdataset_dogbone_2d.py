@@ -54,6 +54,8 @@ class DogBoneTrainingDataset2D(Dataset):
         self._num_parameters = 2
         self._num_traction_bcs = 8
         self._bcs_overlap_angle_distance = bcs_overlap_angle_distance
+        self._bcs_overlap_distance_parallel_left = 0.0
+        self._bcs_overlap_distance_parallel_right = 0.0
         self._geometry = geometry
         self._traction_right = traction_right
         self._traction_tapered = torch.tensor([0.0, 0.0], device=traction_right.device)
@@ -201,7 +203,7 @@ class DogBoneTrainingDataset2D(Dataset):
             x_coor_top_parallel_complete,
             normal_top_parallel_complete,
         ) = self._geometry.create_uniform_points_on_top_parallel_boundary(
-            num_points + 2
+            num_points + 2, self._bcs_overlap_distance_parallel_left, self._bcs_overlap_distance_parallel_right
         )
         x_coor_top_parallel = x_coor_top_parallel_complete[1:-1, :]
         normal_top_parallel = normal_top_parallel_complete[1:-1, :]
@@ -230,7 +232,7 @@ class DogBoneTrainingDataset2D(Dataset):
             x_coor_bottom_parallel_complete,
             normal_bottom_parallel_complete,
         ) = self._geometry.create_uniform_points_on_bottom_parallel_boundary(
-            num_points + 2
+            num_points + 2, self._bcs_overlap_distance_parallel_left, self._bcs_overlap_distance_parallel_right
         )
         x_coor_bottom_parallel = x_coor_bottom_parallel_complete[1:-1, :]
         normal_bottom_parallel = normal_bottom_parallel_complete[1:-1, :]
