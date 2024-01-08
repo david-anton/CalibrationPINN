@@ -174,7 +174,9 @@ class DogBone2DBase(ABC):
         return torch.tensor([edge_length / num_points]).repeat(shape)
 
     def _create_one_random_point(self) -> Tensor:
-        min_coordinates = torch.tensor([-self.left_half_box_length, -self.half_box_height])
+        min_coordinates = torch.tensor(
+            [-self.left_half_box_length, -self.half_box_height]
+        )
         normalized_lengths = self._sobol_engine.draw()[0]
         length = normalized_lengths * torch.tensor(
             [
@@ -303,7 +305,9 @@ class DogBone2D(DogBone2DBase):
         normals = torch.tensor([1.0, 0.0]).repeat(shape)
         return coordinates, normals
 
-    def calculate_area_fractions_on_vertical_tapered_boundary(self, num_points) -> Tensor:
+    def calculate_area_fractions_on_vertical_tapered_boundary(
+        self, num_points
+    ) -> Tensor:
         shape = (num_points, 1)
         return torch.tensor([self.box_height / num_points]).repeat(shape)
 
