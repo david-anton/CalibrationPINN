@@ -142,7 +142,6 @@ def create_ansatz() -> StandardAnsatz:
     normalization_values = _determine_normalization_values()
     network = FFNN(layer_sizes=layer_sizes)
     return create_standard_normalized_hbc_ansatz_stretched_rod(
-        displacement_left=torch.tensor([displacement_left]).to(device),
         min_inputs=normalization_values["min_inputs"],
         max_inputs=normalization_values["max_inputs"],
         min_outputs=normalization_values["min_output"],

@@ -165,13 +165,13 @@ def create_bayesian_ansatz() -> BayesianAnsatz:
     normalization_values = determine_normalization_values()
     network = BFFNN(layer_sizes=layer_sizes)
     return create_bayesian_normalized_hbc_ansatz_stretched_rod(
-        displacement_left=torch.tensor([displacement_left]).to(device),
         min_inputs=normalization_values["min_inputs"],
         max_inputs=normalization_values["max_inputs"],
         min_outputs=normalization_values["min_output"],
         max_outputs=normalization_values["max_output"],
         network=network,
         distance_function_type=distance_function,
+        device=device,
     ).to(device)
 
 
@@ -179,7 +179,6 @@ def create_standard_ansatz() -> StandardAnsatz:
     normalization_values = determine_normalization_values()
     network = FFNN(layer_sizes=layer_sizes)
     return create_standard_normalized_hbc_ansatz_stretched_rod(
-        displacement_left=torch.tensor([displacement_left]).to(device),
         min_inputs=normalization_values["min_inputs"],
         max_inputs=normalization_values["max_inputs"],
         min_outputs=normalization_values["min_output"],

@@ -326,8 +326,6 @@ def create_ansatz() -> StandardAnsatz:
     normalization_values = _determine_normalization_values()
     network = FFNN(layer_sizes=layer_sizes)
     return create_standard_normalized_hbc_ansatz_quarter_plate_with_hole(
-        displacement_x_right=torch.tensor(0.0).to(device),
-        displacement_y_bottom=torch.tensor(0.0).to(device),
         min_inputs=normalization_values["min_inputs"],
         max_inputs=normalization_values["max_inputs"],
         min_outputs=normalization_values["min_outputs"],
