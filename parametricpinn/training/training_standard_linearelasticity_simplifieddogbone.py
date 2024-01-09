@@ -12,7 +12,6 @@ from parametricpinn.data.dataset import (
     TrainingData2DSymmetryBC,
 )
 from parametricpinn.data.trainingdata_elasticity_2d import (
-    DogBoneTrainingDataset2D,
     SimplifiedDogBoneTrainingDataset2D,
 )
 from parametricpinn.data.validationdata_elasticity_2d import ValidationDataset2D
@@ -30,9 +29,7 @@ from parametricpinn.training.loss_2d.momentum_linearelasticity import (
 from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm
 from parametricpinn.types import Device, Tensor
 
-TrainingDatasetDogboneLike2D: TypeAlias = Union[
-    DogBoneTrainingDataset2D, SimplifiedDogBoneTrainingDataset2D
-]
+TrainingDatasetDogboneLike2D: TypeAlias = SimplifiedDogBoneTrainingDataset2D
 
 
 @dataclass
