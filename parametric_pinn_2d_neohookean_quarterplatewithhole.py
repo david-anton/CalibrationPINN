@@ -63,12 +63,12 @@ from parametricpinn.training.training_standard_neohookean_quarterplatewithhole i
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 num_material_parameters = 2
 edge_length = 100.0
 radius = 10.0
-traction_left_x = -300.0  # -100.0
+traction_left_x = -300.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
@@ -77,7 +77,7 @@ max_youngs_modulus = 3000.0
 min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
 # Network
-layer_sizes = [4, 32, 32, 32, 32, 2]
+layer_sizes = [4, 64, 64, 64, 64, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
@@ -110,8 +110,8 @@ fem_element_degree = 2
 fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = 20231207  # 20231206
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_4_32_traction_300"
+output_date = current_date
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_4_64_traction_300"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
