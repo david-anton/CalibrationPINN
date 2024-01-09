@@ -2,7 +2,7 @@ from .dataset import (
     TrainingData1DCollocation,
     TrainingData1DTractionBC,
     TrainingData2DCollocation,
-    TrainingData2DSymmetryBC,
+    TrainingData2DStressBC,
     TrainingData2DTractionBC,
 )
 from .trainingdataset_dogbone_2d import (
@@ -35,7 +35,7 @@ __all__ = [
     "TrainingData1DCollocation",
     "TrainingData1DTractionBC",
     "TrainingData2DCollocation",
-    "TrainingData2DSymmetryBC",
+    "TrainingData2DStressBC",
     "TrainingData2DTractionBC",
     "DogBoneTrainingDataset2D",
     "DogBoneTrainingDataset2DConfig",

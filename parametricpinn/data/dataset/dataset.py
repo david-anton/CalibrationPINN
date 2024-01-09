@@ -13,7 +13,7 @@ TrainingData1DTractionBC = namedtuple(
 TrainingData2DCollocation = namedtuple(
     "TrainingData2DCollocation", ["x_coor", "x_E", "x_nu", "f"]
 )
-TrainingData2DSymmetryBC = namedtuple(
+TrainingData2DStressBC = namedtuple(
     "TrainingData2DSymmetryBC", ["x_coor", "x_E", "x_nu"]
 )
 TrainingData2DTractionBC = namedtuple(

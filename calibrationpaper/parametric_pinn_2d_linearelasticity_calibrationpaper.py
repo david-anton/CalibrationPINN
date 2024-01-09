@@ -84,7 +84,7 @@ number_points_per_bc = 32
 training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 10000
 weight_pde_loss = 1.0
-weight_symmetry_bc_loss = 1.0
+weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = False
@@ -294,7 +294,7 @@ def training_step() -> None:
         material_model=material_model,
         number_points_per_bc=number_points_per_bc,
         weight_pde_loss=weight_pde_loss,
-        weight_symmetry_bc_loss=weight_symmetry_bc_loss,
+        weight_stress_bc_loss=weight_stress_bc_loss,
         weight_traction_bc_loss=weight_traction_bc_loss,
         training_dataset=training_dataset,
         number_training_epochs=number_training_epochs,

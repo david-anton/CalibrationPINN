@@ -89,7 +89,7 @@ bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 20000
 weight_pde_loss = 1.0
-weight_symmetry_bc_loss = 1.0
+weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = False
@@ -344,7 +344,7 @@ def training_step() -> None:
         ansatz=ansatz,
         number_points_per_bc=number_points_per_bc,
         weight_pde_loss=weight_pde_loss,
-        weight_symmetry_bc_loss=weight_symmetry_bc_loss,
+        weight_stress_bc_loss=weight_stress_bc_loss,
         weight_traction_bc_loss=weight_traction_bc_loss,
         training_dataset=training_dataset,
         number_training_epochs=number_training_epochs,

@@ -9,7 +9,7 @@ from parametricpinn.data.base import repeat_tensor
 from parametricpinn.data.dataset.base import generate_uniform_parameter_list
 from parametricpinn.data.dataset.dataset import (
     TrainingData2DCollocation,
-    TrainingData2DSymmetryBC,
+    TrainingData2DStressBC,
     TrainingData2DTractionBC,
 )
 from parametricpinn.data.geometry import QuarterPlateWithHole2D
@@ -17,7 +17,7 @@ from parametricpinn.types import Tensor
 
 TrainingBatch: TypeAlias = tuple[
     TrainingData2DCollocation,
-    TrainingData2DSymmetryBC,
+    TrainingData2DStressBC,
     TrainingData2DTractionBC,
 ]
 TrainingBatchList: TypeAlias = list[TrainingBatch]
@@ -59,7 +59,7 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
     ):
         super().__init__()
         self._num_parameters = 2
-        self._num_symmetry_bcs = 2
+        self._num_stress_bcs = 2
         self._num_traction_bcs = 3
         self._bcs_overlap_distance = bcs_overlap_distance
         self._bcs_overlap_angle_distance = bcs_overlap_angle_distance
@@ -77,7 +77,7 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         self._num_samples_per_parameter = num_samples_per_parameter
         self._total_num_samples = num_samples_per_parameter**self._num_parameters
         self._samples_collocation: list[TrainingData2DCollocation] = []
-        self._samples_symmetry_bc: list[TrainingData2DSymmetryBC] = []
+        self._samples_stress_bc: list[TrainingData2DStressBC] = []
         self._samples_traction_bc: list[TrainingData2DTractionBC] = []
         self._generate_samples()
 
@@ -93,9 +93,9 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
             normal_traction_bc_batch = []
             area_frac_traction_bc_batch = []
             y_true_traction_bc_batch = []
-            x_coor_symmetry_bc_batch = []
-            x_E_symmetry_bc_batch = []
-            x_nu_symmetry_bc_batch = []
+            x_coor_stress_bc_batch = []
+            x_E_stress_bc_batch = []
+            x_nu_stress_bc_batch = []
 
             def append_to_pde_batch(sample_pde: TrainingData2DCollocation) -> None:
                 x_coor_pde_batch.append(sample_pde.x_coor)
@@ -103,12 +103,12 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
                 x_nu_pde_batch.append(sample_pde.x_nu)
                 f_pde_batch.append(sample_pde.f)
 
-            def append_to_symmetry_bc_batch(
-                sample_symmetry_bc: TrainingData2DSymmetryBC,
+            def append_to_stress_bc_batch(
+                sample_stress_bc: TrainingData2DStressBC,
             ) -> None:
-                x_coor_symmetry_bc_batch.append(sample_symmetry_bc.x_coor)
-                x_E_symmetry_bc_batch.append(sample_symmetry_bc.x_E)
-                x_nu_symmetry_bc_batch.append(sample_symmetry_bc.x_nu)
+                x_coor_stress_bc_batch.append(sample_stress_bc.x_coor)
+                x_E_stress_bc_batch.append(sample_stress_bc.x_E)
+                x_nu_stress_bc_batch.append(sample_stress_bc.x_nu)
 
             def append_to_traction_bc_batch(
                 sample_traction_bc: TrainingData2DTractionBC,
@@ -120,9 +120,9 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
                 area_frac_traction_bc_batch.append(sample_traction_bc.area_frac)
                 y_true_traction_bc_batch.append(sample_traction_bc.y_true)
 
-            for sample_pde, sample_symmetry_bc, sample_traction_bc in batch:
+            for sample_pde, sample_stress_bc, sample_traction_bc in batch:
                 append_to_pde_batch(sample_pde)
-                append_to_symmetry_bc_batch(sample_symmetry_bc)
+                append_to_stress_bc_batch(sample_stress_bc)
                 append_to_traction_bc_batch(sample_traction_bc)
 
             batch_pde = TrainingData2DCollocation(
@@ -131,10 +131,10 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
                 x_nu=torch.concat(x_nu_pde_batch, dim=0),
                 f=torch.concat(f_pde_batch, dim=0),
             )
-            batch_symmetry_bc = TrainingData2DSymmetryBC(
-                x_coor=torch.concat(x_coor_symmetry_bc_batch, dim=0),
-                x_E=torch.concat(x_E_symmetry_bc_batch, dim=0),
-                x_nu=torch.concat(x_nu_symmetry_bc_batch, dim=0),
+            batch_stress_bc = TrainingData2DStressBC(
+                x_coor=torch.concat(x_coor_stress_bc_batch, dim=0),
+                x_E=torch.concat(x_E_stress_bc_batch, dim=0),
+                x_nu=torch.concat(x_nu_stress_bc_batch, dim=0),
             )
             batch_traction_bc = TrainingData2DTractionBC(
                 x_coor=torch.concat(x_coor_traction_bc_batch, dim=0),
@@ -144,7 +144,7 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
                 area_frac=torch.concat(area_frac_traction_bc_batch),
                 y_true=torch.concat(y_true_traction_bc_batch, dim=0),
             )
-            return batch_pde, batch_symmetry_bc, batch_traction_bc
+            return batch_pde, batch_stress_bc, batch_traction_bc
 
         return collate_func
 
@@ -164,7 +164,7 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
                 youngs_modulus = youngs_moduli_list[i]
                 poissons_ratio = poissons_ratios_list[j]
                 self._add_collocation_sample(youngs_modulus, poissons_ratio)
-                self._add_symmetry_bc_sample(youngs_modulus, poissons_ratio)
+                self._add_stress_bc_sample(youngs_modulus, poissons_ratio)
                 self._add_traction_bc_sample(youngs_modulus, poissons_ratio)
                 num_sample = i * self._num_samples_per_parameter + j
                 print(
@@ -184,19 +184,19 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         )
         self._samples_collocation.append(sample)
 
-    def _add_symmetry_bc_sample(
+    def _add_stress_bc_sample(
         self, youngs_modulus: float, poissons_ratio: float
     ) -> None:
-        x_coor = self._create_coordinates_for_symmetry_bcs()
+        x_coor = self._create_coordinates_for_stress_bcs()
         x_E, x_nu = self._create_parameters_for_bcs(
-            youngs_modulus, poissons_ratio, self._num_symmetry_bcs
+            youngs_modulus, poissons_ratio, self._num_stress_bcs
         )
-        sample = TrainingData2DSymmetryBC(
+        sample = TrainingData2DStressBC(
             x_coor=x_coor.detach(), x_E=x_E.detach(), x_nu=x_nu.detach()
         )
-        self._samples_symmetry_bc.append(sample)
+        self._samples_stress_bc.append(sample)
 
-    def _create_coordinates_for_symmetry_bcs(self) -> Tensor:
+    def _create_coordinates_for_stress_bcs(self) -> Tensor:
         x_coor_right, _ = self._geometry.create_uniform_points_on_right_boundary(
             self._num_points_per_bc
         )
@@ -286,9 +286,9 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
     def __getitem__(
         self, idx: int
     ) -> tuple[
-        TrainingData2DCollocation, TrainingData2DSymmetryBC, TrainingData2DTractionBC
+        TrainingData2DCollocation, TrainingData2DStressBC, TrainingData2DTractionBC
     ]:
         sample_collocation = self._samples_collocation[idx]
-        sample_symmetry_bc = self._samples_symmetry_bc[idx]
+        sample_stress_bc = self._samples_stress_bc[idx]
         sample_traction_bc = self._samples_traction_bc[idx]
-        return sample_collocation, sample_symmetry_bc, sample_traction_bc
+        return sample_collocation, sample_stress_bc, sample_traction_bc
