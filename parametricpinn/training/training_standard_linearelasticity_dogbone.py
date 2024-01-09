@@ -9,6 +9,7 @@ from parametricpinn.ansatz import StandardAnsatz
 from parametricpinn.data.dataset import (
     TrainingData2DCollocation,
     TrainingData2DTractionBC,
+    TrainingData2DSymmetryBC,
 )
 from parametricpinn.data.trainingdata_elasticity_2d import (
     DogBoneTrainingDataset2D,
@@ -40,6 +41,7 @@ class TrainingConfiguration:
     material_model: str
     weight_pde_loss: float
     weight_traction_bc_loss: float
+    weight_symmetry_bc_loss: float
     training_dataset: TrainingDatasetDogboneLike2D
     number_training_epochs: int
     training_batch_size: int
@@ -55,6 +57,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     material_model = train_config.material_model
     weight_pde_loss = train_config.weight_pde_loss
     weight_traction_bc_loss = train_config.weight_traction_bc_loss
+    weight_symmetry_bc_loss = train_config.weight_symmetry_bc_loss
     train_dataset = train_config.training_dataset
     train_num_epochs = train_config.number_training_epochs
     train_batch_size = train_config.training_batch_size
@@ -75,11 +78,15 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     lambda_traction_bc_loss = torch.tensor(
         weight_traction_bc_loss, requires_grad=True
     ).to(device)
+    lambda_symmetry_bc_loss = torch.tensor(
+        weight_symmetry_bc_loss, requires_grad=True
+    ).to(device)
 
     def loss_func(
         ansatz: StandardAnsatz,
         collocation_data: TrainingData2DCollocation,
         traction_bc_data: TrainingData2DTractionBC,
+        symmetry_bc_data: TrainingData2DSymmetryBC,
     ) -> tuple[Tensor, Tensor, Tensor]:
         def loss_func_pde(
             ansatz: StandardAnsatz, collocation_data: TrainingData2DCollocation
@@ -105,11 +112,38 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             y = traction_func(ansatz, x_coor, x_param, normal)
             return loss_metric(y_true, y)
 
+        def loss_func_symmetry_bc(
+            ansatz: StandardAnsatz, symmetry_bc_data: TrainingData2DSymmetryBC
+        ) -> Tensor:
+            x_coor_1 = symmetry_bc_data.x_coor_1.to(device)
+            x_coor_2 = symmetry_bc_data.x_coor_2.to(device)
+            x_E = symmetry_bc_data.x_E
+            x_nu = symmetry_bc_data.x_nu
+            x_param = torch.concat((x_E, x_nu), dim=1).to(device)
+
+            x_1 = torch.concat((x_coor_1, x_param), dim=1).to(device)
+            y_1 = ansatz(x_1)
+            y_1_x = y_1[:, 0]
+            y_1_y = y_1[:, 1]
+            x_2 = torch.concat((x_coor_2, x_param), dim=1).to(device)
+            y_2 = ansatz(x_2)
+            y_2_x = y_2[:, 0]
+            y_2_y = y_2[:, 1]
+
+            y_x = y_1_x - y_2_x
+            y_y = y_1_y + y_2_y
+            y = torch.concat((y_x, y_y), dim=0)
+            y_true = torch.zeros_like(y, device=device)
+            return loss_metric(y_true, y)
+
         loss_pde = lambda_pde_loss * loss_func_pde(ansatz, collocation_data)
         loss_traction_bc = lambda_traction_bc_loss * loss_func_traction_bc(
             ansatz, traction_bc_data
         )
-        return loss_pde, loss_traction_bc
+        loss_symmetry_bc = lambda_symmetry_bc_loss * loss_func_symmetry_bc(
+            ansatz, symmetry_bc_data
+        )
+        return loss_pde, loss_traction_bc, loss_symmetry_bc
 
     ### Validation
     def validate_model(
@@ -164,6 +198,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
     loss_hist_pde = []
     loss_hist_traction_bc = []
+    loss_hist_symmetry_bc = []
     valid_hist_mae = []
     valid_hist_rl2 = []
     valid_epochs = []
@@ -171,10 +206,10 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     # Closure for LBFGS
     def loss_func_closure() -> float:
         optimizer.zero_grad()
-        loss_collocation, loss_traction_bc = loss_func(
-            ansatz, batch_collocation, batch_traction_bc
+        loss_collocation, loss_traction_bc, loss_symmetry_bc = loss_func(
+            ansatz, batch_collocation, batch_traction_bc, batch_symmetry_bc
         )
-        loss = loss_collocation + loss_traction_bc
+        loss = loss_collocation + loss_traction_bc + loss_symmetry_bc
         loss.backward(retain_graph=True)
         return loss.item()
 
@@ -183,13 +218,14 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         train_batches = iter(train_dataloader)
         loss_hist_pde_batches = []
         loss_hist_traction_bc_batches = []
+        loss_hist_symmetry_bc_batches = []
 
-        for batch_collocation, batch_traction_bc in train_batches:
+        for batch_collocation, batch_traction_bc, batch_symmetry_bc in train_batches:
             ansatz.train()
 
             # Forward pass
-            loss_pde, loss_traction_bc = loss_func(
-                ansatz, batch_collocation, batch_traction_bc
+            loss_pde, loss_traction_bc, loss_symmetry_bc = loss_func(
+                ansatz, batch_collocation, batch_traction_bc, batch_symmetry_bc
             )
 
             # Update parameters
@@ -197,17 +233,20 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
             loss_hist_pde_batches.append(loss_pde.detach().cpu().item())
             loss_hist_traction_bc_batches.append(loss_traction_bc.detach().cpu().item())
+            loss_hist_symmetry_bc_batches.append(loss_symmetry_bc.detach().cpu().item())
 
         mean_loss_pde = statistics.mean(loss_hist_pde_batches)
         mean_loss_traction_bc = statistics.mean(loss_hist_traction_bc_batches)
+        mean_loss_symmetry_bc = statistics.mean(loss_hist_symmetry_bc_batches)
         loss_hist_pde.append(mean_loss_pde)
         loss_hist_traction_bc.append(mean_loss_traction_bc)
+        loss_hist_symmetry_bc.append(mean_loss_symmetry_bc)
 
         print("##################################################")
         print(f"Epoch {epoch} / {train_num_epochs - 1}")
         print(f"PDE: \t\t {mean_loss_pde}")
         print(f"TRACTION_BC: \t {mean_loss_traction_bc}")
-        # print(f"ENERGY: \t {mean_loss_energy}")
+        print(f"SYMMETRY_BC: \t {mean_loss_symmetry_bc}")
         print("##################################################")
         if epoch % valid_interval == 0 or epoch == train_num_epochs:
             mae, rl2 = validate_model(ansatz, valid_dataloader)
@@ -223,11 +262,8 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
     history_plotter_config = HistoryPlotterConfig()
 
     plot_loss_history(
-        loss_hists=[
-            loss_hist_pde,
-            loss_hist_traction_bc,
-        ],
-        loss_hist_names=["PDE", "Traction BC"],
+        loss_hists=[loss_hist_pde, loss_hist_traction_bc, loss_hist_symmetry_bc],
+        loss_hist_names=["PDE", "Traction BC", "Symmetry BC"],
         file_name="loss_pinn.png",
         output_subdir=output_subdir,
         project_directory=project_directory,

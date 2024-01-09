@@ -9,13 +9,13 @@ from parametricpinn.data.dataset.base import generate_uniform_parameter_list
 from parametricpinn.data.dataset.dataset import (
     TrainingData2DCollocation,
     TrainingData2DTractionBC,
+    TrainingData2DSymmetryBC,
 )
 from parametricpinn.data.geometry import SimplifiedDogBone2D
 from parametricpinn.types import Tensor
 
 TrainingBatch: TypeAlias = tuple[
-    TrainingData2DCollocation,
-    TrainingData2DTractionBC,
+    TrainingData2DCollocation, TrainingData2DTractionBC, TrainingData2DSymmetryBC
 ]
 TrainingBatchList: TypeAlias = list[TrainingBatch]
 TrainingCollateFunc: TypeAlias = Callable[[TrainingBatchList], TrainingBatch]
@@ -55,6 +55,7 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
         super().__init__()
         self._num_parameters = 2
         self._num_traction_bcs = 6
+        self._num_symmetry_bcs = 2
         self._bcs_overlap_angle_distance_left = bcs_overlap_angle_distance_left
         self._bcs_overlap_distance_parallel_left = 0.0
         self._bcs_overlap_distance_parallel_right = bcs_overlap_distance_parallel_right
@@ -74,6 +75,7 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
         self._total_num_samples = num_samples_per_parameter**self._num_parameters
         self._samples_collocation: list[TrainingData2DCollocation] = []
         self._samples_traction_bc: list[TrainingData2DTractionBC] = []
+        self._samples_symmetry_bc: list[TrainingData2DSymmetryBC] = []
         self._generate_samples()
 
     def get_collate_func(self) -> TrainingCollateFunc:
@@ -88,6 +90,10 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
             normal_traction_bc_batch = []
             area_frac_traction_bc_batch = []
             y_true_traction_bc_batch = []
+            x_coor_1_symmetry_bc_batch = []
+            x_coor_2_symmetry_bc_batch = []
+            x_E_symmetry_bc_batch = []
+            x_nu_symmetry_bc_batch = []
 
             def append_to_pde_batch(sample_pde: TrainingData2DCollocation) -> None:
                 x_coor_pde_batch.append(sample_pde.x_coor)
@@ -105,9 +111,18 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
                 area_frac_traction_bc_batch.append(sample_traction_bc.area_frac)
                 y_true_traction_bc_batch.append(sample_traction_bc.y_true)
 
-            for sample_pde, sample_traction_bc in batch:
+            def append_to_symmetry_bc_batch(
+                sample_symmetry_bc: TrainingData2DSymmetryBC,
+            ) -> None:
+                x_coor_1_symmetry_bc_batch.append(sample_symmetry_bc.x_coor_1)
+                x_coor_2_symmetry_bc_batch.append(sample_symmetry_bc.x_coor_2)
+                x_E_symmetry_bc_batch.append(sample_symmetry_bc.x_E)
+                x_nu_symmetry_bc_batch.append(sample_symmetry_bc.x_nu)
+
+            for sample_pde, sample_traction_bc, sample_symmetry_bc in batch:
                 append_to_pde_batch(sample_pde)
                 append_to_traction_bc_batch(sample_traction_bc)
+                append_to_symmetry_bc_batch(sample_symmetry_bc)
 
             batch_pde = TrainingData2DCollocation(
                 x_coor=torch.concat(x_coor_pde_batch, dim=0),
@@ -123,7 +138,13 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
                 area_frac=torch.concat(area_frac_traction_bc_batch),
                 y_true=torch.concat(y_true_traction_bc_batch, dim=0),
             )
-            return batch_pde, batch_traction_bc
+            batch_symmetry_bc = TrainingData2DSymmetryBC(
+                x_coor_1=torch.concat(x_coor_1_symmetry_bc_batch, dim=0),
+                x_coor_2=torch.concat(x_coor_2_symmetry_bc_batch, dim=0),
+                x_E=torch.concat(x_E_symmetry_bc_batch, dim=0),
+                x_nu=torch.concat(x_nu_symmetry_bc_batch, dim=0),
+            )
+            return batch_pde, batch_traction_bc, batch_symmetry_bc
 
         return collate_func
 
@@ -144,6 +165,7 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
                 poissons_ratio = poissons_ratios_list[j]
                 self._add_collocation_sample(youngs_modulus, poissons_ratio)
                 self._add_traction_bc_sample(youngs_modulus, poissons_ratio)
+                self._add_symmetry_bc_sample(youngs_modulus, poissons_ratio)
                 num_sample = i * self._num_samples_per_parameter + j
                 print(
                     f"Add training sample {num_sample + 1} / {self._total_num_samples}"
@@ -286,14 +308,6 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
             (area_frac_right, area_frac_top, area_frac_bottom, area_frac_hole), dim=0
         )
 
-    def _create_parameters_for_bcs(
-        self, youngs_modulus: float, poissons_ratio: float, num_bcs: int
-    ) -> tuple[Tensor, Tensor]:
-        shape = (num_bcs * self._num_points_per_bc, 1)
-        x_E = repeat_tensor(torch.tensor([youngs_modulus]), shape)
-        x_nu = repeat_tensor(torch.tensor([poissons_ratio]), shape)
-        return x_E, x_nu
-
     def _create_tractions_for_traction_bcs(self) -> Tensor:
         shape = (self._num_points_per_bc, 1)
         traction_top = traction_bottom = torch.concat(
@@ -313,12 +327,86 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
             dim=0,
         )
 
+    def _add_symmetry_bc_sample(
+        self, youngs_modulus: float, poissons_ratio: float
+    ) -> None:
+        x_coor_1, x_coor_2 = self._create_coordinates_for_symmetry_bcs()
+        x_E, x_nu = self._create_parameters_for_bcs(
+            youngs_modulus, poissons_ratio, self._num_symmetry_bcs
+        )
+        sample = TrainingData2DSymmetryBC(
+            x_coor_1=x_coor_1.detach(),
+            x_coor_2=x_coor_2.detach(),
+            x_E=x_E.detach(),
+            x_nu=x_nu.detach(),
+        )
+        self._samples_symmetry_bc.append(sample)
+
+    def _create_coordinates_for_symmetry_bcs(self) -> tuple[Tensor, Tensor]:
+        num_points = self._num_points_per_bc
+        # top
+        (
+            x_coor_top_left_tapered,
+            _,
+        ) = self._geometry.create_uniform_points_on_top_left_tapered_boundary(
+            num_points, self._bcs_overlap_angle_distance_left
+        )
+        (
+            x_coor_top_parallel_complete,
+            _,
+        ) = self._geometry.create_uniform_points_on_top_parallel_boundary(
+            num_points + 1,
+            self._bcs_overlap_distance_parallel_left,
+            self._bcs_overlap_distance_parallel_right,
+        )
+        x_coor_top_parallel = x_coor_top_parallel_complete[1:, :]
+        x_coor_top = torch.concat(
+            (x_coor_top_left_tapered, x_coor_top_parallel),
+            dim=0,
+        )
+        # bottom
+        (
+            x_coor_bottom_left_tapered,
+            _,
+        ) = self._geometry.create_uniform_points_on_bottom_left_tapered_boundary(
+            num_points, self._bcs_overlap_angle_distance_left
+        )
+        (
+            x_coor_bottom_parallel_complete,
+            _,
+        ) = self._geometry.create_uniform_points_on_bottom_parallel_boundary(
+            num_points + 1,
+            self._bcs_overlap_distance_parallel_left,
+            self._bcs_overlap_distance_parallel_right,
+        )
+        x_coor_bottom_parallel = x_coor_bottom_parallel_complete[1:, :]
+        x_coor_bottom = torch.concat(
+            (
+                x_coor_bottom_left_tapered,
+                x_coor_bottom_parallel,
+            ),
+            dim=0,
+        )
+
+        return x_coor_top, x_coor_bottom
+
+    def _create_parameters_for_bcs(
+        self, youngs_modulus: float, poissons_ratio: float, num_bcs: int
+    ) -> tuple[Tensor, Tensor]:
+        shape = (num_bcs * self._num_points_per_bc, 1)
+        x_E = repeat_tensor(torch.tensor([youngs_modulus]), shape)
+        x_nu = repeat_tensor(torch.tensor([poissons_ratio]), shape)
+        return x_E, x_nu
+
     def __len__(self) -> int:
         return self._num_samples_per_parameter**2
 
     def __getitem__(
         self, idx: int
-    ) -> tuple[TrainingData2DCollocation, TrainingData2DTractionBC]:
+    ) -> tuple[
+        TrainingData2DCollocation, TrainingData2DTractionBC, TrainingData2DSymmetryBC
+    ]:
         sample_collocation = self._samples_collocation[idx]
         sample_traction_bc = self._samples_traction_bc[idx]
-        return sample_collocation, sample_traction_bc
+        sample_symmetry_bc = self._samples_symmetry_bc[idx]
+        return sample_collocation, sample_traction_bc, sample_symmetry_bc
