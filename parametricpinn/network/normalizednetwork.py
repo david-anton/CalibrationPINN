@@ -10,16 +10,20 @@ class InputNormalizer(nn.Module):
         self._min_inputs = min_inputs
         self._max_inputs = max_inputs
         self._input_ranges = max_inputs - min_inputs
-        self._atol = torch.tensor([1e-7]).to(self._input_ranges.device)
+        self._atol = 1e-7
 
     def forward(self, x: Tensor) -> Tensor:
-        return (
-            (
-                ((x - self._min_inputs) + self._atol)
-                / (self._input_ranges + 2 * self._atol)
-            )
-            * 2.0
-        ) - 1.0
+        denominator = self._input_ranges
+        mask_division = torch.isclose(
+            denominator,
+            torch.zeros_like(denominator, device=denominator.device),
+            atol=self._atol,
+        )
+        return torch.where(
+            mask_division,
+            torch.tensor([0.0], device=denominator.device),
+            (((x - self._min_inputs) / denominator) * 2.0) - 1.0,
+        )
 
 
 class OutputRenormalizer(nn.Module):

@@ -44,12 +44,7 @@ def test_input_normalizer(
 
     actual = sut(inputs)
 
-    input_ranges = max_inputs - min_inputs
-    expected = (
-        ((inputs - min_inputs) + absolute_tolerance)
-        / (input_ranges + 2 * absolute_tolerance)
-    ) * 2.0 - 1
-
+    expected = torch.tensor([[-1.0, -1.0], [0.0, 0.0], [1.0, 1.0]])
     torch.testing.assert_close(actual, expected)
 
 
