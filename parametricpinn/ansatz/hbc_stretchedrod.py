@@ -16,9 +16,7 @@ from parametricpinn.types import Device, Tensor
 
 
 class HBCAnsatzStrategyStretchedRod:
-    def __init__(
-        self, distance_func: DistanceFunction, device: Device
-    ) -> None:
+    def __init__(self, distance_func: DistanceFunction, device: Device) -> None:
         super().__init__()
         self._displacement_left = torch.tensor([0.0], device=device)
         self._distance_func = distance_func
@@ -37,7 +35,7 @@ def create_standard_hbc_ansatz_stretched_rod(
     range_coordinate: Tensor,
     network: StandardNetworks,
     distance_function_type: str,
-    device: Device
+    device: Device,
 ) -> StandardAnsatz:
     distance_func = _create_distance_function(distance_function_type, range_coordinate)
     ansatz_strategy = HBCAnsatzStrategyStretchedRod(distance_func, device)
@@ -48,7 +46,7 @@ def create_bayesian_hbc_ansatz_stretched_rod(
     range_coordinate: Tensor,
     network: BayesianNetworks,
     distance_function_type: str,
-    device: Device
+    device: Device,
 ) -> BayesianAnsatz:
     distance_func = _create_distance_function(distance_function_type, range_coordinate)
     ansatz_strategy = HBCAnsatzStrategyStretchedRod(distance_func, device)

@@ -7,12 +7,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from dolfinx.io import XDMFFile
 import torch
 import ufl
 from dolfinx import default_scalar_type
 from dolfinx.fem import Constant, dirichletbc, functionspace, locate_dofs_topological
 from dolfinx.fem.petsc import LinearProblem
+from dolfinx.io import XDMFFile
 from dolfinx.io.gmshio import model_to_mesh
 from dolfinx.mesh import create_rectangle, locate_entities_boundary, meshtags
 from matplotlib.colors import BoundaryNorm

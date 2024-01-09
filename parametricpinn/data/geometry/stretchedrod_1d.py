@@ -21,7 +21,7 @@ class StretchedRod1D:
         normalized_lengths = self._sobol_engine.draw(num_points)
         length = normalized_lengths * self.length
         return min_coordinate + length
-    
+
     def create_random_points(self, num_points: int) -> Tensor:
         return torch.rand((num_points, 1), requires_grad=True) * self.length
 

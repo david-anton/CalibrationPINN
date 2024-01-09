@@ -150,7 +150,7 @@ def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, ValidationDat
             num_points_per_bc=number_points_per_bc,
             num_samples_per_parameter=num_samples_per_parameter,
             bcs_overlap_angle_distance_left=bcs_overlap_angle_distance_left,
-            bcs_overlap_distance_parallel_right=bcs_overlap_distance_parallel_right
+            bcs_overlap_distance_parallel_right=bcs_overlap_distance_parallel_right,
         )
         return create_training_dataset(config_training_data)
 

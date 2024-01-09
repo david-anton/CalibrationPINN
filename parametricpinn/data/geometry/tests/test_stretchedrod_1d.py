@@ -21,6 +21,7 @@ def _generate_quasi_random_sobol_points() -> Tensor:
     normalized_lengths = sobol_engine.draw(num_points)
     return min_coordinate + (normalized_lengths * length)
 
+
 def _generate_random_points() -> Tensor:
     return torch.rand((num_points, 1)) * length
 

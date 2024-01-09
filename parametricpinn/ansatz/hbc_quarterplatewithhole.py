@@ -22,7 +22,7 @@ class HBCAnsatzStrategyQuarterPlateWithHole:
         self,
         distance_func_x: DistanceFunction,
         distamce_func_y: DistanceFunction,
-        device: Device
+        device: Device,
     ) -> None:
         super().__init__()
         self._boundary_data_x_right = torch.tensor([0.0], device=device)
@@ -55,15 +55,13 @@ def create_standard_hbc_ansatz_quarter_plate_with_hole(
     range_coordinates: Tensor,
     network: StandardNetworks,
     distance_function_type: str,
-    device: Device
+    device: Device,
 ) -> StandardAnsatz:
     distance_func_x, distance_func_y = _create_distance_functions(
         distance_function_type, range_coordinates
     )
     ansatz_strategy = HBCAnsatzStrategyQuarterPlateWithHole(
-        distance_func_x=distance_func_x,
-        distamce_func_y=distance_func_y,
-        device=device
+        distance_func_x=distance_func_x, distamce_func_y=distance_func_y, device=device
     )
     return StandardAnsatz(network, ansatz_strategy)
 
@@ -72,15 +70,13 @@ def create_bayesian_hbc_ansatz_quarter_plate_with_hole(
     range_coordinates: Tensor,
     network: BayesianNetworks,
     distance_function_type: str,
-    device: Device
+    device: Device,
 ) -> BayesianAnsatz:
     distance_func_x, distance_func_y = _create_distance_functions(
         distance_function_type, range_coordinates
     )
     ansatz_strategy = HBCAnsatzStrategyQuarterPlateWithHole(
-        distance_func_x=distance_func_x,
-        distamce_func_y=distance_func_y,
-        device=device
+        distance_func_x=distance_func_x, distamce_func_y=distance_func_y, device=device
     )
     return BayesianAnsatz(network, ansatz_strategy)
 

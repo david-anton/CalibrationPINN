@@ -42,7 +42,7 @@ def sut() -> StandardAnsatz:
         range_coordinates=range_coordinates,
         network=network,
         distance_function_type=distance_function_type,
-        device=device
+        device=device,
     )
 
 
@@ -86,7 +86,7 @@ def sut_single_input() -> StandardAnsatz:
         range_coordinates=range_coordinates,
         network=network,
         distance_function_type=distance_function_type,
-        device=device
+        device=device,
     )
 
 
