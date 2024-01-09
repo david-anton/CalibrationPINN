@@ -122,13 +122,13 @@ def _create_ansatz_strategy(
     device: Device,
 ) -> NormalizedHBCAnsatzStrategyClampedLeft:
     network_input_normalizer = _create_network_input_normalizer(min_inputs, max_inputs)
-    distance_func_x = _create_distance_function_x(
-        distance_func_type, min_inputs, max_inputs, coordinate_x_left
-    )
     (
         ansatz_output_normalizer_x,
         ansatz_output_normalizer_y,
     ) = _create_ansatz_output_normalizers(min_outputs, max_outputs)
+    distance_func_x = _create_distance_function_x(
+        distance_func_type, min_inputs, max_inputs, coordinate_x_left
+    )
     ansatz_output_renormalizer = _create_ansatz_output_renormalizer(
         min_outputs, max_outputs
     )
@@ -148,26 +148,9 @@ def _create_network_input_normalizer(
     return NetworkInputNormalizer(min_inputs, max_inputs)
 
 
-def _create_distance_function_x(
-    distance_func_type: str,
-    min_inputs: Tensor,
-    max_inputs: Tensor,
-    coordinate_x_left: Tensor,
-) -> DistanceFunction:
-    idx_coordinate = 0
-    range_coordinate_x = torch.unsqueeze(
-        max_inputs[idx_coordinate] - min_inputs[idx_coordinate], dim=0
-    )
-    device = range_coordinate_x.device
-    boundary_coordinate_x = coordinate_x_left.to(device)
-    return distance_function_factory(
-        distance_func_type, range_coordinate_x, boundary_coordinate_x
-    )
-
-
 def _create_ansatz_output_normalizers(
     min_outputs: Tensor, max_outputs: Tensor
-) -> AnsatzOutputNormalizer:
+) -> tuple[AnsatzOutputNormalizer, AnsatzOutputNormalizer]:
     ansatz_output_normalizer_x = _create_one_ansatz_output_normalizer(
         min_outputs, max_outputs, index=0
     )
@@ -183,6 +166,23 @@ def _create_one_ansatz_output_normalizer(
     return AnsatzOutputNormalizer(
         torch.unsqueeze(min_outputs[index], dim=0),
         torch.unsqueeze(max_outputs[index], dim=0),
+    )
+
+
+def _create_distance_function_x(
+    distance_func_type: str,
+    min_inputs: Tensor,
+    max_inputs: Tensor,
+    coordinate_x_left: Tensor,
+) -> DistanceFunction:
+    idx_coordinate = 0
+    range_coordinate_x = torch.unsqueeze(
+        max_inputs[idx_coordinate] - min_inputs[idx_coordinate], dim=0
+    )
+    device = range_coordinate_x.device
+    boundary_coordinate_x = coordinate_x_left.to(device)
+    return distance_function_factory(
+        distance_func_type, range_coordinate_x, boundary_coordinate_x
     )
 
 

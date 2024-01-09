@@ -16,66 +16,61 @@ from parametricpinn.ansatz.distancefunctions import (
     DistanceFunction,
     distance_function_factory,
 )
-from parametricpinn.ansatz.hbc_normalizers import (
-    HBCAnsatzNormalizer,
-    HBCAnsatzRenormalizer,
-)
-from parametricpinn.network.normalizednetwork import InputNormalizer
+from parametricpinn.network.normalizednetwork import InputNormalizer, OutputRenormalizer
 from parametricpinn.types import Device, Tensor
 
 NetworkInputNormalizer: TypeAlias = InputNormalizer
+AnsatzOutputNormalizer: TypeAlias = InputNormalizer
+AnsatzOutputRenormalizer: TypeAlias = OutputRenormalizer
 
 
 class NormalizedHBCAnsatzStrategyQuarterPlateWithHole:
     def __init__(
         self,
-        displacement_x_right: Tensor,
-        displacement_y_bottom: Tensor,
         network_input_normalizer: NetworkInputNormalizer,
-        hbc_ansatz_output_normalizer_x: HBCAnsatzNormalizer,
-        hbc_ansatz_output_normalizer_y: HBCAnsatzNormalizer,
+        ansatz_output_normalizer_x: AnsatzOutputNormalizer,
+        ansatz_output_normalizer_y: AnsatzOutputNormalizer,
         distance_func_x: DistanceFunction,
         distance_func_y: DistanceFunction,
-        hbc_ansatz_output_renormalizer: HBCAnsatzRenormalizer,
+        ansatz_output_renormalizer: AnsatzOutputRenormalizer,
+        device: Device,
     ) -> None:
         super().__init__()
-        self._boundary_data_x_right = displacement_x_right
-        self._boundary_data_y_bottom = displacement_y_bottom
+        self._boundary_data_x_right = torch.tensor([0.0], device=device)
+        self._boundary_data_y_bottom = torch.tensor([0.0], device=device)
         self._network_input_normalizer = network_input_normalizer
-        self._hbc_ansatz_output_normalizer_x = hbc_ansatz_output_normalizer_x
-        self._hbc_ansatz_output_normalizer_y = hbc_ansatz_output_normalizer_y
+        self._ansatz_output_normalizer_x = ansatz_output_normalizer_x
+        self._ansatz_output_normalizer_y = ansatz_output_normalizer_y
         self._distance_func_x = distance_func_x
         self._distance_func_y = distance_func_y
-        self._hbc_ansatz_output_renormalizer = hbc_ansatz_output_renormalizer
+        self._ansatz_output_renormalizer = ansatz_output_renormalizer
 
     def _boundary_data_func_x(self) -> Tensor:
-        return self._hbc_ansatz_output_normalizer_x(self._boundary_data_x_right)
+        return self._ansatz_output_normalizer_x(self._boundary_data_x_right)
 
     def _boundary_data_func_y(self) -> Tensor:
-        return self._hbc_ansatz_output_normalizer_y(self._boundary_data_y_bottom)
+        return self._ansatz_output_normalizer_y(self._boundary_data_y_bottom)
 
     def __call__(self, input: Tensor, network: Networks) -> Tensor:
-        input_coor_x, input_coor_y = extract_coordinates_2d(input)
-        norm_input = self._network_input_normalizer(input)
-        norm_network_output = network(norm_input)
+        coor_x, coor_y = extract_coordinates_2d(input)
+        norm_network_input = self._network_input_normalizer(input)
+        norm_network_output = network(norm_network_input)
         norm_network_output_x, norm_network_output_y = unbind_output(
             norm_network_output
         )
-        norm_output_x = (
+        norm_ansatz_output_x = (
             self._boundary_data_func_x()
-            + self._distance_func_x(input_coor_x) * norm_network_output_x
+            + self._distance_func_x(coor_x) * norm_network_output_x
         )
-        norm_output_y = (
+        norm_ansatz_output_y = (
             self._boundary_data_func_y()
-            + self._distance_func_y(input_coor_y) * norm_network_output_y
+            + self._distance_func_y(coor_y) * norm_network_output_y
         )
-        norm_output = bind_output(norm_output_x, norm_output_y)
-        return self._hbc_ansatz_output_renormalizer(norm_output)
+        norm_ansatz_output = bind_output(norm_ansatz_output_x, norm_ansatz_output_y)
+        return self._ansatz_output_renormalizer(norm_ansatz_output)
 
 
 def create_standard_normalized_hbc_ansatz_quarter_plate_with_hole(
-    displacement_x_right: Tensor,
-    displacement_y_bottom: Tensor,
     min_inputs: Tensor,
     max_inputs: Tensor,
     min_outputs: Tensor,
@@ -85,20 +80,12 @@ def create_standard_normalized_hbc_ansatz_quarter_plate_with_hole(
     device: Device,
 ) -> StandardAnsatz:
     ansatz_strategy = _create_ansatz_strategy(
-        displacement_x_right,
-        displacement_y_bottom,
-        min_inputs,
-        max_inputs,
-        min_outputs,
-        max_outputs,
-        distance_function_type,
+        min_inputs, max_inputs, min_outputs, max_outputs, distance_function_type, device
     )
     return StandardAnsatz(network, ansatz_strategy)
 
 
 def create_bayesian_normalized_hbc_ansatz_quarter_plate_with_hole(
-    displacement_x_right: Tensor,
-    displacement_y_bottom: Tensor,
     min_inputs: Tensor,
     max_inputs: Tensor,
     min_outputs: Tensor,
@@ -108,25 +95,18 @@ def create_bayesian_normalized_hbc_ansatz_quarter_plate_with_hole(
     device: Device,
 ) -> BayesianAnsatz:
     ansatz_strategy = _create_ansatz_strategy(
-        displacement_x_right,
-        displacement_y_bottom,
-        min_inputs,
-        max_inputs,
-        min_outputs,
-        max_outputs,
-        distance_function_type,
+        min_inputs, max_inputs, min_outputs, max_outputs, distance_function_type, device
     )
     return BayesianAnsatz(network, ansatz_strategy)
 
 
 def _create_ansatz_strategy(
-    displacement_x_right: Tensor,
-    displacement_y_bottom: Tensor,
     min_inputs: Tensor,
     max_inputs: Tensor,
     min_outputs: Tensor,
     max_outputs: Tensor,
     distance_func_type: str,
+    device: Device,
 ) -> NormalizedHBCAnsatzStrategyQuarterPlateWithHole:
     network_input_normalizer = _create_network_input_normalizer(min_inputs, max_inputs)
     (
@@ -140,14 +120,13 @@ def _create_ansatz_strategy(
         min_outputs, max_outputs
     )
     return NormalizedHBCAnsatzStrategyQuarterPlateWithHole(
-        displacement_x_right=displacement_x_right,
-        displacement_y_bottom=displacement_y_bottom,
         network_input_normalizer=network_input_normalizer,
-        hbc_ansatz_output_normalizer_x=ansatz_output_normalizer_x,
-        hbc_ansatz_output_normalizer_y=ansatz_output_normalizer_y,
+        ansatz_output_normalizer_x=ansatz_output_normalizer_x,
+        ansatz_output_normalizer_y=ansatz_output_normalizer_y,
         distance_func_x=distance_func_x,
         distance_func_y=distance_func_y,
-        hbc_ansatz_output_renormalizer=ansatz_output_renormalizer,
+        ansatz_output_renormalizer=ansatz_output_renormalizer,
+        device=device,
     )
 
 
@@ -159,7 +138,7 @@ def _create_network_input_normalizer(
 
 def _create_ansatz_output_normalizers(
     min_outputs: Tensor, max_outputs: Tensor
-) -> tuple[HBCAnsatzNormalizer, HBCAnsatzNormalizer]:
+) -> tuple[AnsatzOutputNormalizer, AnsatzOutputNormalizer]:
     output_normalizer_x = _create_one_ansatz_output_normalizer(
         min_outputs, max_outputs, index=0
     )
@@ -171,8 +150,8 @@ def _create_ansatz_output_normalizers(
 
 def _create_one_ansatz_output_normalizer(
     min_outputs: Tensor, max_outputs: Tensor, index: int
-) -> HBCAnsatzNormalizer:
-    return HBCAnsatzNormalizer(
+) -> AnsatzOutputNormalizer:
+    return AnsatzOutputNormalizer(
         torch.unsqueeze(min_outputs[index], dim=0),
         torch.unsqueeze(max_outputs[index], dim=0),
     )
@@ -203,5 +182,5 @@ def _create_one_distance_function(
 
 def _create_ansatz_output_renormalizer(
     min_outputs: Tensor, max_outputs: Tensor
-) -> HBCAnsatzRenormalizer:
-    return HBCAnsatzRenormalizer(min_outputs, max_outputs)
+) -> AnsatzOutputRenormalizer:
+    return AnsatzOutputRenormalizer(min_outputs, max_outputs)

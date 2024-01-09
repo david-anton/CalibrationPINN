@@ -16,8 +16,8 @@ displacement_x_right = torch.tensor([0.0])
 displacement_y_bottom = torch.tensor([0.0])
 min_inputs = torch.tensor([-2.0, 0.0, 0.0, 0.0])
 max_inputs = torch.tensor([0.0, 2.0, 0.0, 0.0])
-min_outputs = torch.tensor([0.0, 0.0])
-max_outputs = torch.tensor([10.0, 10.0])
+min_outputs = torch.tensor([-10.0, -20.0])
+max_outputs = torch.tensor([0.0, 0.0])
 distance_function_type = "normalized linear"
 
 
@@ -26,7 +26,7 @@ class FakeNetwork(FFNN):
         super().__init__(layer_sizes=[2, 2])
 
     def forward(self, x: Tensor) -> Tensor:
-        return torch.full(size=(x.shape[0], 2), fill_value=1.0)
+        return torch.tensor([2.0, -2.0]).repeat(x.shape[0], 1)
 
 
 class FakeNetworkSingleInput(FFNN):
@@ -34,15 +34,13 @@ class FakeNetworkSingleInput(FFNN):
         super().__init__(layer_sizes=[2, 2])
 
     def forward(self, x: Tensor) -> Tensor:
-        return torch.tensor([1.0, 1.0])
+        return torch.tensor([2.0, -2.0])
 
 
 @pytest.fixture
 def sut() -> StandardAnsatz:
     network = FakeNetwork()
     return create_standard_normalized_hbc_ansatz_quarter_plate_with_hole(
-        displacement_x_right=displacement_x_right,
-        displacement_y_bottom=displacement_y_bottom,
         min_inputs=min_inputs,
         max_inputs=max_inputs,
         min_outputs=min_outputs,
@@ -72,12 +70,12 @@ def test_normalized_HBC_ansatz(sut: StandardAnsatz) -> None:
 
     expected = torch.tensor(
         [
-            [-10.0, 10.0],
-            [-5.0, 10.0],
-            [0.0, 10.0],
-            [-10.0, 5.0],
-            [-5.0, 5.0],
-            [0.0, 5.0],
+            [-10.0, -20.0],
+            [-5.0, -20.0],
+            [0.0, -20.0],
+            [-10.0, -10.0],
+            [-5.0, -10.0],
+            [0.0, -10.0],
             [-10.0, 0.0],
             [-5.0, 0.0],
             [0.0, 0.0],
@@ -90,8 +88,6 @@ def test_normalized_HBC_ansatz(sut: StandardAnsatz) -> None:
 def sut_single_input() -> StandardAnsatz:
     network = FakeNetworkSingleInput()
     return create_standard_normalized_hbc_ansatz_quarter_plate_with_hole(
-        displacement_x_right=displacement_x_right,
-        displacement_y_bottom=displacement_y_bottom,
         min_inputs=min_inputs,
         max_inputs=max_inputs,
         min_outputs=min_outputs,
@@ -105,12 +101,12 @@ def sut_single_input() -> StandardAnsatz:
 @pytest.mark.parametrize(
     ("input", "expected"),
     [
-        (torch.tensor([-2.0, 2.0, 0.0, 0.0]), torch.tensor([-10.0, 10.0])),
-        (torch.tensor([-1.0, 2.0, 0.0, 0.0]), torch.tensor([-5.0, 10.0])),
-        (torch.tensor([0.0, 2.0, 0.0, 0.0]), torch.tensor([0.0, 10.0])),
-        (torch.tensor([-2.0, 1.0, 0.0, 0.0]), torch.tensor([-10.0, 5.0])),
-        (torch.tensor([-1.0, 1.0, 0.0, 0.0]), torch.tensor([-5.0, 5.0])),
-        (torch.tensor([0.0, 1.0, 0.0, 0.0]), torch.tensor([0.0, 5.0])),
+        (torch.tensor([-2.0, 2.0, 0.0, 0.0]), torch.tensor([-10.0, -20.0])),
+        (torch.tensor([-1.0, 2.0, 0.0, 0.0]), torch.tensor([-5.0, -20.0])),
+        (torch.tensor([0.0, 2.0, 0.0, 0.0]), torch.tensor([0.0, -20.0])),
+        (torch.tensor([-2.0, 1.0, 0.0, 0.0]), torch.tensor([-10.0, -10.0])),
+        (torch.tensor([-1.0, 1.0, 0.0, 0.0]), torch.tensor([-5.0, -10.0])),
+        (torch.tensor([0.0, 1.0, 0.0, 0.0]), torch.tensor([0.0, -10.0])),
         (torch.tensor([-2.0, 0.0, 0.0, 0.0]), torch.tensor([-10.0, 0.0])),
         (torch.tensor([-1.0, 0.0, 0.0, 0.0]), torch.tensor([-5.0, 0.0])),
         (torch.tensor([0.0, 0.0, 0.0, 0.0]), torch.tensor([0.0, 0.0])),

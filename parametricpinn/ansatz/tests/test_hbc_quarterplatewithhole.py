@@ -10,6 +10,7 @@ from parametricpinn.settings import set_default_dtype
 from parametricpinn.types import Tensor
 
 set_default_dtype(torch.float64)
+device = torch.device("cpu")
 
 
 class FakeNetwork(FFNN):
@@ -38,11 +39,10 @@ distance_function_type = "normalized linear"
 def sut() -> StandardAnsatz:
     network = FakeNetwork()
     return create_standard_hbc_ansatz_quarter_plate_with_hole(
-        displacement_x_right=displacement_x_right,
-        displacement_y_bottom=displacement_y_bottom,
         range_coordinates=range_coordinates,
         network=network,
         distance_function_type=distance_function_type,
+        device=device
     )
 
 
@@ -83,11 +83,10 @@ def test_HBC_ansatz(sut: StandardAnsatz) -> None:
 def sut_single_input() -> StandardAnsatz:
     network = FakeNetworkSingleInput()
     return create_standard_hbc_ansatz_quarter_plate_with_hole(
-        displacement_x_right=displacement_x_right,
-        displacement_y_bottom=displacement_y_bottom,
         range_coordinates=range_coordinates,
         network=network,
         distance_function_type=distance_function_type,
+        device=device
     )
 
 

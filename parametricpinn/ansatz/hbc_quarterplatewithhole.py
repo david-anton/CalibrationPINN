@@ -14,20 +14,19 @@ from parametricpinn.ansatz.distancefunctions import (
     DistanceFunction,
     distance_function_factory,
 )
-from parametricpinn.types import Tensor
+from parametricpinn.types import Device, Tensor
 
 
 class HBCAnsatzStrategyQuarterPlateWithHole:
     def __init__(
         self,
-        displacement_x_right: Tensor,
-        displacement_y_bottom: Tensor,
         distance_func_x: DistanceFunction,
         distamce_func_y: DistanceFunction,
+        device: Device
     ) -> None:
         super().__init__()
-        self._boundary_data_x_right = displacement_x_right
-        self._boundary_data_y_bottom = displacement_y_bottom
+        self._boundary_data_x_right = torch.tensor([0.0], device=device)
+        self._boundary_data_y_bottom = torch.tensor([0.0], device=device)
         self._distance_func_x = distance_func_x
         self._distance_func_y = distamce_func_y
 
@@ -53,39 +52,35 @@ class HBCAnsatzStrategyQuarterPlateWithHole:
 
 
 def create_standard_hbc_ansatz_quarter_plate_with_hole(
-    displacement_x_right: Tensor,
-    displacement_y_bottom: Tensor,
     range_coordinates: Tensor,
     network: StandardNetworks,
     distance_function_type: str,
+    device: Device
 ) -> StandardAnsatz:
     distance_func_x, distance_func_y = _create_distance_functions(
         distance_function_type, range_coordinates
     )
     ansatz_strategy = HBCAnsatzStrategyQuarterPlateWithHole(
-        displacement_x_right=displacement_x_right,
-        displacement_y_bottom=displacement_y_bottom,
         distance_func_x=distance_func_x,
         distamce_func_y=distance_func_y,
+        device=device
     )
     return StandardAnsatz(network, ansatz_strategy)
 
 
 def create_bayesian_hbc_ansatz_quarter_plate_with_hole(
-    displacement_x_right: Tensor,
-    displacement_y_bottom: Tensor,
     range_coordinates: Tensor,
     network: BayesianNetworks,
     distance_function_type: str,
+    device: Device
 ) -> BayesianAnsatz:
     distance_func_x, distance_func_y = _create_distance_functions(
         distance_function_type, range_coordinates
     )
     ansatz_strategy = HBCAnsatzStrategyQuarterPlateWithHole(
-        displacement_x_right=displacement_x_right,
-        displacement_y_bottom=displacement_y_bottom,
         distance_func_x=distance_func_x,
         distamce_func_y=distance_func_y,
+        device=device
     )
     return BayesianAnsatz(network, ansatz_strategy)
 

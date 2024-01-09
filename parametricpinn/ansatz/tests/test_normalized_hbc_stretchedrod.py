@@ -25,7 +25,7 @@ class FakeNetwork(FFNN):
         super().__init__(layer_sizes=[1, 1])
 
     def forward(self, x: Tensor) -> Tensor:
-        return torch.full(size=(x.shape[0], 1), fill_value=1.0)
+        return torch.full(size=(x.shape[0], 1), fill_value=2.0)
 
 
 class FakeNetworkSingleInput(FFNN):
@@ -33,14 +33,13 @@ class FakeNetworkSingleInput(FFNN):
         super().__init__(layer_sizes=[1, 1])
 
     def forward(self, x: Tensor) -> Tensor:
-        return torch.tensor([1.0])
+        return torch.tensor([2.0])
 
 
 @pytest.fixture
 def sut() -> StandardAnsatz:
     network = FakeNetwork()
     return create_standard_normalized_hbc_ansatz_stretched_rod(
-        displacement_left=displacement_left,
         min_inputs=min_inputs,
         max_inputs=max_inputs,
         min_outputs=min_outputs,
@@ -64,7 +63,6 @@ def test_normalized_HBC_ansatz(sut: StandardAnsatz) -> None:
 def sut_single_input() -> StandardAnsatz:
     network = FakeNetworkSingleInput()
     return create_standard_normalized_hbc_ansatz_stretched_rod(
-        displacement_left=displacement_left,
         min_inputs=min_inputs,
         max_inputs=max_inputs,
         min_outputs=min_outputs,
