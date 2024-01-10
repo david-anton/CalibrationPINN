@@ -79,7 +79,7 @@ layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 32
-num_collocation_points = 512
+num_collocation_points = 256
 number_points_per_bc = 128
 bcs_overlap_angle_distance_left = 1e-2
 bcs_overlap_distance_parallel_right = 1e-2
@@ -89,7 +89,7 @@ weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_symmetry_bc_loss = 1e5
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20240109_validation_data_linearelasticity_simplifieddogbone_E_180k_240k_nu_02_04_elementsize_01"
 num_samples_valid = 32
 validation_interval = 1
