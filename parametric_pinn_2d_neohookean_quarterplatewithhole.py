@@ -93,7 +93,7 @@ weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = False
-input_subdir_valid = "20231207_validation_data_neohookean_quarterplatewithhole_E_1000_3000_nu_02_04_edge_100_radius_10_traction_300_elementsize_02"
+input_subdir_valid = "20231207_validation_data_neohookean_E_1000_3000_nu_02_04_edge_100_radius_10_traction_300_elementsize_02"  # "20231207_validation_data_neohookean_quarterplatewithhole_E_1000_3000_nu_02_04_edge_100_radius_10_traction_300_elementsize_02"
 num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
