@@ -79,7 +79,7 @@ layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 32
-num_collocation_points = 256
+num_collocation_points = 128
 number_points_per_bc = 128
 bcs_overlap_angle_distance_left = 1e-2
 bcs_overlap_distance_parallel_right = 1e-2
