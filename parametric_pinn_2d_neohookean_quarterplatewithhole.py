@@ -77,7 +77,7 @@ max_youngs_modulus = 3000.0
 min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
 # Network
-layer_sizes = [4, 64, 64, 64, 64, 2]
+layer_sizes = [4, 64, 64, 64, 64, 64, 64, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
@@ -111,7 +111,7 @@ fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_quarterplatewithhole_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_4_64_traction_300"
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_quarterplatewithhole_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_6_64_traction_300"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
