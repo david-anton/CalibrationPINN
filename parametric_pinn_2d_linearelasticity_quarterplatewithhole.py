@@ -10,7 +10,8 @@ from parametricpinn.ansatz import (
     create_standard_normalized_hbc_ansatz_quarter_plate_with_hole,
 )
 from parametricpinn.bayesian.prior import (
-    create_independent_multivariate_normal_distributed_prior,
+    create_univariate_normal_distributed_prior,
+    multiply_priors,
 )
 from parametricpinn.calibration import (
     CalibrationData,
@@ -408,13 +409,17 @@ def calibration_step() -> None:
     prior_std_youngs_modulus = 10000
     prior_mean_poissons_ratio = 0.3
     prior_std_poissons_ratio = 0.015
-    prior_means = torch.tensor([prior_mean_youngs_modulus, prior_mean_poissons_ratio])
-    prior_standard_deviations = torch.tensor(
-        [prior_std_youngs_modulus, prior_std_poissons_ratio]
+    prior_youngs_modulus = create_univariate_normal_distributed_prior(
+        mean=prior_mean_youngs_modulus,
+        standard_deviation=prior_std_youngs_modulus,
+        device=device,
     )
-    prior = create_independent_multivariate_normal_distributed_prior(
-        means=prior_means, standard_deviations=prior_standard_deviations, device=device
+    prior_poissons_ratio = create_univariate_normal_distributed_prior(
+        mean=prior_mean_poissons_ratio,
+        standard_deviation=prior_std_poissons_ratio,
+        device=device,
     )
+    prior = multiply_priors([prior_youngs_modulus, prior_poissons_ratio])
 
     parameter_names = ("Youngs modulus", "Poissons ratio")
     true_parameters = (exact_youngs_modulus, exact_poissons_ratio)
