@@ -23,6 +23,10 @@ class SimplifiedDogBoneGeometryConfig:
     parallel_height = 20.0
     half_parallel_height = parallel_height / 2
     cut_parallel_height = half_box_height - half_parallel_height
+    left_half_measurement_length = 40.0
+    right_half_measurement_length = 40.0
+    measurement_height = 20.0
+    half_measurement_height = measurement_height / 2
     tapered_radius = 25.0
     plate_hole_radius = 4.0
     angle_max_tapered = math.degrees(
