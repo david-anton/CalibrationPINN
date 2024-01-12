@@ -97,7 +97,7 @@ num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
 input_subdir_calibration = "20231124_experimental_dic_data_dogbone"
-input_file_name_calibration = "displacements.csv"
+input_file_name_calibration = "displacements_dic.csv"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -337,7 +337,7 @@ def calibration_step() -> None:
     print("Start calibration ...")
     exact_youngs_modulus = 218454.0
     exact_poissons_ratio = 0.2513
-    num_data_points = 934  # 128
+    num_data_points = 5475  # 128
     std_noise = 5 * 1e-4
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
@@ -360,7 +360,7 @@ def calibration_step() -> None:
             torch.float64
         )
         random_indices = torch.randint(
-            low=0, high=size_data + 1, size=(num_data_points,)
+            low=0, high=size_data + 1, size=(num_data_points - 1,)
         )
         coordinates = full_coordinates[random_indices, :].to(device)
         displacements = full_displacements[random_indices, :].to(device)
