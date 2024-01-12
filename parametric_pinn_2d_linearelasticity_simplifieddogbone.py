@@ -80,11 +80,11 @@ distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 32
 num_collocation_points = 64
-number_points_per_bc = 128
+number_points_per_bc = 64
 bcs_overlap_angle_distance_left = 1e-2
 bcs_overlap_distance_parallel_right = 1e-2
-training_batch_size = int(num_samples_per_parameter**2 / 2)
-number_training_epochs = 10000
+training_batch_size = num_samples_per_parameter**2
+number_training_epochs = 20000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_symmetry_bc_loss = 1e5
@@ -109,7 +109,7 @@ fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_180k_240k_nu_02_04_col_64_bc_128_batched_neurons_6_128"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_180k_240k_nu_02_04_col_64_bc_64_neurons_6_128"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
