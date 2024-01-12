@@ -528,6 +528,17 @@ def calibration_step() -> None:
             cbar.ax.set_yticklabels(map(str, color_bar_ticks))
             cbar.ax.minorticks_off()
 
+            # hole
+            origin_x = geometry_config.origin_x
+            origin_y = geometry_config.origin_y
+            radius_hole = geometry_config.plate_hole_radius
+            plate_hole = plt.Circle(
+                (origin_x, origin_y),
+                radius=radius_hole,
+                color="white",
+            )
+            axes.add_patch(plate_hole)
+
             # save
             file_name = f"data_dispalcements_{dimension}.{plot_config.file_format}"
             save_path = project_directory.create_output_file_path(
