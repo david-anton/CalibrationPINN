@@ -411,8 +411,8 @@ def calibration_step() -> None:
 
         plot_config = PlotterConfigData()
 
-        coordinates_np = coordinates.numpy()
-        displacements_np = displacements.numpy()
+        coordinates_np = coordinates.detach().cpu().numpy()
+        displacements_np = displacements.detach().cpu().numpy()
 
         def plot_one_displacements(
             coordinates: NPArray,
