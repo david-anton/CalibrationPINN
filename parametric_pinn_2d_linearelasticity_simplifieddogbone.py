@@ -61,7 +61,7 @@ from parametricpinn.training.training_standard_linearelasticity_simplifieddogbon
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -100,15 +100,15 @@ input_subdir_calibration = "20231124_experimental_dic_data_dogbone"
 input_file_name_calibration = "displacements.csv"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
-use_hamiltonian = True
-use_efficient_nuts = True
+use_hamiltonian = False
+use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = 20240110
 output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_180k_240k_nu_02_04_col_64_bc_64_neurons_6_128"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
@@ -366,6 +366,187 @@ def calibration_step() -> None:
         displacements = full_displacements[random_indices, :].to(device)
         return coordinates, displacements
 
+    def visualize_data(coordinates: Tensor, displacements: Tensor) -> None:
+        # imports
+        from matplotlib.colors import BoundaryNorm
+        from matplotlib.ticker import MaxNLocator
+        import matplotlib.pyplot as plt
+        from scipy.interpolate import griddata
+        from parametricpinn.types import NPArray
+
+        class PlotterConfigData:
+            def __init__(self) -> None:
+                # label size
+                self.label_size = 16
+                # font size in legend
+                self.font_size = 16
+                self.font = {"size": self.label_size}
+                # title pad
+                self.title_pad = 10
+                # labels
+                self.x_label = "x [mm]"
+                self.y_label = "y [mm]"
+                # major ticks
+                self.major_tick_label_size = 16
+                self.major_ticks_size = self.font_size
+                self.major_ticks_width = 2
+                # minor ticks
+                self.minor_tick_label_size = 14
+                self.minor_ticks_size = 12
+                self.minor_ticks_width = 1
+                # scientific notation
+                self.scientific_notation_size = self.font_size
+                # color map
+                self.color_map = "jet"
+                # legend
+                self.ticks_max_number_of_intervals = 255
+                self.num_cbar_ticks = 7
+                # resolution of results
+                self.num_points_per_edge = 128
+                # grid interpolation
+                self.interpolation_method = "nearest"
+                # save options
+                self.dpi = 300
+                self.file_format = "pdf"
+
+        plot_config = PlotterConfigData()
+
+        coordinates_np = coordinates.numpy()
+        displacements_np = displacements.numpy()
+
+        def plot_one_displacements(
+            coordinates: NPArray,
+            displacements: NPArray,
+            dimension: str,
+            plot_config: PlotterConfigData,
+        ) -> None:
+            coordinates_x = coordinates[:, 0]
+            coordinates_y = coordinates[:, 1]
+            min_coordinates_x = np.nanmin(coordinates_x)
+            max_coordinates_x = np.nanmax(coordinates_x)
+            min_coordinates_y = np.nanmin(coordinates_y)
+            max_coordinates_y = np.nanmax(coordinates_y)
+            min_displacement = np.nanmin(displacements)
+            max_displacement = np.nanmax(displacements)
+
+            # grid data
+            num_points_per_grid_dim = 128
+            grid_coordinates_x = np.linspace(
+                min_coordinates_x,
+                max_coordinates_x,
+                num=num_points_per_grid_dim,
+            )
+            grid_coordinates_y = np.linspace(
+                min_coordinates_y,
+                max_coordinates_y,
+                num=num_points_per_grid_dim,
+            )
+            coordinates_grid_x, coordinates_grid_y = np.meshgrid(
+                grid_coordinates_x, grid_coordinates_y
+            )
+
+            # interpolation
+            displacements_grid = griddata(
+                coordinates,
+                displacements,
+                (coordinates_grid_x, coordinates_grid_y),
+                method=plot_config.interpolation_method,
+            )
+
+            figure, axes = plt.subplots()
+
+            # figure size
+            fig_height = 4
+            box_length = 80
+            box_height = 20
+            figure.set_figheight(fig_height)
+            figure.set_figwidth((box_length / box_height) * fig_height + 1)
+
+            # title and labels
+            title = f"Displacements {dimension}"
+            axes.set_title(title, pad=plot_config.title_pad, **plot_config.font)
+            axes.set_xlabel(plot_config.x_label, **plot_config.font)
+            axes.set_ylabel(plot_config.y_label, **plot_config.font)
+            axes.tick_params(
+                axis="both", which="minor", labelsize=plot_config.minor_tick_label_size
+            )
+            axes.tick_params(
+                axis="both", which="major", labelsize=plot_config.major_tick_label_size
+            )
+
+            # ticks
+            num_coordinate_ticks = 3
+            x_ticks = np.linspace(
+                min_coordinates_x,
+                max_coordinates_x,
+                num=num_coordinate_ticks,
+                endpoint=True,
+            )
+            y_ticks = np.linspace(
+                min_coordinates_y,
+                max_coordinates_y,
+                num=num_coordinate_ticks,
+                endpoint=True,
+            )
+            axes.set_xlim(min_coordinates_x, max_coordinates_x)
+            axes.set_ylim(min_coordinates_y, max_coordinates_y)
+            axes.set_xticks(x_ticks)
+            axes.set_xticklabels(map(str, x_ticks.round(decimals=2)))
+            axes.set_yticks(y_ticks)
+            axes.set_yticklabels(map(str, y_ticks.round(decimals=2)))
+            axes.tick_params(axis="both", which="major", pad=15)
+
+            # normalizer
+            tick_values = MaxNLocator(
+                nbins=plot_config.ticks_max_number_of_intervals
+            ).tick_values(min_displacement, max_displacement)
+            normalizer = BoundaryNorm(
+                tick_values, ncolors=plt.get_cmap(plot_config.color_map).N, clip=True
+            )
+
+            # plot
+            plot = axes.pcolormesh(
+                coordinates_grid_x,
+                coordinates_grid_y,
+                displacements_grid,
+                cmap=plt.get_cmap(plot_config.color_map),
+                norm=normalizer,
+            )
+
+            # color bar
+            color_bar_ticks = (
+                np.linspace(
+                    min_displacement,
+                    max_displacement,
+                    num=plot_config.num_cbar_ticks,
+                    endpoint=True,
+                )
+                .round(decimals=4)
+                .tolist()
+            )
+            cbar = figure.colorbar(mappable=plot, ax=axes, ticks=color_bar_ticks)
+            cbar.ax.set_yticklabels(map(str, color_bar_ticks))
+            cbar.ax.minorticks_off()
+
+            # save
+            file_name = f"data_dispalcements_{dimension}.{plot_config.file_format}"
+            save_path = project_directory.create_output_file_path(
+                file_name, output_subdirectory
+            )
+            dpi = 300
+            figure.savefig(
+                save_path,
+                format=plot_config.file_format,
+                bbox_inches="tight",
+                dpi=dpi,
+            )
+
+        displacements_np_x = displacements_np[:, 0]
+        displacements_np_y = displacements_np[:, 1]
+
+        plot_one_displacements(coordinates_np, displacements_np_x, "x", plot_config)
+        plot_one_displacements(coordinates_np, displacements_np_y, "y", plot_config)
+
     name_model_parameters_file = "model_parameters"
     model = load_model(
         model=ansatz,
@@ -376,6 +557,7 @@ def calibration_step() -> None:
     )
 
     coordinates, displacements = generate_calibration_data()
+    visualize_data(coordinates, displacements)
     data = CalibrationData(
         inputs=coordinates,
         outputs=displacements,
