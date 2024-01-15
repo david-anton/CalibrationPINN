@@ -440,7 +440,7 @@ def calibration_step() -> None:
         prior=prior,
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
-        num_burn_in_iterations=int(1e4),  # num_burn_in_iterations=int(2e3),
+        num_burn_in_iterations=int(2e4),  # num_burn_in_iterations=int(2e3),
         cov_proposal_density=torch.diag(
             torch.tensor(
                 [
