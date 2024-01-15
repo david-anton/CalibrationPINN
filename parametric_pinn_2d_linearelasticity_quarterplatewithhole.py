@@ -433,14 +433,14 @@ def calibration_step() -> None:
         ansatz=model,
         calibration_data=data,
     )
-    std_proposal_density_youngs_modulus = 1000
+    std_proposal_density_youngs_modulus = 100  # 1000
     std_proposal_density_poissons_ratio = 0.0015
     mcmc_config_mh = MetropolisHastingsConfig(
         likelihood=likelihood,
         prior=prior,
         initial_parameters=initial_parameters,
         num_iterations=int(1e4),
-        num_burn_in_iterations=int(2e3),
+        num_burn_in_iterations=int(1e4),  # num_burn_in_iterations=int(2e3),
         cov_proposal_density=torch.diag(
             torch.tensor(
                 [
