@@ -29,7 +29,7 @@ class UnivariateNormalPlotterConfig:
 
         # histogram
         self.hist_bins = 128
-        self.hist_range_in_std = 5
+        self.hist_range_in_std = 3
         self.hist_color = "tab:cyan"
 
         # pdf
