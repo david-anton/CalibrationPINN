@@ -11,7 +11,6 @@ from parametricpinn.ansatz import (
 )
 from parametricpinn.bayesian.prior import (
     create_univariate_normal_distributed_prior,
-    create_independent_multivariate_normal_distributed_prior,
     multiply_priors,
 )
 from parametricpinn.calibration import (
@@ -75,7 +74,7 @@ max_youngs_modulus = 240000.0
 min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
 # Network
-layer_sizes = [4, 64, 64, 64, 64, 2]
+layer_sizes = [4, 64, 64, 64, 64, 64, 64, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
@@ -107,8 +106,8 @@ fem_element_degree = 1
 fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = 20240109
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_E_180k_240k_nu_02_04_samples_32_col_128_bc_64_neurons_4_64"  # f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_180k_240k_nu_02_04_samples_32_col_128_bc_64_neurons_4_64"
+output_date = 20240110
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_E_180k_240k_nu_02_04_samples_32_col_128_bc_64_neurons_6_64"  # f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_180k_240k_nu_02_04_samples_32_col_128_bc_64_neurons_4_64"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -410,25 +409,17 @@ def calibration_step() -> None:
     prior_std_youngs_modulus = 10000
     prior_mean_poissons_ratio = 0.3
     prior_std_poissons_ratio = 0.015
-    # prior_youngs_modulus = create_univariate_normal_distributed_prior(
-    #     mean=prior_mean_youngs_modulus,
-    #     standard_deviation=prior_std_youngs_modulus,
-    #     device=device,
-    # )
-    # prior_poissons_ratio = create_univariate_normal_distributed_prior(
-    #     mean=prior_mean_poissons_ratio,
-    #     standard_deviation=prior_std_poissons_ratio,
-    #     device=device,
-    # )
-    # prior = multiply_priors([prior_youngs_modulus, prior_poissons_ratio])
-
-    prior_means = torch.tensor([prior_mean_youngs_modulus, prior_mean_poissons_ratio])
-    prior_standard_deviations = torch.tensor(
-        [prior_std_youngs_modulus, prior_std_poissons_ratio]
+    prior_youngs_modulus = create_univariate_normal_distributed_prior(
+        mean=prior_mean_youngs_modulus,
+        standard_deviation=prior_std_youngs_modulus,
+        device=device,
     )
-    prior = create_independent_multivariate_normal_distributed_prior(
-        means=prior_means, standard_deviations=prior_standard_deviations, device=device
+    prior_poissons_ratio = create_univariate_normal_distributed_prior(
+        mean=prior_mean_poissons_ratio,
+        standard_deviation=prior_std_poissons_ratio,
+        device=device,
     )
+    prior = multiply_priors([prior_youngs_modulus, prior_poissons_ratio])
 
     parameter_names = ("Youngs modulus", "Poissons ratio")
     true_parameters = (exact_youngs_modulus, exact_poissons_ratio)

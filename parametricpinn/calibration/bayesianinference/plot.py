@@ -29,7 +29,7 @@ class UnivariateNormalPlotterConfig:
 
         # histogram
         self.hist_bins = 128
-        self.hist_range_in_std = 3
+        self.hist_range_in_std = 4
         self.hist_color = "tab:cyan"
 
         # pdf
@@ -193,7 +193,7 @@ def plot_univariate_normal_distribution(
         x=mean - config.interval_num_stds * standard_deviation,
         color=config.pdf_interval_color,
         linestyle=config.pdf_interval_linestyle,
-        label=r"$95\% interval$",
+        label=r"$95\%$" + " interval",
     )
     axes.axvline(
         x=mean + config.interval_num_stds * standard_deviation,
