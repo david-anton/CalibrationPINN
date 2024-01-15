@@ -59,7 +59,7 @@ from parametricpinn.training.training_standard_linearelasticity_quarterplatewith
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -98,16 +98,16 @@ batch_size_valid = num_samples_valid
 # Calibration
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
-use_hamiltonian = True
-use_efficient_nuts = True
+use_hamiltonian = False  # True
+use_efficient_nuts = False  # True
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_180k_240k_nu_02_04_samples_32_col_128_bc_64_neurons_4_64"
+output_date = 20240109
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_E_180k_240k_nu_02_04_samples_32_col_128_bc_64_neurons_4_64"  # f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_180k_240k_nu_02_04_samples_32_col_128_bc_64_neurons_4_64"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 

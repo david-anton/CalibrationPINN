@@ -189,7 +189,7 @@ def plot_univariate_normal_distribution(
         x=mean - config.interval_num_stds * standard_deviation,
         color=config.pdf_interval_color,
         linestyle=config.pdf_interval_linestyle,
-        label=r"$3\sigma$",
+        label=r"$95/% interval$",
     )
     axes.axvline(
         x=mean + config.interval_num_stds * standard_deviation,
