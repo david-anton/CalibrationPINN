@@ -366,10 +366,11 @@ def calibration_step() -> None:
 
     def visualize_data(coordinates: Tensor, displacements: Tensor) -> None:
         # imports
+        import matplotlib.pyplot as plt
         from matplotlib.colors import BoundaryNorm
         from matplotlib.ticker import MaxNLocator
-        import matplotlib.pyplot as plt
         from scipy.interpolate import griddata
+
         from parametricpinn.types import NPArray
 
         class PlotterConfigData:

@@ -2,9 +2,9 @@ from .dataset import (
     TrainingData1DCollocation,
     TrainingData1DTractionBC,
     TrainingData2DCollocation,
-    TrainingData2DTractionBC,
     TrainingData2DStressBC,
     TrainingData2DSymmetryBC,
+    TrainingData2DTractionBC,
 )
 from .trainingdataset_dogbone_2d import (
     DogBoneTrainingDataset2D,

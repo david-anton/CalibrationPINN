@@ -1,14 +1,14 @@
 import math
+from typing import TypeAlias
 
 import pytest
 import shapely
 import torch
-from typing import TypeAlias
 
 from parametricpinn.data.dataset import (
     TrainingData2DCollocation,
-    TrainingData2DTractionBC,
     TrainingData2DSymmetryBC,
+    TrainingData2DTractionBC,
 )
 from parametricpinn.data.trainingdata_elasticity_2d import (
     SimplifiedDogBoneTrainingDataset2D,

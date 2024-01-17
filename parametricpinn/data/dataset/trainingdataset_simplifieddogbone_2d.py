@@ -8,8 +8,8 @@ from parametricpinn.data.base import repeat_tensor
 from parametricpinn.data.dataset.base import generate_uniform_parameter_list
 from parametricpinn.data.dataset.dataset import (
     TrainingData2DCollocation,
-    TrainingData2DTractionBC,
     TrainingData2DSymmetryBC,
+    TrainingData2DTractionBC,
 )
 from parametricpinn.data.geometry import SimplifiedDogBone2D
 from parametricpinn.types import Tensor

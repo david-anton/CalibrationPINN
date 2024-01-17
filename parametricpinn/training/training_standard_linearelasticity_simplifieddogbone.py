@@ -8,8 +8,8 @@ from torch.utils.data import DataLoader
 from parametricpinn.ansatz import StandardAnsatz
 from parametricpinn.data.dataset import (
     TrainingData2DCollocation,
-    TrainingData2DTractionBC,
     TrainingData2DSymmetryBC,
+    TrainingData2DTractionBC,
 )
 from parametricpinn.data.trainingdata_elasticity_2d import (
     SimplifiedDogBoneTrainingDataset2D,
