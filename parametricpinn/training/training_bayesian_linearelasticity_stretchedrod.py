@@ -17,7 +17,7 @@ from parametricpinn.data.dataset import (
     TrainingData1DCollocation,
     TrainingData1DTractionBC,
 )
-from parametricpinn.data.trainingdata_linearelasticity_1d import (
+from parametricpinn.data.trainingdata_1d import (
     StretchedRodTrainingDataset1D,
 )
 from parametricpinn.errors import BayesianTrainingError
@@ -67,7 +67,7 @@ class TrainigLikelihood:
         data_pde, data_stress_bc = self._unpack_training_dataset(training_dataset)
         self._pde_data = data_pde
         self._stress_bc_data = data_stress_bc
-        self._num_flattened_y_pde = torch.numel(self._pde_data.y_true)
+        self._num_flattened_y_pde = torch.numel(self._pde_data.x_coor)
         self._num_flattened_y_stress_bc = torch.numel(self._stress_bc_data.y_true)
         self._flattened_true_outputs = self._assemble_flattened_true_outputs()
         self._measurements_stds = measurements_standard_deviations
@@ -107,14 +107,14 @@ class TrainigLikelihood:
     def _calculate_flattened_ansatz_outputs(self) -> Tensor:
         def y_pde_func() -> Tensor:
             x_coor = self._pde_data.x_coor.to(self._device)
-            x_E = self._pde_data.x_E.to(self._device)
+            x_params = self._pde_data.x_params.to(self._device)
             volume_force = self._pde_data.f.to(self._device)
-            return momentum_equation_func(self._ansatz, x_coor, x_E, volume_force)
+            return momentum_equation_func(self._ansatz, x_coor, x_params, volume_force)
 
         def y_stress_bc_func() -> Tensor:
             x_coor = self._stress_bc_data.x_coor.to(self._device)
-            x_E = self._stress_bc_data.x_E.to(self._device)
-            return traction_func(self._ansatz, x_coor, x_E)
+            x_params = self._stress_bc_data.x_params.to(self._device)
+            return traction_func(self._ansatz, x_coor, x_params)
 
         y_pde = y_pde_func().ravel()
         y_stress_bc = y_stress_bc_func().ravel()
@@ -132,7 +132,7 @@ class TrainigLikelihood:
         return data_pde, data_stress_bc
 
     def _assemble_flattened_true_outputs(self) -> Tensor:
-        y_pde_true = self._pde_data.y_true.ravel()
+        y_pde_true = torch.zeros((self._num_flattened_y_pde,)).to(self._device)
         y_stress_bc_true = self._stress_bc_data.y_true.ravel()
         return torch.concat([y_pde_true, y_stress_bc_true], dim=0).to(self._device)
 

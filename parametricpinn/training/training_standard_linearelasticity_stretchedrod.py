@@ -9,11 +9,11 @@ from parametricpinn.data.dataset import (
     TrainingData1DCollocation,
     TrainingData1DTractionBC,
 )
-from parametricpinn.data.trainingdata_linearelasticity_1d import (
+from parametricpinn.data.trainingdata_1d import (
     StretchedRodTrainingDataset1D,
 )
 from parametricpinn.data.validationdata_linearelasticity_1d import (
-    StretchedRodValidationDataset1D,
+    StretchedRodValidationDatasetLinearElasticity1D,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.loaderssavers import PytorchModelSaver
@@ -36,7 +36,7 @@ class StandardTrainingConfiguration:
     training_dataset: StretchedRodTrainingDataset1D
     number_training_epochs: int
     training_batch_size: int
-    validation_dataset: StretchedRodValidationDataset1D
+    validation_dataset: StretchedRodValidationDatasetLinearElasticity1D
     output_subdirectory: str
     project_directory: ProjectDirectory
     device: Device
@@ -65,19 +65,19 @@ def train_parametric_pinn(train_config: StandardTrainingConfiguration) -> None:
             ansatz: StandardAnsatz, pde_data: TrainingData1DCollocation
         ) -> Tensor:
             x_coor = pde_data.x_coor.to(device)
-            x_E = pde_data.x_E.to(device)
+            x_params = pde_data.x_params.to(device)
             volume_force = pde_data.f.to(device)
-            y_true = pde_data.y_true.to(device)
-            y = momentum_equation_func(ansatz, x_coor, x_E, volume_force)
+            y = momentum_equation_func(ansatz, x_coor, x_params, volume_force)
+            y_true = torch.zeros_like(y)
             return loss_metric(y_true, y)
 
         def loss_func_stress_bc(
             ansatz: StandardAnsatz, stress_bc_data: TrainingData1DTractionBC
         ) -> Tensor:
             x_coor = stress_bc_data.x_coor.to(device)
-            x_E = stress_bc_data.x_E.to(device)
+            x_params = stress_bc_data.x_params.to(device)
             y_true = stress_bc_data.y_true.to(device)
-            y = traction_func(ansatz, x_coor, x_E)
+            y = traction_func(ansatz, x_coor, x_params)
             return loss_metric(y_true, y)
 
         loss_pde = loss_func_pde(ansatz, pde_data)

@@ -10,8 +10,8 @@ from parametricpinn.data.dataset import (
     TrainingData2DCollocation,
     TrainingData2DTractionBC,
 )
-from parametricpinn.data.trainingdata_elasticity_2d import DogBoneTrainingDataset2D
-from parametricpinn.data.validationdata_elasticity_2d import ValidationDataset2D
+from parametricpinn.data.trainingdata_2d import DogBoneTrainingDataset2D
+from parametricpinn.data.validationdata_2d import ValidationDataset2D
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.loaderssavers import PytorchModelSaver
 from parametricpinn.postprocessing.plot import (
@@ -99,9 +99,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             ansatz: StandardAnsatz, collocation_data: TrainingData2DCollocation
         ) -> Tensor:
             x_coor = collocation_data.x_coor.to(device)
-            x_E = collocation_data.x_E
-            x_nu = collocation_data.x_nu
-            x_param = torch.concat((x_E, x_nu), dim=1).to(device)
+            x_param = collocation_data.x_params.to(device)
             volume_force = collocation_data.f.to(device)
             y_true = torch.zeros_like(x_coor).to(device)
             y = momentum_equation_func(ansatz, x_coor, x_param, volume_force)
@@ -112,9 +110,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         ) -> Tensor:
             slice_0 = slice(0, num_points_per_bc)
             x_coor = traction_bc_data.x_coor[slice_0, :].to(device)
-            x_E = traction_bc_data.x_E[slice_0, :]
-            x_nu = traction_bc_data.x_nu[slice_0, :]
-            x_param = torch.concat((x_E, x_nu), dim=1).to(device)
+            x_param = traction_bc_data.x_params[slice_0, :].to(device)
             normal = traction_bc_data.normal[slice_0, :].to(device)
             y_true = traction_bc_data.y_true[slice_0, :].to(device)
             y = traction_func(ansatz, x_coor, x_param, normal)
@@ -125,9 +121,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         ) -> Tensor:
             slice_0 = slice(num_points_per_bc, -1)
             x_coor = traction_bc_data.x_coor[slice_0, :].to(device)
-            x_E = traction_bc_data.x_E[slice_0, :]
-            x_nu = traction_bc_data.x_nu[slice_0, :]
-            x_param = torch.concat((x_E, x_nu), dim=1).to(device)
+            x_param = traction_bc_data.x_params[slice_0, :].to(device)
             normal = traction_bc_data.normal[slice_0, :].to(device)
             y_true = traction_bc_data.y_true[slice_0, :].to(device)
             y = traction_func(ansatz, x_coor, x_param, normal)

@@ -10,10 +10,10 @@ from parametricpinn.data.dataset import (
     TrainingData2DCollocation,
     TrainingData2DTractionBC,
 )
-from parametricpinn.data.trainingdata_elasticity_2d import (
+from parametricpinn.data.trainingdata_2d import (
     SimplifiedDogBoneTrainingDataset2D,
 )
-from parametricpinn.data.validationdata_elasticity_2d import ValidationDataset2D
+from parametricpinn.data.validationdata_2d import ValidationDataset2D
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.loaderssavers import PytorchModelSaver
 from parametricpinn.postprocessing.plot import (
@@ -113,9 +113,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             ansatz: StandardAnsatz, collocation_data: TrainingData2DCollocation
         ) -> Tensor:
             x_coor = collocation_data.x_coor.to(device)
-            x_E = collocation_data.x_E
-            x_nu = collocation_data.x_nu
-            x_param = torch.concat((x_E, x_nu), dim=1).to(device)
+            x_param = collocation_data.x_params.to(device)
             volume_force = collocation_data.f.to(device)
             y_true = torch.zeros_like(x_coor).to(device)
             y = momentum_equation_func(ansatz, x_coor, x_param, volume_force)
@@ -126,9 +124,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         ) -> Tensor:
             slice_0 = slice(0, num_points_per_bc)
             x_coor = traction_bc_data.x_coor[slice_0, :].to(device)
-            x_E = traction_bc_data.x_E[slice_0, :]
-            x_nu = traction_bc_data.x_nu[slice_0, :]
-            x_param = torch.concat((x_E, x_nu), dim=1).to(device)
+            x_param = traction_bc_data.x_params[slice_0, :].to(device)
             normal = traction_bc_data.normal[slice_0, :].to(device)
             y_true = traction_bc_data.y_true[slice_0, :].to(device)
             y = traction_func(ansatz, x_coor, x_param, normal)
@@ -139,9 +135,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         ) -> Tensor:
             slice_0 = slice(num_points_per_bc, len(traction_bc_data.x_coor))
             x_coor = traction_bc_data.x_coor[slice_0, :].to(device)
-            x_E = traction_bc_data.x_E[slice_0, :]
-            x_nu = traction_bc_data.x_nu[slice_0, :]
-            x_param = torch.concat((x_E, x_nu), dim=1).to(device)
+            x_param = traction_bc_data.x_params[slice_0, :].to(device)
             normal = traction_bc_data.normal[slice_0, :].to(device)
             y_true = traction_bc_data.y_true[slice_0, :].to(device)
             y = traction_func(ansatz, x_coor, x_param, normal)
@@ -261,15 +255,11 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         ) -> Tensor:
             area = torch.tensor(area_plate)
             x_coor_int = collocation_data.x_coor.to(device)
-            x_E_int = collocation_data.x_E
-            x_nu_int = collocation_data.x_nu
-            x_param_int = torch.concat((x_E_int, x_nu_int), dim=1).to(device)
+            x_param_int = collocation_data.x_params.to(device)
             strain_energy = strain_energy_func(ansatz, x_coor_int, x_param_int, area)
 
             x_coor_ext = traction_bc_data.x_coor.to(device)
-            x_E_ext = traction_bc_data.x_E
-            x_nu_ext = traction_bc_data.x_nu
-            x_param_ext = torch.concat((x_E_ext, x_nu_ext), dim=1).to(device)
+            x_param_ext = traction_bc_data.x_params.to(device)
             normal_ext = traction_bc_data.normal.to(device)
             area_frac_ext = traction_bc_data.area_frac.to(device)
             traction_energy = traction_energy_func(
@@ -286,9 +276,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             def _loss_func_dirichlet_bc() -> Tensor:
                 slice_top = slice(num_points_per_bc, 3 * num_points_per_bc)
                 x_coor_top = traction_bc_data.x_coor[slice_top, :].to(device)
-                x_E_top = traction_bc_data.x_E[slice_top, :]
-                x_nu_top = traction_bc_data.x_nu[slice_top, :]
-                x_param_top = torch.concat((x_E_top, x_nu_top), dim=1).to(device)
+                x_param_top = traction_bc_data.x_params[slice_top, :].to(device)
                 x_top = torch.concat((x_coor_top, x_param_top), dim=1).to(device)
                 y_top = ansatz(x_top)
                 y_top_x = y_top[:, 0]
@@ -296,11 +284,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
                 slice_bottom = slice(3 * num_points_per_bc, 5 * num_points_per_bc)
                 x_coor_bottom = traction_bc_data.x_coor[slice_bottom, :].to(device)
-                x_E_bottom = traction_bc_data.x_E[slice_bottom, :]
-                x_nu_bottom = traction_bc_data.x_nu[slice_bottom, :]
-                x_param_bottom = torch.concat((x_E_bottom, x_nu_bottom), dim=1).to(
-                    device
-                )
+                x_param_bottom = traction_bc_data.x_params[slice_bottom, :].to(device)
                 x_bottom = torch.concat((x_coor_bottom, x_param_bottom), dim=1).to(
                     device
                 )
@@ -321,9 +305,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             ansatz: StandardAnsatz, collocation_data: TrainingData2DCollocation
         ) -> Tensor:
             x_coor = collocation_data.x_coor.to(device)
-            x_E = collocation_data.x_E
-            x_nu = collocation_data.x_nu
-            x_param = torch.concat((x_E, x_nu), dim=1).to(device)
+            x_param = collocation_data.x_params.to(device)
             x = torch.concat((x_coor, x_param), dim=1)
             y = torch.mean(ansatz(x)[:, 1], dtype=torch.float64)
             return torch.abs(1 / y)
