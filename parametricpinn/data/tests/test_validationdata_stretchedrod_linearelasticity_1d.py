@@ -2,9 +2,9 @@ import pytest
 import torch
 
 from parametricpinn.data.validationdata_linearelasticity_1d import (
-    StretchedRodValidationDataset1D,
-    StretchedRodValidationDataset1DConfig,
-    calculate_displacements_solution,
+    StretchedRodValidationDatasetLinearElasticity1D,
+    StretchedRodValidationDatasetLinearElasticity1DConfig,
+    calculate_linear_elastic_displacements_solution,
     create_validation_dataset,
 )
 from parametricpinn.settings import set_seed
@@ -30,7 +30,7 @@ random_seed = 0
     ],
 )
 def test_calculate_displacements_solution(coordinate: Tensor, expected: Tensor) -> None:
-    sut = calculate_displacements_solution
+    sut = calculate_linear_elastic_displacements_solution
     length = 4.0
     youngs_modulus = 1.0
     traction = 3.0
@@ -48,9 +48,9 @@ def test_calculate_displacements_solution(coordinate: Tensor, expected: Tensor) 
 
 ### Test ValidationDataset
 @pytest.fixture
-def sut() -> StretchedRodValidationDataset1D:
+def sut() -> StretchedRodValidationDatasetLinearElasticity1D:
     set_seed(random_seed)
-    config = StretchedRodValidationDataset1DConfig(
+    config = StretchedRodValidationDatasetLinearElasticity1DConfig(
         length=length,
         traction=traction,
         volume_force=volume_force,
@@ -79,7 +79,7 @@ def expected_input_sample() -> tuple[list[Tensor], list[Tensor]]:
     return coordinates_list, youngs_modulus_list
 
 
-def test_len(sut: StretchedRodValidationDataset1D) -> None:
+def test_len(sut: StretchedRodValidationDatasetLinearElasticity1D) -> None:
     actual = len(sut)
 
     expected = num_samples
@@ -88,7 +88,7 @@ def test_len(sut: StretchedRodValidationDataset1D) -> None:
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
 def test_input_sample(
-    sut: StretchedRodValidationDataset1D,
+    sut: StretchedRodValidationDatasetLinearElasticity1D,
     expected_input_sample: tuple[list[Tensor], list[Tensor]],
     idx_sample: int,
 ) -> None:
@@ -102,12 +102,14 @@ def test_input_sample(
 
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
-def test_output_sample(sut: StretchedRodValidationDataset1D, idx_sample: int) -> None:
+def test_output_sample(
+    sut: StretchedRodValidationDatasetLinearElasticity1D, idx_sample: int
+) -> None:
     input, actual = sut[idx_sample]
 
     x_coordinates = input[:, 0].view((num_points, 1))
     x_youngs_modulus = input[:, 1].view((num_points, 1))
-    expected = calculate_displacements_solution(
+    expected = calculate_linear_elastic_displacements_solution(
         coordinates=x_coordinates,
         length=length,
         youngs_modulus=x_youngs_modulus,
@@ -128,7 +130,8 @@ def fake_batch() -> list[tuple[Tensor, Tensor]]:
 
 
 def test_batch_pde__x(
-    sut: StretchedRodValidationDataset1D, fake_batch: list[tuple[Tensor, Tensor]]
+    sut: StretchedRodValidationDatasetLinearElasticity1D,
+    fake_batch: list[tuple[Tensor, Tensor]],
 ):
     collate_func = sut.get_collate_func()
 
@@ -139,7 +142,8 @@ def test_batch_pde__x(
 
 
 def test_batch_pde__y_true(
-    sut: StretchedRodValidationDataset1D, fake_batch: list[tuple[Tensor, Tensor]]
+    sut: StretchedRodValidationDatasetLinearElasticity1D,
+    fake_batch: list[tuple[Tensor, Tensor]],
 ):
     collate_func = sut.get_collate_func()
 

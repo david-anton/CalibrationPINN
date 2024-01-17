@@ -40,16 +40,12 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
             edge_length=config.edge_length, radius=config.radius
         )
         return QuarterPlateWithHoleTrainingDataset2D(
+            parameters=config.parameters,
             geometry=geometry_quarter_pwh,
             traction_left=config.traction_left,
             volume_force=config.volume_force,
-            min_youngs_modulus=config.min_youngs_modulus,
-            max_youngs_modulus=config.max_youngs_modulus,
-            min_poissons_ratio=config.min_poissons_ratio,
-            max_poissons_ratio=config.max_poissons_ratio,
             num_collocation_points=config.num_collocation_points,
             num_points_per_bc=config.num_points_per_bc,
-            num_samples_per_parameter=config.num_samples_per_parameter,
             bcs_overlap_distance=config.bcs_overlap_distance,
             bcs_overlap_angle_distance=config.bcs_overlap_angle_distance,
         )
@@ -60,32 +56,24 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
             hole_radius=config.hole_radius,
         )
         return PlateWithHoleTrainingDataset2D(
+            parameters=config.parameters,
             geometry=geometry_pwh,
             traction_right=config.traction_right,
             volume_force=config.volume_force,
-            min_youngs_modulus=config.min_youngs_modulus,
-            max_youngs_modulus=config.max_youngs_modulus,
-            min_poissons_ratio=config.min_poissons_ratio,
-            max_poissons_ratio=config.max_poissons_ratio,
             num_collocation_points=config.num_collocation_points,
             num_points_per_bc=config.num_points_per_bc,
-            num_samples_per_parameter=config.num_samples_per_parameter,
             bcs_overlap_distance=config.bcs_overlap_distance,
         )
     elif isinstance(config, DogBoneTrainingDataset2DConfig):
         geometry_config_dogbone = DogBoneGeometryConfig()
         geometry_dogbone = DogBone2D(geometry_config_dogbone)
         return DogBoneTrainingDataset2D(
+            parameters=config.parameters,
             geometry=geometry_dogbone,
             traction_right=config.traction_right,
             volume_force=config.volume_force,
-            min_youngs_modulus=config.min_youngs_modulus,
-            max_youngs_modulus=config.max_youngs_modulus,
-            min_poissons_ratio=config.min_poissons_ratio,
-            max_poissons_ratio=config.max_poissons_ratio,
             num_collocation_points=config.num_collocation_points,
             num_points_per_bc=config.num_points_per_bc,
-            num_samples_per_parameter=config.num_samples_per_parameter,
             bcs_overlap_angle_distance=config.bcs_overlap_angle_distance,
         )
     elif isinstance(config, SimplifiedDogBoneTrainingDataset2DConfig):
@@ -94,16 +82,12 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
             geometry_config_simplified_dogbone
         )
         return SimplifiedDogBoneTrainingDataset2D(
+            parameters=config.parameters,
             geometry=geometry_simplified_dogbone,
             traction_right=config.traction_right,
             volume_force=config.volume_force,
-            min_youngs_modulus=config.min_youngs_modulus,
-            max_youngs_modulus=config.max_youngs_modulus,
-            min_poissons_ratio=config.min_poissons_ratio,
-            max_poissons_ratio=config.max_poissons_ratio,
             num_collocation_points=config.num_collocation_points,
             num_points_per_bc=config.num_points_per_bc,
-            num_samples_per_parameter=config.num_samples_per_parameter,
             bcs_overlap_angle_distance_left=config.bcs_overlap_angle_distance_left,
             bcs_overlap_distance_parallel_right=config.bcs_overlap_distance_parallel_right,
         )

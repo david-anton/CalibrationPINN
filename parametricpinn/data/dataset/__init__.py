@@ -28,8 +28,8 @@ from .trainingdataset_stretchedrod_1d import (
 )
 from .validationdataset_2d import ValidationDataset2D, ValidationDataset2DConfig
 from .validationdataset_stretchedrod_1d import (
-    StretchedRodValidationDataset1D,
-    StretchedRodValidationDataset1DConfig,
+    StretchedRodValidationDatasetLinearElasticity1D,
+    StretchedRodValidationDatasetLinearElasticity1DConfig,
 )
 
 __all__ = [
@@ -51,6 +51,6 @@ __all__ = [
     "StretchedRodTrainingDataset1DConfig",
     "ValidationDataset2D",
     "ValidationDataset2DConfig",
-    "StretchedRodValidationDataset1D",
-    "StretchedRodValidationDataset1DConfig",
+    "StretchedRodValidationDatasetLinearElasticity1D",
+    "StretchedRodValidationDatasetLinearElasticity1DConfig",
 ]

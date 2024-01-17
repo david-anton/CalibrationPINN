@@ -1,23 +1,25 @@
 from typing import TypeAlias
 
 from parametricpinn.data.dataset import (
-    StretchedRodValidationDataset1D,
-    StretchedRodValidationDataset1DConfig,
+    StretchedRodValidationDatasetLinearElasticity1D,
+    StretchedRodValidationDatasetLinearElasticity1DConfig,
 )
 from parametricpinn.data.dataset.validationdataset_stretchedrod_1d import (
-    calculate_displacements_solution,
+    calculate_linear_elastic_displacements_solution,
 )
 from parametricpinn.data.geometry import StretchedRod1D
 from parametricpinn.errors import DatasetConfigError
 
-ValidationDatasetConfig: TypeAlias = StretchedRodValidationDataset1DConfig
-ValidationDataset: TypeAlias = StretchedRodValidationDataset1D
+ValidationDatasetConfig: TypeAlias = (
+    StretchedRodValidationDatasetLinearElasticity1DConfig
+)
+ValidationDataset: TypeAlias = StretchedRodValidationDatasetLinearElasticity1D
 
 
 def create_validation_dataset(config: ValidationDatasetConfig) -> ValidationDataset:
-    if isinstance(config, StretchedRodValidationDataset1DConfig):
+    if isinstance(config, StretchedRodValidationDatasetLinearElasticity1DConfig):
         geometry = StretchedRod1D(length=config.length)
-        return StretchedRodValidationDataset1D(
+        return StretchedRodValidationDatasetLinearElasticity1D(
             geometry=geometry,
             traction=config.traction,
             volume_force=config.volume_force,

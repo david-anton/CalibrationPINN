@@ -8,7 +8,7 @@ from parametricpinn.data.dataset import (
     TrainingData2DCollocation,
     TrainingData2DTractionBC,
 )
-from parametricpinn.data.trainingdata_elasticity_2d import (
+from parametricpinn.data.trainingdata_2d import (
     PlateWithHoleTrainingDataset2D,
     PlateWithHoleTrainingDataset2DConfig,
     create_training_dataset,
@@ -25,17 +25,13 @@ y_min = -plate_height / 2
 y_max = plate_height / 2
 origin_x = 0.0
 origin_y = 0.0
+parameters = torch.tensor([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]])
 volume_foce = torch.tensor([10.0, 10.0], dtype=torch.float64)
-min_youngs_modulus = 180000.0
-max_youngs_modulus = 240000.0
-min_poissons_ratio = 0.2
-max_poissons_ratio = 0.4
 traction_right = torch.tensor([-100.0, 0.0], dtype=torch.float64)
 traction_top = torch.tensor([0.0, 0.0], dtype=torch.float64)
 traction_bottom = torch.tensor([0.0, 0.0], dtype=torch.float64)
 traction_hole = torch.tensor([0.0, 0.0], dtype=torch.float64)
-num_samples_per_parameter = 2
-num_samples = num_samples_per_parameter**2
+num_samples = len(parameters)
 num_collocation_points = 32
 num_points_per_bc = 3
 num_traction_bcs = 4
@@ -58,18 +54,14 @@ shape = _create_plate_with_hole_shape()
 @pytest.fixture
 def sut() -> PlateWithHoleTrainingDataset2D:
     config = PlateWithHoleTrainingDataset2DConfig(
+        parameters=parameters,
         plate_length=plate_length,
         plate_height=plate_height,
         hole_radius=hole_radius,
         traction_right=traction_right,
         volume_force=volume_foce,
-        min_youngs_modulus=min_youngs_modulus,
-        max_youngs_modulus=max_youngs_modulus,
-        min_poissons_ratio=min_poissons_ratio,
-        max_poissons_ratio=max_poissons_ratio,
         num_collocation_points=num_collocation_points,
         num_points_per_bc=num_points_per_bc,
-        num_samples_per_parameter=num_samples_per_parameter,
         bcs_overlap_distance=bcs_overlap_distance,
     )
     return create_training_dataset(config=config)
@@ -83,21 +75,12 @@ def assert_if_coordinates_are_inside_shape(coordinates: Tensor) -> bool:
     return True
 
 
-def generate_expected_x_youngs_modulus(num_points: int):
+def generate_expected_x_parameters(num_points: int):
     return [
-        (0, torch.full((num_points, 1), min_youngs_modulus)),
-        (1, torch.full((num_points, 1), min_youngs_modulus)),
-        (2, torch.full((num_points, 1), max_youngs_modulus)),
-        (3, torch.full((num_points, 1), max_youngs_modulus)),
-    ]
-
-
-def generate_expected_x_poissons_ratio(num_points: int):
-    return [
-        (0, torch.full((num_points, 1), min_poissons_ratio)),
-        (1, torch.full((num_points, 1), max_poissons_ratio)),
-        (2, torch.full((num_points, 1), min_poissons_ratio)),
-        (3, torch.full((num_points, 1), max_poissons_ratio)),
+        (0, parameters[0].repeat(num_points, 1)),
+        (1, parameters[1].repeat(num_points, 1)),
+        (2, parameters[2].repeat(num_points, 1)),
+        (3, parameters[3].repeat(num_points, 1)),
     ]
 
 
@@ -121,28 +104,14 @@ def test_sample_pde__x_coordinates(
 
 @pytest.mark.parametrize(
     ("idx_sample", "expected"),
-    generate_expected_x_youngs_modulus(num_collocation_points),
+    generate_expected_x_parameters(num_collocation_points),
 )
-def test_sample_pde__x_youngs_modulus(
+def test_sample_pde__x_parameters(
     sut: PlateWithHoleTrainingDataset2D, idx_sample: int, expected: Tensor
 ) -> None:
     sample_pde, _ = sut[idx_sample]
 
-    actual = sample_pde.x_E
-
-    torch.testing.assert_close(actual, expected)
-
-
-@pytest.mark.parametrize(
-    ("idx_sample", "expected"),
-    generate_expected_x_poissons_ratio(num_collocation_points),
-)
-def test_sample_pde__x_poissons_ratio(
-    sut: PlateWithHoleTrainingDataset2D, idx_sample: int, expected: Tensor
-) -> None:
-    sample_pde, _ = sut[idx_sample]
-
-    actual = sample_pde.x_nu
+    actual = sample_pde.x_params
 
     torch.testing.assert_close(actual, expected)
 
@@ -206,28 +175,15 @@ def test_sample_traction_bc__x_coordinates(
 
 @pytest.mark.parametrize(
     ("idx_sample", "expected"),
-    generate_expected_x_youngs_modulus(num_points_traction_bcs),
+    generate_expected_x_parameters(num_points_traction_bcs),
 )
 def test_sample_traction_bc__x_youngs_modulus(
     sut: PlateWithHoleTrainingDataset2D, idx_sample: int, expected: Tensor
 ) -> None:
     _, sample_traction_bc = sut[idx_sample]
 
-    actual = sample_traction_bc.x_E
+    actual = sample_traction_bc.x_params
 
-    torch.testing.assert_close(actual, expected)
-
-
-@pytest.mark.parametrize(
-    ("idx_sample", "expected"),
-    generate_expected_x_poissons_ratio(num_points_traction_bcs),
-)
-def test_sample_traction_bc__x_poissons_ratio(
-    sut: PlateWithHoleTrainingDataset2D, idx_sample: int, expected: Tensor
-) -> None:
-    _, sample_traction_bc = sut[idx_sample]
-
-    actual = sample_traction_bc.x_nu
     torch.testing.assert_close(actual, expected)
 
 
@@ -335,31 +291,27 @@ def fake_batch() -> (
 ):
     sample_collocation_0 = TrainingData2DCollocation(
         x_coor=torch.tensor([[1.0, 1.0]]),
-        x_E=torch.tensor([[1.1]]),
-        x_nu=torch.tensor([[1.2]]),
-        f=torch.tensor([[1.3]]),
+        x_params=torch.tensor([[1.1, 1.1]]),
+        f=torch.tensor([[1.2, 1.2]]),
     )
     sample_traction_bc_0 = TrainingData2DTractionBC(
         x_coor=torch.tensor([[3.0, 3.0]]),
-        x_E=torch.tensor([[3.1]]),
-        x_nu=torch.tensor([[3.2]]),
-        normal=torch.tensor([[3.3, 3.3]]),
-        area_frac=torch.tensor([[3.4]]),
-        y_true=torch.tensor([[3.5, 3.5]]),
+        x_params=torch.tensor([[3.1, 3.1]]),
+        normal=torch.tensor([[3.2, 3.2]]),
+        area_frac=torch.tensor([[3.3]]),
+        y_true=torch.tensor([[3.4, 3.4]]),
     )
     sample_collocation_1 = TrainingData2DCollocation(
         x_coor=torch.tensor([[10.0, 10.0]]),
-        x_E=torch.tensor([[10.1]]),
-        x_nu=torch.tensor([[10.2]]),
-        f=torch.tensor([[10.3]]),
+        x_params=torch.tensor([[10.1, 10.1]]),
+        f=torch.tensor([[10.2, 10.2]]),
     )
     sample_traction_bc_1 = TrainingData2DTractionBC(
         x_coor=torch.tensor([[30.0, 30.0]]),
-        x_E=torch.tensor([[30.1]]),
-        x_nu=torch.tensor([[30.2]]),
-        normal=torch.tensor([[30.3, 30.3]]),
-        area_frac=torch.tensor([[30.4]]),
-        y_true=torch.tensor([[30.5, 30.5]]),
+        x_params=torch.tensor([[30.1, 30.1]]),
+        normal=torch.tensor([[30.2, 30.2]]),
+        area_frac=torch.tensor([[30.3]]),
+        y_true=torch.tensor([[30.4, 30.4]]),
     )
     return [
         (sample_collocation_0, sample_traction_bc_0),
@@ -385,7 +337,7 @@ def test_batch_pde__x_coordinate(
     torch.testing.assert_close(actual, expected)
 
 
-def test_batch_pde__x_youngs_modulus(
+def test_batch_pde__x_parameters(
     sut: PlateWithHoleTrainingDataset2D,
     fake_batch: list[
         tuple[
@@ -397,27 +349,9 @@ def test_batch_pde__x_youngs_modulus(
     collate_func = sut.get_collate_func()
 
     batch_pde, _ = collate_func(fake_batch)
-    actual = batch_pde.x_E
+    actual = batch_pde.x_params
 
-    expected = torch.tensor([[1.1], [10.1]])
-    torch.testing.assert_close(actual, expected)
-
-
-def test_batch_pde__x_poissons_ratio(
-    sut: PlateWithHoleTrainingDataset2D,
-    fake_batch: list[
-        tuple[
-            TrainingData2DCollocation,
-            TrainingData2DTractionBC,
-        ]
-    ],
-):
-    collate_func = sut.get_collate_func()
-
-    batch_pde, _ = collate_func(fake_batch)
-    actual = batch_pde.x_nu
-
-    expected = torch.tensor([[1.2], [10.2]])
+    expected = torch.tensor([[1.1, 1.1], [10.1, 10.1]])
     torch.testing.assert_close(actual, expected)
 
 
@@ -435,7 +369,7 @@ def test_batch_pde__volume_force(
     batch_pde, _ = collate_func(fake_batch)
     actual = batch_pde.f
 
-    expected = torch.tensor([[1.3], [10.3]])
+    expected = torch.tensor([[1.2, 1.2], [10.2, 10.2]])
     torch.testing.assert_close(actual, expected)
 
 
@@ -457,7 +391,7 @@ def test_batch_traction_bc__x_coordinate(
     torch.testing.assert_close(actual, expected)
 
 
-def test_batch_traction_bc__x_youngs_modulus(
+def test_batch_traction_bc__x_parameters(
     sut: PlateWithHoleTrainingDataset2D,
     fake_batch: list[
         tuple[
@@ -469,27 +403,9 @@ def test_batch_traction_bc__x_youngs_modulus(
     collate_func = sut.get_collate_func()
 
     _, batch_traction_bc = collate_func(fake_batch)
-    actual = batch_traction_bc.x_E
+    actual = batch_traction_bc.x_params
 
-    expected = torch.tensor([[3.1], [30.1]])
-    torch.testing.assert_close(actual, expected)
-
-
-def test_batch_traction_bc__x_poissons_ratio(
-    sut: PlateWithHoleTrainingDataset2D,
-    fake_batch: list[
-        tuple[
-            TrainingData2DCollocation,
-            TrainingData2DTractionBC,
-        ]
-    ],
-):
-    collate_func = sut.get_collate_func()
-
-    _, batch_traction_bc = collate_func(fake_batch)
-    actual = batch_traction_bc.x_nu
-
-    expected = torch.tensor([[3.2], [30.2]])
+    expected = torch.tensor([[3.1, 3.1], [30.1, 30.1]])
     torch.testing.assert_close(actual, expected)
 
 
@@ -507,7 +423,7 @@ def test_batch_traction_bc__normal(
     _, batch_traction_bc = collate_func(fake_batch)
     actual = batch_traction_bc.normal
 
-    expected = torch.tensor([[3.3, 3.3], [30.3, 30.3]])
+    expected = torch.tensor([[3.2, 3.2], [30.2, 30.2]])
     torch.testing.assert_close(actual, expected)
 
 
@@ -525,7 +441,7 @@ def test_batch_traction_bc__area_fraction(
     _, batch_traction_bc = collate_func(fake_batch)
     actual = batch_traction_bc.area_frac
 
-    expected = torch.tensor([[3.4], [30.4]])
+    expected = torch.tensor([[3.3], [30.3]])
     torch.testing.assert_close(actual, expected)
 
 
@@ -543,5 +459,5 @@ def test_batch_traction_bc__y_true(
     _, batch_traction_bc = collate_func(fake_batch)
     actual = batch_traction_bc.y_true
 
-    expected = torch.tensor([[3.5, 3.5], [30.5, 30.5]])
+    expected = torch.tensor([[3.4, 3.4], [30.4, 30.4]])
     torch.testing.assert_close(actual, expected)

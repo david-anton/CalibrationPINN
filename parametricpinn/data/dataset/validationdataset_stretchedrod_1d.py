@@ -14,7 +14,7 @@ from parametricpinn.data.geometry import StretchedRod1D
 from parametricpinn.types import Tensor
 
 
-def calculate_displacements_solution(
+def calculate_linear_elastic_displacements_solution(
     coordinates: Tensor | float,
     length: float,
     youngs_modulus: Tensor | float,
@@ -27,7 +27,7 @@ def calculate_displacements_solution(
 
 
 @dataclass
-class StretchedRodValidationDataset1DConfig:
+class StretchedRodValidationDatasetLinearElasticity1DConfig:
     length: float
     traction: float
     volume_force: float
@@ -37,7 +37,7 @@ class StretchedRodValidationDataset1DConfig:
     num_samples: int
 
 
-class StretchedRodValidationDataset1D(Dataset):
+class StretchedRodValidationDatasetLinearElasticity1D(Dataset):
     def __init__(
         self,
         geometry: StretchedRod1D,
@@ -98,7 +98,7 @@ class StretchedRodValidationDataset1D(Dataset):
         self._samples_x.append(x)
 
     def _add_output_sample(self, coordinates: Tensor, youngs_modulus: Tensor) -> None:
-        y_true = calculate_displacements_solution(
+        y_true = calculate_linear_elastic_displacements_solution(
             coordinates=coordinates,
             length=self._geometry.length,
             youngs_modulus=youngs_modulus,
