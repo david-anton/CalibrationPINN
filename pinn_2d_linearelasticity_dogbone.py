@@ -14,6 +14,7 @@ from parametricpinn.bayesian.prior import (
     create_univariate_normal_distributed_prior,
     multiply_priors,
 )
+from parametricpinn.data.parameterssampling import sample_uniform_grid
 from parametricpinn.calibration import (
     CalibrationData,
     EfficientNUTSConfig,
@@ -29,13 +30,13 @@ from parametricpinn.calibration.bayesianinference.plot import (
     plot_posterior_normal_distributions,
 )
 from parametricpinn.calibration.utility import load_model
-from parametricpinn.data.trainingdata_elasticity_2d import (
+from parametricpinn.data.trainingdata_2d import (
     DogBoneGeometryConfig,
     DogBoneTrainingDataset2D,
     DogBoneTrainingDataset2DConfig,
     create_training_dataset,
 )
-from parametricpinn.data.validationdata_elasticity_2d import (
+from parametricpinn.data.validationdata_2d import (
     ValidationDataset2D,
     ValidationDataset2DConfig,
     create_validation_dataset,
@@ -138,18 +139,20 @@ def create_fem_domain_config() -> DogBoneDomainConfig:
 def create_datasets() -> tuple[DogBoneTrainingDataset2D, ValidationDataset2D]:
     def _create_training_dataset() -> DogBoneTrainingDataset2D:
         print("Generate training data ...")
+        parameters_sample = sample_uniform_grid(
+            min_parameters=[min_youngs_modulus, min_poissons_ratio],
+            max_parameters=[max_youngs_modulus, max_poissons_ratio],
+            num_steps=[num_samples_per_parameter, num_samples_per_parameter],
+            device=device,
+        )
         traction_right = torch.tensor([traction_right_x, traction_right_y])
         volume_force = torch.tensor([volume_force_x, volume_force_y])
         config_training_data = DogBoneTrainingDataset2DConfig(
+            parameters_samples=parameters_sample,
             traction_right=traction_right,
             volume_force=volume_force,
-            min_youngs_modulus=min_youngs_modulus,
-            max_youngs_modulus=max_youngs_modulus,
-            min_poissons_ratio=min_poissons_ratio,
-            max_poissons_ratio=max_poissons_ratio,
             num_collocation_points=num_collocation_points,
             num_points_per_bc=number_points_per_bc,
-            num_samples_per_parameter=num_samples_per_parameter,
             bcs_overlap_angle_distance=bcs_overlap_angle_distance,
         )
         return create_training_dataset(config_training_data)

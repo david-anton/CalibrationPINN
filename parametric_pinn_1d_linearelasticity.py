@@ -23,15 +23,16 @@ from parametricpinn.calibration.bayesianinference.plot import (
     plot_posterior_normal_distributions,
 )
 from parametricpinn.calibration.utility import load_model
-from parametricpinn.data.trainingdata_linearelasticity_1d import (
+from parametricpinn.data.trainingdata_1d import (
     StretchedRodTrainingDataset1D,
     StretchedRodTrainingDataset1DConfig,
     create_training_dataset,
 )
+from parametricpinn.data.parameterssampling import sample_uniform_grid
 from parametricpinn.data.validationdata_linearelasticity_1d import (
-    StretchedRodValidationDataset1D,
-    StretchedRodValidationDataset1DConfig,
-    calculate_displacements_solution,
+    StretchedRodValidationDatasetLinearElasticity1D,
+    StretchedRodValidationDatasetLinearElasticity1DConfig,
+    calculate_linear_elastic_displacements_solution,
     create_validation_dataset,
 )
 from parametricpinn.io import ProjectDirectory
@@ -91,19 +92,25 @@ set_seed(0)
 
 
 def create_datasets() -> (
-    tuple[StretchedRodTrainingDataset1D, StretchedRodValidationDataset1D]
+    tuple[
+        StretchedRodTrainingDataset1D, StretchedRodValidationDatasetLinearElasticity1D
+    ]
 ):
+    parameter_samples = sample_uniform_grid(
+        min_parameters=[min_youngs_modulus],
+        max_parameters=[max_youngs_modulus],
+        num_steps=[num_samples_train],
+        device=device,
+    )
     config_training_dataset = StretchedRodTrainingDataset1DConfig(
+        parameters_samples=parameter_samples,
         length=length,
         traction=traction,
         volume_force=volume_force,
-        min_youngs_modulus=min_youngs_modulus,
-        max_youngs_modulus=max_youngs_modulus,
         num_points_pde=num_points_pde,
-        num_samples=num_samples_train,
     )
     train_dataset = create_training_dataset(config_training_dataset)
-    config_validation_dataset = StretchedRodValidationDataset1DConfig(
+    config_validation_dataset = StretchedRodValidationDatasetLinearElasticity1DConfig(
         length=length,
         min_youngs_modulus=min_youngs_modulus,
         max_youngs_modulus=max_youngs_modulus,
@@ -123,7 +130,7 @@ def create_ansatz() -> StandardAnsatz:
         min_inputs = torch.tensor([min_coordinate, min_youngs_modulus])
         max_inputs = torch.tensor([max_coordinate, max_youngs_modulus])
         min_displacement = displacement_left
-        max_displacement = calculate_displacements_solution(
+        max_displacement = calculate_linear_elastic_displacements_solution(
             coordinates=max_coordinate,
             length=length,
             youngs_modulus=min_youngs_modulus,
@@ -193,14 +200,16 @@ def calibration_step() -> None:
     std_noise = 5 * 1e-4
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
-        config_validation_dataset = StretchedRodValidationDataset1DConfig(
-            length=length,
-            min_youngs_modulus=exact_youngs_modulus,
-            max_youngs_modulus=exact_youngs_modulus,
-            traction=traction,
-            volume_force=volume_force,
-            num_points=num_points_calibration,
-            num_samples=1,
+        config_validation_dataset = (
+            StretchedRodValidationDatasetLinearElasticity1DConfig(
+                length=length,
+                min_youngs_modulus=exact_youngs_modulus,
+                max_youngs_modulus=exact_youngs_modulus,
+                traction=traction,
+                volume_force=volume_force,
+                num_points=num_points_calibration,
+                num_samples=1,
+            )
         )
         calibration_dataset = create_validation_dataset(config_validation_dataset)
         inputs, outputs = calibration_dataset[0]

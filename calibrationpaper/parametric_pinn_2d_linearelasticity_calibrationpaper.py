@@ -12,6 +12,7 @@ from parametricpinn.ansatz import (
 from parametricpinn.bayesian.prior import (
     create_independent_multivariate_normal_distributed_prior,
 )
+from parametricpinn.data.parameterssampling import sample_uniform_grid
 from parametricpinn.calibration import (
     CalibrationData,
     EfficientNUTSConfig,
@@ -27,12 +28,12 @@ from parametricpinn.calibration.bayesianinference.plot import (
     plot_posterior_normal_distributions,
 )
 from parametricpinn.calibration.utility import load_model
-from parametricpinn.data.trainingdata_elasticity_2d import (
+from parametricpinn.data.trainingdata_2d import (
     QuarterPlateWithHoleTrainingDataset2D,
     QuarterPlateWithHoleTrainingDataset2DConfig,
     create_training_dataset,
 )
-from parametricpinn.data.validationdata_elasticity_2d import (
+from parametricpinn.data.validationdata_2d import (
     ValidationDataset2D,
     ValidationDataset2DConfig,
     create_validation_dataset,
@@ -81,11 +82,14 @@ distance_function = "normalized linear"
 num_samples_per_parameter = 32
 num_collocation_points = 64
 number_points_per_bc = 32
+bcs_overlap_distance = 0.0
+bcs_overlap_angle_distance = 0.0
 training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
+
 # Validation
 regenerate_valid_data = False
 input_subdir_valid = "20230914_validation_data_E_180k_240k_nu_02_04_calibration_paper"
@@ -144,20 +148,24 @@ def create_datasets() -> (
 ):
     def _create_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
+        parameters_samples = sample_uniform_grid(
+            min_parameters=[min_youngs_modulus, min_poissons_ratio],
+            max_parameters=[max_youngs_modulus, max_poissons_ratio],
+            num_steps=[num_samples_per_parameter, num_samples_per_parameter],
+            device=device,
+        )
         traction_left = torch.tensor([traction_left_x, traction_left_y])
         volume_force = torch.tensor([volume_force_x, volume_force_y])
         config_training_data = QuarterPlateWithHoleTrainingDataset2DConfig(
+            parameters_samples=parameters_samples,
             edge_length=edge_length,
             radius=radius,
             traction_left=traction_left,
             volume_force=volume_force,
-            min_youngs_modulus=min_youngs_modulus,
-            max_youngs_modulus=max_youngs_modulus,
-            min_poissons_ratio=min_poissons_ratio,
-            max_poissons_ratio=max_poissons_ratio,
             num_collocation_points=num_collocation_points,
             num_points_per_bc=number_points_per_bc,
-            num_samples_per_parameter=num_samples_per_parameter,
+            bcs_overlap_distance=bcs_overlap_distance,
+            bcs_overlap_angle_distance=bcs_overlap_angle_distance,
         )
         return create_training_dataset(config_training_data)
 
