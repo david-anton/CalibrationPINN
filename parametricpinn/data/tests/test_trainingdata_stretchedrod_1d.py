@@ -38,7 +38,6 @@ def sut() -> StretchedRodTrainingDataset1D:
         traction=traction,
         volume_force=volume_force,
         num_points_pde=num_points_pde,
-        num_samples=num_samples,
     )
     return create_training_dataset(config=config)
 
