@@ -40,7 +40,7 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
             edge_length=config.edge_length, radius=config.radius
         )
         return QuarterPlateWithHoleTrainingDataset2D(
-            parameters=config.parameters,
+            parameters_samples=config.parameters_samples,
             geometry=geometry_quarter_pwh,
             traction_left=config.traction_left,
             volume_force=config.volume_force,
@@ -56,7 +56,7 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
             hole_radius=config.hole_radius,
         )
         return PlateWithHoleTrainingDataset2D(
-            parameters=config.parameters,
+            parameters_samples=config.parameters_samples,
             geometry=geometry_pwh,
             traction_right=config.traction_right,
             volume_force=config.volume_force,
@@ -68,7 +68,7 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
         geometry_config_dogbone = DogBoneGeometryConfig()
         geometry_dogbone = DogBone2D(geometry_config_dogbone)
         return DogBoneTrainingDataset2D(
-            parameters=config.parameters,
+            parameters_samples=config.parameters_samples,
             geometry=geometry_dogbone,
             traction_right=config.traction_right,
             volume_force=config.volume_force,
@@ -82,7 +82,7 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
             geometry_config_simplified_dogbone
         )
         return SimplifiedDogBoneTrainingDataset2D(
-            parameters=config.parameters,
+            parameters_samples=config.parameters_samples,
             geometry=geometry_simplified_dogbone,
             traction_right=config.traction_right,
             volume_force=config.volume_force,

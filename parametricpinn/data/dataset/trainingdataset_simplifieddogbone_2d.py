@@ -22,7 +22,7 @@ TrainingCollateFunc: TypeAlias = Callable[[TrainingBatchList], TrainingBatch]
 
 @dataclass
 class SimplifiedDogBoneTrainingDataset2DConfig:
-    parameters: Tensor
+    parameters_samples: Tensor
     traction_right: Tensor
     volume_force: Tensor
     num_collocation_points: int
@@ -34,7 +34,7 @@ class SimplifiedDogBoneTrainingDataset2DConfig:
 class SimplifiedDogBoneTrainingDataset2D(Dataset):
     def __init__(
         self,
-        parameters: Tensor,
+        parameters_samples: Tensor,
         geometry: SimplifiedDogBone2D,
         traction_right: Tensor,
         volume_force: Tensor,
@@ -49,7 +49,7 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
         self._bcs_overlap_angle_distance_left = bcs_overlap_angle_distance_left
         self._bcs_overlap_distance_parallel_left = 0.0
         self._bcs_overlap_distance_parallel_right = bcs_overlap_distance_parallel_right
-        self._parameters = parameters
+        self._parameters_samples = parameters_samples
         self._geometry = geometry
         self._traction_right = traction_right
         self._traction_tapered = torch.tensor([0.0, 0.0], device=traction_right.device)
@@ -58,7 +58,7 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
         self._volume_force = volume_force
         self._num_collocation_points = num_collocation_points
         self._num_points_per_bc = num_points_per_bc
-        self._num_samples = len(self._parameters)
+        self._num_samples = len(self._parameters_samples)
         self._samples_collocation: list[TrainingData2DCollocation] = []
         self._samples_traction_bc: list[TrainingData2DTractionBC] = []
         self._samples_symmetry_bc: list[TrainingData2DSymmetryBC] = []
@@ -126,7 +126,7 @@ class SimplifiedDogBoneTrainingDataset2D(Dataset):
         return collate_func
 
     def _generate_samples(self) -> None:
-        for sample_idx, parameters_sample in enumerate(self._parameters):
+        for sample_idx, parameters_sample in enumerate(self._parameters_samples):
             self._add_collocation_sample(parameters_sample)
             self._add_traction_bc_sample(parameters_sample)
             self._add_symmetry_bc_sample(parameters_sample)

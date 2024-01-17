@@ -15,7 +15,7 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
     if isinstance(config, StretchedRodTrainingDataset1DConfig):
         geometry = StretchedRod1D(length=config.length)
         return StretchedRodTrainingDataset1D(
-            parameters=config.parameters,
+            parameters_samples=config.parameters_samples,
             geometry=geometry,
             traction=config.traction,
             volume_force=config.volume_force,

@@ -54,7 +54,7 @@ shape = _create_plate_with_hole_shape()
 @pytest.fixture
 def sut() -> QuarterPlateWithHoleTrainingDataset2D:
     config = QuarterPlateWithHoleTrainingDataset2DConfig(
-        parameters=parameters,
+        parameters_samples=parameters,
         edge_length=edge_length,
         radius=radius,
         traction_left=traction_left,

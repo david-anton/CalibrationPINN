@@ -22,7 +22,7 @@ TrainingCollateFunc: TypeAlias = Callable[[TrainingBatchList], TrainingBatch]
 
 @dataclass
 class StretchedRodTrainingDataset1DConfig:
-    parameters: Tensor
+    parameters_samples: Tensor
     length: float
     traction: float
     volume_force: float
@@ -33,7 +33,7 @@ class StretchedRodTrainingDataset1DConfig:
 class StretchedRodTrainingDataset1D(Dataset):
     def __init__(
         self,
-        parameters: Tensor,
+        parameters_samples: Tensor,
         geometry: StretchedRod1D,
         traction: float,
         volume_force: float,
@@ -41,7 +41,7 @@ class StretchedRodTrainingDataset1D(Dataset):
         num_samples: int,
     ):
         super().__init__()
-        self._parameters = parameters
+        self._parameters_samples = parameters_samples
         self._geometry = geometry
         self._traction = traction
         self._volume_force = volume_force
@@ -92,7 +92,7 @@ class StretchedRodTrainingDataset1D(Dataset):
         return collate_func
 
     def _generate_samples(self) -> None:
-        for _, parameters_sample in enumerate(self._parameters):
+        for _, parameters_sample in enumerate(self._parameters_samples):
             self._add_pde_sample(parameters_sample)
             self._add_stress_bc_sample(parameters_sample)
 

@@ -22,7 +22,7 @@ TrainingCollateFunc: TypeAlias = Callable[[TrainingBatchList], TrainingBatch]
 
 @dataclass
 class PlateWithHoleTrainingDataset2DConfig:
-    parameters: Tensor
+    parameters_samples: Tensor
     plate_length: float
     plate_height: float
     hole_radius: float
@@ -36,7 +36,7 @@ class PlateWithHoleTrainingDataset2DConfig:
 class PlateWithHoleTrainingDataset2D(Dataset):
     def __init__(
         self,
-        parameters: Tensor,
+        parameters_samples: Tensor,
         geometry: PlateWithHole2D,
         traction_right: Tensor,
         volume_force: Tensor,
@@ -47,7 +47,7 @@ class PlateWithHoleTrainingDataset2D(Dataset):
         super().__init__()
         self._num_traction_bcs = 4
         self._bcs_overlap_distance = bcs_overlap_distance
-        self._parameters = parameters
+        self._parameters_samples = parameters_samples
         self._geometry = geometry
         self._traction_right = traction_right
         self._traction_top = torch.tensor([0.0, 0.0], device=traction_right.device)
@@ -56,7 +56,7 @@ class PlateWithHoleTrainingDataset2D(Dataset):
         self._volume_force = volume_force
         self._num_collocation_points = num_collocation_points
         self._num_points_per_bc = num_points_per_bc
-        self._num_samples = len(self._parameters)
+        self._num_samples = len(self._parameters_samples)
         self._samples_collocation: list[TrainingData2DCollocation] = []
         self._samples_traction_bc: list[TrainingData2DTractionBC] = []
         self._generate_samples()
@@ -107,7 +107,7 @@ class PlateWithHoleTrainingDataset2D(Dataset):
         return collate_func
 
     def _generate_samples(self) -> None:
-        for sample_idx, parameters_sample in enumerate(self._parameters):
+        for sample_idx, parameters_sample in enumerate(self._parameters_samples):
             self._add_collocation_sample(parameters_sample)
             self._add_traction_bc_sample(parameters_sample)
             print(f"Add training sample {sample_idx + 1} / {self._num_samples}")

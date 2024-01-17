@@ -104,7 +104,7 @@ shape = _create_simplified_dog_bone_shape()
 @pytest.fixture
 def sut() -> SimplifiedDogBoneTrainingDataset2D:
     config = SimplifiedDogBoneTrainingDataset2DConfig(
-        parameters=parameters,
+        parameters_samples=parameters,
         traction_right=traction_right,
         volume_force=volume_foce,
         num_collocation_points=num_collocation_points,

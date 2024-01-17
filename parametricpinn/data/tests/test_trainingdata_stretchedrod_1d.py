@@ -33,7 +33,7 @@ def generate_expected_x_parameters(num_points: int):
 @pytest.fixture
 def sut() -> StretchedRodTrainingDataset1D:
     config = StretchedRodTrainingDataset1DConfig(
-        parameters=parameters,
+        parameters_samples=parameters,
         length=length,
         traction=traction,
         volume_force=volume_force,

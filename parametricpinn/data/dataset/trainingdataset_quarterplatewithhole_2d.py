@@ -25,7 +25,7 @@ TrainingCollateFunc: TypeAlias = Callable[[TrainingBatchList], TrainingBatch]
 
 @dataclass
 class QuarterPlateWithHoleTrainingDataset2DConfig:
-    parameters: Tensor
+    parameters_samples: Tensor
     edge_length: float
     radius: float
     traction_left: Tensor
@@ -39,7 +39,7 @@ class QuarterPlateWithHoleTrainingDataset2DConfig:
 class QuarterPlateWithHoleTrainingDataset2D(Dataset):
     def __init__(
         self,
-        parameters: Tensor,
+        parameters_samples: Tensor,
         geometry: QuarterPlateWithHole2D,
         traction_left: Tensor,
         volume_force: Tensor,
@@ -53,7 +53,7 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         self._num_traction_bcs = 3
         self._bcs_overlap_distance = bcs_overlap_distance
         self._bcs_overlap_angle_distance = bcs_overlap_angle_distance
-        self._parameters = parameters
+        self._parameters_samples = parameters_samples
         self._geometry = geometry
         self._traction_left = traction_left
         self._traction_top = torch.tensor([0.0, 0.0], device=traction_left.device)
@@ -61,7 +61,7 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         self._volume_force = volume_force
         self._num_collocation_points = num_collocation_points
         self._num_points_per_bc = num_points_per_bc
-        self._num_samples = len(self._parameters)
+        self._num_samples = len(self._parameters_samples)
         self._samples_collocation: list[TrainingData2DCollocation] = []
         self._samples_stress_bc: list[TrainingData2DStressBC] = []
         self._samples_traction_bc: list[TrainingData2DTractionBC] = []
@@ -126,7 +126,7 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
         return collate_func
 
     def _generate_samples(self) -> None:
-        for sample_idx, parameters_sample in enumerate(self._parameters):
+        for sample_idx, parameters_sample in enumerate(self._parameters_samples):
             self._add_collocation_sample(parameters_sample)
             self._add_traction_bc_sample(parameters_sample)
             self._add_stress_bc_sample(parameters_sample)

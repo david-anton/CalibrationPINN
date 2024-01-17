@@ -54,7 +54,7 @@ shape = _create_plate_with_hole_shape()
 @pytest.fixture
 def sut() -> PlateWithHoleTrainingDataset2D:
     config = PlateWithHoleTrainingDataset2DConfig(
-        parameters=parameters,
+        parameters_samples=parameters,
         plate_length=plate_length,
         plate_height=plate_height,
         hole_radius=hole_radius,
