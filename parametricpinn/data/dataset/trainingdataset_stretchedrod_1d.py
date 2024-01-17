@@ -27,7 +27,6 @@ class StretchedRodTrainingDataset1DConfig:
     traction: float
     volume_force: float
     num_points_pde: int
-    num_samples: int
 
 
 class StretchedRodTrainingDataset1D(Dataset):
@@ -38,7 +37,6 @@ class StretchedRodTrainingDataset1D(Dataset):
         traction: float,
         volume_force: float,
         num_points_pde: int,
-        num_samples: int,
     ):
         super().__init__()
         self._parameters_samples = parameters_samples
@@ -47,7 +45,7 @@ class StretchedRodTrainingDataset1D(Dataset):
         self._volume_force = volume_force
         self._num_points_pde = num_points_pde
         self._num_points_stress_bc = 1
-        self._num_samples = num_samples
+        self._num_samples = len(self._parameters_samples)
         self._samples_pde: list[TrainingData1DCollocation] = []
         self._samples_stress_bc: list[TrainingData1DTractionBC] = []
         self._generate_samples()

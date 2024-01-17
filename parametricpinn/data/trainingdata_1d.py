@@ -20,7 +20,6 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
             traction=config.traction,
             volume_force=config.volume_force,
             num_points_pde=config.num_points_pde,
-            num_samples=config.num_samples,
         )
     else:
         raise DatasetConfigError(
