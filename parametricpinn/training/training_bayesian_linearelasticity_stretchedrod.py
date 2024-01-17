@@ -17,9 +17,7 @@ from parametricpinn.data.dataset import (
     TrainingData1DCollocation,
     TrainingData1DTractionBC,
 )
-from parametricpinn.data.trainingdata_1d import (
-    StretchedRodTrainingDataset1D,
-)
+from parametricpinn.data.trainingdata_1d import StretchedRodTrainingDataset1D
 from parametricpinn.errors import BayesianTrainingError
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import NumpyDataWriter

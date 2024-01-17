@@ -10,9 +10,7 @@ from parametricpinn.data.dataset import (
     TrainingData2DCollocation,
     TrainingData2DTractionBC,
 )
-from parametricpinn.data.trainingdata_2d import (
-    SimplifiedDogBoneTrainingDataset2D,
-)
+from parametricpinn.data.trainingdata_2d import SimplifiedDogBoneTrainingDataset2D
 from parametricpinn.data.validationdata_2d import ValidationDataset2D
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.loaderssavers import PytorchModelSaver

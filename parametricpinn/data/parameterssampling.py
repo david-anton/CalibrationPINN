@@ -1,10 +1,10 @@
+from itertools import groupby
+from typing import Any, TypeAlias, Union
+
 import torch
 
-from parametricpinn.types import Device, Tensor
-from itertools import groupby
-
 from parametricpinn.errors import ParameterSamplingError
-from typing import Union, TypeAlias, Any
+from parametricpinn.types import Device, Tensor
 
 FloatList: TypeAlias = list[float]
 IntList: TypeAlias = list[int]

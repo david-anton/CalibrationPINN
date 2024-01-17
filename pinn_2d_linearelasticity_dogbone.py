@@ -14,7 +14,6 @@ from parametricpinn.bayesian.prior import (
     create_univariate_normal_distributed_prior,
     multiply_priors,
 )
-from parametricpinn.data.parameterssampling import sample_uniform_grid
 from parametricpinn.calibration import (
     CalibrationData,
     EfficientNUTSConfig,
@@ -30,6 +29,7 @@ from parametricpinn.calibration.bayesianinference.plot import (
     plot_posterior_normal_distributions,
 )
 from parametricpinn.calibration.utility import load_model
+from parametricpinn.data.parameterssampling import sample_uniform_grid
 from parametricpinn.data.trainingdata_2d import (
     DogBoneGeometryConfig,
     DogBoneTrainingDataset2D,

@@ -6,9 +6,7 @@ from parametricpinn.data.parameterssampling import (
     sample_uniform_grid,
 )
 from parametricpinn.settings import set_default_dtype
-
 from parametricpinn.types import Tensor
-
 
 min_parameter_1 = 0.0
 max_parameter_1 = 1.0

@@ -10,9 +10,7 @@ from parametricpinn.data.dataset import (
     TrainingData2DStressBC,
     TrainingData2DTractionBC,
 )
-from parametricpinn.data.trainingdata_2d import (
-    QuarterPlateWithHoleTrainingDataset2D,
-)
+from parametricpinn.data.trainingdata_2d import QuarterPlateWithHoleTrainingDataset2D
 from parametricpinn.data.validationdata_2d import ValidationDataset2D
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.loaderssavers import PytorchModelSaver

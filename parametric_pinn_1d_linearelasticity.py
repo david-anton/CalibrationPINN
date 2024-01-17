@@ -23,12 +23,12 @@ from parametricpinn.calibration.bayesianinference.plot import (
     plot_posterior_normal_distributions,
 )
 from parametricpinn.calibration.utility import load_model
+from parametricpinn.data.parameterssampling import sample_uniform_grid
 from parametricpinn.data.trainingdata_1d import (
     StretchedRodTrainingDataset1D,
     StretchedRodTrainingDataset1DConfig,
     create_training_dataset,
 )
-from parametricpinn.data.parameterssampling import sample_uniform_grid
 from parametricpinn.data.validationdata_linearelasticity_1d import (
     StretchedRodValidationDatasetLinearElasticity1D,
     StretchedRodValidationDatasetLinearElasticity1DConfig,

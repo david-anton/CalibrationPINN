@@ -9,7 +9,6 @@ from parametricpinn.ansatz import (
     create_bayesian_normalized_hbc_ansatz_stretched_rod,
     create_standard_normalized_hbc_ansatz_stretched_rod,
 )
-from parametricpinn.data.parameterssampling import sample_uniform_grid
 from parametricpinn.bayesian.prior import create_univariate_normal_distributed_prior
 from parametricpinn.calibration import (
     CalibrationData,
@@ -25,6 +24,7 @@ from parametricpinn.calibration.bayesianinference.plot import (
     plot_posterior_normal_distributions,
 )
 from parametricpinn.calibration.utility import load_model
+from parametricpinn.data.parameterssampling import sample_uniform_grid
 from parametricpinn.data.trainingdata_1d import (
     StretchedRodTrainingDataset1D,
     StretchedRodTrainingDataset1DConfig,
