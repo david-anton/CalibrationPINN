@@ -69,40 +69,40 @@ retrain_parametric_pinn = True
 num_material_parameters = 2
 edge_length = 100.0
 radius = 10.0
-traction_left_x = -300.0
+traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-min_youngs_modulus = 1000.0
-max_youngs_modulus = 3000.0
-min_poissons_ratio = 0.2
-max_poissons_ratio = 0.4
+min_bulk_modulus = 1000.0
+max_bulk_modulus = min_bulk_modulus  # 2000.0
+min_rivlin_saunders_c_10 = 30.0
+max_rivlin_saunders_c_10 = min_rivlin_saunders_c_10  # 70.0
 # Network
 layer_sizes = [4, 64, 64, 64, 64, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_per_parameter = 32
-num_collocation_points = 128
-number_points_per_bc = 64
+num_samples_per_parameter = 1  # 32
+num_collocation_points = 8192  # 128
+number_points_per_bc = 256  # 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 20000
+number_training_epochs = 10000  # 20000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = "20231207_validation_data_neohookean_E_1000_3000_nu_02_04_edge_100_radius_10_traction_300_elementsize_02"  # "20231207_validation_data_neohookean_quarterplatewithhole_E_1000_3000_nu_02_04_edge_100_radius_10_traction_300_elementsize_02"
-num_samples_valid = 32
+regenerate_valid_data = True
+input_subdir_valid = "20240118_validation_data_neohookean_K_1000_c10_30_edge_100_radius_10_traction_100_elementsize_02"  # "20231207_validation_data_neohookean_E_1000_3000_nu_02_04_edge_100_radius_10_traction_300_elementsize_02"  # "20231207_validation_data_neohookean_quarterplatewithhole_E_1000_3000_nu_02_04_edge_100_radius_10_traction_300_elementsize_02"
+num_samples_valid = 1  # 32
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-consider_model_error = True
-use_least_squares = True
-use_random_walk_metropolis_hasting = True
+consider_model_error = False
+use_least_squares = False  # True
+use_random_walk_metropolis_hasting = False  # True
 use_hamiltonian = False
 use_efficient_nuts = False
 # FEM
@@ -112,7 +112,7 @@ fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_quarterplatewithhole_E_1000_3000_nu_02_04_samples_32_col_128_bc_64_neurons_4_64_traction_300"
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_quarterplatewithhole_K_1000_c10_30_col_8192_bc_256_neurons_4_64_traction_100"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -143,8 +143,8 @@ def create_datasets() -> (
     def _create_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_uniform_grid(
-            min_parameters=[min_youngs_modulus, min_poissons_ratio],
-            max_parameters=[max_youngs_modulus, max_poissons_ratio],
+            min_parameters=[min_bulk_modulus, min_rivlin_saunders_c_10],
+            max_parameters=[max_bulk_modulus, max_rivlin_saunders_c_10],
             num_steps=[num_samples_per_parameter, num_samples_per_parameter],
             device=device,
         )
@@ -171,19 +171,19 @@ def create_datasets() -> (
                 random_params = min_value + torch.rand(size) * (max_value - min_value)
                 return random_params.tolist()
 
-            youngs_moduli = _generate_random_parameter_list(
-                num_samples_valid, min_youngs_modulus, max_youngs_modulus
+            bulk_moduli = _generate_random_parameter_list(
+                num_samples_valid, min_bulk_modulus, max_bulk_modulus
             )
-            poissons_ratios = _generate_random_parameter_list(
-                num_samples_valid, min_poissons_ratio, max_poissons_ratio
+            rivlin_saunders_c_10s = _generate_random_parameter_list(
+                num_samples_valid, min_rivlin_saunders_c_10, max_rivlin_saunders_c_10
             )
             domain_config = create_fem_domain_config()
             problem_configs = []
             for i in range(num_samples_valid):
                 problem_configs.append(
                     NeoHookeanProblemConfig(
-                        youngs_modulus=youngs_moduli[i],
-                        poissons_ratio=poissons_ratios[i],
+                        bulk_modulus=bulk_moduli[i],
+                        rivlin_saunders_c_10=rivlin_saunders_c_10s[i],
                     )
                 )
 
@@ -282,8 +282,8 @@ def create_ansatz() -> StandardAnsatz:
             min_coordinates = torch.tensor([min_coordinate_x, min_coordinate_y])
             max_coordinates = torch.tensor([max_coordinate_x, max_coordinate_y])
 
-            min_parameters = torch.tensor([min_youngs_modulus, min_poissons_ratio])
-            max_parameters = torch.tensor([max_youngs_modulus, max_poissons_ratio])
+            min_parameters = torch.tensor([min_bulk_modulus, min_rivlin_saunders_c_10])
+            max_parameters = torch.tensor([max_bulk_modulus, max_rivlin_saunders_c_10])
 
             min_inputs = torch.concat((min_coordinates, min_parameters))
             max_inputs = torch.concat((max_coordinates, max_parameters))
@@ -291,8 +291,8 @@ def create_ansatz() -> StandardAnsatz:
             print("Run FE simulations to determine normalization values ...")
             domain_config = create_fem_domain_config()
             problem_config = NeoHookeanProblemConfig(
-                youngs_modulus=min_youngs_modulus,
-                poissons_ratio=max_poissons_ratio,
+                bulk_modulus=min_bulk_modulus,
+                rivlin_saunders_c_10=max_rivlin_saunders_c_10,
             )
             simulation_config = SimulationConfig(
                 domain_config=domain_config,
@@ -361,22 +361,21 @@ def training_step() -> None:
 
     def _plot_exemplary_displacement_fields() -> None:
         displacements_plotter_config = DisplacementsPlotterConfig2D()
-        youngs_modulus_and_poissons_ratio_list = [
-            (min_youngs_modulus, min_poissons_ratio),
-            (min_youngs_modulus, max_poissons_ratio),
-            (max_youngs_modulus, min_poissons_ratio),
-            (max_youngs_modulus, max_poissons_ratio),
-            (2000, 0.3),
+        parameters_list = [
+            (min_bulk_modulus, min_rivlin_saunders_c_10),
+            (min_bulk_modulus, max_rivlin_saunders_c_10),
+            (max_bulk_modulus, min_rivlin_saunders_c_10),
+            (max_bulk_modulus, max_rivlin_saunders_c_10),
         ]
-        youngs_moduli, poissons_ratios = zip(*youngs_modulus_and_poissons_ratio_list)
+        bulk_moduli, rivlin_saunders_c_10s = zip(*parameters_list)
 
         domain_config = create_fem_domain_config()
         problem_configs = []
-        for i in range(len(youngs_modulus_and_poissons_ratio_list)):
+        for i in range(len(parameters_list)):
             problem_configs.append(
                 NeoHookeanProblemConfig(
-                    youngs_modulus=youngs_moduli[i],
-                    poissons_ratio=poissons_ratios[i],
+                    bulk_modulus=bulk_moduli[i],
+                    rivlin_saunders_c_10=rivlin_saunders_c_10s[i],
                 )
             )
 
@@ -398,16 +397,16 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    exact_youngs_modulus = 1850
-    exact_poissons_ratio = 0.32
+    exact_bulk_modulus = 1200
+    exact_rivlin_saunders_c_10 = 45
     num_data_points = 128
     std_noise = 5 * 1e-4
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
         domain_config = create_fem_domain_config()
         problem_config = NeoHookeanProblemConfig(
-            youngs_modulus=exact_youngs_modulus,
-            poissons_ratio=exact_poissons_ratio,
+            bulk_modulus=exact_bulk_modulus,
+            rivlin_saunders_c_10=exact_rivlin_saunders_c_10,
         )
         simulation_config = SimulationConfig(
             domain_config=domain_config,
@@ -514,8 +513,8 @@ def calibration_step() -> None:
             "error length scale 2",
         )
         true_parameters = (
-            exact_youngs_modulus,
-            exact_poissons_ratio,
+            exact_bulk_modulus,
+            exact_rivlin_saunders_c_10,
             None,
             None,
             None,
@@ -545,8 +544,8 @@ def calibration_step() -> None:
         )
         prior = multiply_priors([prior_youngs_modulus, prior_poissons_ratio])
 
-        parameter_names = ("Youngs modulus", "Poissons ratio")
-        true_parameters = (exact_youngs_modulus, exact_poissons_ratio)
+        parameter_names = ("Bulk modulus", "Rivlin-Saunders c_10")
+        true_parameters = (exact_bulk_modulus, exact_rivlin_saunders_c_10)
         initial_parameters = initial_material_parameters
 
     least_squares_config = LeastSquaresConfig(
