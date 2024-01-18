@@ -33,14 +33,14 @@ UFLEpsilonFunc: TypeAlias = Callable[[UFLTrialFunction], UFLOperator]
 
 @dataclass
 class NeoHookeanProblemConfig:
-    youngs_modulus: float
-    poissons_ratio: float
+    bulk_modulus: float
+    rivlin_saunders_c_10: float
 
 
 @dataclass
 class NeoHookeanResults(BaseSimulationResults):
-    youngs_modulus: float
-    poissons_ratio: float
+    bulk_modulus: float
+    rivlin_saunders_c_10: float
 
 
 class NeoHookeanProblem:
@@ -90,8 +90,8 @@ class NeoHookeanProblem:
         results = NeoHookeanResults(
             coordinates_x=coordinates_x,
             coordinates_y=coordinates_y,
-            youngs_modulus=self._config.youngs_modulus,
-            poissons_ratio=self._config.poissons_ratio,
+            bulk_modulus=self._config.bulk_modulus,
+            rivlin_saunders_c_10=self._config.rivlin_saunders_c_10,
             displacements_x=displacements_x,
             displacements_y=displacements_y,
             function=approximate_solution,
@@ -120,25 +120,29 @@ class NeoHookeanProblem:
         spatial_dim = len(solution_function)
         I = ufl.variable(ufl.Identity(spatial_dim))
 
-        # Deformation tensors
-        F = ufl.variable(I + ufl.grad(solution_function))  # Deformation gradient
-        C = ufl.variable(F.T * F)  # Right Cauchy-Green tensor
-
-        # Invariants of deformation tensors
-        I_c = ufl.variable(ufl.tr(C))
+        # Deformation gradient
+        F = ufl.variable(I + ufl.grad(solution_function))
         J = ufl.variable(ufl.det(F))
 
+        # Unimodular deformation tensors
+        uni_F = ufl.variable((J ** (-1 / 3)) * F)  # Unimodular deformation gradient
+        uni_C = ufl.variable(uni_F.T * uni_F)  # Unimodular right Cauchy-Green tensor
+
+        # Invariants of unimodular deformation tensors
+        uni_I_c = ufl.variable(ufl.tr(uni_C))
+
         # Material parameters
-        E = default_scalar_type(self._config.youngs_modulus)
-        nu = default_scalar_type(self._config.poissons_ratio)
-        mu_ = fem.Constant(self._mesh, E / (2 * (1 + nu)))
-        lambda_ = fem.Constant(self._mesh, (E * nu) / ((1 + nu) * (1 - 2 * nu)))
+        K = default_scalar_type(self._config.bulk_modulus)
+        c_10 = default_scalar_type(self._config.rivlin_saunders_c_10)
 
-        # Strain energy
-        psi = (mu_ / 2) * (I_c - 2 - 2 * ufl.ln(J)) + (lambda_ / 2) * (J - 1) ** 2
+        # 2. Piola-Kirchoff stress tensor
+        inv_uni_C = ufl.variable(ufl.inv(uni_C))
+        T = J * K * (J - 1) * inv_uni_C + 2 * J ** (-2 / 3) * (
+            c_10 * I - 1 / 3 * c_10 * uni_I_c * inv_uni_C
+        )
 
-        # Stress (1. Piola-Kirchoff stress tensor)
-        P = ufl.diff(psi, F)
+        # 1. Piola-Kirchoff stress tensor
+        P = F * T
 
         # Define variational form
         metadata = {"quadrature_degree": self._quadrature_degree}
@@ -174,8 +178,8 @@ class NeoHookeanProblem:
         file_name = "parameters"
         results = simulation_results
         results_dict = {
-            "youngs_modulus": np.array([results.youngs_modulus]),
-            "poissons_ratio": np.array([results.poissons_ratio]),
+            "bulk_modulus": np.array([results.bulk_modulus]),
+            "rivlin_saunders_c_10": np.array([results.rivlin_saunders_c_10]),
         }
         results_dataframe = pd.DataFrame(results_dict)
         data_writer.write(

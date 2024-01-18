@@ -37,8 +37,8 @@ traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-youngs_modulus = 2000.0
-poissons_ratio = 0.3
+bulk_modulus = 2000.0  # change value
+rivlin_saunders_c_10 = 0.3  # change value
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
@@ -231,8 +231,8 @@ def plot_solution(function: DFunction, element_size: int) -> None:
 def calculate_approximate_solution(element_size) -> DFunction:
     domain_config = create_fem_domain_config(element_size)
     problem_config = NeoHookeanProblemConfig(
-        youngs_modulus=youngs_modulus,
-        poissons_ratio=poissons_ratio,
+        bulk_modulus=bulk_modulus,
+        rivlin_saunders_c_10=rivlin_saunders_c_10,
     )
     simulation_config = SimulationConfig(
         domain_config=domain_config,
