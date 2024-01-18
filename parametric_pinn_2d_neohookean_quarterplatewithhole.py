@@ -182,8 +182,7 @@ def create_datasets() -> (
             for i in range(num_samples_valid):
                 problem_configs.append(
                     NeoHookeanProblemConfig(
-                        bulk_modulus=bulk_moduli[i],
-                        rivlin_saunders_c_10=rivlin_saunders_c_10s[i],
+                        material_parameters=(bulk_moduli[i], rivlin_saunders_c_10s[i]),
                     )
                 )
 
@@ -291,8 +290,7 @@ def create_ansatz() -> StandardAnsatz:
             print("Run FE simulations to determine normalization values ...")
             domain_config = create_fem_domain_config()
             problem_config = NeoHookeanProblemConfig(
-                bulk_modulus=min_bulk_modulus,
-                rivlin_saunders_c_10=max_rivlin_saunders_c_10,
+                material_parameters=(min_bulk_modulus, max_rivlin_saunders_c_10)
             )
             simulation_config = SimulationConfig(
                 domain_config=domain_config,
@@ -374,8 +372,7 @@ def training_step() -> None:
         for i in range(len(parameters_list)):
             problem_configs.append(
                 NeoHookeanProblemConfig(
-                    bulk_modulus=bulk_moduli[i],
-                    rivlin_saunders_c_10=rivlin_saunders_c_10s[i],
+                    material_parameters=(bulk_moduli[i], rivlin_saunders_c_10s[i])
                 )
             )
 
@@ -405,8 +402,7 @@ def calibration_step() -> None:
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
         domain_config = create_fem_domain_config()
         problem_config = NeoHookeanProblemConfig(
-            bulk_modulus=exact_bulk_modulus,
-            rivlin_saunders_c_10=exact_rivlin_saunders_c_10,
+            material_parameters=(exact_bulk_modulus, exact_rivlin_saunders_c_10)
         )
         simulation_config = SimulationConfig(
             domain_config=domain_config,

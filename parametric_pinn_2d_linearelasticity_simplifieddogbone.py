@@ -41,7 +41,7 @@ from parametricpinn.data.validationdata_2d import (
     create_validation_dataset,
 )
 from parametricpinn.fem import (
-    LinearElasticityProblemConfig,
+    LinearElasticityProblemConfig_E_nu,
     SimplifiedDogBoneDomainConfig,
     SimulationConfig,
     generate_validation_data,
@@ -176,10 +176,9 @@ def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, ValidationDat
             problem_configs = []
             for i in range(num_samples_valid):
                 problem_configs.append(
-                    LinearElasticityProblemConfig(
+                    LinearElasticityProblemConfig_E_nu(
                         model=material_model,
-                        youngs_modulus=youngs_moduli[i],
-                        poissons_ratio=poissons_ratios[i],
+                        material_parameters=(youngs_moduli[i], poissons_ratios[i]),
                     )
                 )
             generate_validation_data(
@@ -229,10 +228,9 @@ def create_ansatz() -> StandardAnsatz:
             "results_for_determining_normalization_values",
         )
         print("Run FE simulation to determine normalization values ...")
-        problem_config = LinearElasticityProblemConfig(
+        problem_config = LinearElasticityProblemConfig_E_nu(
             model=material_model,
-            youngs_modulus=min_youngs_modulus,
-            poissons_ratio=max_poissons_ratio,
+            material_parameters=(min_youngs_modulus, max_poissons_ratio),
         )
         domain_config = create_fem_domain_config()
         simulation_config = SimulationConfig(
@@ -313,10 +311,9 @@ def training_step() -> None:
         problem_configs = []
         for i in range(len(youngs_modulus_and_poissons_ratio_list)):
             problem_configs.append(
-                LinearElasticityProblemConfig(
+                LinearElasticityProblemConfig_E_nu(
                     model=material_model,
-                    youngs_modulus=youngs_moduli[i],
-                    poissons_ratio=poissons_ratios[i],
+                    material_parameters=(youngs_moduli[i], poissons_ratios[i]),
                 )
             )
 

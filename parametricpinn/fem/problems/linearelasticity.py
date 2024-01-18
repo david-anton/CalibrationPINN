@@ -1,9 +1,9 @@
 from dataclasses import dataclass
-from typing import Callable, TypeAlias
+from typing import Callable, TypeAlias, Union
+from abc import ABC, abstractmethod
 
 import dolfinx
-import numpy as np
-import pandas as pd
+from dolfinx import default_scalar_type
 import ufl
 from dolfinx.fem.petsc import LinearProblem
 
@@ -19,30 +19,55 @@ from parametricpinn.fem.base import (
 from parametricpinn.fem.domains import Domain
 from parametricpinn.fem.problems.base import (
     BaseSimulationResults,
+    MaterialParameters,
     apply_boundary_conditions,
     save_displacements,
+    save_parameters,
 )
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.io.readerswriters import PandasDataWriter
+from parametricpinn.types import NPArray
 
 UFLSigmaFunc: TypeAlias = Callable[[UFLTrialFunction], UFLOperator]
 UFLEpsilonFunc: TypeAlias = Callable[[UFLTrialFunction], UFLOperator]
 
 
 @dataclass
-class LinearElasticityProblemConfig:
+class BaseLinearElasticityProblemConfig:
     model: str
-    youngs_modulus: float
-    poissons_ratio: float
+    material_parameters: MaterialParameters
 
 
 @dataclass
-class LinearElasticityResults(BaseSimulationResults):
-    youngs_modulus: float
-    poissons_ratio: float
+class LinearElasticityProblemConfig_E_nu(BaseLinearElasticityProblemConfig):
+    material_parameter_names = ("Youngs modulus", "Poissons ratio")
 
 
-class LinearElasticityProblem:
+@dataclass
+class LinearElasticityProblemConfig_K_G(BaseLinearElasticityProblemConfig):
+    material_parameter_names = ("bulk modulus", "shear modulus")
+
+
+LinearElasticityProblemConfig: TypeAlias = Union[
+    LinearElasticityProblemConfig_E_nu, LinearElasticityProblemConfig_K_G
+]
+
+
+@dataclass
+class LinearElasticityResults_E_nu(BaseSimulationResults):
+    pass
+
+
+@dataclass
+class LinearElasticityResults_K_G(BaseSimulationResults):
+    pass
+
+
+LinearElasticityResults: TypeAlias = Union[
+    LinearElasticityResults_E_nu, LinearElasticityResults_K_G
+]
+
+
+class LinearElasticityProblemBase(ABC):
     def __init__(
         self,
         config: LinearElasticityProblemConfig,
@@ -62,42 +87,21 @@ class LinearElasticityProblem:
         solution_function = self._problem.solve()
         return solution_function
 
+    @abstractmethod
     def compile_results(
         self, approximate_solution: DFunction
     ) -> LinearElasticityResults:
-        coordinates = self._function_space.tabulate_dof_coordinates()
-        coordinates_x = coordinates[:, 0].reshape((-1, 1))
-        coordinates_y = coordinates[:, 1].reshape((-1, 1))
-
-        displacements = approximate_solution.x.array.reshape(
-            (-1, self._mesh.geometry.dim)
-        )
-        displacements_x = displacements[:, 0].reshape((-1, 1))
-        displacements_y = displacements[:, 1].reshape((-1, 1))
-
-        results = LinearElasticityResults(
-            coordinates_x=coordinates_x,
-            coordinates_y=coordinates_y,
-            youngs_modulus=self._config.youngs_modulus,
-            poissons_ratio=self._config.poissons_ratio,
-            displacements_x=displacements_x,
-            displacements_y=displacements_y,
-            function=approximate_solution,
-        )
-
-        return results
+        pass
 
     def save_results(
         self,
-        results: LinearElasticityResults,
+        results: BaseSimulationResults,
         output_subdir: str,
         project_directory: ProjectDirectory,
         save_to_input_dir: bool = False,
     ) -> None:
         save_displacements(results, output_subdir, save_to_input_dir, project_directory)
-        self._save_parameters(
-            results, output_subdir, save_to_input_dir, project_directory
-        )
+        save_parameters(results, output_subdir, save_to_input_dir, project_directory)
 
     def _define(self) -> PETSLinearProblem:
         # Trial and test function
@@ -129,33 +133,84 @@ class LinearElasticityProblem:
         )
         return problem
 
+    @abstractmethod
+    def _sigma_and_epsilon_factory(self) -> tuple[UFLSigmaFunc, UFLEpsilonFunc]:
+        pass
+
+    def _extract_coordinates_results(self) -> tuple[NPArray, NPArray]:
+        coordinates = self._function_space.tabulate_dof_coordinates()
+        coordinates_x = coordinates[:, 0].reshape((-1, 1))
+        coordinates_y = coordinates[:, 1].reshape((-1, 1))
+        return coordinates_x, coordinates_y
+
+    def _extract_displacements_results(
+        self, approximate_solution: DFunction
+    ) -> tuple[NPArray, NPArray]:
+        displacements = approximate_solution.x.array.reshape(
+            (-1, self._mesh.geometry.dim)
+        )
+        displacements_x = displacements[:, 0].reshape((-1, 1))
+        displacements_y = displacements[:, 1].reshape((-1, 1))
+        return displacements_x, displacements_y
+
+
+class LinearElasticityProblem_E_nu(LinearElasticityProblemBase):
+    def __init__(
+        self,
+        config: LinearElasticityProblemConfig_E_nu,
+        domain: Domain,
+        function_space: DFunctionSpace,
+        volume_force: DConstant,
+    ):
+        super().__init__(config, domain, function_space, volume_force)
+
+    def compile_results(
+        self, approximate_solution: DFunction
+    ) -> LinearElasticityResults_E_nu:
+        coordinates_x, coordinates_y = self._extract_coordinates_results()
+        displacements_x, displacements_y = self._extract_displacements_results(
+            approximate_solution
+        )
+
+        return LinearElasticityResults_E_nu(
+            material_parameter_names=self._config.material_parameter_names,
+            material_parameters=self._config.material_parameters,
+            coordinates_x=coordinates_x,
+            coordinates_y=coordinates_y,
+            displacements_x=displacements_x,
+            displacements_y=displacements_y,
+            function=approximate_solution,
+        )
+
     def _sigma_and_epsilon_factory(self) -> tuple[UFLSigmaFunc, UFLEpsilonFunc]:
         model = self._config.model
-        youngs_modulus = self._config.youngs_modulus
-        poissons_ratio = self._config.poissons_ratio
+        youngs_modulus = self._config.material_parameters[0]
+        poissons_ratio = self._config.material_parameters[1]
+        E = default_scalar_type(youngs_modulus)
+        nu = default_scalar_type(poissons_ratio)
         compliance_matrix = None
         if model == "plane stress":
-            compliance_matrix = (1 / youngs_modulus) * ufl.as_matrix(
+            compliance_matrix = (1 / E) * ufl.as_matrix(
                 [
-                    [1.0, -poissons_ratio, 0.0],
-                    [-poissons_ratio, 1.0, 0.0],
-                    [0.0, 0.0, 2 * (1.0 + poissons_ratio)],
+                    [1.0, -nu, 0.0],
+                    [-nu, 1.0, 0.0],
+                    [0.0, 0.0, 2 * (1.0 + nu)],
                 ]
             )
         elif model == "plane strain":
-            compliance_matrix = (1 / youngs_modulus) * ufl.as_matrix(
+            compliance_matrix = (1 / E) * ufl.as_matrix(
                 [
                     [
-                        1.0 - poissons_ratio**2,
-                        -poissons_ratio * (1.0 + poissons_ratio),
+                        1.0 - nu**2,
+                        -nu * (1.0 + nu),
                         0.0,
                     ],
                     [
-                        -poissons_ratio * (1.0 + poissons_ratio),
-                        1.0 - poissons_ratio**2,
+                        -nu * (1.0 + nu),
+                        1.0 - nu**2,
                         0.0,
                     ],
-                    [0.0, 0.0, 2 * (1.0 + poissons_ratio)],
+                    [0.0, 0.0, 2 * (1.0 + nu)],
                 ]
             )
         else:
@@ -175,31 +230,86 @@ class LinearElasticityProblem:
             return ufl.as_tensor([[sig[0], sig[2]], [sig[2], sig[1]]])
 
         def epsilon(u: UFLTrialFunction) -> UFLOperator:
-            return ufl.sym(
-                ufl.grad(u)
-            )  # equivalent to 0.5 * (ufl.nabla_grad(u) + ufl.nabla_grad(u).T)
+            # equivalent to 0.5 * (ufl.nabla_grad(u) + ufl.nabla_grad(u).T)
+            return ufl.sym(ufl.grad(u))
 
         return sigma, epsilon
 
-    def _save_parameters(
+
+class LinearElasticityProblem_K_G(LinearElasticityProblemBase):
+    def __init__(
         self,
-        simulation_results: LinearElasticityResults,
-        output_subdir: str,
-        save_to_input_dir: bool,
-        project_directory: ProjectDirectory,
-    ) -> None:
-        data_writer = PandasDataWriter(project_directory)
-        file_name = "parameters"
-        results = simulation_results
-        results_dict = {
-            "youngs_modulus": np.array([results.youngs_modulus]),
-            "poissons_ratio": np.array([results.poissons_ratio]),
-        }
-        results_dataframe = pd.DataFrame(results_dict)
-        data_writer.write(
-            results_dataframe,
-            file_name,
-            output_subdir,
-            header=True,
-            save_to_input_dir=save_to_input_dir,
+        config: LinearElasticityProblemConfig_K_G,
+        domain: Domain,
+        function_space: DFunctionSpace,
+        volume_force: DConstant,
+    ):
+        super().__init__(config, domain, function_space, volume_force)
+
+    def compile_results(
+        self, approximate_solution: DFunction
+    ) -> LinearElasticityResults_K_G:
+        coordinates_x, coordinates_y = self._extract_coordinates_results()
+        displacements_x, displacements_y = self._extract_displacements_results(
+            approximate_solution
         )
+
+        return LinearElasticityResults_K_G(
+            material_parameter_names=self._config.material_parameter_names,
+            material_parameters=self._config.material_parameters,
+            coordinates_x=coordinates_x,
+            coordinates_y=coordinates_y,
+            displacements_x=displacements_x,
+            displacements_y=displacements_y,
+            function=approximate_solution,
+        )
+
+    def _sigma_and_epsilon_factory(self) -> tuple[UFLSigmaFunc, UFLEpsilonFunc]:
+        model = self._config.model
+        bulk_modulus = self._config.material_parameters[0]
+        shear_modulus = self._config.material_parameters[1]
+        K = default_scalar_type(bulk_modulus)
+        G = default_scalar_type(shear_modulus)
+
+        def epsilon(u: UFLTrialFunction) -> UFLOperator:
+            # equivalent to 0.5 * (ufl.nabla_grad(u) + ufl.nabla_grad(u).T)
+            return ufl.sym(ufl.grad(u))
+
+        if model == "plane stress":
+
+            def sigma(u: UFLTrialFunction) -> UFLOperator:
+                strain = epsilon(u)
+                eps_xx = strain[0, 0]
+                eps_yy = strain[1, 1]
+                eps_xy = strain[0, 1]
+                sig_xx = (2 * G / (3 * K + 4 * G)) * (
+                    (6 * K + 2 * G) * eps_xx + (3 * K - 2 * G) * eps_yy
+                )
+                sig_yy = (2 * G / (3 * K + 4 * G)) * (
+                    (3 * K - 2 * G) * eps_xx + (6 * K + 2 * G) * eps_yy
+                )
+                sig_xy = G * 2 * eps_xy
+                return ufl.as_tensor([[sig_xx, sig_xy], [sig_xy, sig_yy]])
+
+        elif model == "plane strain":
+
+            def volumetric_strain_func(u: UFLTrialFunction) -> UFLOperator:
+                spatial_dim = len(u)
+                I = ufl.Identity(spatial_dim)
+                trace_strain = ufl.tr(epsilon(u))
+                return trace_strain * I
+
+            def deviatoric_strain_func(u: UFLTrialFunction) -> UFLOperator:
+                strain = epsilon(u)
+                volumetric_strain = volumetric_strain_func(u)
+                return strain - (volumetric_strain / 2)
+
+            def sigma(u: UFLTrialFunction) -> UFLOperator:
+                volumetric_strain = volumetric_strain_func(u)
+                deviatoric_strain = deviatoric_strain_func(u)
+                return K * volumetric_strain + 2 * G * deviatoric_strain
+
+        else:
+            raise FEMConfigurationError(f"Unknown model: {model}")
+
+        return sigma, epsilon

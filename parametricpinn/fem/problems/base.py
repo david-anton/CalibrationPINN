@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import TypeAlias
 
 import numpy as np
 import pandas as pd
@@ -16,9 +17,14 @@ from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import PandasDataWriter
 from parametricpinn.types import NPArray
 
+MaterialParameterNames: TypeAlias = tuple[str, ...]
+MaterialParameters: TypeAlias = tuple[float, ...]
+
 
 @dataclass
 class BaseSimulationResults:
+    material_parameter_names: MaterialParameterNames
+    material_parameters: MaterialParameters
     coordinates_x: NPArray
     coordinates_y: NPArray
     displacements_x: NPArray
@@ -51,6 +57,29 @@ def save_displacements(
         "coordinates_y": np.ravel(results.coordinates_y),
         "displacements_x": np.ravel(results.displacements_x),
         "displacements_y": np.ravel(results.displacements_y),
+    }
+    results_dataframe = pd.DataFrame(results_dict)
+    data_writer.write(
+        results_dataframe,
+        file_name,
+        output_subdir,
+        header=True,
+        save_to_input_dir=save_to_input_dir,
+    )
+
+
+def save_parameters(
+    simulation_results: BaseSimulationResults,
+    output_subdir: str,
+    save_to_input_dir: bool,
+    project_directory: ProjectDirectory,
+) -> None:
+    data_writer = PandasDataWriter(project_directory)
+    file_name = "parameters"
+    results = simulation_results
+    results_dict = {
+        results.material_parameter_names[0]: np.array([results.material_parameters[0]]),
+        results.material_parameter_names[1]: np.array([results.material_parameters[1]]),
     }
     results_dataframe = pd.DataFrame(results_dict)
     data_writer.write(

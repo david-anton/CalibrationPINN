@@ -40,7 +40,7 @@ from parametricpinn.data.validationdata_2d import (
     create_validation_dataset,
 )
 from parametricpinn.fem import (
-    LinearElasticityProblemConfig,
+    LinearElasticityProblemConfig_E_nu,
     QuarterPlateWithHoleDomainConfig,
     SimulationConfig,
     generate_validation_data,
@@ -177,10 +177,9 @@ def create_datasets() -> (
             problem_configs = []
             for i in range(num_samples_valid):
                 problem_configs.append(
-                    LinearElasticityProblemConfig(
+                    LinearElasticityProblemConfig_E_nu(
                         model=material_model,
-                        youngs_modulus=youngs_moduli[i],
-                        poissons_ratio=poissons_ratios[i],
+                        material_parameters=(youngs_moduli[i], poissons_ratios[i]),
                     )
                 )
             generate_validation_data(
@@ -231,10 +230,9 @@ def create_ansatz() -> StandardAnsatz:
         )
         print("Run FE simulation to determine normalization values ...")
         domain_config = create_fem_domain_config()
-        problem_config = LinearElasticityProblemConfig(
+        problem_config = LinearElasticityProblemConfig_E_nu(
             model=material_model,
-            youngs_modulus=min_youngs_modulus,
-            poissons_ratio=max_poissons_ratio,
+            material_parameters=(min_youngs_modulus, max_poissons_ratio),
         )
         simulation_config = SimulationConfig(
             domain_config=domain_config,
@@ -312,10 +310,9 @@ def training_step() -> None:
         problem_configs = []
         for i in range(len(youngs_modulus_and_poissons_ratio_list)):
             problem_configs.append(
-                LinearElasticityProblemConfig(
+                LinearElasticityProblemConfig_E_nu(
                     model=material_model,
-                    youngs_modulus=youngs_moduli[i],
-                    poissons_ratio=poissons_ratios[i],
+                    material_parameters=(youngs_moduli[i], poissons_ratios[i]),
                 )
             )
 
@@ -344,10 +341,9 @@ def calibration_step() -> None:
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
         domain_config = create_fem_domain_config()
-        problem_config = LinearElasticityProblemConfig(
+        problem_config = LinearElasticityProblemConfig_E_nu(
             model=material_model,
-            youngs_modulus=exact_youngs_modulus,
-            poissons_ratio=exact_poissons_ratio,
+            material_parameters=(exact_youngs_modulus, exact_poissons_ratio),
         )
         simulation_config = SimulationConfig(
             domain_config=domain_config,

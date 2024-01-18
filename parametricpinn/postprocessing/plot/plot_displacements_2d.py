@@ -11,7 +11,8 @@ from scipy.interpolate import griddata
 from parametricpinn.errors import FEMDomainConfigError, PlottingConfigError
 from parametricpinn.fem import (
     DogBoneDomainConfig,
-    LinearElasticityProblemConfig,
+    LinearElasticityProblemConfig_E_nu,
+    LinearElasticityProblemConfig_K_G,
     NeoHookeanProblemConfig,
     PlateWithHoleDomainConfig,
     ProblemConfigs,
@@ -24,7 +25,9 @@ from parametricpinn.io import ProjectDirectory
 from parametricpinn.types import Device, Module, NPArray, PLTAxes, PLTFigure
 
 ProblemConfigLists: TypeAlias = Union[
-    list[LinearElasticityProblemConfig], list[NeoHookeanProblemConfig]
+    list[LinearElasticityProblemConfig_E_nu],
+    list[LinearElasticityProblemConfig_K_G],
+    list[NeoHookeanProblemConfig],
 ]
 DomainConfigs: TypeAlias = Union[
     QuarterPlateWithHoleDomainConfig,
@@ -722,26 +725,21 @@ def _save_plot(
 
 
 def _get_parameters_from_problem(problem_config: ProblemConfigs) -> NPArray:
-    if isinstance(problem_config, LinearElasticityProblemConfig):
-        return np.array([problem_config.youngs_modulus, problem_config.poissons_ratio])
-    elif isinstance(problem_config, NeoHookeanProblemConfig):
-        return np.array(
-            [problem_config.bulk_modulus, problem_config.rivlin_saunders_c_10]
-        )
-    else:
-        raise PlottingConfigError(
-            f"There is no implementation for the requested FEM problem config {problem_config}."
-        )
+    return np.array([problem_config.material_parameters])
 
 
 def _get_file_name_parameter_prefix_from_problem(problem_config: ProblemConfigs) -> str:
-    if isinstance(problem_config, LinearElasticityProblemConfig):
-        youngs_modulus = round(problem_config.youngs_modulus, 2)
-        poissons_ratio = round(problem_config.poissons_ratio, 4)
+    if isinstance(problem_config, LinearElasticityProblemConfig_E_nu):
+        youngs_modulus = round(problem_config.material_parameters[0], 2)
+        poissons_ratio = round(problem_config.material_parameters[1], 4)
         return f"E_{youngs_modulus}_nu_{poissons_ratio}"
+    if isinstance(problem_config, LinearElasticityProblemConfig_K_G):
+        bulk_modulus = round(problem_config.material_parameters[0], 2)
+        shear_modulus = round(problem_config.material_parameters[1], 2)
+        return f"K_{bulk_modulus}_G_{shear_modulus}"
     elif isinstance(problem_config, NeoHookeanProblemConfig):
-        bulk_modulus = round(problem_config.bulk_modulus, 2)
-        rivlin_saunders_c_10 = round(problem_config.rivlin_saunders_c_10, 4)
+        bulk_modulus = round(problem_config.material_parameters[0], 2)
+        rivlin_saunders_c_10 = round(problem_config.material_parameters[0], 2)
         return f"K_{bulk_modulus}_c_10_{rivlin_saunders_c_10}"
     else:
         raise PlottingConfigError(

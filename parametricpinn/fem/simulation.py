@@ -17,7 +17,8 @@ from parametricpinn.fem.domains import (
     save_boundary_tags_as_xdmf,
 )
 from parametricpinn.fem.problems import (
-    LinearElasticityProblemConfig,
+    LinearElasticityProblemConfig_E_nu,
+    LinearElasticityProblemConfig_K_G,
     NeoHookeanProblemConfig,
     Problem,
     ProblemConfigs,
@@ -29,7 +30,9 @@ from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import DataclassWriter
 
 ProblemConfigList: TypeAlias = Union[
-    list[LinearElasticityProblemConfig], list[NeoHookeanProblemConfig]
+    list[LinearElasticityProblemConfig_E_nu],
+    list[LinearElasticityProblemConfig_K_G],
+    list[NeoHookeanProblemConfig],
 ]
 
 

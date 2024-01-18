@@ -3,8 +3,6 @@ from typing import Callable, TypeAlias
 
 import dolfinx
 import dolfinx.fem as fem
-import numpy as np
-import pandas as pd
 import ufl
 from dolfinx import default_scalar_type
 from dolfinx.fem.petsc import NonlinearProblem
@@ -21,11 +19,12 @@ from parametricpinn.fem.base import (
 from parametricpinn.fem.domains import Domain
 from parametricpinn.fem.problems.base import (
     BaseSimulationResults,
+    MaterialParameters,
     apply_boundary_conditions,
     save_displacements,
+    save_parameters,
 )
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.io.readerswriters import PandasDataWriter
 
 UFLSigmaFunc: TypeAlias = Callable[[UFLTrialFunction], UFLOperator]
 UFLEpsilonFunc: TypeAlias = Callable[[UFLTrialFunction], UFLOperator]
@@ -33,14 +32,13 @@ UFLEpsilonFunc: TypeAlias = Callable[[UFLTrialFunction], UFLOperator]
 
 @dataclass
 class NeoHookeanProblemConfig:
-    bulk_modulus: float
-    rivlin_saunders_c_10: float
+    material_parameter_names = ("bulk modulus", "Rivlin-Saunders c_10")
+    material_parameters: MaterialParameters
 
 
 @dataclass
 class NeoHookeanResults(BaseSimulationResults):
-    bulk_modulus: float
-    rivlin_saunders_c_10: float
+    pass
 
 
 class NeoHookeanProblem:
@@ -88,10 +86,10 @@ class NeoHookeanProblem:
         displacements_y = displacements[:, 1].reshape((-1, 1))
 
         results = NeoHookeanResults(
+            material_parameter_names=self._config.material_parameter_names,
+            material_parameters=self._config.material_parameters,
             coordinates_x=coordinates_x,
             coordinates_y=coordinates_y,
-            bulk_modulus=self._config.bulk_modulus,
-            rivlin_saunders_c_10=self._config.rivlin_saunders_c_10,
             displacements_x=displacements_x,
             displacements_y=displacements_y,
             function=approximate_solution,
@@ -101,15 +99,13 @@ class NeoHookeanProblem:
 
     def save_results(
         self,
-        results: NeoHookeanResults,
+        results: BaseSimulationResults,
         output_subdir: str,
         project_directory: ProjectDirectory,
         save_to_input_dir: bool = False,
     ) -> None:
         save_displacements(results, output_subdir, save_to_input_dir, project_directory)
-        self._save_parameters(
-            results, output_subdir, save_to_input_dir, project_directory
-        )
+        save_parameters(results, output_subdir, save_to_input_dir, project_directory)
 
     def _define(self) -> tuple[PETSNonlinearProblem, DFunction]:
         # Solution and test function
@@ -132,8 +128,8 @@ class NeoHookeanProblem:
         uni_I_c = ufl.variable(ufl.tr(uni_C))
 
         # Material parameters
-        K = default_scalar_type(self._config.bulk_modulus)
-        c_10 = default_scalar_type(self._config.rivlin_saunders_c_10)
+        K = default_scalar_type(self._config.material_parameters[0])
+        c_10 = default_scalar_type(self._config.material_parameters[1])
 
         # 2. Piola-Kirchoff stress tensor
         inv_uni_C = ufl.variable(ufl.inv(uni_C))
@@ -166,26 +162,3 @@ class NeoHookeanProblem:
         residual_form = lhs - rhs
         problem = NonlinearProblem(residual_form, solution_function, dirichlet_bcs)
         return problem, solution_function
-
-    def _save_parameters(
-        self,
-        simulation_results: NeoHookeanResults,
-        output_subdir: str,
-        save_to_input_dir: bool,
-        project_directory: ProjectDirectory,
-    ) -> None:
-        data_writer = PandasDataWriter(project_directory)
-        file_name = "parameters"
-        results = simulation_results
-        results_dict = {
-            "bulk_modulus": np.array([results.bulk_modulus]),
-            "rivlin_saunders_c_10": np.array([results.rivlin_saunders_c_10]),
-        }
-        results_dataframe = pd.DataFrame(results_dict)
-        data_writer.write(
-            results_dataframe,
-            file_name,
-            output_subdir,
-            header=True,
-            save_to_input_dir=save_to_input_dir,
-        )
