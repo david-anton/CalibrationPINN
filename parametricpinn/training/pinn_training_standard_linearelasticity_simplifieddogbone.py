@@ -19,7 +19,7 @@ from parametricpinn.postprocessing.plot import (
     plot_loss_history,
     plot_valid_history,
 )
-from parametricpinn.training.loss_2d.momentum_linearelasticity import (
+from parametricpinn.training.loss_2d.momentum_linearelasticity_E_nu import (
     momentum_equation_func_factory,
     strain_energy_func_factory,
     stress_func_factory,
