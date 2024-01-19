@@ -74,17 +74,17 @@ traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
 min_bulk_modulus = 1000.0
-max_bulk_modulus = min_bulk_modulus  # 2000.0
-min_rivlin_saunders_c_10 = 20.0
-max_rivlin_saunders_c_10 = min_rivlin_saunders_c_10  # 70.0
+max_bulk_modulus = 2000.0
+min_rivlin_saunders_c_10 = 10.0
+max_rivlin_saunders_c_10 = 30.0
 # Network
 layer_sizes = [4, 64, 64, 64, 64, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 1  # 32
-num_collocation_points = 8192  # 128
-number_points_per_bc = 256  # 64
+num_collocation_points = 128
+number_points_per_bc = 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
@@ -94,7 +94,7 @@ weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20240118_validation_data_neohookean_K_1000_c10_20_edge_100_radius_10_traction_10_elementsize_02"  # "20231207_validation_data_neohookean_E_1000_3000_nu_02_04_edge_100_radius_10_traction_300_elementsize_02"  # "20231207_validation_data_neohookean_quarterplatewithhole_E_1000_3000_nu_02_04_edge_100_radius_10_traction_300_elementsize_02"
+input_subdir_valid = "20240119_validation_data_neohookean_quarterplatewithhole_K_1000_2000_c10_10_30_edge_100_radius_10_traction_10_elementsize_02"
 num_samples_valid = 1  # 32
 validation_interval = 1
 num_points_valid = 1024
@@ -112,7 +112,7 @@ fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_quarterplatewithhole_K_1000_c10_20_col_8192_bc_256_neurons_4_64_traction_10"
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_quarterplatewithhole_K_1000_2000_c10_10_30_col_128_bc_64_neurons_4_64_traction_10"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -395,7 +395,7 @@ def training_step() -> None:
 def calibration_step() -> None:
     print("Start calibration ...")
     exact_bulk_modulus = 1200
-    exact_rivlin_saunders_c_10 = 45
+    exact_rivlin_saunders_c_10 = 15
     num_data_points = 128
     std_noise = 5 * 1e-4
 
