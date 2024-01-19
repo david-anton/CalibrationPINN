@@ -739,7 +739,7 @@ def _get_file_name_parameter_prefix_from_problem(problem_config: ProblemConfigs)
         return f"K_{bulk_modulus}_G_{shear_modulus}"
     elif isinstance(problem_config, NeoHookeanProblemConfig):
         bulk_modulus = round(problem_config.material_parameters[0], 2)
-        rivlin_saunders_c_10 = round(problem_config.material_parameters[0], 2)
+        rivlin_saunders_c_10 = round(problem_config.material_parameters[1], 2)
         return f"K_{bulk_modulus}_c_10_{rivlin_saunders_c_10}"
     else:
         raise PlottingConfigError(
