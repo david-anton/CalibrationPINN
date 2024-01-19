@@ -89,7 +89,7 @@ number_points_per_bc = 64
 bcs_overlap_angle_distance_left = 1e-2
 bcs_overlap_distance_parallel_right = 1e-2
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 1  # 30000
+number_training_epochs = 30000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_symmetry_bc_loss = 1e5
@@ -103,8 +103,8 @@ batch_size_valid = num_samples_valid
 # Calibration
 input_subdir_calibration = "20231124_experimental_dic_data_dogbone"
 input_file_name_calibration = "displacements_dic.csv"
-use_least_squares = False  # True
-use_random_walk_metropolis_hasting = False  # True
+use_least_squares = True
+use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
 use_efficient_nuts = False
 # FEM

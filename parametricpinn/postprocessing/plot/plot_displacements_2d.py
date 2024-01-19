@@ -722,6 +722,7 @@ def _save_plot(
         bbox_inches="tight",
         dpi=plot_config.dpi,
     )
+    plt.clf()
 
 
 def _get_parameters_from_problem(problem_config: ProblemConfigs) -> NPArray:
