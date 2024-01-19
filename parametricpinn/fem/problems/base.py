@@ -16,6 +16,7 @@ from parametricpinn.fem.boundaryconditions import BoundaryConditions, DirichletB
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import PandasDataWriter
 from parametricpinn.types import NPArray
+from parametricpinn.errors import FEMResultsError
 
 MaterialParameterNames: TypeAlias = tuple[str, ...]
 MaterialParameters: TypeAlias = tuple[float, ...]
@@ -74,12 +75,14 @@ def save_parameters(
     save_to_input_dir: bool,
     project_directory: ProjectDirectory,
 ) -> None:
+    _validate_results(simulation_results)
     data_writer = PandasDataWriter(project_directory)
     file_name = "parameters"
     results = simulation_results
+    num_parameters = len(results.material_parameter_names)
     results_dict = {
-        results.material_parameter_names[0]: np.array([results.material_parameters[0]]),
-        results.material_parameter_names[1]: np.array([results.material_parameters[1]]),
+        results.material_parameter_names[i]: np.array([results.material_parameters[i]])
+        for i in range(num_parameters)
     }
     results_dataframe = pd.DataFrame(results_dict)
     data_writer.write(
@@ -106,3 +109,11 @@ def save_results_as_xdmf(
         xdmf.write_mesh(mesh)
         # approximate_solution.name = "approximation"
         # xdmf.write_function(approximate_solution)
+
+
+def _validate_results(simulation_results: BaseSimulationResults) -> None:
+    results = simulation_results
+    if not len(results.material_parameter_names) == len(results.material_parameters):
+        raise FEMResultsError(
+            "The number of parameter names does not correspond to the number of parameters."
+        )

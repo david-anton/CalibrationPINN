@@ -3,6 +3,7 @@ from typing import Protocol, TypeAlias, Union
 from parametricpinn.errors import FEMProblemConfigError
 from parametricpinn.fem.base import DConstant, DFunction, DFunctionSpace
 from parametricpinn.fem.domains import Domain
+from parametricpinn.fem.problems.base import BaseSimulationResults
 from parametricpinn.fem.problems.linearelasticity import (
     LinearElasticityProblem_E_nu,
     LinearElasticityProblem_K_G,
@@ -11,7 +12,6 @@ from parametricpinn.fem.problems.linearelasticity import (
     LinearElasticityProblemConfig_K_G,
     LinearElasticityResults,
 )
-from parametricpinn.fem.problems.base import BaseSimulationResults
 from parametricpinn.fem.problems.neohookean import (
     NeoHookeanProblem,
     NeoHookeanProblemConfig,

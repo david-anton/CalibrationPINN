@@ -122,7 +122,10 @@ class NeoHookeanProblem:
 
         # Unimodular deformation tensors
         uni_F = ufl.variable((J ** (-1 / 3)) * F)  # Unimodular deformation gradient
-        uni_C = ufl.variable(uni_F.T * uni_F)  # Unimodular right Cauchy-Green tensor
+        transposed_uni_F = ufl.variable(ufl.transpose(uni_F))
+        uni_C = ufl.variable(
+            transposed_uni_F * uni_F
+        )  # Unimodular right Cauchy-Green tensor
 
         # Invariants of unimodular deformation tensors
         uni_I_c = ufl.variable(ufl.tr(uni_C))
@@ -133,8 +136,8 @@ class NeoHookeanProblem:
 
         # 2. Piola-Kirchoff stress tensor
         inv_uni_C = ufl.variable(ufl.inv(uni_C))
-        T = J * K * (J - 1) * inv_uni_C + 2 * J ** (-2 / 3) * (
-            c_10 * I - 1 / 3 * c_10 * uni_I_c * inv_uni_C
+        T = J * K * (J - 1) * inv_uni_C + 2 * (J ** (-2 / 3)) * (
+            c_10 * I - (1 / 3) * c_10 * uni_I_c * inv_uni_C
         )
 
         # 1. Piola-Kirchoff stress tensor

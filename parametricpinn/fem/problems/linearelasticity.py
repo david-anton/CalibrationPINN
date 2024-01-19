@@ -1,10 +1,10 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable, TypeAlias, Union
-from abc import ABC, abstractmethod
 
 import dolfinx
-from dolfinx import default_scalar_type
 import ufl
+from dolfinx import default_scalar_type
 from dolfinx.fem.petsc import LinearProblem
 
 from parametricpinn.errors import FEMConfigurationError
@@ -53,18 +53,8 @@ LinearElasticityProblemConfig: TypeAlias = Union[
 
 
 @dataclass
-class LinearElasticityResults_E_nu(BaseSimulationResults):
+class LinearElasticityResults(BaseSimulationResults):
     pass
-
-
-@dataclass
-class LinearElasticityResults_K_G(BaseSimulationResults):
-    pass
-
-
-LinearElasticityResults: TypeAlias = Union[
-    LinearElasticityResults_E_nu, LinearElasticityResults_K_G
-]
 
 
 class LinearElasticityProblemBase(ABC):
@@ -166,13 +156,13 @@ class LinearElasticityProblem_E_nu(LinearElasticityProblemBase):
 
     def compile_results(
         self, approximate_solution: DFunction
-    ) -> LinearElasticityResults_E_nu:
+    ) -> LinearElasticityResults:
         coordinates_x, coordinates_y = self._extract_coordinates_results()
         displacements_x, displacements_y = self._extract_displacements_results(
             approximate_solution
         )
 
-        return LinearElasticityResults_E_nu(
+        return LinearElasticityResults(
             material_parameter_names=self._config.material_parameter_names,
             material_parameters=self._config.material_parameters,
             coordinates_x=coordinates_x,
@@ -248,13 +238,13 @@ class LinearElasticityProblem_K_G(LinearElasticityProblemBase):
 
     def compile_results(
         self, approximate_solution: DFunction
-    ) -> LinearElasticityResults_K_G:
+    ) -> LinearElasticityResults:
         coordinates_x, coordinates_y = self._extract_coordinates_results()
         displacements_x, displacements_y = self._extract_displacements_results(
             approximate_solution
         )
 
-        return LinearElasticityResults_K_G(
+        return LinearElasticityResults(
             material_parameter_names=self._config.material_parameter_names,
             material_parameters=self._config.material_parameters,
             coordinates_x=coordinates_x,

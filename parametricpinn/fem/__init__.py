@@ -5,8 +5,8 @@ from .domains import (
     SimplifiedDogBoneDomainConfig,
 )
 from .problems import (
-    LinearElasticityProblemConfig_K_G,
     LinearElasticityProblemConfig_E_nu,
+    LinearElasticityProblemConfig_K_G,
     NeoHookeanProblemConfig,
     ProblemConfigs,
 )
@@ -17,8 +17,8 @@ __all__ = [
     "PlateWithHoleDomainConfig",
     "QuarterPlateWithHoleDomainConfig",
     "SimplifiedDogBoneDomainConfig",
-    "LinearElasticityProblemConfig_K_G",
     "LinearElasticityProblemConfig_E_nu",
+    "LinearElasticityProblemConfig_K_G",
     "NeoHookeanProblemConfig",
     "ProblemConfigs",
     "SimulationConfig",
