@@ -1,4 +1,4 @@
-from typing import Callable, TypeAlias
+from typing import Callable, TypeAlias, TypeVar
 
 import torch
 from torch.func import vmap
@@ -46,6 +46,9 @@ def _strain_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
     return 1 / 2 * (jac_u + torch.transpose(jac_u, 0, 1))
 
 
+ParameterType = TypeVar("ParameterType", Tensor, float)
+
+
 def calculate_K_from_E_and_nu_factory(model: str):
     if model == "plane strain":
         return _calculate_K_from_E_and_nu_plane_strain
@@ -53,15 +56,19 @@ def calculate_K_from_E_and_nu_factory(model: str):
         return _calculate_K_from_E_and_nu_plane_stress
 
 
-def _calculate_K_from_E_and_nu_plane_strain(E: float, nu: float):
+def _calculate_K_from_E_and_nu_plane_strain(
+    E: ParameterType, nu: ParameterType
+) -> ParameterType:
     return E / (2 * (1 + nu) * (1 - 2 * nu))
 
 
-def _calculate_K_from_E_and_nu_plane_stress(E: float, nu: float):
+def _calculate_K_from_E_and_nu_plane_stress(
+    E: ParameterType, nu: ParameterType
+) -> ParameterType:
     return E / (3 * (1 - 2 * nu))
 
 
-def calculate_G_from_E_and_nu(E: float, nu: float):
+def calculate_G_from_E_and_nu(E: ParameterType, nu: ParameterType) -> ParameterType:
     return E / (2 * (1 + nu))
 
 
@@ -72,11 +79,15 @@ def calculate_E_from_K_and_G_factory(model: str):
         return calculate_E_from_K_and_G_plane_stress
 
 
-def calculate_E_from_K_and_G_plane_strain(K: float, G: float):
+def calculate_E_from_K_and_G_plane_strain(
+    K: ParameterType, G: ParameterType
+) -> ParameterType:
     return G * (-G / K + 3)
 
 
-def calculate_E_from_K_and_G_plane_stress(K: float, G: float):
+def calculate_E_from_K_and_G_plane_stress(
+    K: ParameterType, G: ParameterType
+) -> ParameterType:
     return (9 * K * G) / (3 * K + G)
 
 
@@ -87,9 +98,13 @@ def calculate_nu_from_K_and_G_factory(model: str):
         return calculate_nu_from_K_and_G_plane_stress
 
 
-def calculate_nu_from_K_and_G_plane_strain(K: float, G: float):
+def calculate_nu_from_K_and_G_plane_strain(
+    K: ParameterType, G: ParameterType
+) -> ParameterType:
     return -G / (2 * K) + 0.5
 
 
-def calculate_nu_from_K_and_G_plane_stress(K: float, G: float):
+def calculate_nu_from_K_and_G_plane_stress(
+    K: ParameterType, G: ParameterType
+) -> ParameterType:
     return (3 * K - 2 * G) / (6 * K + 2 * G)
