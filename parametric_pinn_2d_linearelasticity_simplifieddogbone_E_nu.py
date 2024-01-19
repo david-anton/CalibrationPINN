@@ -85,22 +85,22 @@ number_points_per_bc = 64
 bcs_overlap_angle_distance_left = 1e-2
 bcs_overlap_distance_parallel_right = 1e-2
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 1  # 30000
+number_training_epochs = 30000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_symmetry_bc_loss = 1e5
 # Validation
 regenerate_valid_data = True
 input_subdir_valid = "20240119_validation_data_linearelasticity_simplifieddogbone_E_160k_260k_nu_015_045_elementsize_01"
-num_samples_valid = 1  # 32
+num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
 input_subdir_calibration = "20231124_experimental_dic_data_dogbone"
 input_file_name_calibration = "displacements_dic.csv"
-use_least_squares = False  # True
-use_random_walk_metropolis_hasting = False  # True
+use_least_squares = True
+use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
 use_efficient_nuts = False
 # FEM
@@ -539,7 +539,9 @@ def calibration_step() -> None:
             axes.add_patch(plate_hole)
 
             # save
-            file_name = f"data_dispalcements_{dimension}.{plot_config.file_format}"
+            file_name = (
+                f"measurement_data_dispalcements_{dimension}.{plot_config.file_format}"
+            )
             save_path = project_directory.create_output_file_path(
                 file_name, output_subdirectory
             )
