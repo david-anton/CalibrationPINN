@@ -41,11 +41,11 @@ def _first_piola_stress_tensor_func(
 
     # Unimodular deformation tensors
     uni_F = (J ** (-1 / 3)) * F  # unimodular deformation gradient
-    transpose_uni_F = torch.transpose(uni_F, 0, 1)
-    uni_C = transpose_uni_F * uni_F  # unimodular right Cauchy-Green tensor
+    # unimodular right Cauchy-Green tensor
+    uni_C = _calculate_right_cauchy_green_tensor(uni_F)
 
     # Invariants of unimodular deformation tensors
-    uni_I_c = torch.trace(uni_C)
+    uni_I_c = _calculate_first_invariant(uni_C)
 
     # Material parameters
     param_K = _extract_bulk_modulus_K(x_param)
@@ -73,6 +73,16 @@ def _deformation_gradient_func(
 def _calculate_determinant(tensor: Tensor) -> Tensor:
     determinant = torch.det(tensor)
     return torch.unsqueeze(determinant, dim=0)
+
+
+def _calculate_right_cauchy_green_tensor(deformation_gradient: Tensor) -> Tensor:
+    F = deformation_gradient
+    transposed_F = torch.transpose(F, 0, 1)
+    return torch.matmul(transposed_F, F)
+
+
+def _calculate_first_invariant(tensor: Tensor):
+    return torch.unsqueeze(torch.trace(tensor), dim=0)
 
 
 def _extract_bulk_modulus_K(x_param: Tensor) -> Tensor:
