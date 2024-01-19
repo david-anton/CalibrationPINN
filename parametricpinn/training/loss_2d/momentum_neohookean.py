@@ -40,9 +40,9 @@ def _first_piola_stress_tensor_func(
     J = _calculate_determinant(F)
 
     # Unimodular deformation tensors
-    uni_F = J ** (-1 / 3) * F
+    uni_F = (J ** (-1 / 3)) * F  # unimodular deformation gradient
     transpose_uni_F = torch.transpose(uni_F, 0, 1)
-    uni_C = transpose_uni_F * uni_F
+    uni_C = transpose_uni_F * uni_F  # unimodular right Cauchy-Green tensor
 
     # Invariants of unimodular deformation tensors
     uni_I_c = torch.trace(uni_C)
@@ -53,8 +53,8 @@ def _first_piola_stress_tensor_func(
 
     # 2. Piola-Kirchoff stress tensor
     inv_uni_C = torch.inverse(uni_C)
-    T = J * param_K * (J - 1) * inv_uni_C + 2 * J ** (-2 / 3) * (
-        param_c_10 * I - 1 / 3 * param_c_10 * uni_I_c * inv_uni_C
+    T = J * param_K * (J - 1) * inv_uni_C + 2 * (J ** (-2 / 3)) * (
+        param_c_10 * I - (1 / 3) * param_c_10 * uni_I_c * inv_uni_C
     )
 
     # 1. Piola-Kirchoff stress tensor
