@@ -83,8 +83,8 @@ layer_sizes = [4, 64, 64, 64, 64, 2]
 distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 1  # 32
-num_collocation_points = 16384  # 128
-number_points_per_bc = 512  # 64
+num_collocation_points = 8192  # 128
+number_points_per_bc = 256  # 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
@@ -94,7 +94,7 @@ weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20240118_validation_data_neohookean_K_1000_c10_20_edge_100_radius_10_traction_20_elementsize_02"  # "20231207_validation_data_neohookean_E_1000_3000_nu_02_04_edge_100_radius_10_traction_300_elementsize_02"  # "20231207_validation_data_neohookean_quarterplatewithhole_E_1000_3000_nu_02_04_edge_100_radius_10_traction_300_elementsize_02"
+input_subdir_valid = "20240118_validation_data_neohookean_K_1000_c10_20_edge_100_radius_10_traction_10_elementsize_02"  # "20231207_validation_data_neohookean_E_1000_3000_nu_02_04_edge_100_radius_10_traction_300_elementsize_02"  # "20231207_validation_data_neohookean_quarterplatewithhole_E_1000_3000_nu_02_04_edge_100_radius_10_traction_300_elementsize_02"
 num_samples_valid = 1  # 32
 validation_interval = 1
 num_points_valid = 1024
@@ -112,7 +112,7 @@ fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_quarterplatewithhole_K_1000_c10_30_col_8192_bc_256_neurons_4_64_traction_100"
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_quarterplatewithhole_K_1000_c10_20_col_8192_bc_256_neurons_4_64_traction_10"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -361,9 +361,9 @@ def training_step() -> None:
         displacements_plotter_config = DisplacementsPlotterConfig2D()
         parameters_list = [
             (min_bulk_modulus, min_rivlin_saunders_c_10),
-            (min_bulk_modulus, max_rivlin_saunders_c_10),
-            (max_bulk_modulus, min_rivlin_saunders_c_10),
-            (max_bulk_modulus, max_rivlin_saunders_c_10),
+            # (min_bulk_modulus, max_rivlin_saunders_c_10),
+            # (max_bulk_modulus, min_rivlin_saunders_c_10),
+            # (max_bulk_modulus, max_rivlin_saunders_c_10),
         ]
         bulk_moduli, rivlin_saunders_c_10s = zip(*parameters_list)
 

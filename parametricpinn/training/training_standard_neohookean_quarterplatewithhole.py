@@ -111,6 +111,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
                 .to(device)
             )
             stress_tensors = stress_func(ansatz, x_coor, x_param)
+            print(f"Stress tensors: {stress_tensors}")
             y = shear_stress_filter * stress_tensors
             y_true = (
                 torch.tensor([[0.0, 0.0], [0.0, 0.0]])
