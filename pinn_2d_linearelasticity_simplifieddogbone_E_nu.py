@@ -1,4 +1,3 @@
-import math
 import os
 from datetime import date
 
@@ -29,7 +28,6 @@ from parametricpinn.fem import (
     run_simulation,
 )
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.network import FFNN, create_normalized_network
 from parametricpinn.postprocessing.plot import (
     DisplacementsPlotterConfig2D,
     plot_displacements_2d,
