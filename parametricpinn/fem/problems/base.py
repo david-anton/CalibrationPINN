@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from dolfinx.io import XDMFFile
 
+from parametricpinn.errors import FEMResultsError
 from parametricpinn.fem.base import (
     DDirichletBC,
     DFunction,
@@ -16,7 +17,6 @@ from parametricpinn.fem.boundaryconditions import BoundaryConditions, DirichletB
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import PandasDataWriter
 from parametricpinn.types import NPArray
-from parametricpinn.errors import FEMResultsError
 
 MaterialParameterNames: TypeAlias = tuple[str, ...]
 MaterialParameters: TypeAlias = tuple[float, ...]

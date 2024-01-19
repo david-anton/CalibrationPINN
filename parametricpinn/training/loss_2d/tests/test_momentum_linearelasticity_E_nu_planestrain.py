@@ -1,6 +1,5 @@
 import pytest
 import torch
-import torch.nn as nn
 
 from parametricpinn.training.loss_2d.momentum_linearelasticity_E_nu import (
     momentum_equation_func_factory,
@@ -98,6 +97,26 @@ def calculate_traction_energy(
     return 1 / 2 * torch.sum(traction_energy_fraction)
 
 
+def _calculate_single_stress_tensor(
+    x_coordinate: Tensor, x_parameter: Tensor
+) -> Tensor:
+    strain = _calculate_single_strain_tensor(x_coordinate)
+    voigt_strain = torch.tensor([strain[0, 0], strain[1, 1], 2 * strain[0, 1]])
+    E = x_parameter[0]
+    nu = x_parameter[1]
+    material_tensor = (E / ((1.0 + nu) * (1.0 - 2 * nu))) * torch.tensor(
+        [
+            [1.0 - nu, nu, 0.0],
+            [nu, 1.0 - nu, 0.0],
+            [0.0, 0.0, (1.0 - 2 * nu) / 2.0],
+        ]
+    )
+    voigt_stress = torch.matmul(material_tensor, voigt_strain)
+    return torch.tensor(
+        [[voigt_stress[0], voigt_stress[2]], [voigt_stress[2], voigt_stress[1]]]
+    )
+
+
 def _calculate_single_traction(
     x_coordinate: Tensor, x_parameter: Tensor, normal_vector: Tensor
 ) -> Tensor:
@@ -129,26 +148,6 @@ def _calculate_single_traction_energy(
     return torch.unsqueeze(torch.einsum("i,i", traction, displacement), dim=0)
 
 
-def _calculate_single_stress_tensor(
-    x_coordinate: Tensor, x_parameter: Tensor
-) -> Tensor:
-    strain = _calculate_single_strain_tensor(x_coordinate)
-    voigt_strain = torch.tensor([strain[0, 0], strain[1, 1], 2 * strain[0, 1]])
-    E = x_parameter[0]
-    nu = x_parameter[1]
-    material_tensor = (E / ((1.0 + nu) * (1.0 - 2 * nu))) * torch.tensor(
-        [
-            [1.0 - nu, nu, 0.0],
-            [nu, 1.0 - nu, 0.0],
-            [0.0, 0.0, (1.0 - 2 * nu) / 2.0],
-        ]
-    )
-    voigt_stress = torch.matmul(material_tensor, voigt_strain)
-    return torch.tensor(
-        [[voigt_stress[0], voigt_stress[2]], [voigt_stress[2], voigt_stress[1]]]
-    )
-
-
 def _calculate_single_strain_tensor(x_coordinate: Tensor) -> Tensor:
     strain_xx = (
         1 / 2 * (2 * (constant_displacement_x * 2 * x_coordinate[0] * x_coordinate[1]))
@@ -168,27 +167,18 @@ def _calculate_single_strain_tensor(x_coordinate: Tensor) -> Tensor:
 
 
 @pytest.mark.parametrize(
-    ("x_coordinates", "x_parameters", "expected"),
+    ("x_coordinates", "expected"),
     [
         (
             torch.tensor([[2.0, 2.0], [2.0, 2.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
             torch.tensor([[0.0, 0.0], [0.0, 0.0]]),
         ),
         (
             torch.tensor([[-2.0, -2.0], [-2.0, -2.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
             torch.tensor([[0.0, 0.0], [0.0, 0.0]]),
         ),
         (
             torch.tensor([[0.0, 0.0], [0.0, 0.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
             torch.tensor([[0.0, 0.0], [0.0, 0.0]]),
         ),
     ],
@@ -196,10 +186,12 @@ def _calculate_single_strain_tensor(x_coordinate: Tensor) -> Tensor:
 def test_momentum_equation_func(
     fake_ansatz: Module,
     x_coordinates: Tensor,
-    x_parameters: Tensor,
     expected: Tensor,
 ):
     volume_forces = generate_volume_force(x_coordinates)
+    x_parameters = torch.tensor(
+        [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
+    )
     sut = momentum_equation_func_factory(model=model)
 
     actual = sut(fake_ansatz, x_coordinates, x_parameters, volume_forces)
@@ -208,33 +200,20 @@ def test_momentum_equation_func(
 
 
 @pytest.mark.parametrize(
-    ("x_coordinates", "x_parameters"),
+    "x_coordinates",
     [
-        (
-            torch.tensor([[2.0, 2.0], [2.0, 2.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
-        ),
-        (
-            torch.tensor([[-2.0, -2.0], [-2.0, -2.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
-        ),
-        (
-            torch.tensor([[0.0, 0.0], [0.0, 0.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
-        ),
+        torch.tensor([[2.0, 2.0], [2.0, 2.0]], requires_grad=True),
+        torch.tensor([[-2.0, -2.0], [-2.0, -2.0]], requires_grad=True),
+        torch.tensor([[0.0, 0.0], [0.0, 0.0]], requires_grad=True),
     ],
 )
 def test_stress_func(
     fake_ansatz: Module,
     x_coordinates: Tensor,
-    x_parameters: Tensor,
 ):
+    x_parameters = torch.tensor(
+        [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
+    )
     sut = stress_func_factory(model=model)
 
     actual = sut(fake_ansatz, x_coordinates, x_parameters)
@@ -244,27 +223,18 @@ def test_stress_func(
 
 
 @pytest.mark.parametrize(
-    ("x_coordinates", "x_parameters", "normal_vectors"),
+    ("x_coordinates", "normal_vectors"),
     [
         (
             torch.tensor([[-2.0, -2.0], [-2.0, -2.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
             torch.tensor([[1.0, 0.0], [0.0, 1.0]]),
         ),
         (
             torch.tensor([[-2.0, 0.0], [-2.0, 0.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
             torch.tensor([[1.0, 0.0], [0.0, 1.0]]),
         ),
         (
             torch.tensor([[-2.0, 2.0], [-2.0, 2.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
             torch.tensor([[1.0, 0.0], [0.0, 1.0]]),
         ),
     ],
@@ -272,9 +242,11 @@ def test_stress_func(
 def test_traction_func(
     fake_ansatz: Module,
     x_coordinates: Tensor,
-    x_parameters: Tensor,
     normal_vectors: Tensor,
 ):
+    x_parameters = torch.tensor(
+        [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
+    )
     sut = traction_func_factory(model=model)
 
     actual = sut(fake_ansatz, x_coordinates, x_parameters, normal_vectors)

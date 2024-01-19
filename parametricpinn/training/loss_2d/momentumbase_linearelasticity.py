@@ -44,3 +44,52 @@ def _strain_energy_func(
 def _strain_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
     jac_u = jacobian_displacement_func(ansatz, x_coor, x_param)
     return 1 / 2 * (jac_u + torch.transpose(jac_u, 0, 1))
+
+
+def calculate_K_from_E_and_nu_factory(model: str):
+    if model == "plane strain":
+        return _calculate_K_from_E_and_nu_plane_strain
+    elif model == "plane stress":
+        return _calculate_K_from_E_and_nu_plane_stress
+
+
+def _calculate_K_from_E_and_nu_plane_strain(E: float, nu: float):
+    return E / (2 * (1 + nu) * (1 - 2 * nu))
+
+
+def _calculate_K_from_E_and_nu_plane_stress(E: float, nu: float):
+    return E / (3 * (1 - 2 * nu))
+
+
+def calculate_G_from_E_and_nu(E: float, nu: float):
+    return E / (2 * (1 + nu))
+
+
+def calculate_E_from_K_and_G_factory(model: str):
+    if model == "plane strain":
+        return calculate_E_from_K_and_G_plane_strain
+    elif model == "plane stress":
+        return calculate_E_from_K_and_G_plane_stress
+
+
+def calculate_E_from_K_and_G_plane_strain(K: float, G: float):
+    return G * (-G / K + 3)
+
+
+def calculate_E_from_K_and_G_plane_stress(K: float, G: float):
+    return (9 * K * G) / (3 * K + G)
+
+
+def calculate_nu_from_K_and_G_factory(model: str):
+    if model == "plane strain":
+        return calculate_nu_from_K_and_G_plane_strain
+    elif model == "plane stress":
+        return calculate_nu_from_K_and_G_plane_stress
+
+
+def calculate_nu_from_K_and_G_plane_strain(K: float, G: float):
+    return -G / (2 * K) + 0.5
+
+
+def calculate_nu_from_K_and_G_plane_stress(K: float, G: float):
+    return (3 * K - 2 * G) / (6 * K + 2 * G)

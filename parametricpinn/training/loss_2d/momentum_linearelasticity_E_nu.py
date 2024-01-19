@@ -1,7 +1,6 @@
 from typing import Callable, TypeAlias
 
 import torch
-from torch.func import vmap
 
 from parametricpinn.training.loss_2d.momentumbase import (
     MomentumFunc,
@@ -18,6 +17,10 @@ from parametricpinn.training.loss_2d.momentumbase import (
 from parametricpinn.training.loss_2d.momentumbase_linearelasticity import (
     StrainEnergyFunc,
     _strain_func,
+    calculate_E_from_K_and_G_factory,
+    calculate_G_from_E_and_nu,
+    calculate_K_from_E_and_nu_factory,
+    calculate_nu_from_K_and_G_factory,
     strain_energy_func,
 )
 from parametricpinn.types import Tensor

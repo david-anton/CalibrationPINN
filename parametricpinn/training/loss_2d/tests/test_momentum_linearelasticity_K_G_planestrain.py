@@ -1,8 +1,9 @@
 import pytest
 import torch
-import torch.nn as nn
 
-from parametricpinn.training.loss_2d.momentum_linearelasticity_E_nu import (
+from parametricpinn.training.loss_2d.momentum_linearelasticity_K_G import (
+    calculate_G_from_E_and_nu,
+    calculate_K_from_E_and_nu_factory,
     momentum_equation_func_factory,
     strain_energy_func_factory,
     stress_func_factory,
@@ -12,12 +13,16 @@ from parametricpinn.training.loss_2d.momentum_linearelasticity_E_nu import (
 from parametricpinn.training.loss_2d.tests.testdoubles import FakeAnsatz
 from parametricpinn.types import Module, Tensor
 
-model = "plane stress"
+# The expected values are calculatet in terms of Younbg's modulus and Poisson's ratio.
+
+model = "plane strain"
+calculate_K_from_E_and_nu = calculate_K_from_E_and_nu_factory(model)
 youngs_modulus = 1.0
 poissons_ratio = 0.25
-factor_volume_force = youngs_modulus / (1.0 - poissons_ratio**2)
-constant_displacement_x = 8 / 39
-constant_displacement_y = -44 / 39
+bulk_modulus = calculate_K_from_E_and_nu(youngs_modulus, poissons_ratio)
+shear_modulus = calculate_G_from_E_and_nu(youngs_modulus, poissons_ratio)
+constant_displacement_x = 1 / 10
+constant_displacement_y = -2 / 5
 
 
 @pytest.fixture
@@ -28,8 +33,8 @@ def fake_ansatz() -> Module:
 def generate_volume_force(x_coordinates: Tensor) -> Tensor:
     return torch.concat(
         (
-            factor_volume_force * torch.unsqueeze(x_coordinates[:, 1], dim=1),
-            2 * factor_volume_force * torch.unsqueeze(x_coordinates[:, 0], dim=1),
+            shear_modulus * torch.unsqueeze(x_coordinates[:, 1], dim=1),
+            2 * shear_modulus * torch.unsqueeze(x_coordinates[:, 0], dim=1),
         ),
         dim=1,
     )
@@ -98,6 +103,26 @@ def calculate_traction_energy(
     return 1 / 2 * torch.sum(traction_energy_fraction)
 
 
+def _calculate_single_stress_tensor(
+    x_coordinate: Tensor, x_parameter: Tensor
+) -> Tensor:
+    strain = _calculate_single_strain_tensor(x_coordinate)
+    voigt_strain = torch.tensor([strain[0, 0], strain[1, 1], 2 * strain[0, 1]])
+    E = x_parameter[0]
+    nu = x_parameter[1]
+    material_tensor = (E / ((1.0 + nu) * (1.0 - 2 * nu))) * torch.tensor(
+        [
+            [1.0 - nu, nu, 0.0],
+            [nu, 1.0 - nu, 0.0],
+            [0.0, 0.0, (1.0 - 2 * nu) / 2.0],
+        ]
+    )
+    voigt_stress = torch.matmul(material_tensor, voigt_strain)
+    return torch.tensor(
+        [[voigt_stress[0], voigt_stress[2]], [voigt_stress[2], voigt_stress[1]]]
+    )
+
+
 def _calculate_single_traction(
     x_coordinate: Tensor, x_parameter: Tensor, normal_vector: Tensor
 ) -> Tensor:
@@ -129,26 +154,6 @@ def _calculate_single_traction_energy(
     return torch.unsqueeze(torch.einsum("i,i", traction, displacement), dim=0)
 
 
-def _calculate_single_stress_tensor(
-    x_coordinate: Tensor, x_parameter: Tensor
-) -> Tensor:
-    strain = _calculate_single_strain_tensor(x_coordinate)
-    voigt_strain = torch.tensor([strain[0, 0], strain[1, 1], 2 * strain[0, 1]])
-    E = x_parameter[0]
-    nu = x_parameter[1]
-    material_tensor = (E / (1.0 - nu**2)) * torch.tensor(
-        [
-            [1.0, nu, 0.0],
-            [nu, 1.0, 0.0],
-            [0.0, 0.0, (1.0 - nu) / 2.0],
-        ]
-    )
-    voigt_stress = torch.matmul(material_tensor, voigt_strain)
-    return torch.tensor(
-        [[voigt_stress[0], voigt_stress[2]], [voigt_stress[2], voigt_stress[1]]]
-    )
-
-
 def _calculate_single_strain_tensor(x_coordinate: Tensor) -> Tensor:
     strain_xx = (
         1 / 2 * (2 * (constant_displacement_x * 2 * x_coordinate[0] * x_coordinate[1]))
@@ -168,27 +173,18 @@ def _calculate_single_strain_tensor(x_coordinate: Tensor) -> Tensor:
 
 
 @pytest.mark.parametrize(
-    ("x_coordinates", "x_parameters", "expected"),
+    ("x_coordinates", "expected"),
     [
         (
             torch.tensor([[2.0, 2.0], [2.0, 2.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
             torch.tensor([[0.0, 0.0], [0.0, 0.0]]),
         ),
         (
             torch.tensor([[-2.0, -2.0], [-2.0, -2.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
             torch.tensor([[0.0, 0.0], [0.0, 0.0]]),
         ),
         (
             torch.tensor([[0.0, 0.0], [0.0, 0.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
             torch.tensor([[0.0, 0.0], [0.0, 0.0]]),
         ),
     ],
@@ -196,75 +192,59 @@ def _calculate_single_strain_tensor(x_coordinate: Tensor) -> Tensor:
 def test_momentum_equation_func(
     fake_ansatz: Module,
     x_coordinates: Tensor,
-    x_parameters: Tensor,
     expected: Tensor,
 ):
     volume_forces = generate_volume_force(x_coordinates)
+    x_parameters_K_G = torch.tensor(
+        [[bulk_modulus, shear_modulus], [bulk_modulus, shear_modulus]]
+    )
+
     sut = momentum_equation_func_factory(model=model)
 
-    actual = sut(fake_ansatz, x_coordinates, x_parameters, volume_forces)
+    actual = sut(fake_ansatz, x_coordinates, x_parameters_K_G, volume_forces)
 
     torch.testing.assert_close(actual, expected)
 
 
 @pytest.mark.parametrize(
-    ("x_coordinates", "x_parameters"),
+    "x_coordinates",
     [
-        (
-            torch.tensor([[2.0, 2.0], [2.0, 2.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
-        ),
-        (
-            torch.tensor([[-2.0, -2.0], [-2.0, -2.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
-        ),
-        (
-            torch.tensor([[0.0, 0.0], [0.0, 0.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
-        ),
+        torch.tensor([[2.0, 2.0], [2.0, 2.0]], requires_grad=True),
+        torch.tensor([[-2.0, -2.0], [-2.0, -2.0]], requires_grad=True),
+        torch.tensor([[0.0, 0.0], [0.0, 0.0]], requires_grad=True),
     ],
 )
 def test_stress_func(
     fake_ansatz: Module,
     x_coordinates: Tensor,
-    x_parameters: Tensor,
 ):
+    x_parameters_E_nu = torch.tensor(
+        [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
+    )
+    x_parameters_K_G = torch.tensor(
+        [[bulk_modulus, shear_modulus], [bulk_modulus, shear_modulus]]
+    )
     sut = stress_func_factory(model=model)
 
-    actual = sut(fake_ansatz, x_coordinates, x_parameters)
+    actual = sut(fake_ansatz, x_coordinates, x_parameters_K_G)
 
-    expected = calculate_stress(x_coordinates, x_parameters)
+    expected = calculate_stress(x_coordinates, x_parameters_E_nu)
     torch.testing.assert_close(actual, expected)
 
 
 @pytest.mark.parametrize(
-    ("x_coordinates", "x_parameters", "normal_vectors"),
+    ("x_coordinates", "normal_vectors"),
     [
         (
-            torch.tensor([[2.0, 2.0], [2.0, 2.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
-            torch.tensor([[1.0, 0.0], [0.0, 1.0]]),
-        ),
-        (
             torch.tensor([[-2.0, -2.0], [-2.0, -2.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
             torch.tensor([[1.0, 0.0], [0.0, 1.0]]),
         ),
         (
-            torch.tensor([[0.0, 0.0], [0.0, 0.0]], requires_grad=True),
-            torch.tensor(
-                [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
-            ),
+            torch.tensor([[-2.0, 0.0], [-2.0, 0.0]], requires_grad=True),
+            torch.tensor([[1.0, 0.0], [0.0, 1.0]]),
+        ),
+        (
+            torch.tensor([[-2.0, 2.0], [-2.0, 2.0]], requires_grad=True),
             torch.tensor([[1.0, 0.0], [0.0, 1.0]]),
         ),
     ],
@@ -272,14 +252,19 @@ def test_stress_func(
 def test_traction_func(
     fake_ansatz: Module,
     x_coordinates: Tensor,
-    x_parameters: Tensor,
     normal_vectors: Tensor,
 ):
+    x_parameters_E_nu = torch.tensor(
+        [[youngs_modulus, poissons_ratio], [youngs_modulus, poissons_ratio]]
+    )
+    x_parameters_K_G = torch.tensor(
+        [[bulk_modulus, shear_modulus], [bulk_modulus, shear_modulus]]
+    )
     sut = traction_func_factory(model=model)
 
-    actual = sut(fake_ansatz, x_coordinates, x_parameters, normal_vectors)
+    actual = sut(fake_ansatz, x_coordinates, x_parameters_K_G, normal_vectors)
 
-    expected = calculate_traction(x_coordinates, x_parameters, normal_vectors)
+    expected = calculate_traction(x_coordinates, x_parameters_E_nu, normal_vectors)
     torch.testing.assert_close(actual, expected)
 
 
@@ -287,19 +272,26 @@ def test_strain_energy_func(fake_ansatz: Module):
     x_coordinates = torch.tensor(
         [[-2.0, -2.0], [0.0, 0.0], [2.0, 2.0]], requires_grad=True
     )
-    x_parameters = torch.tensor(
+    x_parameters_E_nu = torch.tensor(
         [
             [youngs_modulus, poissons_ratio],
             [youngs_modulus, poissons_ratio],
             [youngs_modulus, poissons_ratio],
         ]
     )
+    x_parameters_K_G = torch.tensor(
+        [
+            [bulk_modulus, shear_modulus],
+            [bulk_modulus, shear_modulus],
+            [bulk_modulus, shear_modulus],
+        ]
+    )
     area = torch.tensor(16.0)
     sut = strain_energy_func_factory(model=model)
 
-    actual = sut(fake_ansatz, x_coordinates, x_parameters, area)
+    actual = sut(fake_ansatz, x_coordinates, x_parameters_K_G, area)
 
-    expected = calculate_strain_energy(x_coordinates, x_parameters, area)
+    expected = calculate_strain_energy(x_coordinates, x_parameters_E_nu, area)
     torch.testing.assert_close(actual, expected)
 
 
@@ -307,11 +299,18 @@ def test_traction_energy_func(fake_ansatz: Module):
     x_coordinates = torch.tensor(
         [[-2.0, -2.0], [-2.0, 0.0], [-2.0, 2.0]], requires_grad=True
     )
-    x_parameters = torch.tensor(
+    x_parameters_E_nu = torch.tensor(
         [
             [youngs_modulus, poissons_ratio],
             [youngs_modulus, poissons_ratio],
             [youngs_modulus, poissons_ratio],
+        ]
+    )
+    x_parameters_K_G = torch.tensor(
+        [
+            [bulk_modulus, shear_modulus],
+            [bulk_modulus, shear_modulus],
+            [bulk_modulus, shear_modulus],
         ]
     )
     normal_vectors = torch.tensor([[-1.0, 0.0], [-1.0, 0.0], [-1.0, 0.0]])
@@ -319,10 +318,10 @@ def test_traction_energy_func(fake_ansatz: Module):
     sut = traction_energy_func_factory(model=model)
 
     actual = sut(
-        fake_ansatz, x_coordinates, x_parameters, normal_vectors, area_fractions
+        fake_ansatz, x_coordinates, x_parameters_K_G, normal_vectors, area_fractions
     )
 
     expected = calculate_traction_energy(
-        x_coordinates, x_parameters, normal_vectors, area_fractions
+        x_coordinates, x_parameters_E_nu, normal_vectors, area_fractions
     )
     torch.testing.assert_close(actual, expected)

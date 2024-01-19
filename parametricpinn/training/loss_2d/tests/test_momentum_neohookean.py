@@ -3,10 +3,10 @@ import torch
 
 from parametricpinn.training.loss_2d.momentum_neohookean import (
     _calculate_determinant,
+    _calculate_first_invariant,
+    _calculate_right_cauchy_green_tensor,
     _deformation_gradient_func,
     _first_piola_stress_tensor_func,
-    _calculate_right_cauchy_green_tensor,
-    _calculate_first_invariant,
 )
 from parametricpinn.training.loss_2d.tests.testdoubles import TransformedFakeAnsatz
 from parametricpinn.types import Module, Tensor
