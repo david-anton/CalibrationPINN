@@ -143,6 +143,7 @@ class NeoHookeanProblem:
 
         # 1. Piola-Kirchoff stress tensor
         P = ufl.variable(F * T)
+        P_2D = ufl.as_matrix([[P[0, 0], P[0, 1]], [P[1, 0], P[1, 1]]])
 
         # Define variational form
         metadata = {"quadrature_degree": self._quadrature_degree}
@@ -151,7 +152,7 @@ class NeoHookeanProblem:
             "ds", domain=self._mesh, subdomain_data=boundary_tags, metadata=metadata
         )
         dx = ufl.Measure("dx", domain=self._mesh, metadata=metadata)
-        lhs = ufl.inner(ufl.grad(test_function), P) * dx
+        lhs = ufl.inner(ufl.grad(test_function), P_2D) * dx
         rhs = ufl.inner(test_function, self._volume_force) * dx
 
         # Apply boundary confitions
