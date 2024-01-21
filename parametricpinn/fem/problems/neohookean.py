@@ -133,15 +133,22 @@ class NeoHookeanProblem:
         C_iso = ufl.variable((J ** (-2 / 3)) * C)  # Isochoric right Cauchy-Green tensor
         I_C_iso = ufl.variable(ufl.tr(C_iso))  # First invariant
 
-        ### Strain Energy
-        # Volumetric part of strain energy
-        W_vol = ufl.variable(K * ((1 / 2) * (J - 1) ** 2))
-        # Isochoric part of strain energy
-        W_iso = ufl.variable(c_10 * (I_C_iso - 3))
-        W = W_vol + W_iso
+        # ### Strain Energy
+        # # Volumetric part of strain energy
+        # W_vol = ufl.variable(K * ((1 / 2) * (J - 1) ** 2))
+        # # Isochoric part of strain energy
+        # W_iso = ufl.variable(c_10 * (I_C_iso - 3))
+        # W = W_vol + W_iso
+
+        # # 2. Piola-Kirchoff stress tensor
+        # T = ufl.variable(2 * ufl.diff(W, C))
 
         # 2. Piola-Kirchoff stress tensor
-        T = ufl.variable(2 * ufl.diff(W, C))
+        I = ufl.variable(ufl.Identity(3))  # Identity tensor
+        inv_C_iso = ufl.variable(ufl.inv(C_iso))
+        T = J * K * (J - 1) * inv_C_iso + 2 * (J ** (-2 / 3)) * (
+            c_10 * I - (1 / 3) * c_10 * I_C_iso * inv_C_iso
+        )
 
         # 1. Piola-Kirchoff stress tensor
         P = ufl.variable(F * T)
