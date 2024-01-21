@@ -36,34 +36,42 @@ def calculate_single_deformation_gradient(x_coordinates: Tensor) -> Tensor:
 def calculate_first_piola_stress_tensor(
     deformation_gradient: Tensor, x_parameters: Tensor
 ) -> Tensor:
-    # Plane stress assumed ???
-    # Identity
-    I = torch.eye(n=2)
+    ### Plane strain assumed
     # Deformation gradient
-    F = deformation_gradient
+    F_2D = deformation_gradient
+    F = torch.stack(
+        (
+            torch.concat((F_2D[0, :], torch.tensor([0.0])), dim=0),
+            torch.concat((F_2D[1, :], torch.tensor([0.0])), dim=0),
+            torch.tensor([0.0, 0.0, 1.0]),
+        ),
+        dim=0,
+    )
     J = torch.unsqueeze(torch.det(F), dim=0)
 
-    # Unimodular deformation tensors
-    uni_F = (J ** (-1 / 3)) * F  # unimodular deformation gradient
-    transpose_uni_F = torch.transpose(uni_F, 0, 1)
-    uni_C = torch.matmul(transpose_uni_F, uni_F)  # unimodular right Cauchy-Green tensor
+    # # Right Cauchy-Green tensor
+    F_transpose = torch.transpose(F, 0, 1)
+    C = torch.matmul(F_transpose, F)
 
-    # Invariants of unimodular deformation tensors
-    uni_I_c = torch.trace(uni_C)
-
-    # Material parameters
+    # # Material parameters
     param_K = x_parameters[0]
     param_c_10 = x_parameters[1]
 
+    # # Isochoric deformation tensors and invariants
+    C_iso = (J ** (-2 / 3)) * C  # Isochoric right Cauchy-Green tensor
+    I_C_iso = torch.trace(C_iso)  # Isochoric first invariant
+
     # 2. Piola-Kirchoff stress tensor
-    inv_uni_C = torch.inverse(uni_C)
-    T = J * param_K * (J - 1) * inv_uni_C + 2 * (J ** (-2 / 3)) * (
-        param_c_10 * I - (1 / 3) * param_c_10 * uni_I_c * inv_uni_C
+    I = torch.eye(3)
+    inv_C_iso = torch.inverse(C_iso)
+    T = J * param_K * (J - 1) * inv_C_iso + 2 * (J ** (-2 / 3)) * (
+        param_c_10 * I - (1 / 3) * param_c_10 * I_C_iso * inv_C_iso
     )
 
     # 1. Piola-Kirchoff stress tensor
     P = F * T
-    return P
+    P_2D = P[0:2, 0:2]
+    return P_2D
 
 
 @pytest.mark.parametrize(
