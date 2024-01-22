@@ -140,7 +140,7 @@ class NeoHookeanProblem:
         W = W_vol + W_iso
 
         # # 2. Piola-Kirchoff stress tensor
-        T_2D = ufl.variable(2 * ufl.diff(W, C))
+        T_2D = ufl.variable(2 * ufl.diff(W, C_2D))
 
         # 1. Piola-Kirchoff stress tensor
         P_2D = ufl.variable(F_2D * T_2D)
