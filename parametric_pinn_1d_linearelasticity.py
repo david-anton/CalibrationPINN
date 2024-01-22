@@ -258,7 +258,7 @@ def calibration_step() -> None:
         calibration_data=data,
         initial_parameters=initial_parameters,
         num_iterations=100,
-        resdiual_weights=torch.tensor([1e4], device=device)
+        resdiual_weights=torch.tensor([1e2], device=device)
         .repeat((num_points_calibration, 1))
         .ravel(),
     )
