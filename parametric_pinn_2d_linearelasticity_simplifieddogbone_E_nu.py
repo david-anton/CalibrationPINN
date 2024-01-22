@@ -403,6 +403,7 @@ def calibration_step() -> None:
         random_indices = torch.randint(low=0, high=size_data, size=(num_data_points,))
         coordinates = full_coordinates[random_indices, :].to(device)
         displacements = full_displacements[random_indices, :].to(device)
+        print(f"Minimal coordinates: {torch.amin(coordinates)}")
         return coordinates, displacements
 
     def visualize_data(coordinates: Tensor, displacements: Tensor) -> None:
