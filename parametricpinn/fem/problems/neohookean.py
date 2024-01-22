@@ -116,12 +116,14 @@ class NeoHookeanProblem:
         # Deformation gradient
         I_2D = ufl.variable(ufl.Identity(2))  # Identity tensor
         F_2D = ufl.variable(ufl.grad(solution_function) + I_2D)
-        F = ufl.as_matrix(
-            [
-                [F_2D[0, 0], F_2D[0, 1], 0],
-                [F_2D[1, 0], F_2D[1, 1], 0],
-                [0, 0, 1],
-            ]
+        F = ufl.variable(
+            ufl.as_matrix(
+                [
+                    [F_2D[0, 0], F_2D[0, 1], 0],
+                    [F_2D[1, 0], F_2D[1, 1], 0],
+                    [0, 0, 1],
+                ]
+            )
         )
 
         # Right Cauchy-Green tensor
@@ -131,10 +133,10 @@ class NeoHookeanProblem:
 
         # Material parameters
         K = fem.Constant(
-            self._domain, default_scalar_type(self._config.material_parameters[0])
+            self._mesh, default_scalar_type(self._config.material_parameters[0])
         )
         c_10 = fem.Constant(
-            self._domain, default_scalar_type(self._config.material_parameters[1])
+            self._mesh, default_scalar_type(self._config.material_parameters[1])
         )
 
         # Isochoric deformation tensors and invariants
