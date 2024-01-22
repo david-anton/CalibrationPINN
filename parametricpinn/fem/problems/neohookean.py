@@ -61,9 +61,9 @@ class NeoHookeanProblem:
         solver = NewtonSolver(self._mesh.comm, self._problem)
 
         # Set Newton solver options
-        solver.atol = 1e-6
-        solver.rtol = 1e-6
-        solver.max_it = 10
+        solver.atol = 1e-8
+        solver.rtol = 1e-8
+        solver.max_it = 20
         solver.convergence_criterion = "incremental"
 
         solver.report = True
