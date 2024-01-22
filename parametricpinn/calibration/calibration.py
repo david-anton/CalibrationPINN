@@ -108,6 +108,7 @@ def _create_calibration_algorithm(
                 calibration_data=config_ls.calibration_data,
                 initial_parameters=config_ls.initial_parameters,
                 num_iterations=config_ls.num_iterations,
+                residual_weights=config_ls.resdiual_weights,
                 device=device,
             )
 

@@ -254,10 +254,13 @@ def calibration_step() -> None:
     initial_parameters = torch.tensor([prior_mean_youngs_modulus], device=device)
 
     least_squares_config = LeastSquaresConfig(
-        initial_parameters=initial_parameters,
-        num_iterations=100,
         ansatz=model,
         calibration_data=data,
+        initial_parameters=initial_parameters,
+        num_iterations=100,
+        resdiual_weights=torch.tensor([1e4], device=device)
+        .repeat((num_points_calibration, 1))
+        .ravel(),
     )
     mcmc_config_mh = MetropolisHastingsConfig(
         likelihood=likelihood,

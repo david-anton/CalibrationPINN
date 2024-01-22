@@ -545,10 +545,13 @@ def calibration_step() -> None:
         initial_parameters = initial_material_parameters
 
     least_squares_config = LeastSquaresConfig(
-        initial_parameters=initial_material_parameters,
-        num_iterations=1000,
         ansatz=model,
         calibration_data=data,
+        initial_parameters=initial_material_parameters,
+        num_iterations=1000,
+        resdiual_weights=torch.tensor([1.0, 1.0], device=device)
+        .repeat((num_data_points, 1))
+        .ravel(),
     )
     std_proposal_density_youngs_modulus = 1.0
     std_proposal_density_poissons_ratio = 1.5 * 1e-4

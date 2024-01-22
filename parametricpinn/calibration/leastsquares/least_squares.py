@@ -32,6 +32,7 @@ LeastSquaresFunc: TypeAlias = Callable[
 class LeastSquaresConfig(CalibrationConfig):
     ansatz: StandardAnsatz
     calibration_data: CalibrationData
+    resdiual_weights: Tensor
 
 
 class ModelClosure(nn.Module):
@@ -74,13 +75,14 @@ def least_squares(
     calibration_data: CalibrationData,
     initial_parameters: Parameters,
     num_iterations: int,
+    residual_weights: Tensor,
     device: Device,
 ) -> LeastSquaresOutput:
     preprocessed_data = preprocess_calibration_data(calibration_data)
     model_closure = ModelClosure(ansatz, initial_parameters, preprocessed_data, device)
-    outputs = preprocessed_data.outputs.detach().to(device)
+    flattened_outputs = preprocessed_data.outputs.ravel().detach().to(device)
+    residual_weights = residual_weights.to(device)
     loss_metric = torch.nn.MSELoss()
-    loss_weight = 1e6
 
     optimizer = torch.optim.LBFGS(
         params=model_closure.parameters(),
@@ -94,8 +96,12 @@ def least_squares(
     )
 
     def loss_func() -> Tensor:
-        model_outputs = model_closure()
-        return loss_weight * loss_metric(model_outputs, outputs)
+        flattened_model_outputs = model_closure().ravel()
+        residuals = flattened_model_outputs - flattened_outputs
+        weighted_residuals = residual_weights * residuals
+        return loss_metric(
+            weighted_residuals, torch.zeros_like(residuals, device=device)
+        )
 
     def loss_func_closure() -> float:
         optimizer.zero_grad()

@@ -667,10 +667,13 @@ def calibration_step() -> None:
     )
 
     least_squares_config = LeastSquaresConfig(
-        initial_parameters=initial_parameters,
-        num_iterations=1000,
         ansatz=model,
         calibration_data=data,
+        initial_parameters=initial_parameters,
+        num_iterations=1000,
+        resdiual_weights=torch.tensor([1e4, 1e4], device=device)
+        .repeat((num_data_points, 1))
+        .ravel(),
     )
     std_proposal_density_bulk_modulus = 1000
     std_proposal_density_shear_modulus = 500
