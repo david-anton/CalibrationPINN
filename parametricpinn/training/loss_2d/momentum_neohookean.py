@@ -57,7 +57,7 @@ def _first_piola_stress_tensor_func(
     I_C_iso = torch.trace(C_iso)  # Isochoric first invariant
 
     # 2. Piola-Kirchoff stress tensor
-    I = torch.eye(3)
+    I = torch.eye(3, device=device)
     inv_C_iso = torch.inverse(C_iso)
     T = J * param_K * (J - 1) * inv_C_iso + 2 * (J ** (-2 / 3)) * (
         param_c_10 * I - (1 / 3) * param_c_10 * I_C_iso * inv_C_iso
