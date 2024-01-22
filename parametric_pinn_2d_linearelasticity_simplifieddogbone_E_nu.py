@@ -400,6 +400,7 @@ def calibration_step() -> None:
         full_displacements = torch.from_numpy(data[:, slice_displacements]).type(
             torch.float64
         )
+        print(f"Minimal full coordinates: {torch.amin(full_coordinates)}")
         random_indices = torch.randint(low=0, high=size_data, size=(num_data_points,))
         coordinates = full_coordinates[random_indices, :].to(device)
         displacements = full_displacements[random_indices, :].to(device)
