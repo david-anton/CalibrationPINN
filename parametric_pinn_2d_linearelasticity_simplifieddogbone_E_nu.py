@@ -62,7 +62,7 @@ from parametricpinn.training.training_standard_linearelasticity_simplifieddogbon
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -90,7 +90,7 @@ weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_symmetry_bc_loss = 1e5
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20240119_validation_data_linearelasticity_simplifieddogbone_E_160k_260k_nu_015_045_elementsize_01"
 num_samples_valid = 32
 validation_interval = 1
@@ -109,7 +109,7 @@ fem_element_degree = 1
 fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = 20240119
 output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_160k_260k_nu_015_045_col_64_bc_64_neurons_6_128"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
@@ -341,28 +341,69 @@ def calibration_step() -> None:
     std_noise = 5 * 1e-4
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
-        csv_reader = CSVDataReader(project_directory)
-        data = csv_reader.read(
-            file_name=input_file_name_calibration, subdir_name=input_subdir_calibration
+        domain_config = create_fem_domain_config()
+        problem_config = LinearElasticityProblemConfig_E_nu(
+            model=material_model,
+            material_parameters=(exact_youngs_modulus, exact_poissons_ratio),
         )
-        size_data = len(data)
-        slice_coordinates = slice(0, 2)
-        slice_displacements = slice(2, 4)
-        full_shifted_coordinates = torch.from_numpy(data[:, slice_coordinates]).type(
-            torch.float64
+        simulation_config = SimulationConfig(
+            domain_config=domain_config,
+            problem_config=problem_config,
+            volume_force_x=volume_force_x,
+            volume_force_y=volume_force_y,
         )
-        coordinate_shift_x = geometry_config.left_half_measurement_length
-        coordinate_shift_y = geometry_config.half_measurement_height
-        full_coordinates = full_shifted_coordinates - torch.tensor(
-            [coordinate_shift_x, coordinate_shift_y], dtype=torch.float64
+        simulation_results = run_simulation(
+            simulation_config=simulation_config,
+            save_results=False,
+            save_metadata=False,
+            output_subdir=output_subdirectory,
+            project_directory=project_directory,
         )
-        full_displacements = torch.from_numpy(data[:, slice_displacements]).type(
-            torch.float64
+        total_size_data = simulation_results.coordinates_x.shape[0]
+        random_indices = torch.randint(
+            low=0, high=total_size_data + 1, size=(num_data_points,)
         )
-        random_indices = torch.randint(low=0, high=size_data, size=(num_data_points,))
-        coordinates = full_coordinates[random_indices, :].to(device)
-        displacements = full_displacements[random_indices, :].to(device)
-        return coordinates, displacements
+        coordinates_x = torch.tensor(simulation_results.coordinates_x)[random_indices]
+        coordinates_y = torch.tensor(simulation_results.coordinates_y)[random_indices]
+        coordinates = torch.concat((coordinates_x, coordinates_y), dim=1).to(device)
+        clean_displacements_x = torch.tensor(simulation_results.displacements_x)[
+            random_indices
+        ]
+        clean_displacements_y = torch.tensor(simulation_results.displacements_y)[
+            random_indices
+        ]
+        noisy_displacements_x = clean_displacements_x + torch.normal(
+            mean=0.0, std=std_noise, size=clean_displacements_x.size()
+        )
+        noisy_displacements_y = clean_displacements_y + torch.normal(
+            mean=0.0, std=std_noise, size=clean_displacements_y.size()
+        )
+        noisy_displacements = torch.concat(
+            (noisy_displacements_x, noisy_displacements_y), dim=1
+        ).to(device)
+        return coordinates, noisy_displacements
+        # csv_reader = CSVDataReader(project_directory)
+        # data = csv_reader.read(
+        #     file_name=input_file_name_calibration, subdir_name=input_subdir_calibration
+        # )
+        # size_data = len(data)
+        # slice_coordinates = slice(0, 2)
+        # slice_displacements = slice(2, 4)
+        # full_shifted_coordinates = torch.from_numpy(data[:, slice_coordinates]).type(
+        #     torch.float64
+        # )
+        # coordinate_shift_x = geometry_config.left_half_measurement_length
+        # coordinate_shift_y = geometry_config.half_measurement_height
+        # full_coordinates = full_shifted_coordinates - torch.tensor(
+        #     [coordinate_shift_x, coordinate_shift_y], dtype=torch.float64
+        # )
+        # full_displacements = torch.from_numpy(data[:, slice_displacements]).type(
+        #     torch.float64
+        # )
+        # random_indices = torch.randint(low=0, high=size_data, size=(num_data_points,))
+        # coordinates = full_coordinates[random_indices, :].to(device)
+        # displacements = full_displacements[random_indices, :].to(device)
+        # return coordinates, displacements
 
     def visualize_data(coordinates: Tensor, displacements: Tensor) -> None:
         # imports
