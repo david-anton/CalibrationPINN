@@ -649,8 +649,10 @@ def calibration_step() -> None:
         [min_youngs_modulus, min_poissons_ratio], device=device
     )
     mean_displacements = torch.mean(torch.absolute(displacements), dim=0)
+    min_displacements = torch.min(torch.absolute(displacements), dim=0)
     print(f"1 / mean displacements: {1 / mean_displacements}")
-    residual_weights = torch.tensor([1e2, 1e4])
+    print(f"1 / min displacements: {1 / min_displacements}")
+    residual_weights = 1 / min_displacements  # torch.tensor([1e2, 1e4])
     print(f"Used residual weights: {residual_weights}")
 
     least_squares_config = LeastSquaresConfig(
