@@ -63,7 +63,7 @@ class NeoHookeanProblem:
         # Set Newton solver options
         solver.atol = 1e-6
         solver.rtol = 1e-6
-        # solver.max_it = 10
+        solver.max_it = 10
         solver.convergence_criterion = "incremental"
 
         solver.report = True
