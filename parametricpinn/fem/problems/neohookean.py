@@ -116,43 +116,76 @@ class NeoHookeanProblem:
         # Deformation gradient
         I_2D = ufl.variable(ufl.Identity(2))  # Identity tensor
         F_2D = ufl.variable(ufl.grad(solution_function) + I_2D)
-        F = ufl.as_matrix(
-            [[F_2D[0, 0], F_2D[0, 1], 0], [F_2D[1, 0], F_2D[1, 1], 0], [0, 0, 1]]
-        )
 
         # Right Cauchy-Green tensor
-        F_transpose = ufl.variable(ufl.transpose(F))
-        C = ufl.variable(F_transpose * F)
-        J = ufl.variable(ufl.det(C) ** (1 / 2))  # J = ufl.variable(ufl.det(F))
+        F_2D_transpose = ufl.variable(ufl.transpose(F_2D))
+        C_2D = ufl.variable(F_2D_transpose * F_2D)
+        J_2D = ufl.variable(ufl.det(C_2D) ** (1 / 2))
 
         # Material parameters
         K = default_scalar_type(self._config.material_parameters[0])
         c_10 = default_scalar_type(self._config.material_parameters[1])
 
         # Isochoric deformation tensors and invariants
-        C_iso = ufl.variable((J ** (-2 / 3)) * C)  # Isochoric right Cauchy-Green tensor
-        I_C_iso = ufl.variable(ufl.tr(C_iso))  # First invariant
+        C_2D_iso = ufl.variable(
+            (ufl.inv(J_2D)) * C_2D
+        )  # Isochoric right Cauchy-Green tensor
+        I_C_2D_iso = ufl.variable(ufl.tr(C_2D_iso))  # First invariant
 
-        # ### Strain Energy
-        # # Volumetric part of strain energy
-        # W_vol = ufl.variable(K * ((1 / 2) * (J - 1) ** 2))
-        # # Isochoric part of strain energy
-        # W_iso = ufl.variable(c_10 * (I_C_iso - 3))
-        # W = W_vol + W_iso
+        ### Strain Energy
+        # Volumetric part of strain energy
+        W_vol = ufl.variable(K * ((1 / 2) * (J_2D - 1) ** 2))
+        # Isochoric part of strain energy
+        W_iso = ufl.variable(c_10 * (I_C_2D_iso - 2))
+        W = W_vol + W_iso
 
         # # 2. Piola-Kirchoff stress tensor
-        # T = ufl.variable(2 * ufl.diff(W, C))
-
-        # 2. Piola-Kirchoff stress tensor
-        I = ufl.variable(ufl.Identity(3))  # Identity tensor
-        inv_C_iso = ufl.variable(ufl.inv(C_iso))
-        T = J * K * (J - 1) * inv_C_iso + 2 * (J ** (-2 / 3)) * (
-            c_10 * I - (1 / 3) * c_10 * I_C_iso * inv_C_iso
-        )
+        T_2D = ufl.variable(2 * ufl.diff(W, C))
 
         # 1. Piola-Kirchoff stress tensor
-        P = ufl.variable(F * T)
-        P_2D = ufl.as_matrix([[P[0, 0], P[0, 1]], [P[1, 0], P[1, 1]]])
+        P_2D = ufl.variable(F_2D * T_2D)
+
+        ################################################################################
+        # # Deformation gradient
+        # I_2D = ufl.variable(ufl.Identity(2))  # Identity tensor
+        # F_2D = ufl.variable(ufl.grad(solution_function) + I_2D)
+        # F = ufl.as_matrix(
+        #     [[F_2D[0, 0], F_2D[0, 1], 0], [F_2D[1, 0], F_2D[1, 1], 0], [0, 0, 1]]
+        # )
+
+        # # Right Cauchy-Green tensor
+        # F_transpose = ufl.variable(ufl.transpose(F))
+        # C = ufl.variable(F_transpose * F)
+        # J = ufl.variable(ufl.det(C) ** (1 / 2))  # J = ufl.variable(ufl.det(F))
+
+        # # Material parameters
+        # K = default_scalar_type(self._config.material_parameters[0])
+        # c_10 = default_scalar_type(self._config.material_parameters[1])
+
+        # # Isochoric deformation tensors and invariants
+        # C_iso = ufl.variable((J ** (-2 / 3)) * C)  # Isochoric right Cauchy-Green tensor
+        # I_C_iso = ufl.variable(ufl.tr(C_iso))  # First invariant
+
+        # # ### Strain Energy
+        # # # Volumetric part of strain energy
+        # # W_vol = ufl.variable(K * ((1 / 2) * (J - 1) ** 2))
+        # # # Isochoric part of strain energy
+        # # W_iso = ufl.variable(c_10 * (I_C_iso - 3))
+        # # W = W_vol + W_iso
+
+        # # # 2. Piola-Kirchoff stress tensor
+        # # T = ufl.variable(2 * ufl.diff(W, C))
+
+        # # 2. Piola-Kirchoff stress tensor
+        # I = ufl.variable(ufl.Identity(3))  # Identity tensor
+        # inv_C_iso = ufl.variable(ufl.inv(C_iso))
+        # T = J * K * (J - 1) * inv_C_iso + 2 * (J ** (-2 / 3)) * (
+        #     c_10 * I - (1 / 3) * c_10 * I_C_iso * inv_C_iso
+        # )
+
+        # # 1. Piola-Kirchoff stress tensor
+        # P = ufl.variable(F * T)
+        # P_2D = ufl.as_matrix([[P[0, 0], P[0, 1]], [P[1, 0], P[1, 1]]])
 
         # Define variational form
         metadata = {"quadrature_degree": self._quadrature_degree}
