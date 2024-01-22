@@ -117,7 +117,11 @@ class NeoHookeanProblem:
         I_2D = ufl.variable(ufl.Identity(2))  # Identity tensor
         F_2D = ufl.variable(ufl.grad(solution_function) + I_2D)
         F = ufl.as_matrix(
-            [[F_2D[0, 0], F_2D[0, 1], 0], [F_2D[1, 0], F_2D[1, 1], 0], [0, 0, 1]]
+            [
+                [F_2D[0, 0], F_2D[0, 1], default_scalar_type(0)],
+                [F_2D[1, 0], F_2D[1, 1], default_scalar_type(0)],
+                default_scalar_type([0, 0, 1]),
+            ]
         )
 
         # Right Cauchy-Green tensor
@@ -126,8 +130,12 @@ class NeoHookeanProblem:
         J = ufl.variable(ufl.det(C) ** (1 / 2))  # J = ufl.variable(ufl.det(F))
 
         # Material parameters
-        K = default_scalar_type(self._config.material_parameters[0])
-        c_10 = default_scalar_type(self._config.material_parameters[1])
+        K = fem.Constant(
+            self._domain, default_scalar_type(self._config.material_parameters[0])
+        )
+        c_10 = fem.Constant(
+            self._domain, default_scalar_type(self._config.material_parameters[1])
+        )
 
         # Isochoric deformation tensors and invariants
         C_iso = ufl.variable((J ** (-2 / 3)) * C)  # Isochoric right Cauchy-Green tensor
@@ -135,13 +143,13 @@ class NeoHookeanProblem:
 
         ### Strain Energy
         # Volumetric part of strain energy
-        W_vol = ufl.variable(K * ((1 / 2) * (J - 1) ** 2))
+        W_vol = K * ((1 / 2) * (J - 1) ** 2)
         # Isochoric part of strain energy
-        W_iso = ufl.variable(c_10 * (I_C_iso - 3))
+        W_iso = c_10 * (I_C_iso - 3)
         W = W_vol + W_iso
 
         # 2. Piola-Kirchoff stress tensor
-        T = ufl.variable(2 * ufl.diff(W, C))
+        T = 2 * ufl.diff(W, C)
 
         # # 2. Piola-Kirchoff stress tensor
         # I = ufl.variable(ufl.Identity(3))  # Identity tensor
