@@ -118,9 +118,9 @@ class NeoHookeanProblem:
         F_2D = ufl.variable(ufl.grad(solution_function) + I_2D)
         F = ufl.as_matrix(
             [
-                [F_2D[0, 0], F_2D[0, 1], default_scalar_type(0)],
-                [F_2D[1, 0], F_2D[1, 1], default_scalar_type(0)],
-                default_scalar_type([0, 0, 1]),
+                [F_2D[0, 0], F_2D[0, 1], 0],
+                [F_2D[1, 0], F_2D[1, 1], 0],
+                [0, 0, 1],
             ]
         )
 
