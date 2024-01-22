@@ -650,12 +650,14 @@ def calibration_step() -> None:
     )
     mean_displacements = torch.mean(torch.absolute(displacements), dim=0)
     print(f"Mean displacements of measurements: {mean_displacements}")
+    residual_weights = 1 / mean_displacements
+    print(f"Residual weights for x- and y-direction: {residual_weights}")
     least_squares_config = LeastSquaresConfig(
         ansatz=model,
         calibration_data=data,
         initial_parameters=initial_parameters_ls,
         num_iterations=1000,
-        resdiual_weights=mean_displacements.to(device)
+        resdiual_weights=residual_weights.to(device)
         .repeat((num_data_points, 1))
         .ravel(),
     )
