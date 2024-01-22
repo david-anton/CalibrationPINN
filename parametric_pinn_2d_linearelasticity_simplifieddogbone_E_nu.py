@@ -645,12 +645,14 @@ def calibration_step() -> None:
         [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
     )
 
+    mean_displacements = torch.mean(displacements, dim=0)
+    print(f"Mean displacements of measurements: {mean_displacements}")
     least_squares_config = LeastSquaresConfig(
         ansatz=model,
         calibration_data=data,
         initial_parameters=initial_parameters,
         num_iterations=1000,
-        resdiual_weights=torch.tensor([1e2, 5e3], device=device)
+        resdiual_weights=mean_displacements.to(device)
         .repeat((num_data_points, 1))
         .ravel(),
     )
