@@ -650,7 +650,7 @@ def calibration_step() -> None:
     )
     mean_displacements = torch.mean(torch.absolute(displacements), dim=0)
     print(f"1 / mean displacements: {1 / mean_displacements}")
-    residual_weights = torch.tensor([1e2, 5e3])
+    residual_weights = 1 / mean_displacements
     print(f"Used residual weights: {residual_weights}")
 
     least_squares_config = LeastSquaresConfig(
