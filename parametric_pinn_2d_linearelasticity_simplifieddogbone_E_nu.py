@@ -651,8 +651,8 @@ def calibration_step() -> None:
         ansatz=model,
         calibration_data=data,
     )
-    std_proposal_density_youngs_modulus = 100
-    std_proposal_density_poissons_ratio = 0.015
+    std_proposal_density_youngs_modulus = 100  # 1000
+    std_proposal_density_poissons_ratio = 0.00075  # 0.0015
     mcmc_config_mh = MetropolisHastingsConfig(
         likelihood=likelihood,
         prior=prior,
