@@ -61,12 +61,14 @@ class NeoHookeanProblem:
         solver = NewtonSolver(self._mesh.comm, self._problem)
 
         # Set Newton solver options
-        solver.atol = 1e-8
-        solver.rtol = 1e-8
+        solver.atol = 1e-6
+        solver.rtol = 1e-6
+        # solver.max_it = 10
         solver.convergence_criterion = "incremental"
 
         solver.report = True
-        dolfinx.log.set_log_level(dolfinx.log.LogLevel.WARNING)
+        dolfinx.log.set_log_level(dolfinx.log.LogLevel.INFO)
+        # dolfinx.log.set_log_level(dolfinx.log.LogLevel.WARNING)
 
         num_iterations, converged = solver.solve(self._solution_function)
         assert converged
