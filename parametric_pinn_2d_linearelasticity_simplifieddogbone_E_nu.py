@@ -341,69 +341,69 @@ def calibration_step() -> None:
     std_noise = 5 * 1e-4
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
-        domain_config = create_fem_domain_config()
-        problem_config = LinearElasticityProblemConfig_E_nu(
-            model=material_model,
-            material_parameters=(exact_youngs_modulus, exact_poissons_ratio),
-        )
-        simulation_config = SimulationConfig(
-            domain_config=domain_config,
-            problem_config=problem_config,
-            volume_force_x=volume_force_x,
-            volume_force_y=volume_force_y,
-        )
-        simulation_results = run_simulation(
-            simulation_config=simulation_config,
-            save_results=False,
-            save_metadata=False,
-            output_subdir=output_subdirectory,
-            project_directory=project_directory,
-        )
-        total_size_data = simulation_results.coordinates_x.shape[0]
-        random_indices = torch.randint(
-            low=0, high=total_size_data + 1, size=(num_data_points,)
-        )
-        coordinates_x = torch.tensor(simulation_results.coordinates_x)[random_indices]
-        coordinates_y = torch.tensor(simulation_results.coordinates_y)[random_indices]
-        coordinates = torch.concat((coordinates_x, coordinates_y), dim=1).to(device)
-        clean_displacements_x = torch.tensor(simulation_results.displacements_x)[
-            random_indices
-        ]
-        clean_displacements_y = torch.tensor(simulation_results.displacements_y)[
-            random_indices
-        ]
-        noisy_displacements_x = clean_displacements_x + torch.normal(
-            mean=0.0, std=std_noise, size=clean_displacements_x.size()
-        )
-        noisy_displacements_y = clean_displacements_y + torch.normal(
-            mean=0.0, std=std_noise, size=clean_displacements_y.size()
-        )
-        noisy_displacements = torch.concat(
-            (noisy_displacements_x, noisy_displacements_y), dim=1
-        ).to(device)
-        return coordinates, noisy_displacements
-        # csv_reader = CSVDataReader(project_directory)
-        # data = csv_reader.read(
-        #     file_name=input_file_name_calibration, subdir_name=input_subdir_calibration
+        # domain_config = create_fem_domain_config()
+        # problem_config = LinearElasticityProblemConfig_E_nu(
+        #     model=material_model,
+        #     material_parameters=(exact_youngs_modulus, exact_poissons_ratio),
         # )
-        # size_data = len(data)
-        # slice_coordinates = slice(0, 2)
-        # slice_displacements = slice(2, 4)
-        # full_shifted_coordinates = torch.from_numpy(data[:, slice_coordinates]).type(
-        #     torch.float64
+        # simulation_config = SimulationConfig(
+        #     domain_config=domain_config,
+        #     problem_config=problem_config,
+        #     volume_force_x=volume_force_x,
+        #     volume_force_y=volume_force_y,
         # )
-        # coordinate_shift_x = geometry_config.left_half_measurement_length
-        # coordinate_shift_y = geometry_config.half_measurement_height
-        # full_coordinates = full_shifted_coordinates - torch.tensor(
-        #     [coordinate_shift_x, coordinate_shift_y], dtype=torch.float64
+        # simulation_results = run_simulation(
+        #     simulation_config=simulation_config,
+        #     save_results=False,
+        #     save_metadata=False,
+        #     output_subdir=output_subdirectory,
+        #     project_directory=project_directory,
         # )
-        # full_displacements = torch.from_numpy(data[:, slice_displacements]).type(
-        #     torch.float64
+        # total_size_data = simulation_results.coordinates_x.shape[0]
+        # random_indices = torch.randint(
+        #     low=0, high=total_size_data + 1, size=(num_data_points,)
         # )
-        # random_indices = torch.randint(low=0, high=size_data, size=(num_data_points,))
-        # coordinates = full_coordinates[random_indices, :].to(device)
-        # displacements = full_displacements[random_indices, :].to(device)
-        # return coordinates, displacements
+        # coordinates_x = torch.tensor(simulation_results.coordinates_x)[random_indices]
+        # coordinates_y = torch.tensor(simulation_results.coordinates_y)[random_indices]
+        # coordinates = torch.concat((coordinates_x, coordinates_y), dim=1).to(device)
+        # clean_displacements_x = torch.tensor(simulation_results.displacements_x)[
+        #     random_indices
+        # ]
+        # clean_displacements_y = torch.tensor(simulation_results.displacements_y)[
+        #     random_indices
+        # ]
+        # noisy_displacements_x = clean_displacements_x + torch.normal(
+        #     mean=0.0, std=std_noise, size=clean_displacements_x.size()
+        # )
+        # noisy_displacements_y = clean_displacements_y + torch.normal(
+        #     mean=0.0, std=std_noise, size=clean_displacements_y.size()
+        # )
+        # noisy_displacements = torch.concat(
+        #     (noisy_displacements_x, noisy_displacements_y), dim=1
+        # ).to(device)
+        # return coordinates, noisy_displacements
+        csv_reader = CSVDataReader(project_directory)
+        data = csv_reader.read(
+            file_name=input_file_name_calibration, subdir_name=input_subdir_calibration
+        )
+        size_data = len(data)
+        slice_coordinates = slice(0, 2)
+        slice_displacements = slice(2, 4)
+        full_shifted_coordinates = torch.from_numpy(data[:, slice_coordinates]).type(
+            torch.float64
+        )
+        coordinate_shift_x = geometry_config.left_half_measurement_length
+        coordinate_shift_y = geometry_config.half_measurement_height
+        full_coordinates = full_shifted_coordinates - torch.tensor(
+            [coordinate_shift_x, coordinate_shift_y], dtype=torch.float64
+        )
+        full_displacements = torch.from_numpy(data[:, slice_displacements]).type(
+            torch.float64
+        )
+        random_indices = torch.randint(low=0, high=size_data, size=(num_data_points,))
+        coordinates = full_coordinates[random_indices, :].to(device)
+        displacements = full_displacements[random_indices, :].to(device)
+        return coordinates, displacements
 
     def visualize_data(coordinates: Tensor, displacements: Tensor) -> None:
         # imports
@@ -650,7 +650,7 @@ def calibration_step() -> None:
         calibration_data=data,
         initial_parameters=initial_parameters,
         num_iterations=1000,
-        resdiual_weights=torch.tensor([1e4, 1e4], device=device)
+        resdiual_weights=torch.tensor([1e4, 1e6], device=device)
         .repeat((num_data_points, 1))
         .ravel(),
     )
