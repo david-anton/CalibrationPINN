@@ -405,10 +405,11 @@ def calibration_step() -> None:
         )
         # Filter measurement points within the measurement area
         mask = [
-            full_raw_coordinates[0] >= -geometry_config.left_half_measurement_length
-            and full_raw_coordinates[0] <= geometry_config.right_half_measurement_length
-            and full_raw_coordinates[1] >= -geometry_config.half_measurement_height
-            and full_raw_coordinates[1] <= geometry_config.half_measurement_height
+            full_raw_coordinates[:, 0] >= -geometry_config.left_half_measurement_length
+            and full_raw_coordinates[:, 0]
+            <= geometry_config.right_half_measurement_length
+            and full_raw_coordinates[:, 1] >= -geometry_config.half_measurement_height
+            and full_raw_coordinates[:, 1] <= geometry_config.half_measurement_height
         ]
         full_coordinates = full_raw_coordinates[mask]
         full_displacements = full_raw_displacements[mask]
