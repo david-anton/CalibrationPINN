@@ -97,7 +97,9 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-input_subdir_calibration = "20231124_experimental_dic_data_dogbone"
+input_subdir_calibration = os.path.join(
+    "Paper_PINNs", "20240123_experimental_dic_data_dogbone"
+)
 input_file_name_calibration = "displacements_dic.csv"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
@@ -335,8 +337,8 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    exact_youngs_modulus = 169420.0
-    exact_poissons_ratio = 0.1972
+    exact_youngs_modulus = 192800.0
+    exact_poissons_ratio = 0.2491
     num_data_points = 5475
     std_noise = 5 * 1e-4
 
@@ -647,20 +649,17 @@ def calibration_step() -> None:
         [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
     )
 
-    initial_parameters_ls = torch.tensor(
-        [min_youngs_modulus, min_poissons_ratio], device=device
-    )
     mean_displacements = torch.mean(torch.absolute(displacements), dim=0)
-    min_displacements = torch.amin(torch.absolute(displacements), dim=0)
+    max_displacements = torch.amax(torch.absolute(displacements), dim=0)
     print(f"1 / mean displacements: {1 / mean_displacements}")
-    print(f"1 / min displacements: {1 / min_displacements}")
-    residual_weights = 1 / min_displacements  # torch.tensor([1e2, 1e4])
+    print(f"1 / max displacements: {1 / max_displacements}")
+    residual_weights = 1 / mean_displacements
     print(f"Used residual weights: {residual_weights}")
 
     least_squares_config = LeastSquaresConfig(
         ansatz=model,
         calibration_data=data,
-        initial_parameters=initial_parameters_ls,
+        initial_parameters=initial_parameters,
         num_iterations=1000,
         resdiual_weights=residual_weights.to(device)
         .repeat((num_data_points, 1))
@@ -712,7 +711,9 @@ def calibration_step() -> None:
         )
         end = perf_counter()
         time = end - start
-        print(f"Identified parameter: {identified_parameters}")
+        identified_E = identified_parameters[0]
+        identified_nu = identified_parameters[1]
+        print(f"Identified parameters: E = {identified_E} and nu = {identified_nu}")
         print(f"Run time least squares: {time}")
     if use_random_walk_metropolis_hasting:
         start = perf_counter()

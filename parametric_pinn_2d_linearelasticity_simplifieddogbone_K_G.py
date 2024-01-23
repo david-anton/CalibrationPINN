@@ -24,6 +24,8 @@ from parametricpinn.calibration import (
 from parametricpinn.training.loss_2d.momentum_linearelasticity_K_G import (
     calculate_K_from_E_and_nu_factory,
     calculate_G_from_E_and_nu,
+    calculate_E_from_K_and_G_factory,
+    calculate_nu_from_K_and_G_factory,
 )
 from parametricpinn.calibration.bayesianinference.parametric_pinn import (
     create_standard_ppinn_likelihood_for_noise,
@@ -66,7 +68,7 @@ from parametricpinn.training.training_standard_linearelasticity_simplifieddogbon
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -94,14 +96,16 @@ weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_symmetry_bc_loss = 1e5
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20240119_validation_data_linearelasticity_simplifieddogbone_E_160k_260k_nu_015_045_elementsize_01_K_G"
 num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-input_subdir_calibration = "20231124_experimental_dic_data_dogbone"
+input_subdir_calibration = os.path.join(
+    "Paper_PINNs", "20240123_experimental_dic_data_dogbone"
+)
 input_file_name_calibration = "displacements_dic.csv"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
@@ -113,7 +117,7 @@ fem_element_degree = 1
 fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = 20240119
 output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_160k_260k_nu_015_045_col_64_bc_64_neurons_6_128_K_G"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
@@ -129,6 +133,8 @@ set_seed(0)
 geometry_config = SimplifiedDogBoneGeometryConfig()
 
 calculate_K_from_E_and_nu = calculate_K_from_E_and_nu_factory(material_model)
+calculate_E_from_K_and_G = calculate_E_from_K_and_G_factory(material_model)
+calculate_nu_from_K_and_G = calculate_nu_from_K_and_G_factory(material_model)
 min_bulk_modulus = calculate_K_from_E_and_nu(
     E=min_youngs_modulus, nu=min_poissons_ratio
 )
@@ -385,8 +391,8 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    exact_youngs_modulus = 169420.0
-    exact_poissons_ratio = 0.1972
+    exact_youngs_modulus = 192800.0
+    exact_poissons_ratio = 0.2491
     exact_bulk_modulus = calculate_K_from_E_and_nu(
         E=exact_youngs_modulus, nu=exact_poissons_ratio
     )
@@ -666,15 +672,23 @@ def calibration_step() -> None:
         [prior_mean_bulk_modulus, prior_mean_shear_modulus], device=device
     )
 
+    mean_displacements = torch.mean(torch.absolute(displacements), dim=0)
+    max_displacements = torch.amax(torch.absolute(displacements), dim=0)
+    print(f"1 / mean displacements: {1 / mean_displacements}")
+    print(f"1 / max displacements: {1 / max_displacements}")
+    residual_weights = 1 / mean_displacements
+    print(f"Used residual weights: {residual_weights}")
+
     least_squares_config = LeastSquaresConfig(
         ansatz=model,
         calibration_data=data,
         initial_parameters=initial_parameters,
         num_iterations=1000,
-        resdiual_weights=torch.tensor([1e2, 1e3], device=device)
+        resdiual_weights=residual_weights.to(device)
         .repeat((num_data_points, 1))
         .ravel(),
     )
+
     std_proposal_density_bulk_modulus = 1000
     std_proposal_density_shear_modulus = 500
     mcmc_config_mh = MetropolisHastingsConfig(
@@ -721,7 +735,12 @@ def calibration_step() -> None:
         )
         end = perf_counter()
         time = end - start
-        print(f"Identified parameter: {identified_parameters}")
+        identified_K = identified_parameters[0]
+        identified_G = identified_parameters[1]
+        identified_E = calculate_E_from_K_and_G(K=identified_K, G=identified_G)
+        identified_nu = calculate_nu_from_K_and_G(K=identified_K, G=identified_G)
+        print(f"Identified parameters: K = {identified_K} and G = {identified_G}")
+        print(f"Identified parameters: E = {identified_E} and nu = {identified_nu}")
         print(f"Run time least squares: {time}")
     if use_random_walk_metropolis_hasting:
         start = perf_counter()
