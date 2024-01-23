@@ -147,8 +147,8 @@ class NeoHookeanProblem:
 
         ### Strain Energy
         # Volumetric part of strain energy
-        W_vol = K * ((1 / 2) * (J - 1) ** 2)
-        # W_vol = K * ((1 / 2) * (ufl.ln(J)) ** 2)
+        # W_vol = K * ((1 / 2) * (J - 1) ** 2)
+        W_vol = K * ((1 / 2) * (ufl.ln(J)) ** 2)
         # Isochoric part of strain energy
         W_iso = c_10 * (I_C_iso - 3)
         W = W_vol + W_iso
