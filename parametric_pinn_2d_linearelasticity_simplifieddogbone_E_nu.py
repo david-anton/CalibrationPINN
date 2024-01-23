@@ -649,6 +649,9 @@ def calibration_step() -> None:
         [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
     )
 
+    initial_parameters_ls = torch.tensor(
+        [min_youngs_modulus, min_poissons_ratio], device=device
+    )
     mean_displacements = torch.mean(torch.absolute(displacements), dim=0)
     max_displacements = torch.amax(torch.absolute(displacements), dim=0)
     print(f"1 / mean displacements: {1 / mean_displacements}")
@@ -659,7 +662,7 @@ def calibration_step() -> None:
     least_squares_config = LeastSquaresConfig(
         ansatz=model,
         calibration_data=data,
-        initial_parameters=initial_parameters,
+        initial_parameters=initial_parameters_ls,
         num_iterations=1000,
         resdiual_weights=residual_weights.to(device)
         .repeat((num_data_points, 1))
