@@ -425,7 +425,7 @@ def calibration_step() -> None:
         # Select points for calibration
         size_full_data = len(full_coordinates)
         print(f"Total number of measurement points: {size_full_data}")
-        random_indices = torch.randperm(size_full_data)  # [:num_data_points]
+        random_indices = torch.randperm(size_full_data)[:num_data_points]
         coordinates = full_coordinates[random_indices, :].to(device)
         displacements = full_displacements[random_indices, :].to(device)
 
