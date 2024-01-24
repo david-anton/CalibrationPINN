@@ -409,12 +409,16 @@ def calibration_step() -> None:
         left_half_measurement_length = geometry_config.left_half_measurement_length
         right_half_measurement_length = geometry_config.right_half_measurement_length
         half_measurement_height = geometry_config.half_measurement_height
-        mask_condition = (
-            (full_raw_coordinates_x >= -left_half_measurement_length)
-            and (full_raw_coordinates_x <= right_half_measurement_length)
-            and (full_raw_coordinates_y >= -half_measurement_height)
-            and (full_raw_coordinates_y <= half_measurement_height)
+        mask_condition_x = torch.logical_and(
+            full_raw_coordinates_x >= -left_half_measurement_length,
+            full_raw_coordinates_x <= right_half_measurement_length,
         )
+
+        mask_condition_y = torch.logical_and(
+            full_raw_coordinates_y >= -half_measurement_height,
+            full_raw_coordinates_y <= half_measurement_height,
+        )
+        mask_condition = torch.logical_and(mask_condition_x, mask_condition_y)
         mask = torch.where(mask_condition, True, False)
         full_coordinates = full_raw_coordinates[mask]
         full_displacements = full_raw_displacements[mask]
