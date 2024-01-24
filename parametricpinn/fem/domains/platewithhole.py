@@ -19,7 +19,7 @@ from parametricpinn.fem.base import (
 from parametricpinn.fem.boundaryconditions import (
     BoundaryConditions,
     NeumannBC,
-    SubDirichletBC,
+    DirichletBC,
 )
 from parametricpinn.fem.domains.base import (
     list_sorted_facet_indices_and_tags,
@@ -53,6 +53,7 @@ class PlateWithHoleDomain:
         self.config = config
         self._geometric_dim = 2
         self._u_x_left = default_scalar_type(0.0)
+        self._u_y_left = default_scalar_type(0.0)
         self._tag_left = 0
         self._tag_right = 1
         self.mesh = self._generate_mesh(
@@ -70,6 +71,9 @@ class PlateWithHoleDomain:
         measure: UFLMeasure,
         test_function: UFLTestFunction,
     ) -> BoundaryConditions:
+        u_left = Constant(
+            self.mesh, default_scalar_type((self._u_x_left, self._u_y_left))
+        )
         traction_right = Constant(
             self.mesh,
             (
@@ -78,12 +82,10 @@ class PlateWithHoleDomain:
                 )
             ),
         )
-        u_x_left = Constant(self.mesh, self._u_x_left)
         return [
-            SubDirichletBC(
+            DirichletBC(
                 tag=self._tag_left,
-                value=u_x_left,
-                dim=0,
+                value=u_left,
                 function_space=function_space,
                 boundary_tags=self.boundary_tags,
                 bc_facets_dim=self._bc_facets_dim,
