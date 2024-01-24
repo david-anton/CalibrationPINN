@@ -69,14 +69,14 @@ retrain_parametric_pinn = True
 num_material_parameters = 2
 edge_length = 100.0
 radius = 10.0
-traction_left_x = -20.0
+traction_left_x = -30.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
 min_bulk_modulus = 1000.0
-max_bulk_modulus = min_bulk_modulus
+max_bulk_modulus = 2000.0
 min_rivlin_saunders_c_10 = 40.0
-max_rivlin_saunders_c_10 = min_rivlin_saunders_c_10
+max_rivlin_saunders_c_10 = 80.0
 # Network
 layer_sizes = [4, 64, 64, 64, 64, 2]
 # Ansatz
@@ -94,7 +94,7 @@ weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20240124_validation_data_neohookean_quarterplatewithhole_K_1000_c_01_40_edge_100_radius_10_traction_20_elementsize_02"
+input_subdir_valid = "20240124_validation_data_neohookean_quarterplatewithhole_K_1000_2000_c_01_40_80_edge_100_radius_10_traction_30_elementsize_02"
 num_samples_valid = 1  # 32
 validation_interval = 1
 num_points_valid = 1024
@@ -112,7 +112,7 @@ fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_quarterplatewithhole_K_1000_c_01_40_col_128_bc_64_neurons_4_64_traction_20"
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_quarterplatewithhole_K_1000_2000_c_01_40_80_col_128_bc_64_neurons_4_64_traction_30"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -361,9 +361,9 @@ def training_step() -> None:
         displacements_plotter_config = DisplacementsPlotterConfig2D()
         parameters_list = [
             (min_bulk_modulus, min_rivlin_saunders_c_10),
-            # (min_bulk_modulus, max_rivlin_saunders_c_10),
-            # (max_bulk_modulus, min_rivlin_saunders_c_10),
-            # (max_bulk_modulus, max_rivlin_saunders_c_10),
+            (min_bulk_modulus, max_rivlin_saunders_c_10),
+            (max_bulk_modulus, min_rivlin_saunders_c_10),
+            (max_bulk_modulus, max_rivlin_saunders_c_10),
         ]
         bulk_moduli, rivlin_saunders_c_10s = zip(*parameters_list)
 
