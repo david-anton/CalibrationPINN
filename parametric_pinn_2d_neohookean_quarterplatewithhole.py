@@ -75,8 +75,8 @@ volume_force_x = 0.0
 volume_force_y = 0.0
 min_bulk_modulus = 1000.0
 max_bulk_modulus = 2000.0
-min_rivlin_saunders_c_10 = 40.0
-max_rivlin_saunders_c_10 = 80.0
+min_rivlin_saunders_c_10 = 20.0
+max_rivlin_saunders_c_10 = 40.0
 # Network
 layer_sizes = [4, 64, 64, 64, 64, 2]
 # Ansatz
@@ -94,7 +94,7 @@ weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20240124_validation_data_neohookean_quarterplatewithhole_K_1000_2000_c_01_40_80_edge_100_radius_10_traction_30_elementsize_02"
+input_subdir_valid = "20240124_validation_data_neohookean_quarterplatewithhole_K_1000_2000_c_01_20_40_edge_100_radius_10_traction_30_elementsize_02"
 num_samples_valid = 1  # 32
 validation_interval = 1
 num_points_valid = 1024
@@ -112,7 +112,7 @@ fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_quarterplatewithhole_K_1000_2000_c_01_40_80_col_128_bc_64_neurons_4_64_traction_30"
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_quarterplatewithhole_K_1000_2000_c_01_20_40_col_128_bc_64_neurons_4_64_traction_30"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -287,29 +287,51 @@ def create_ansatz() -> StandardAnsatz:
             min_inputs = torch.concat((min_coordinates, min_parameters))
             max_inputs = torch.concat((max_coordinates, max_parameters))
 
-            print("Run FE simulations to determine normalization values ...")
-            domain_config = create_fem_domain_config()
-            problem_config = NeoHookeanProblemConfig(
-                material_parameters=(min_bulk_modulus, max_rivlin_saunders_c_10)
+            print(
+                "Run FE simulations to determine normalization values in x-direction ..."
             )
-            simulation_config = SimulationConfig(
+            domain_config = create_fem_domain_config()
+            problem_config_x = NeoHookeanProblemConfig(
+                material_parameters=(min_bulk_modulus, min_rivlin_saunders_c_10)
+            )
+            simulation_config_x = SimulationConfig(
                 domain_config=domain_config,
-                problem_config=problem_config,
+                problem_config=problem_config_x,
                 volume_force_x=volume_force_x,
                 volume_force_y=volume_force_y,
             )
-            simulation_results = run_simulation(
-                simulation_config=simulation_config,
+            simulation_results_x = run_simulation(
+                simulation_config=simulation_config_x,
                 save_results=True,
                 save_metadata=True,
                 output_subdir=normalization_values_subdir,
                 project_directory=project_directory,
             )
 
-            min_displacement_x = float(np.amin(simulation_results.displacements_x))
-            max_displacement_x = float(np.amax(simulation_results.displacements_x))
-            min_displacement_y = float(np.amin(simulation_results.displacements_y))
-            max_displacement_y = float(np.amax(simulation_results.displacements_y))
+            print(
+                "Run FE simulations to determine normalization values in y-direction ..."
+            )
+            problem_config_y = NeoHookeanProblemConfig(
+                material_parameters=(max_bulk_modulus, min_rivlin_saunders_c_10)
+            )
+            simulation_config_y = SimulationConfig(
+                domain_config=domain_config,
+                problem_config=problem_config_y,
+                volume_force_x=volume_force_x,
+                volume_force_y=volume_force_y,
+            )
+            simulation_results_y = run_simulation(
+                simulation_config=simulation_config_y,
+                save_results=True,
+                save_metadata=True,
+                output_subdir=normalization_values_subdir,
+                project_directory=project_directory,
+            )
+
+            min_displacement_x = float(np.amin(simulation_results_x.displacements_x))
+            max_displacement_x = float(np.amax(simulation_results_x.displacements_x))
+            min_displacement_y = float(np.amin(simulation_results_y.displacements_y))
+            max_displacement_y = float(np.amax(simulation_results_y.displacements_y))
             min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
             max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
             normalization_values = {
