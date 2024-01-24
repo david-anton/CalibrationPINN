@@ -404,13 +404,18 @@ def calibration_step() -> None:
             [coordinate_shift_x, coordinate_shift_y], dtype=torch.float64
         )
         # Filter measurement points within the measurement area
-        mask = (
-            full_raw_coordinates[:, 0] >= -geometry_config.left_half_measurement_length
-            and full_raw_coordinates[:, 0]
-            <= geometry_config.right_half_measurement_length
-            and full_raw_coordinates[:, 1] >= -geometry_config.half_measurement_height
-            and full_raw_coordinates[:, 1] <= geometry_config.half_measurement_height
+        full_raw_coordinates_x = full_raw_coordinates[:, 0]
+        full_raw_coordinates_y = full_raw_coordinates[:, 1]
+        left_half_measurement_length = geometry_config.left_half_measurement_length
+        right_half_measurement_length = geometry_config.right_half_measurement_length
+        half_measurement_height = geometry_config.half_measurement_height
+        mask_condition = (
+            (full_raw_coordinates_x >= -left_half_measurement_length)
+            and (full_raw_coordinates_x <= right_half_measurement_length)
+            and (full_raw_coordinates_y >= -half_measurement_height)
+            and (full_raw_coordinates_y <= half_measurement_height)
         )
+        mask = torch.where(mask_condition, True, False)
         full_coordinates = full_raw_coordinates[mask]
         full_displacements = full_raw_displacements[mask]
         # Select points for calibration
