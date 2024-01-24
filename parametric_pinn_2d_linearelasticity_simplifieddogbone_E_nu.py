@@ -339,7 +339,7 @@ def calibration_step() -> None:
     print("Start calibration ...")
     exact_youngs_modulus = 192800.0
     exact_poissons_ratio = 0.2491
-    num_data_points = 1000
+    num_data_points = 5240
     std_noise = 5 * 1e-4
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:

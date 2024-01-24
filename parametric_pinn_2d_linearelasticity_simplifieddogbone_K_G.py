@@ -399,7 +399,7 @@ def calibration_step() -> None:
     exact_shear_modulus = calculate_G_from_E_and_nu(
         E=exact_youngs_modulus, nu=exact_poissons_ratio
     )
-    num_data_points = 1000
+    num_data_points = 5240
     std_noise = 5 * 1e-4
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
