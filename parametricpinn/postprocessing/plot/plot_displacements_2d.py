@@ -296,6 +296,7 @@ def _plot_results(
         plot_config=plot_config,
         simulation_config=simulation_config,
     )
+    plt.clf()
 
 
 def _plot_simulation_and_prediction(
@@ -722,7 +723,6 @@ def _save_plot(
         bbox_inches="tight",
         dpi=plot_config.dpi,
     )
-    # figure.clear()
 
 
 def _get_parameters_from_problem(problem_config: ProblemConfigs) -> NPArray:
