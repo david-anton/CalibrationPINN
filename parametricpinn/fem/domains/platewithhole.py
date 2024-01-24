@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import TypeAlias
 
 import gmsh
 import numpy as np
@@ -165,8 +164,8 @@ class PlateWithHoleDomain:
         return gmsh.model
 
     def _tag_boundaries(self) -> DMeshTags:
-        locate_left_facet = lambda x: np.isclose(x[0], 0.0)
-        locate_right_facet = lambda x: np.isclose(x[0], self.config.plate_length)
+        locate_left_facet = lambda x: np.isclose(x[0], -self.config.plate_length / 2)
+        locate_right_facet = lambda x: np.isclose(x[0], self.config.plate_length / 2)
         boundaries = [
             (self._tag_left, locate_left_facet),
             (self._tag_right, locate_right_facet),
