@@ -339,7 +339,7 @@ def calibration_step() -> None:
     print("Start calibration ...")
     exact_youngs_modulus = 192800.0
     exact_poissons_ratio = 0.2491
-    num_data_points = 5475
+    num_data_points = 1000
     std_noise = 5 * 1e-4
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
@@ -424,7 +424,7 @@ def calibration_step() -> None:
         full_displacements = full_raw_displacements[mask]
         # Select points for calibration
         size_full_data = len(full_coordinates)
-        print(f"Number of full measurmeent data: {size_full_data}")
+        print(f"Total number of measurement points: {size_full_data}")
         random_indices = torch.randperm(size_full_data)  # [:num_data_points]
         coordinates = full_coordinates[random_indices, :].to(device)
         displacements = full_displacements[random_indices, :].to(device)
@@ -675,9 +675,6 @@ def calibration_step() -> None:
         [min_youngs_modulus, min_poissons_ratio], device=device
     )
     mean_displacements = torch.mean(torch.absolute(displacements), dim=0)
-    max_displacements = torch.amax(torch.absolute(displacements), dim=0)
-    print(f"1 / mean displacements: {1 / mean_displacements}")
-    print(f"1 / max displacements: {1 / max_displacements}")
     residual_weights = 1 / mean_displacements
     print(f"Used residual weights: {residual_weights}")
 
