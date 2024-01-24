@@ -423,7 +423,7 @@ def calibration_step() -> None:
         full_coordinates = full_raw_coordinates[mask]
         full_displacements = full_raw_displacements[mask]
         # Select points for calibration
-        size_full_data = len(data)
+        size_full_data = len(full_coordinates)
         print(f"Number of full measurmeent data: {size_full_data}")
         random_indices = torch.randperm(size_full_data)  # [:num_data_points]
         coordinates = full_coordinates[random_indices, :].to(device)

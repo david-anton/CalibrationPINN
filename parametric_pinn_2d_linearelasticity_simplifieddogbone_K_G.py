@@ -407,23 +407,46 @@ def calibration_step() -> None:
         data = csv_reader.read(
             file_name=input_file_name_calibration, subdir_name=input_subdir_calibration
         )
-        size_data = len(data)
         slice_coordinates = slice(0, 2)
         slice_displacements = slice(2, 4)
-        full_shifted_coordinates = torch.from_numpy(data[:, slice_coordinates]).type(
+        full_raw_coordinates = torch.from_numpy(data[:, slice_coordinates]).type(
             torch.float64
         )
+        full_raw_displacements = torch.from_numpy(data[:, slice_displacements]).type(
+            torch.float64
+        )
+        # Transform coordinates to the coordinates system used for PINN training
         coordinate_shift_x = geometry_config.left_half_measurement_length
         coordinate_shift_y = geometry_config.half_measurement_height
-        full_coordinates = full_shifted_coordinates - torch.tensor(
+        full_raw_coordinates = full_raw_coordinates - torch.tensor(
             [coordinate_shift_x, coordinate_shift_y], dtype=torch.float64
         )
-        full_displacements = torch.from_numpy(data[:, slice_displacements]).type(
-            torch.float64
+        # Filter measurement points within the measurement area
+        full_raw_coordinates_x = full_raw_coordinates[:, 0]
+        full_raw_coordinates_y = full_raw_coordinates[:, 1]
+        left_half_measurement_length = geometry_config.left_half_measurement_length
+        right_half_measurement_length = geometry_config.right_half_measurement_length
+        half_measurement_height = geometry_config.half_measurement_height
+        mask_condition_x = torch.logical_and(
+            full_raw_coordinates_x >= -left_half_measurement_length,
+            full_raw_coordinates_x <= right_half_measurement_length,
         )
-        random_indices = torch.randint(low=0, high=size_data, size=(num_data_points,))
+
+        mask_condition_y = torch.logical_and(
+            full_raw_coordinates_y >= -half_measurement_height,
+            full_raw_coordinates_y <= half_measurement_height,
+        )
+        mask_condition = torch.logical_and(mask_condition_x, mask_condition_y)
+        mask = torch.where(mask_condition, True, False)
+        full_coordinates = full_raw_coordinates[mask]
+        full_displacements = full_raw_displacements[mask]
+        # Select points for calibration
+        size_full_data = len(full_coordinates)
+        print(f"Number of full measurmeent data: {size_full_data}")
+        random_indices = torch.randperm(size_full_data)  # [:num_data_points]
         coordinates = full_coordinates[random_indices, :].to(device)
         displacements = full_displacements[random_indices, :].to(device)
+
         return coordinates, displacements
 
     def visualize_data(coordinates: Tensor, displacements: Tensor) -> None:
