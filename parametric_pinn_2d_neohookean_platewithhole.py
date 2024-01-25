@@ -43,7 +43,7 @@ from parametricpinn.data.validationdata_2d import (
 )
 from parametricpinn.fem import (
     NeoHookeanProblemConfig,
-    PlateWithHoleDomainConfig,
+    PlateDomainConfig,
     SimulationConfig,
     generate_validation_data,
     run_simulation,
@@ -125,11 +125,10 @@ set_default_dtype(torch.float64)
 set_seed(0)
 
 
-def create_fem_domain_config() -> PlateWithHoleDomainConfig:
-    return PlateWithHoleDomainConfig(
+def create_fem_domain_config() -> PlateDomainConfig:
+    return PlateDomainConfig(
         plate_length=edge_length,
         plate_height=edge_length,
-        hole_radius=radius,
         traction_right_x=traction_right_x,
         traction_right_y=traction_right_y,
         element_family=fem_element_family,
