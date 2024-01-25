@@ -44,6 +44,7 @@ from parametricpinn.data.validationdata_2d import (
 from parametricpinn.fem import (
     NeoHookeanProblemConfig,
     QuarterPlateWithHoleDomainConfig,
+    PlateDomainConfig,
     SimulationConfig,
     generate_validation_data,
     run_simulation,
@@ -69,8 +70,8 @@ retrain_parametric_pinn = True
 num_material_parameters = 2
 edge_length = 100.0
 radius = 20.0
-traction_left_x = -100.0
-traction_left_y = 0.0
+traction_left_x = 0.0  # -100.0
+traction_left_y = -100  # 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
 min_bulk_modulus = 1000.0
@@ -94,7 +95,7 @@ weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20240125_validation_data_neohookean_quarterplatewithhole_K_1000_20000_c_01_100_2000_edge_100_radius_20_elementsize_1"
+input_subdir_valid = "20240125_validation_data_neohookean_plate_K_1000_20000_c_01_100_2000_edge_100_radius_10_elementsize_1"
 num_samples_valid = 1  # 32
 validation_interval = 1
 num_points_valid = 1024
@@ -112,7 +113,7 @@ fem_element_size = 1.0
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_quarterplatewithhole_K_1000_20000_c_01_100_2000_col_128_bc_64_neurons_4_64_traction_50"
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_plate_K_1000_20000_c_01_100_2000_col_128_bc_64_neurons_4_64_traction_100"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -126,11 +127,20 @@ set_seed(0)
 
 
 def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
-    return QuarterPlateWithHoleDomainConfig(
-        edge_length=edge_length,
-        radius=radius,
-        traction_left_x=traction_left_x,
-        traction_left_y=traction_left_y,
+    # return QuarterPlateWithHoleDomainConfig(
+    #     edge_length=edge_length,
+    #     radius=radius,
+    #     traction_left_x=traction_left_x,
+    #     traction_left_y=traction_left_y,
+    #     element_family=fem_element_family,
+    #     element_degree=fem_element_degree,
+    #     element_size=fem_element_size,
+    # )
+    return PlateDomainConfig(
+        plate_height=edge_length,
+        plate_length=edge_length,
+        traction_right_x=traction_left_x,
+        traction_right_y=traction_left_y,
         element_family=fem_element_family,
         element_degree=fem_element_degree,
         element_size=fem_element_size,
