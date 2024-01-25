@@ -68,8 +68,8 @@ retrain_parametric_pinn = True
 # Set up
 num_material_parameters = 2
 edge_length = 100.0
-radius = 10.0
-traction_left_x = -50.0
+radius = 20.0
+traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
@@ -94,7 +94,7 @@ weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20240125_validation_data_neohookean_quarterplatewithhole_K_1000_20000_c_01_100_2000_edge_100_radius_10_elementsize_1"
+input_subdir_valid = "20240125_validation_data_neohookean_quarterplatewithhole_K_1000_20000_c_01_100_2000_edge_100_radius_20_elementsize_1"
 num_samples_valid = 1  # 32
 validation_interval = 1
 num_points_valid = 1024
