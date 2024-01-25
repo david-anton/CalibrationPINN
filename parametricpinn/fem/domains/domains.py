@@ -10,6 +10,7 @@ from parametricpinn.fem.base import (
 )
 from parametricpinn.fem.boundaryconditions import BoundaryConditions
 from parametricpinn.fem.domains.dogbone import DogBoneDomain, DogBoneDomainConfig
+from parametricpinn.fem.domains.plate import PlateDomain, PlateDomainConfig
 from parametricpinn.fem.domains.platewithhole import (
     PlateWithHoleDomain,
     PlateWithHoleDomainConfig,
@@ -22,7 +23,6 @@ from parametricpinn.fem.domains.simplifieddogbone import (
     SimplifiedDogBoneDomain,
     SimplifiedDogBoneDomainConfig,
 )
-from parametricpinn.fem.domains.plate import PlateDomain, PlateDomainConfig
 from parametricpinn.io import ProjectDirectory
 
 DomainConfig: TypeAlias = Union[

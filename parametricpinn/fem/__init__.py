@@ -1,5 +1,6 @@
 from .domains import (
     DogBoneDomainConfig,
+    PlateDomainConfig,
     PlateWithHoleDomainConfig,
     QuarterPlateWithHoleDomainConfig,
     SimplifiedDogBoneDomainConfig,
@@ -14,6 +15,7 @@ from .simulation import SimulationConfig, generate_validation_data, run_simulati
 
 __all__ = [
     "DogBoneDomainConfig",
+    "PlateDomainConfig",
     "PlateWithHoleDomainConfig",
     "QuarterPlateWithHoleDomainConfig",
     "SimplifiedDogBoneDomainConfig",
