@@ -74,7 +74,7 @@ class NeoHookeanProblem:
         num_iterations, converged = solver.solve(self._solution_function)
         assert converged
         print(f"Number of iterations: {num_iterations}")
-
+        self._print_maximum_green_strain(self._solution_function)
         return self._solution_function
 
     def compile_results(self, approximate_solution: DFunction) -> NeoHookeanResults:
@@ -225,7 +225,7 @@ class NeoHookeanProblem:
         problem = NonlinearProblem(residual_form, solution_function, dirichlet_bcs)
         return problem, solution_function
 
-    def _compute_maximum_green_strain(self, solution_function: DFunction) -> None:
+    def _print_maximum_green_strain(self, solution_function: DFunction) -> None:
         strain_function = self._compute_green_strain(solution_function)
         geometric_dim = self._mesh.geometry.dim
         strain = strain_function.x.array.reshape((-1, geometric_dim, geometric_dim))
