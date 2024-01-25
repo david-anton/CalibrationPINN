@@ -43,7 +43,7 @@ from parametricpinn.data.validationdata_2d import (
 )
 from parametricpinn.fem import (
     NeoHookeanProblemConfig,
-    PlateDomainConfig,
+    QuarterPlateWithHoleDomainConfig,
     SimulationConfig,
     generate_validation_data,
     run_simulation,
@@ -69,14 +69,14 @@ retrain_parametric_pinn = True
 num_material_parameters = 2
 edge_length = 100.0
 radius = 10.0
-traction_right_x = 1.0
-traction_right_y = 0.5
+traction_left_x = 20.0
+traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-min_bulk_modulus = 1000.0
-max_bulk_modulus = 2000.0
-min_rivlin_saunders_c_10 = 0.2
-max_rivlin_saunders_c_10 = 0.4
+min_bulk_modulus = 500.0
+max_bulk_modulus = 2500.0
+min_rivlin_saunders_c_10 = 1000.0
+max_rivlin_saunders_c_10 = 20000.0
 # Network
 layer_sizes = [4, 64, 64, 64, 64, 2]
 # Ansatz
@@ -94,7 +94,7 @@ weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20240124_validation_data_neohookean_platewithhole_K_1000_2000_c_01_02_04_edge_100_radius_10_traction_1_elementsize_02"
+input_subdir_valid = "20240125_validation_data_neohookean_quarterplatewithhole_K_1000_20000_c_01_500_2500_edge_100_radius_10_traction_20_elementsize_1"
 num_samples_valid = 1  # 32
 validation_interval = 1
 num_points_valid = 1024
@@ -108,11 +108,11 @@ use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
-fem_element_size = 0.2
+fem_element_size = 1.0
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_platewithhole_K_1000_2000_c_01_02_04_col_128_bc_64_neurons_4_64_traction_1"
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_quarterplatewithhole_K_1000_20000_c_01_500_2500_col_128_bc_64_neurons_4_64_traction_20"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -125,12 +125,12 @@ set_default_dtype(torch.float64)
 set_seed(0)
 
 
-def create_fem_domain_config() -> PlateDomainConfig:
-    return PlateDomainConfig(
-        plate_length=edge_length,
-        plate_height=edge_length,
-        traction_right_x=traction_right_x,
-        traction_right_y=traction_right_y,
+def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
+    return QuarterPlateWithHoleDomainConfig(
+        edge_length=edge_length,
+        radius=radius,
+        traction_left_x=traction_left_x,
+        traction_left_y=traction_left_y,
         element_family=fem_element_family,
         element_degree=fem_element_degree,
         element_size=fem_element_size,
@@ -148,7 +148,7 @@ def create_datasets() -> (
             num_steps=[num_samples_per_parameter, num_samples_per_parameter],
             device=device,
         )
-        traction_left = torch.tensor([traction_right_x, traction_right_y])
+        traction_left = torch.tensor([traction_left_x, traction_left_y])
         volume_force = torch.tensor([volume_force_x, volume_force_y])
         config_training_data = QuarterPlateWithHoleTrainingDataset2DConfig(
             parameters_samples=parameters_samples,
