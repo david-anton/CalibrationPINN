@@ -70,14 +70,14 @@ retrain_parametric_pinn = True
 num_material_parameters = 2
 edge_length = 100.0
 radius = 20.0
-traction_left_x = 0.0  # -100.0
-traction_left_y = -10  # 0.0
+traction_left_x = -100.0
+traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-min_bulk_modulus = 2000.0
+min_bulk_modulus = 1000.0
 max_bulk_modulus = 20000.0
 min_rivlin_saunders_c_10 = 100.0
-max_rivlin_saunders_c_10 = 1000.0
+max_rivlin_saunders_c_10 = 2000.0
 # Network
 layer_sizes = [4, 64, 64, 64, 64, 2]
 # Ansatz
@@ -113,7 +113,7 @@ fem_element_size = 1.0
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_plate_K_1000_20000_c_01_100_2000_col_128_bc_64_neurons_4_64_traction_10"
+output_subdirectory = f"{output_date}_parametric_pinn_neohookean_plate_K_1000_20000_c_01_100_2000_col_128_bc_64_neurons_4_64_traction_100"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 

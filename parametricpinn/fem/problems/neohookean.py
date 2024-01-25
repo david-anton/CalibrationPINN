@@ -7,6 +7,7 @@ import ufl
 from dolfinx import default_scalar_type
 from dolfinx.fem.petsc import NonlinearProblem
 from dolfinx.nls.petsc import NewtonSolver
+import numpy as np
 
 from parametricpinn.fem.base import (
     DConstant,
@@ -223,3 +224,21 @@ class NeoHookeanProblem:
         residual_form = lhs - rhs
         problem = NonlinearProblem(residual_form, solution_function, dirichlet_bcs)
         return problem, solution_function
+
+    def _compute_maximum_green_strain(self, solution_function: DFunction) -> None:
+        strain_function = self._compute_green_strain(solution_function)
+        geometric_dim = self._mesh.geometry.dim
+        strain = strain_function.x.array.reshape((-1, geometric_dim, geometric_dim))
+        max_strain_xx = np.amax(np.absolute(strain[:, 0, 0].reshape((-1, 1))))
+        max_strain_yy = np.amax(np.absolute(strain[:, 1, 1].reshape((-1, 1))))
+        max_strain_xy = np.amax(np.absolute(strain[:, 0, 1].reshape((-1, 1))))
+        print(
+            f"Maximum Green strains: E_xx = {max_strain_xx}, E_yy = {max_strain_yy}, E_xy = {max_strain_xy}"
+        )
+
+    def _compute_green_strain(self, solution_function: DFunction) -> DFunction:
+        I_2D = ufl.variable(ufl.Identity(2))
+        F_2D = ufl.variable(ufl.grad(solution_function) + I_2D)
+        F_2D_transpose = ufl.variable(ufl.transpose(F_2D))
+        C_2D = ufl.variable(F_2D_transpose * F_2D)
+        return 1 / 2 * (C_2D - I_2D)
