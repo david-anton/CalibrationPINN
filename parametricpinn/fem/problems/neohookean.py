@@ -226,7 +226,7 @@ class NeoHookeanProblem:
         return problem, solution_function
 
     def _print_maximum_green_strain(self, solution_function: DFunction) -> None:
-        strain_function = self._compute_green_strain(solution_function)
+        strain_function = self._compute_green_strain_function(solution_function)
         geometric_dim = self._mesh.geometry.dim
         strain = strain_function.x.array.reshape((-1, geometric_dim, geometric_dim))
         max_strain_xx = np.amax(np.absolute(strain[:, 0, 0].reshape((-1, 1))))
@@ -236,9 +236,23 @@ class NeoHookeanProblem:
             f"Maximum Green strains: E_xx = {max_strain_xx}, E_yy = {max_strain_yy}, E_xy = {max_strain_xy}"
         )
 
-    def _compute_green_strain(self, solution_function: DFunction) -> DFunction:
+    def _compute_green_strain_function(self, solution_function: DFunction) -> DFunction:
+        # Compute Green strain
         I_2D = ufl.variable(ufl.Identity(2))
         F_2D = ufl.variable(ufl.grad(solution_function) + I_2D)
         F_2D_transpose = ufl.variable(ufl.transpose(F_2D))
         C_2D = ufl.variable(F_2D_transpose * F_2D)
-        return 1 / 2 * (C_2D - I_2D)
+        E_2D = ufl.variable(1 / 2 * (C_2D - I_2D))
+        # Project expression to function space
+        degree_solution = solution_function.function_space.ufl_element().degree()
+        family_solution = solution_function.function_space.ufl_element().family()
+        num_sub_spaces = solution_function.function_space.num_sub_spaces
+        shape = (num_sub_spaces,) if num_sub_spaces != 0 else None
+        element = (family_solution, degree_solution - 1, shape)
+        strain_func_space = fem.functionspace(self._mesh, element)
+        strain_expression = fem.Expression(
+            E_2D, strain_func_space.element.interpolation_points()
+        )
+        strain_function = fem.Function(strain_func_space)
+        strain_function.interpolate(strain_expression)
+        return strain_function
