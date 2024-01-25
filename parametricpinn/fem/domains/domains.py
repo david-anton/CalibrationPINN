@@ -22,6 +22,7 @@ from parametricpinn.fem.domains.simplifieddogbone import (
     SimplifiedDogBoneDomain,
     SimplifiedDogBoneDomainConfig,
 )
+from parametricpinn.fem.domains.plate import PlateDomain, PlateDomainConfig
 from parametricpinn.io import ProjectDirectory
 
 DomainConfig: TypeAlias = Union[
@@ -63,6 +64,14 @@ def create_domain(
         )
     elif isinstance(domain_config, PlateWithHoleDomainConfig):
         return PlateWithHoleDomain(
+            config=domain_config,
+            save_mesh=save_mesh,
+            output_subdir=output_subdir,
+            project_directory=project_directory,
+            save_to_input_dir=save_to_input_dir,
+        )
+    elif isinstance(domain_config, PlateDomainConfig):
+        return PlateDomain(
             config=domain_config,
             save_mesh=save_mesh,
             output_subdir=output_subdir,
