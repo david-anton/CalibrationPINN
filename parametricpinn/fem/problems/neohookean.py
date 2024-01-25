@@ -247,7 +247,7 @@ class NeoHookeanProblem:
         degree_solution = solution_function.function_space.ufl_element().degree()
         family_solution = solution_function.function_space.ufl_element().family()
         num_sub_spaces = solution_function.function_space.num_sub_spaces
-        shape = (num_sub_spaces,) if num_sub_spaces != 0 else None
+        shape = (num_sub_spaces, num_sub_spaces) if num_sub_spaces != 0 else None
         element = (family_solution, degree_solution - 1, shape)
         strain_func_space = fem.functionspace(self._mesh, element)
         strain_expression = fem.Expression(
