@@ -1,13 +1,15 @@
+from datetime import date
+
+import matplotlib.pyplot as plt
+import numpy as np
+
 from parametricpinn.data.parameterssampling import sample_uniform_grid
-from parametricpinn.settings import get_device, Settings
+from parametricpinn.io import ProjectDirectory
+from parametricpinn.settings import Settings, get_device
 from parametricpinn.training.loss_2d.momentumbase_linearelasticity import (
     calculate_G_from_E_and_nu,
     calculate_K_from_E_and_nu_factory,
 )
-from parametricpinn.io import ProjectDirectory
-import matplotlib.pyplot as plt
-from datetime import date
-import numpy as np
 
 device = get_device()
 settings = Settings()

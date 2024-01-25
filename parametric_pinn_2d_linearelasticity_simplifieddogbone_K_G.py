@@ -21,12 +21,6 @@ from parametricpinn.calibration import (
     MetropolisHastingsConfig,
     calibrate,
 )
-from parametricpinn.training.loss_2d.momentum_linearelasticity_K_G import (
-    calculate_K_from_E_and_nu_factory,
-    calculate_G_from_E_and_nu,
-    calculate_E_from_K_and_G_factory,
-    calculate_nu_from_K_and_G_factory,
-)
 from parametricpinn.calibration.bayesianinference.parametric_pinn import (
     create_standard_ppinn_likelihood_for_noise,
 )
@@ -61,6 +55,12 @@ from parametricpinn.postprocessing.plot import (
     plot_displacements_2d,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
+from parametricpinn.training.loss_2d.momentum_linearelasticity_K_G import (
+    calculate_E_from_K_and_G_factory,
+    calculate_G_from_E_and_nu,
+    calculate_K_from_E_and_nu_factory,
+    calculate_nu_from_K_and_G_factory,
+)
 from parametricpinn.training.training_standard_linearelasticity_simplifieddogbone_K_G import (
     TrainingConfiguration,
     train_parametric_pinn,

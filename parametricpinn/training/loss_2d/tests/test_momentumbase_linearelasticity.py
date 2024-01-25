@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-import torch
 
 import pytest
+import torch
 
 from parametricpinn.training.loss_2d.momentumbase_linearelasticity import (
     calculate_E_from_K_and_G_factory,

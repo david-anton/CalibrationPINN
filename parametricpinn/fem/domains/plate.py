@@ -17,8 +17,8 @@ from parametricpinn.fem.base import (
 )
 from parametricpinn.fem.boundaryconditions import (
     BoundaryConditions,
-    NeumannBC,
     DirichletBC,
+    NeumannBC,
 )
 from parametricpinn.fem.domains.base import (
     list_sorted_facet_indices_and_tags,
