@@ -417,7 +417,7 @@ def training_step() -> None:
 def calibration_step() -> None:
     print("Start calibration ...")
     exact_bulk_modulus = 1200
-    exact_rivlin_saunders_c_10 = 15
+    exact_rivlin_saunders_c_10 = 650
     num_data_points = 128
     std_noise = 5 * 1e-4
 
