@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from parametricpinn.training.loss_2d.momentum_neohookean import (
+from parametricpinn.training.loss_2d.momentum_neohooke import (
     _calculate_determinant,
     _calculate_first_invariant,
     _calculate_right_cauchy_green_tensor,

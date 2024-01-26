@@ -9,7 +9,7 @@
 ## Build command
 ## singularity build --fakeroot --force parametricpinn.sif app/.devcontainer/container_conda.def
 
-SCRIPT=convergence_neohookean_quarterplatewithhole.py
+SCRIPT=convergence_neohooke_quarterplatewithhole.py
 
 srun singularity run \
  --cleanenv \

@@ -12,7 +12,7 @@ from parametricpinn.fem.problems.linearelasticity import (
     LinearElasticityProblemConfig_K_G,
     LinearElasticityResults,
 )
-from parametricpinn.fem.problems.neohookean import (
+from parametricpinn.fem.problems.neohooke import (
     NeoHookeanProblem,
     NeoHookeanProblemConfig,
     NeoHookeanResults,

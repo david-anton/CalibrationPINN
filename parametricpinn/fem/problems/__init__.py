@@ -4,7 +4,7 @@ from .linearelasticity import (
     LinearElasticityProblemConfig_E_nu,
     LinearElasticityProblemConfig_K_G,
 )
-from .neohookean import NeoHookeanProblemConfig
+from .neohooke import NeoHookeanProblemConfig
 from .problems import Problem, ProblemConfigs, SimulationResults, define_problem
 
 __all__ = [
