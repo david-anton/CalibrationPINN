@@ -6,9 +6,9 @@ from .domains import (
     SimplifiedDogBoneDomainConfig,
 )
 from .problems import (
-    NeoHookeProblemConfig,
     LinearElasticityProblemConfig_E_nu,
     LinearElasticityProblemConfig_K_G,
+    NeoHookeProblemConfig,
     ProblemConfigs,
 )
 from .simulation import SimulationConfig, generate_validation_data, run_simulation

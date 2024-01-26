@@ -18,16 +18,16 @@ from parametricpinn.fem.base import (
     UFLTrialFunction,
 )
 from parametricpinn.fem.domains import Domain
+from parametricpinn.fem.mechanics import (
+    compute_green_strain_function,
+    compute_infinitesimal_strain_function,
+)
 from parametricpinn.fem.problems.base import (
     BaseSimulationResults,
     MaterialParameters,
     apply_boundary_conditions,
     save_displacements,
     save_parameters,
-)
-from parametricpinn.fem.mechanics import (
-    compute_green_strain_function,
-    compute_infinitesimal_strain_function,
 )
 from parametricpinn.io import ProjectDirectory
 
