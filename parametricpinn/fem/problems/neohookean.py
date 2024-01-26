@@ -25,6 +25,10 @@ from parametricpinn.fem.problems.base import (
     save_displacements,
     save_parameters,
 )
+from parametricpinn.fem.problems.mechanics import (
+    compute_green_strain_function,
+    compute_infinitesimal_strain_function,
+)
 from parametricpinn.io import ProjectDirectory
 
 UFLSigmaFunc: TypeAlias = Callable[[UFLTrialFunction], UFLOperator]
@@ -74,6 +78,7 @@ class NeoHookeanProblem:
         num_iterations, converged = solver.solve(self._solution_function)
         assert converged
         print(f"Number of iterations: {num_iterations}")
+        self._print_maximum_infinitesiaml_strain(self._solution_function)
         self._print_maximum_green_strain(self._solution_function)
         return self._solution_function
 
@@ -225,35 +230,28 @@ class NeoHookeanProblem:
         problem = NonlinearProblem(residual_form, solution_function, dirichlet_bcs)
         return problem, solution_function
 
-    def _print_maximum_green_strain(self, solution_function: DFunction) -> None:
-        strain_function = self._compute_green_strain_function(solution_function)
+    def _print_maximum_infinitesiaml_strain(self, solution_function: DFunction) -> None:
+        strain_function = compute_infinitesimal_strain_function(
+            solution_function, self._mesh
+        )
         geometric_dim = self._mesh.geometry.dim
         strain = strain_function.x.array.reshape((-1, geometric_dim, geometric_dim))
-        print(f"strain: {strain}")
         max_strain_xx = np.amax(np.absolute(strain[:, 0, 0]))
         max_strain_yy = np.amax(np.absolute(strain[:, 1, 1]))
         max_strain_xy = np.amax(np.absolute(strain[:, 0, 1]))
+        max_strain_yx = np.amax(np.absolute(strain[:, 1, 0]))
         print(
-            f"Maximum Green strains: E_xx = {max_strain_xx}, E_yy = {max_strain_yy}, E_xy = {max_strain_xy}"
+            f"Maximum Green strains: eps_xx = {max_strain_xx}, eps_yy = {max_strain_yy}, eps_xy = {max_strain_xy}, eps_yx = {max_strain_yx}"
         )
 
-    def _compute_green_strain_function(self, solution_function: DFunction) -> DFunction:
-        # Compute Green strain
-        I_2D = ufl.variable(ufl.Identity(2))
-        F_2D = ufl.variable(ufl.grad(solution_function) + I_2D)
-        F_2D_transpose = ufl.variable(ufl.transpose(F_2D))
-        C_2D = ufl.variable(F_2D_transpose * F_2D)
-        E_2D = ufl.variable(1 / 2 * (C_2D - I_2D))
-        # Project expression to function space
-        degree_solution = solution_function.function_space.ufl_element().degree()
-        family_solution = solution_function.function_space.ufl_element().family()
-        num_sub_spaces = solution_function.function_space.num_sub_spaces
-        shape = (num_sub_spaces, num_sub_spaces) if num_sub_spaces != 0 else None
-        element = (family_solution, degree_solution - 1, shape)
-        strain_func_space = fem.functionspace(self._mesh, element)
-        strain_expression = fem.Expression(
-            E_2D, strain_func_space.element.interpolation_points()
+    def _print_maximum_green_strain(self, solution_function: DFunction) -> None:
+        strain_function = compute_green_strain_function(solution_function, self._mesh)
+        geometric_dim = self._mesh.geometry.dim
+        strain = strain_function.x.array.reshape((-1, geometric_dim, geometric_dim))
+        max_strain_xx = np.amax(np.absolute(strain[:, 0, 0]))
+        max_strain_yy = np.amax(np.absolute(strain[:, 1, 1]))
+        max_strain_xy = np.amax(np.absolute(strain[:, 0, 1]))
+        max_strain_yx = np.amax(np.absolute(strain[:, 1, 0]))
+        print(
+            f"Maximum Green strains: E_xx = {max_strain_xx}, E_yy = {max_strain_yy}, E_xy = {max_strain_xy}, E_yx = {max_strain_yx}"
         )
-        strain_function = fem.Function(strain_func_space)
-        strain_function.interpolate(strain_expression)
-        return strain_function
