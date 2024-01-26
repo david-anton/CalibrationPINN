@@ -82,37 +82,37 @@ layer_sizes = [4, 64, 64, 64, 64, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_per_parameter = 1  # 32
+num_samples_per_parameter = 32
 num_collocation_points = 128
 number_points_per_bc = 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 1  # 20000
+number_training_epochs = 30000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
 input_subdir_valid = "20240126_validation_data_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_edge_100_radius_10_traction_100_elementsize_02"
-num_samples_valid = 1  # 32
+num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
 consider_model_error = False
-use_least_squares = False  # True
-use_random_walk_metropolis_hasting = False  # True
+use_least_squares = True
+use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
 use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
-fem_element_size = 1  # 0.2
+fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_col_128_bc_64_neurons_4_64_traction_100"
+output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_col_128_bc_64_neurons_4_64"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
