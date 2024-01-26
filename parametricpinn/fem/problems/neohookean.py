@@ -229,9 +229,10 @@ class NeoHookeanProblem:
         strain_function = self._compute_green_strain_function(solution_function)
         geometric_dim = self._mesh.geometry.dim
         strain = strain_function.x.array.reshape((-1, geometric_dim, geometric_dim))
-        max_strain_xx = np.amax(np.absolute(strain[:, 0, 0].reshape((-1, 1))))
-        max_strain_yy = np.amax(np.absolute(strain[:, 1, 1].reshape((-1, 1))))
-        max_strain_xy = np.amax(np.absolute(strain[:, 0, 1].reshape((-1, 1))))
+        print(f"strain: {strain}")
+        max_strain_xx = np.amax(np.absolute(strain[:, 0, 0]))
+        max_strain_yy = np.amax(np.absolute(strain[:, 1, 1]))
+        max_strain_xy = np.amax(np.absolute(strain[:, 0, 1]))
         print(
             f"Maximum Green strains: E_xx = {max_strain_xx}, E_yy = {max_strain_yy}, E_xy = {max_strain_xy}"
         )
