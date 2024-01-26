@@ -68,7 +68,7 @@ from parametricpinn.training.training_standard_linearelasticity_simplifieddogbon
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -77,9 +77,9 @@ traction_right_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
 min_youngs_modulus = 160000.0
-max_youngs_modulus = 260000.0
-min_poissons_ratio = 0.15
-max_poissons_ratio = 0.45
+max_youngs_modulus = 240000.0
+min_poissons_ratio = 0.2
+max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 # Ansatz
@@ -87,7 +87,7 @@ distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 32
 num_collocation_points = 64
-number_points_per_bc = 64
+num_points_per_bc = 64
 bcs_overlap_angle_distance_left = 1e-2
 bcs_overlap_distance_parallel_right = 1e-2
 training_batch_size = num_samples_per_parameter**2
@@ -96,8 +96,8 @@ weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_symmetry_bc_loss = 1e5
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = "20240119_validation_data_linearelasticity_simplifieddogbone_E_160k_260k_nu_015_045_elementsize_01_K_G"
+regenerate_valid_data = True
+input_subdir_valid = "20240126_validation_data_linearelasticity_simplifieddogbone_E_160k_240k_nu_02_04_elementsize_01_K_G"
 num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
@@ -109,16 +109,16 @@ input_subdir_calibration = os.path.join(
 input_file_name_calibration = "displacements_dic.csv"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
-use_hamiltonian = False
-use_efficient_nuts = False
+use_hamiltonian = True
+use_efficient_nuts = True
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = 20240119
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_160k_260k_nu_015_045_col_64_bc_64_neurons_6_128_K_G"
+output_date = current_date
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_160k_240k_nu_02_04_col_64_bc_64_neurons_6_128_K_G"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -188,7 +188,7 @@ def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, ValidationDat
             traction_right=traction_right,
             volume_force=volume_force,
             num_collocation_points=num_collocation_points,
-            num_points_per_bc=number_points_per_bc,
+            num_points_per_bc=num_points_per_bc,
             bcs_overlap_angle_distance_left=bcs_overlap_angle_distance_left,
             bcs_overlap_distance_parallel_right=bcs_overlap_distance_parallel_right,
         )
@@ -695,9 +695,6 @@ def calibration_step() -> None:
         [prior_mean_bulk_modulus, prior_mean_shear_modulus], device=device
     )
 
-    initial_parameters_ls = torch.tensor(
-        [min_bulk_modulus, min_shear_modulus], device=device
-    )
     mean_displacements = torch.mean(torch.absolute(displacements), dim=0)
     residual_weights = 1 / mean_displacements
     print(f"Used residual weights: {residual_weights}")
@@ -705,21 +702,21 @@ def calibration_step() -> None:
     least_squares_config = LeastSquaresConfig(
         ansatz=model,
         calibration_data=data,
-        initial_parameters=initial_parameters_ls,
+        initial_parameters=initial_parameters,
         num_iterations=1000,
         resdiual_weights=residual_weights.to(device)
         .repeat((num_data_points, 1))
         .ravel(),
     )
 
-    std_proposal_density_bulk_modulus = 1000
-    std_proposal_density_shear_modulus = 500
+    std_proposal_density_bulk_modulus = 100
+    std_proposal_density_shear_modulus = 50
     mcmc_config_mh = MetropolisHastingsConfig(
         likelihood=likelihood,
         prior=prior,
         initial_parameters=initial_parameters,
-        num_iterations=int(1e4),
-        num_burn_in_iterations=int(1e4),
+        num_iterations=int(1e5),
+        num_burn_in_iterations=int(5e4),
         cov_proposal_density=torch.diag(
             torch.tensor(
                 [
@@ -736,19 +733,19 @@ def calibration_step() -> None:
         likelihood=likelihood,
         prior=prior,
         initial_parameters=initial_parameters,
-        num_iterations=int(5e3),
-        num_burn_in_iterations=int(1e3),
+        num_iterations=int(1e4),
+        num_burn_in_iterations=int(1e4),
         num_leabfrog_steps=256,
-        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
+        leapfrog_step_sizes=torch.tensor([1, 1], device=device),
     )
     mcmc_config_enuts = EfficientNUTSConfig(
         likelihood=likelihood,
         prior=prior,
         initial_parameters=initial_parameters,
-        num_iterations=int(1e3),
-        num_burn_in_iterations=int(1e3),
+        num_iterations=int(1e4),
+        num_burn_in_iterations=int(1e4),
         max_tree_depth=8,
-        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
+        leapfrog_step_sizes=torch.tensor([1, 1], device=device),
     )
     if use_least_squares:
         start = perf_counter()
