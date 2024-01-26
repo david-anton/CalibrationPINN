@@ -3,7 +3,6 @@ from datetime import date
 from time import perf_counter
 
 import numpy as np
-import pandas as pd
 import torch
 
 from parametricpinn.ansatz import (
@@ -24,7 +23,6 @@ from parametricpinn.calibration import (
 )
 from parametricpinn.calibration.bayesianinference.parametric_pinn import (
     create_standard_ppinn_likelihood_for_noise,
-    create_standard_ppinn_likelihood_for_noise_and_model_error,
 )
 from parametricpinn.calibration.bayesianinference.plot import (
     plot_posterior_normal_distributions,
@@ -42,22 +40,20 @@ from parametricpinn.data.validationdata_2d import (
     create_validation_dataset,
 )
 from parametricpinn.fem import (
-    NeoHookeProblemConfig,
+    LinearElasticityProblemConfig_E_nu,
     QuarterPlateWithHoleDomainConfig,
     SimulationConfig,
     generate_validation_data,
     run_simulation,
 )
-from parametricpinn.gps import IndependentMultiOutputGP, ZeroMeanScaledRBFKernelGP
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.io.readerswriters import CSVDataReader, PandasDataWriter
 from parametricpinn.network import FFNN
 from parametricpinn.postprocessing.plot import (
     DisplacementsPlotterConfig2D,
     plot_displacements_2d,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.training_standard_neohooke_quarterplatewithhole import (
+from parametricpinn.training.training_standard_linearelasticity_quarterplatewithhole import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
@@ -66,6 +62,7 @@ from parametricpinn.types import Tensor
 ### Configuration
 retrain_parametric_pinn = True
 # Set up
+material_model = "plane stress"
 num_material_parameters = 2
 edge_length = 100.0
 radius = 10.0
@@ -73,10 +70,10 @@ traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-min_bulk_modulus = 1000.0
-max_bulk_modulus = 10000.0
-min_shear_modulus = 400.0
-max_shear_modulus = 2000.0
+min_youngs_modulus = 160000.0
+max_youngs_modulus = 240000.0
+min_poissons_ratio = 0.2
+max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 64, 64, 64, 64, 2]
 # Ansatz
@@ -84,35 +81,34 @@ distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 32
 num_collocation_points = 128
-number_points_per_bc = 64
+num_points_per_bc = 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 30000
+number_training_epochs = 20000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20240126_validation_data_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_edge_100_radius_10_traction_100_elementsize_02"
+input_subdir_valid = "20240126_validation_data_linearelasticity_quarterplatewithhole_E_160k_240k_nu_02_04_edge_100_radius_10_traction_100_elementsize_01_E_nu"
 num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-consider_model_error = False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
-use_hamiltonian = False
-use_efficient_nuts = False
+use_hamiltonian = True
+use_efficient_nuts = True
 # FEM
 fem_element_family = "Lagrange"
-fem_element_degree = 2
-fem_element_size = 0.2
+fem_element_degree = 1
+fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_col_128_bc_64_neurons_4_64"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_160k_240k_nu_02_04_samples_32_col_128_bc_64_neurons_4_64_E_nu"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -143,8 +139,8 @@ def create_datasets() -> (
     def _create_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_uniform_grid(
-            min_parameters=[min_bulk_modulus, min_shear_modulus],
-            max_parameters=[max_bulk_modulus, max_shear_modulus],
+            min_parameters=[min_youngs_modulus, min_poissons_ratio],
+            max_parameters=[max_youngs_modulus, max_poissons_ratio],
             num_steps=[num_samples_per_parameter, num_samples_per_parameter],
             device=device,
         )
@@ -157,7 +153,7 @@ def create_datasets() -> (
             traction_left=traction_left,
             volume_force=volume_force,
             num_collocation_points=num_collocation_points,
-            num_points_per_bc=number_points_per_bc,
+            num_points_per_bc=num_points_per_bc,
             bcs_overlap_distance=bcs_overlap_distance,
             bcs_overlap_angle_distance=bcs_overlap_angle_distance,
         )
@@ -171,21 +167,21 @@ def create_datasets() -> (
                 random_params = min_value + torch.rand(size) * (max_value - min_value)
                 return random_params.tolist()
 
-            bulk_moduli = _generate_random_parameter_list(
-                num_samples_valid, min_bulk_modulus, max_bulk_modulus
+            youngs_moduli = _generate_random_parameter_list(
+                num_samples_valid, min_youngs_modulus, max_youngs_modulus
             )
-            shear_moduli = _generate_random_parameter_list(
-                num_samples_valid, min_shear_modulus, max_shear_modulus
+            poissons_ratios = _generate_random_parameter_list(
+                num_samples_valid, min_poissons_ratio, max_poissons_ratio
             )
             domain_config = create_fem_domain_config()
             problem_configs = []
             for i in range(num_samples_valid):
                 problem_configs.append(
-                    NeoHookeProblemConfig(
-                        material_parameters=(bulk_moduli[i], shear_moduli[i]),
+                    LinearElasticityProblemConfig_E_nu(
+                        model=material_model,
+                        material_parameters=(youngs_moduli[i], poissons_ratios[i]),
                     )
                 )
-
             generate_validation_data(
                 domain_config=domain_config,
                 problem_configs=problem_configs,
@@ -214,137 +210,56 @@ def create_datasets() -> (
 
 
 def create_ansatz() -> StandardAnsatz:
-    normalization_values_subdir = os.path.join(
-        output_subdirectory, "normalization_values"
-    )
-    key_min_inputs = "min_inputs"
-    key_max_inputs = "max_inputs"
-    key_min_outputs = "min_outputs"
-    key_max_outputs = "max_outputs"
-    file_name_min_inputs = "minimum_inputs.csv"
-    file_name_max_inputs = "maximum_inputs.csv"
-    file_name_min_outputs = "minimum_outputs.csv"
-    file_name_max_outputs = "maximum_outputs.csv"
-
-    def _save_normalization_values(normalization_values: dict[str, Tensor]) -> None:
-        data_writer = PandasDataWriter(project_directory)
-
-        def _save_one_value_tensor(key: str, file_name: str) -> None:
-            data_writer.write(
-                data=pd.DataFrame([normalization_values[key].cpu().detach().numpy()]),
-                file_name=file_name,
-                subdir_name=normalization_values_subdir,
-                header=True,
-            )
-
-        _save_one_value_tensor(key_min_inputs, file_name_min_inputs)
-        _save_one_value_tensor(key_max_inputs, file_name_max_inputs)
-        _save_one_value_tensor(key_min_outputs, file_name_min_outputs)
-        _save_one_value_tensor(key_max_outputs, file_name_max_outputs)
-
-    def _read_normalization_values() -> dict[str, Tensor]:
-        data_reader = CSVDataReader(project_directory)
-        normalization_values = {}
-
-        def _add_one_value_tensor(key: str, file_name: str) -> None:
-            values = data_reader.read(
-                file_name=file_name,
-                subdir_name=normalization_values_subdir,
-                read_from_output_dir=True,
-            )
-
-            normalization_values[key] = (
-                torch.from_numpy(values[0]).type(torch.float64).to(device)
-            )
-
-        _add_one_value_tensor(key_min_inputs, file_name_min_inputs)
-        _add_one_value_tensor(key_max_inputs, file_name_max_inputs)
-        _add_one_value_tensor(key_min_outputs, file_name_min_outputs)
-        _add_one_value_tensor(key_max_outputs, file_name_max_outputs)
-
-        return normalization_values
-
-    def _print_normalization_values(normalization_values: dict[str, Tensor]) -> None:
-        print("###########################")
-        print(f"Min inputs {normalization_values[key_min_inputs]}")
-        print(f"Max inputs {normalization_values[key_max_inputs]}")
-        print(f"Min outputs {normalization_values[key_min_outputs]}")
-        print(f"Max outputs {normalization_values[key_max_outputs]}")
-        print("###########################")
-
     def _determine_normalization_values() -> dict[str, Tensor]:
-        if retrain_parametric_pinn:
-            min_coordinate_x = -edge_length
-            max_coordinate_x = 0.0
-            min_coordinate_y = 0.0
-            max_coordinate_y = edge_length
-            min_coordinates = torch.tensor([min_coordinate_x, min_coordinate_y])
-            max_coordinates = torch.tensor([max_coordinate_x, max_coordinate_y])
+        min_coordinate_x = -edge_length
+        max_coordinate_x = 0.0
+        min_coordinate_y = 0.0
+        max_coordinate_y = edge_length
+        min_coordinates = torch.tensor([min_coordinate_x, min_coordinate_y])
+        max_coordinates = torch.tensor([max_coordinate_x, max_coordinate_y])
 
-            min_parameters = torch.tensor([min_bulk_modulus, min_shear_modulus])
-            max_parameters = torch.tensor([max_bulk_modulus, max_shear_modulus])
+        min_parameters = torch.tensor([min_youngs_modulus, min_poissons_ratio])
+        max_parameters = torch.tensor([max_youngs_modulus, max_poissons_ratio])
 
-            min_inputs = torch.concat((min_coordinates, min_parameters))
-            max_inputs = torch.concat((max_coordinates, max_parameters))
+        min_inputs = torch.concat((min_coordinates, min_parameters))
+        max_inputs = torch.concat((max_coordinates, max_parameters))
 
-            print(
-                "Run FE simulations to determine normalization values in x-direction ..."
-            )
-            domain_config = create_fem_domain_config()
-            problem_config_x = NeoHookeProblemConfig(
-                material_parameters=(min_bulk_modulus, min_shear_modulus)
-            )
-            simulation_config_x = SimulationConfig(
-                domain_config=domain_config,
-                problem_config=problem_config_x,
-                volume_force_x=volume_force_x,
-                volume_force_y=volume_force_y,
-            )
-            simulation_results_x = run_simulation(
-                simulation_config=simulation_config_x,
-                save_results=True,
-                save_metadata=True,
-                output_subdir=normalization_values_subdir,
-                project_directory=project_directory,
-            )
+        _output_subdir = os.path.join(
+            output_subdirectory_preprocessing,
+            "results_for_determining_normalization_values",
+        )
+        print("Run FE simulation to determine normalization values ...")
+        domain_config = create_fem_domain_config()
+        problem_config = LinearElasticityProblemConfig_E_nu(
+            model=material_model,
+            material_parameters=(min_youngs_modulus, max_poissons_ratio),
+        )
+        simulation_config = SimulationConfig(
+            domain_config=domain_config,
+            problem_config=problem_config,
+            volume_force_x=volume_force_x,
+            volume_force_y=volume_force_y,
+        )
+        simulation_results = run_simulation(
+            simulation_config=simulation_config,
+            save_results=False,
+            save_metadata=False,
+            output_subdir=_output_subdir,
+            project_directory=project_directory,
+        )
 
-            print(
-                "Run FE simulations to determine normalization values in y-direction ..."
-            )
-            problem_config_y = NeoHookeProblemConfig(
-                material_parameters=(max_bulk_modulus, min_shear_modulus)
-            )
-            simulation_config_y = SimulationConfig(
-                domain_config=domain_config,
-                problem_config=problem_config_y,
-                volume_force_x=volume_force_x,
-                volume_force_y=volume_force_y,
-            )
-            simulation_results_y = run_simulation(
-                simulation_config=simulation_config_y,
-                save_results=True,
-                save_metadata=True,
-                output_subdir=normalization_values_subdir,
-                project_directory=project_directory,
-            )
-
-            min_displacement_x = float(np.amin(simulation_results_x.displacements_x))
-            max_displacement_x = float(np.amax(simulation_results_x.displacements_x))
-            min_displacement_y = float(np.amin(simulation_results_y.displacements_y))
-            max_displacement_y = float(np.amax(simulation_results_y.displacements_y))
-            min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
-            max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
-            normalization_values = {
-                "min_inputs": min_inputs.to(device),
-                "max_inputs": max_inputs.to(device),
-                "min_outputs": min_outputs.to(device),
-                "max_outputs": max_outputs.to(device),
-            }
-            _save_normalization_values(normalization_values)
-        else:
-            normalization_values = _read_normalization_values()
-        _print_normalization_values(normalization_values)
-        return normalization_values
+        min_displacement_x = float(np.amin(simulation_results.displacements_x))
+        max_displacement_x = float(np.amax(simulation_results.displacements_x))
+        min_displacement_y = float(np.amin(simulation_results.displacements_y))
+        max_displacement_y = float(np.amax(simulation_results.displacements_y))
+        min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
+        max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
+        return {
+            "min_inputs": min_inputs.to(device),
+            "max_inputs": max_inputs.to(device),
+            "min_outputs": min_outputs.to(device),
+            "max_outputs": max_outputs.to(device),
+        }
 
     normalization_values = _determine_normalization_values()
     network = FFNN(layer_sizes=layer_sizes)
@@ -365,7 +280,8 @@ ansatz = create_ansatz()
 def training_step() -> None:
     train_config = TrainingConfiguration(
         ansatz=ansatz,
-        number_points_per_bc=number_points_per_bc,
+        material_model=material_model,
+        number_points_per_bc=num_points_per_bc,
         weight_pde_loss=weight_pde_loss,
         weight_stress_bc_loss=weight_stress_bc_loss,
         weight_traction_bc_loss=weight_traction_bc_loss,
@@ -381,20 +297,22 @@ def training_step() -> None:
 
     def _plot_exemplary_displacement_fields() -> None:
         displacements_plotter_config = DisplacementsPlotterConfig2D()
-        parameters_list = [
-            (min_bulk_modulus, min_shear_modulus),
-            (min_bulk_modulus, max_shear_modulus),
-            (max_bulk_modulus, min_shear_modulus),
-            (max_bulk_modulus, max_shear_modulus),
+        youngs_modulus_and_poissons_ratio_list = [
+            (min_youngs_modulus, min_poissons_ratio),
+            (min_youngs_modulus, max_poissons_ratio),
+            (max_youngs_modulus, min_poissons_ratio),
+            (max_youngs_modulus, max_poissons_ratio),
+            (210000, 0.3),
         ]
-        bulk_moduli, shear_moduli = zip(*parameters_list)
+        youngs_moduli, poissons_ratios = zip(*youngs_modulus_and_poissons_ratio_list)
 
         domain_config = create_fem_domain_config()
         problem_configs = []
-        for i in range(len(parameters_list)):
+        for i in range(len(youngs_modulus_and_poissons_ratio_list)):
             problem_configs.append(
-                NeoHookeProblemConfig(
-                    material_parameters=(bulk_moduli[i], shear_moduli[i])
+                LinearElasticityProblemConfig_E_nu(
+                    model=material_model,
+                    material_parameters=(youngs_moduli[i], poissons_ratios[i]),
                 )
             )
 
@@ -416,15 +334,16 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    exact_bulk_modulus = 2800
-    exact_shear_modulus = 670
+    exact_youngs_modulus = 195000
+    exact_poissons_ratio = 0.35
     num_data_points = 128
     std_noise = 5 * 1e-4
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
         domain_config = create_fem_domain_config()
-        problem_config = NeoHookeProblemConfig(
-            material_parameters=(exact_bulk_modulus, exact_shear_modulus)
+        problem_config = LinearElasticityProblemConfig_E_nu(
+            model=material_model,
+            material_parameters=(exact_youngs_modulus, exact_poissons_ratio),
         )
         simulation_config = SimulationConfig(
             domain_config=domain_config,
@@ -478,93 +397,34 @@ def calibration_step() -> None:
         outputs=noisy_displacements,
         std_noise=std_noise,
     )
-
-    prior_mean_bulk_modulus = 3000
-    prior_std_bulk_modulus = 200
-    prior_mean_shear_modulus = 600
-    prior_std_shear_modulus = 50
-    prior_bulk_modulus = create_univariate_normal_distributed_prior(
-        mean=prior_mean_bulk_modulus,
-        standard_deviation=prior_std_bulk_modulus,
+    likelihood = create_standard_ppinn_likelihood_for_noise(
+        model=model,
+        data=data,
+        num_model_parameters=num_material_parameters,
         device=device,
     )
-    prior_shear_modulus = create_univariate_normal_distributed_prior(
-        mean=prior_mean_shear_modulus,
-        standard_deviation=prior_std_shear_modulus,
+
+    prior_mean_youngs_modulus = 210000
+    prior_std_youngs_modulus = 10000
+    prior_mean_poissons_ratio = 0.3
+    prior_std_poissons_ratio = 0.015
+    prior_youngs_modulus = create_univariate_normal_distributed_prior(
+        mean=prior_mean_youngs_modulus,
+        standard_deviation=prior_std_youngs_modulus,
         device=device,
     )
-    initial_material_parameters = torch.tensor(
-        [prior_mean_bulk_modulus, prior_mean_shear_modulus], device=device
+    prior_poissons_ratio = create_univariate_normal_distributed_prior(
+        mean=prior_mean_poissons_ratio,
+        standard_deviation=prior_std_poissons_ratio,
+        device=device,
     )
+    prior = multiply_priors([prior_youngs_modulus, prior_poissons_ratio])
 
-    if consider_model_error:
-        model_error_gp = IndependentMultiOutputGP(
-            independent_gps=[
-                ZeroMeanScaledRBFKernelGP(device),
-                ZeroMeanScaledRBFKernelGP(device),
-            ],
-            device=device,
-        ).to(device)
-        likelihood = create_standard_ppinn_likelihood_for_noise_and_model_error(
-            model=model,
-            num_model_parameters=num_material_parameters,
-            model_error_gp=model_error_gp,
-            data=data,
-            device=device,
-        )
-
-        model_error_prior = model_error_gp.get_uninformed_parameters_prior(
-            device,
-            upper_limit_output_scale=2.0,
-            upper_limit_length_scale=2.0,
-        )
-        prior = multiply_priors(
-            [prior_bulk_modulus, prior_shear_modulus, model_error_prior]
-        )
-
-        parameter_names = (
-            "bulk modulus",
-            "shear modulus",
-            "error output scale 1",
-            "error length scale 1",
-            "error output scale 2",
-            "error length scale 2",
-        )
-        true_parameters = (
-            exact_bulk_modulus,
-            exact_shear_modulus,
-            None,
-            None,
-            None,
-            None,
-        )
-        initial_gp_output_scale = 1.0
-        initial_gp_length_scale = 1.0
-        initial_model_error_parameters = torch.tensor(
-            [
-                initial_gp_output_scale,
-                initial_gp_length_scale,
-                initial_gp_output_scale,
-                initial_gp_length_scale,
-            ],
-            dtype=torch.float64,
-            device=device,
-        )
-        initial_parameters = torch.concat(
-            [initial_material_parameters, initial_model_error_parameters]
-        )
-    else:
-        likelihood = create_standard_ppinn_likelihood_for_noise(
-            model=model,
-            num_model_parameters=num_material_parameters,
-            data=data,
-            device=device,
-        )
-        prior = multiply_priors([prior_bulk_modulus, prior_shear_modulus])
-
-        parameter_names = ("bulk modulus", "shear modulus")
-        true_parameters = (exact_bulk_modulus, exact_shear_modulus)
-        initial_parameters = initial_material_parameters
+    parameter_names = ("Youngs modulus", "Poissons ratio")
+    true_parameters = (exact_youngs_modulus, exact_poissons_ratio)
+    initial_parameters = torch.tensor(
+        [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
+    )
 
     mean_displacements = torch.mean(torch.absolute(noisy_displacements), dim=0)
     residual_weights = 1 / mean_displacements
@@ -573,52 +433,31 @@ def calibration_step() -> None:
     least_squares_config = LeastSquaresConfig(
         ansatz=model,
         calibration_data=data,
-        initial_parameters=initial_material_parameters,
-        num_iterations=1000,
+        initial_parameters=initial_parameters,
+        num_iterations=100,
         resdiual_weights=residual_weights.to(device)
         .repeat((num_data_points, 1))
         .ravel(),
     )
-    std_proposal_density_bulk_modulus = 10.0
-    std_proposal_density_shear_modulus = 5.0
-    if consider_model_error:
-        std_proposal_density_gp_output_scale = 1e-3
-        std_proposal_density_gp_length_scale = 1e-3
-        cov_proposal_density = torch.diag(
-            torch.tensor(
-                [
-                    std_proposal_density_bulk_modulus,
-                    std_proposal_density_shear_modulus,
-                    std_proposal_density_gp_output_scale,
-                    std_proposal_density_gp_length_scale,
-                    std_proposal_density_gp_output_scale,
-                    std_proposal_density_gp_length_scale,
-                ],
-                dtype=torch.float64,
-                device=device,
-            )
-            ** 2
-        )
-    else:
-        cov_proposal_density = torch.diag(
-            torch.tensor(
-                [
-                    std_proposal_density_bulk_modulus,
-                    std_proposal_density_shear_modulus,
-                ],
-                dtype=torch.float64,
-                device=device,
-            )
-            ** 2
-        )
-
+    std_proposal_density_youngs_modulus = 100
+    std_proposal_density_poissons_ratio = 0.0005
     mcmc_config_mh = MetropolisHastingsConfig(
         likelihood=likelihood,
         prior=prior,
         initial_parameters=initial_parameters,
         num_iterations=int(1e5),
-        num_burn_in_iterations=int(1e5),
-        cov_proposal_density=cov_proposal_density,
+        num_burn_in_iterations=int(5e4),
+        cov_proposal_density=torch.diag(
+            torch.tensor(
+                [
+                    std_proposal_density_youngs_modulus,
+                    std_proposal_density_poissons_ratio,
+                ],
+                dtype=torch.float64,
+                device=device,
+            )
+            ** 2
+        ),
     )
     mcmc_config_h = HamiltonianConfig(
         likelihood=likelihood,
@@ -627,7 +466,7 @@ def calibration_step() -> None:
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e4),
         num_leabfrog_steps=256,
-        leapfrog_step_sizes=torch.tensor([1, 0.01], device=device),
+        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
     )
     mcmc_config_enuts = EfficientNUTSConfig(
         likelihood=likelihood,
@@ -636,16 +475,8 @@ def calibration_step() -> None:
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e4),
         max_tree_depth=8,
-        leapfrog_step_sizes=torch.tensor([1, 0.01], device=device),
+        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
     )
-    if consider_model_error:
-        output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration_with_model_error"
-        )
-    else:
-        output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration_without_model_error"
-        )
     if use_least_squares:
         start = perf_counter()
         identified_parameters, _ = calibrate(
@@ -654,10 +485,10 @@ def calibration_step() -> None:
         )
         end = perf_counter()
         time = end - start
-        identified_bulk_modulus = identified_parameters[0]
-        identified_shear_modulus = identified_parameters[1]
+        identified_youngs_modulus = identified_parameters[0]
+        identified_poissons_ratio = identified_parameters[1]
         print(
-            f"Identified parameters : bulk modulus = {identified_bulk_modulus}, shear modulus = {identified_shear_modulus}"
+            f"Identified parameters : Youngs modulus = {identified_youngs_modulus}, Poissons ratio = {identified_poissons_ratio}"
         )
         print(f"Run time least squares: {time}")
         print("############################################################")
@@ -680,7 +511,7 @@ def calibration_step() -> None:
             moments=posterior_moments_mh,
             samples=samples_mh,
             mcmc_algorithm="metropolis_hastings",
-            output_subdir=output_subdir_calibration,
+            output_subdir=output_subdirectory,
             project_directory=project_directory,
         )
     if use_hamiltonian:
@@ -702,7 +533,7 @@ def calibration_step() -> None:
             moments=posterior_moments_h,
             samples=samples_h,
             mcmc_algorithm="hamiltonian",
-            output_subdir=output_subdir_calibration,
+            output_subdir=output_subdirectory,
             project_directory=project_directory,
         )
     if use_efficient_nuts:
@@ -724,7 +555,7 @@ def calibration_step() -> None:
             moments=posterior_moments_enuts,
             samples=samples_enuts,
             mcmc_algorithm="efficient_nuts",
-            output_subdir=output_subdir_calibration,
+            output_subdir=output_subdirectory,
             project_directory=project_directory,
         )
     print("Calibration finished.")

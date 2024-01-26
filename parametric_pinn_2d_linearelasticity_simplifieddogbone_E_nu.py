@@ -734,6 +734,7 @@ def calibration_step() -> None:
         identified_nu = identified_parameters[1]
         print(f"Identified parameters: E = {identified_E} and nu = {identified_nu}")
         print(f"Run time least squares: {time}")
+        print("############################################################")
     if use_random_walk_metropolis_hasting:
         start = perf_counter()
         posterior_moments_mh, samples_mh = calibrate(
@@ -742,7 +743,11 @@ def calibration_step() -> None:
         )
         end = perf_counter()
         time = end - start
+        print(
+            f"Identified moments (normal distribution assumed): {posterior_moments_mh}"
+        )
         print(f"Run time Metropolis-Hasting: {time}")
+        print("############################################################")
         plot_posterior_normal_distributions(
             parameter_names=parameter_names,
             true_parameters=true_parameters,
@@ -760,7 +765,11 @@ def calibration_step() -> None:
         )
         end = perf_counter()
         time = end - start
+        print(
+            f"Identified moments (normal distribution assumed): {posterior_moments_h}"
+        )
         print(f"Run time Hamiltonian: {time}")
+        print("############################################################")
         plot_posterior_normal_distributions(
             parameter_names=parameter_names,
             true_parameters=true_parameters,
@@ -778,7 +787,11 @@ def calibration_step() -> None:
         )
         end = perf_counter()
         time = end - start
+        print(
+            f"Identified moments (normal distribution assumed): {posterior_moments_enuts}"
+        )
         print(f"Run time efficient NUTS: {time}")
+        print("############################################################")
         plot_posterior_normal_distributions(
             parameter_names=parameter_names,
             true_parameters=true_parameters,

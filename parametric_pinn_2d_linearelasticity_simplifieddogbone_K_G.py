@@ -177,14 +177,14 @@ def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, ValidationDat
         parameter_samples_G = calculate_G_from_E_and_nu(
             E=parameter_samples_E, nu=parameter_samples_nu
         ).reshape((-1, 1))
-        parameter_samples_K_G = torch.concat(
+        parameters_samples_K_G = torch.concat(
             (parameter_samples_K, parameter_samples_G), dim=1
         )
 
         traction_right = torch.tensor([traction_right_x, traction_right_y])
         volume_force = torch.tensor([volume_force_x, volume_force_y])
         config_training_data = SimplifiedDogBoneTrainingDataset2DConfig(
-            parameters_samples=parameter_samples_K_G,
+            parameters_samples=parameters_samples_K_G,
             traction_right=traction_right,
             volume_force=volume_force,
             num_collocation_points=num_collocation_points,
@@ -347,18 +347,18 @@ def training_step() -> None:
 
     def _plot_exemplary_displacement_fields() -> None:
         displacements_plotter_config = DisplacementsPlotterConfig2D()
-        material_parameters_list_list = [
+        youngs_modulus_and_poissons_ratio_list = [
             (min_youngs_modulus, min_poissons_ratio),
             (min_youngs_modulus, max_poissons_ratio),
             (max_youngs_modulus, min_poissons_ratio),
             (max_youngs_modulus, max_poissons_ratio),
             (210000.0, 0.3),
         ]
-        youngs_moduli, poissons_ratios = zip(*material_parameters_list_list)
+        youngs_moduli, poissons_ratios = zip(*youngs_modulus_and_poissons_ratio_list)
 
         domain_config = create_fem_domain_config()
         problem_configs = []
-        for i in range(len(material_parameters_list_list)):
+        for i in range(len(youngs_modulus_and_poissons_ratio_list)):
             problem_configs.append(
                 LinearElasticityProblemConfig_K_G(
                     model=material_model,
@@ -762,6 +762,7 @@ def calibration_step() -> None:
         print(f"Identified parameters: K = {identified_K} and G = {identified_G}")
         print(f"Identified parameters: E = {identified_E} and nu = {identified_nu}")
         print(f"Run time least squares: {time}")
+        print("############################################################")
     if use_random_walk_metropolis_hasting:
         start = perf_counter()
         posterior_moments_mh, samples_mh = calibrate(
@@ -770,7 +771,11 @@ def calibration_step() -> None:
         )
         end = perf_counter()
         time = end - start
+        print(
+            f"Identified moments (normal distribution assumed): {posterior_moments_mh}"
+        )
         print(f"Run time Metropolis-Hasting: {time}")
+        print("############################################################")
         plot_posterior_normal_distributions(
             parameter_names=parameter_names,
             true_parameters=true_parameters,
@@ -788,7 +793,11 @@ def calibration_step() -> None:
         )
         end = perf_counter()
         time = end - start
+        print(
+            f"Identified moments (normal distribution assumed): {posterior_moments_h}"
+        )
         print(f"Run time Hamiltonian: {time}")
+        print("############################################################")
         plot_posterior_normal_distributions(
             parameter_names=parameter_names,
             true_parameters=true_parameters,
@@ -806,7 +815,11 @@ def calibration_step() -> None:
         )
         end = perf_counter()
         time = end - start
+        print(
+            f"Identified moments (normal distribution assumed): {posterior_moments_enuts}"
+        )
         print(f"Run time efficient NUTS: {time}")
+        print("############################################################")
         plot_posterior_normal_distributions(
             parameter_names=parameter_names,
             true_parameters=true_parameters,

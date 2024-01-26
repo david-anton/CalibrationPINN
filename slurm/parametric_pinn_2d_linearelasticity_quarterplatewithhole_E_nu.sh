@@ -9,7 +9,7 @@
 ## Build command
 ## singularity build --fakeroot --force parametricpinn.sif app/.devcontainer/container_conda.def
 
-SCRIPT=parametric_pinn_2d_linearelasticity_quarterplatewithhole.py
+SCRIPT=parametric_pinn_2d_linearelasticity_quarterplatewithhole_E_nu.py
 
 srun singularity run \
  --cleanenv \
