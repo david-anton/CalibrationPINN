@@ -3,11 +3,11 @@ from typing import Callable, TypeAlias
 
 import dolfinx
 import dolfinx.fem as fem
+import numpy as np
 import ufl
 from dolfinx import default_scalar_type
 from dolfinx.fem.petsc import NonlinearProblem
 from dolfinx.nls.petsc import NewtonSolver
-import numpy as np
 
 from parametricpinn.fem.base import (
     DConstant,

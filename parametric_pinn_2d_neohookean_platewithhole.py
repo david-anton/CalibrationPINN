@@ -43,8 +43,8 @@ from parametricpinn.data.validationdata_2d import (
 )
 from parametricpinn.fem import (
     NeoHookeanProblemConfig,
-    QuarterPlateWithHoleDomainConfig,
     PlateDomainConfig,
+    QuarterPlateWithHoleDomainConfig,
     SimulationConfig,
     generate_validation_data,
     run_simulation,

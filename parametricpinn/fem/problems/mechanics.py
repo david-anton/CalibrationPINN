@@ -1,7 +1,7 @@
 import dolfinx.fem as fem
 import ufl
 
-from parametricpinn.fem.base import DFunction, DMesh, UFLVariable, DFunctionSpace
+from parametricpinn.fem.base import DFunction, DFunctionSpace, DMesh, UFLVariable
 
 
 def compute_infinitesimal_strain_function(
