@@ -69,14 +69,14 @@ retrain_parametric_pinn = True
 num_material_parameters = 2
 edge_length = 100.0
 radius = 10.0
-traction_left_x = -0.1
+traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
 min_bulk_modulus = 1000.0
-max_bulk_modulus = 2000.0
-min_rivlin_saunders_c_10 = 0.2
-max_rivlin_saunders_c_10 = 0.4
+max_bulk_modulus = 10000.0
+min_shear_modulus = 400.0
+max_shear_modulus = 2000.0
 # Network
 layer_sizes = [4, 64, 64, 64, 64, 2]
 # Ansatz
@@ -94,7 +94,7 @@ weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20240124_validation_data_neohookean_quarterplatewithhole_K_1000_2000_c_01_02_04_edge_100_radius_10_traction_01_elementsize_02"
+input_subdir_valid = "20240126_validation_data_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_edge_100_radius_10_traction_100_elementsize_02"
 num_samples_valid = 1  # 32
 validation_interval = 1
 num_points_valid = 1024
@@ -108,11 +108,11 @@ use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
-fem_element_size = 0.2
+fem_element_size = 1  # 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohookean_quarterplatewithhole_K_1000_2000_c_01_02_04_col_128_bc_64_neurons_4_64_traction_01"
+output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_col_128_bc_64_neurons_4_64_traction_100"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -143,8 +143,8 @@ def create_datasets() -> (
     def _create_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_uniform_grid(
-            min_parameters=[min_bulk_modulus, min_rivlin_saunders_c_10],
-            max_parameters=[max_bulk_modulus, max_rivlin_saunders_c_10],
+            min_parameters=[min_bulk_modulus, min_shear_modulus],
+            max_parameters=[max_bulk_modulus, max_shear_modulus],
             num_steps=[num_samples_per_parameter, num_samples_per_parameter],
             device=device,
         )
@@ -174,15 +174,15 @@ def create_datasets() -> (
             bulk_moduli = _generate_random_parameter_list(
                 num_samples_valid, min_bulk_modulus, max_bulk_modulus
             )
-            rivlin_saunders_c_10s = _generate_random_parameter_list(
-                num_samples_valid, min_rivlin_saunders_c_10, max_rivlin_saunders_c_10
+            shear_moduli = _generate_random_parameter_list(
+                num_samples_valid, min_shear_modulus, max_shear_modulus
             )
             domain_config = create_fem_domain_config()
             problem_configs = []
             for i in range(num_samples_valid):
                 problem_configs.append(
                     NeoHookeanProblemConfig(
-                        material_parameters=(bulk_moduli[i], rivlin_saunders_c_10s[i]),
+                        material_parameters=(bulk_moduli[i], shear_moduli[i]),
                     )
                 )
 
@@ -281,8 +281,8 @@ def create_ansatz() -> StandardAnsatz:
             min_coordinates = torch.tensor([min_coordinate_x, min_coordinate_y])
             max_coordinates = torch.tensor([max_coordinate_x, max_coordinate_y])
 
-            min_parameters = torch.tensor([min_bulk_modulus, min_rivlin_saunders_c_10])
-            max_parameters = torch.tensor([max_bulk_modulus, max_rivlin_saunders_c_10])
+            min_parameters = torch.tensor([min_bulk_modulus, min_shear_modulus])
+            max_parameters = torch.tensor([max_bulk_modulus, max_shear_modulus])
 
             min_inputs = torch.concat((min_coordinates, min_parameters))
             max_inputs = torch.concat((max_coordinates, max_parameters))
@@ -292,7 +292,7 @@ def create_ansatz() -> StandardAnsatz:
             )
             domain_config = create_fem_domain_config()
             problem_config_x = NeoHookeanProblemConfig(
-                material_parameters=(min_bulk_modulus, min_rivlin_saunders_c_10)
+                material_parameters=(min_bulk_modulus, min_shear_modulus)
             )
             simulation_config_x = SimulationConfig(
                 domain_config=domain_config,
@@ -312,7 +312,7 @@ def create_ansatz() -> StandardAnsatz:
                 "Run FE simulations to determine normalization values in y-direction ..."
             )
             problem_config_y = NeoHookeanProblemConfig(
-                material_parameters=(max_bulk_modulus, min_rivlin_saunders_c_10)
+                material_parameters=(max_bulk_modulus, min_shear_modulus)
             )
             simulation_config_y = SimulationConfig(
                 domain_config=domain_config,
@@ -382,19 +382,19 @@ def training_step() -> None:
     def _plot_exemplary_displacement_fields() -> None:
         displacements_plotter_config = DisplacementsPlotterConfig2D()
         parameters_list = [
-            (min_bulk_modulus, min_rivlin_saunders_c_10),
-            (min_bulk_modulus, max_rivlin_saunders_c_10),
-            (max_bulk_modulus, min_rivlin_saunders_c_10),
-            (max_bulk_modulus, max_rivlin_saunders_c_10),
+            (min_bulk_modulus, min_shear_modulus),
+            (min_bulk_modulus, max_shear_modulus),
+            (max_bulk_modulus, min_shear_modulus),
+            (max_bulk_modulus, max_shear_modulus),
         ]
-        bulk_moduli, rivlin_saunders_c_10s = zip(*parameters_list)
+        bulk_moduli, shear_moduli = zip(*parameters_list)
 
         domain_config = create_fem_domain_config()
         problem_configs = []
         for i in range(len(parameters_list)):
             problem_configs.append(
                 NeoHookeanProblemConfig(
-                    material_parameters=(bulk_moduli[i], rivlin_saunders_c_10s[i])
+                    material_parameters=(bulk_moduli[i], shear_moduli[i])
                 )
             )
 
@@ -416,15 +416,15 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    exact_bulk_modulus = 1200
-    exact_rivlin_saunders_c_10 = 15
+    exact_bulk_modulus = 2800
+    exact_shear_modulus = 670
     num_data_points = 128
     std_noise = 5 * 1e-4
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
         domain_config = create_fem_domain_config()
         problem_config = NeoHookeanProblemConfig(
-            material_parameters=(exact_bulk_modulus, exact_rivlin_saunders_c_10)
+            material_parameters=(exact_bulk_modulus, exact_shear_modulus)
         )
         simulation_config = SimulationConfig(
             domain_config=domain_config,
@@ -479,22 +479,22 @@ def calibration_step() -> None:
         std_noise=std_noise,
     )
 
-    prior_mean_youngs_modulus = 2000
-    prior_std_youngs_modulus = 100
-    prior_mean_poissons_ratio = 0.3
-    prior_std_poissons_ratio = 0.015
-    prior_youngs_modulus = create_univariate_normal_distributed_prior(
-        mean=prior_mean_youngs_modulus,
-        standard_deviation=prior_std_youngs_modulus,
+    prior_mean_bulk_modulus = 3000
+    prior_std_bulk_modulus = 200
+    prior_mean_shear_modulus = 600
+    prior_std_shear_modulus = 50
+    prior_bulk_modulus = create_univariate_normal_distributed_prior(
+        mean=prior_mean_bulk_modulus,
+        standard_deviation=prior_std_bulk_modulus,
         device=device,
     )
-    prior_poissons_ratio = create_univariate_normal_distributed_prior(
-        mean=prior_mean_poissons_ratio,
-        standard_deviation=prior_std_poissons_ratio,
+    prior_shear_modulus = create_univariate_normal_distributed_prior(
+        mean=prior_mean_shear_modulus,
+        standard_deviation=prior_std_shear_modulus,
         device=device,
     )
     initial_material_parameters = torch.tensor(
-        [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
+        [prior_mean_bulk_modulus, prior_mean_shear_modulus], device=device
     )
 
     if consider_model_error:
@@ -519,12 +519,12 @@ def calibration_step() -> None:
             upper_limit_length_scale=2.0,
         )
         prior = multiply_priors(
-            [prior_youngs_modulus, prior_poissons_ratio, model_error_prior]
+            [prior_bulk_modulus, prior_shear_modulus, model_error_prior]
         )
 
         parameter_names = (
-            "Youngs modulus",
-            "Poissons ratio",
+            "bulk modulus",
+            "shear modulus",
             "error output scale 1",
             "error length scale 1",
             "error output scale 2",
@@ -532,7 +532,7 @@ def calibration_step() -> None:
         )
         true_parameters = (
             exact_bulk_modulus,
-            exact_rivlin_saunders_c_10,
+            exact_shear_modulus,
             None,
             None,
             None,
@@ -560,31 +560,35 @@ def calibration_step() -> None:
             data=data,
             device=device,
         )
-        prior = multiply_priors([prior_youngs_modulus, prior_poissons_ratio])
+        prior = multiply_priors([prior_bulk_modulus, prior_shear_modulus])
 
-        parameter_names = ("Bulk modulus", "Rivlin-Saunders c_10")
-        true_parameters = (exact_bulk_modulus, exact_rivlin_saunders_c_10)
+        parameter_names = ("bulk modulus", "shear modulus")
+        true_parameters = (exact_bulk_modulus, exact_shear_modulus)
         initial_parameters = initial_material_parameters
+
+    mean_displacements = torch.mean(torch.absolute(noisy_displacements), dim=0)
+    residual_weights = 1 / mean_displacements
+    print(f"Used residual weights: {residual_weights}")
 
     least_squares_config = LeastSquaresConfig(
         ansatz=model,
         calibration_data=data,
         initial_parameters=initial_material_parameters,
         num_iterations=1000,
-        resdiual_weights=torch.tensor([1.0, 1.0], device=device)
+        resdiual_weights=residual_weights.to(device)
         .repeat((num_data_points, 1))
         .ravel(),
     )
-    std_proposal_density_youngs_modulus = 1.0
-    std_proposal_density_poissons_ratio = 1.5 * 1e-4
+    std_proposal_density_bulk_modulus = 10.0
+    std_proposal_density_shear_modulus = 5.0
     if consider_model_error:
         std_proposal_density_gp_output_scale = 1e-3
         std_proposal_density_gp_length_scale = 1e-3
         cov_proposal_density = torch.diag(
             torch.tensor(
                 [
-                    std_proposal_density_youngs_modulus,
-                    std_proposal_density_poissons_ratio,
+                    std_proposal_density_bulk_modulus,
+                    std_proposal_density_shear_modulus,
                     std_proposal_density_gp_output_scale,
                     std_proposal_density_gp_length_scale,
                     std_proposal_density_gp_output_scale,
@@ -599,8 +603,8 @@ def calibration_step() -> None:
         cov_proposal_density = torch.diag(
             torch.tensor(
                 [
-                    std_proposal_density_youngs_modulus,
-                    std_proposal_density_poissons_ratio,
+                    std_proposal_density_bulk_modulus,
+                    std_proposal_density_shear_modulus,
                 ],
                 dtype=torch.float64,
                 device=device,
@@ -650,7 +654,11 @@ def calibration_step() -> None:
         )
         end = perf_counter()
         time = end - start
-        print(f"Identified parameter: {identified_parameters}")
+        identified_bulk_modulus = identified_parameters[0]
+        identified_shear_modulus = identified_parameters[1]
+        print(
+            f"Identified parameters : bulk modulus = {identified_bulk_modulus}, shear modulus = {identified_shear_modulus}"
+        )
         print(f"Run time least squares: {time}")
         print("############################################################")
     if use_random_walk_metropolis_hasting:
