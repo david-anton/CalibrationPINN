@@ -50,17 +50,18 @@ def _first_piola_stress_tensor_func(
 
     # Material parameters
     param_K = _extract_bulk_modulus_K(x_param)
-    param_c_10 = _extract_rivlin_saunders_c_10(x_param)
+    param_G = _extract_shear_modulus_G(x_param)
+    param_c_10 = param_G / 2
 
     # Isochoric deformation tensors and invariants
     C_iso = (J ** (-2 / 3)) * C  # Isochoric right Cauchy-Green tensor
-    I_C_iso = torch.trace(C_iso)  # Isochoric first invariant
+    I_C_iso = _calculate_first_invariant(C_iso)  # Isochoric first invariant
 
     # 2. Piola-Kirchoff stress tensor
     I = torch.eye(3, device=device)
-    inv_C_iso = torch.inverse(C_iso)
-    T = J * param_K * (J - 1) * inv_C_iso + 2 * (J ** (-2 / 3)) * (
-        param_c_10 * I - (1 / 3) * param_c_10 * I_C_iso * inv_C_iso
+    C_iso_inverse = torch.inverse(C_iso)
+    T = J * param_K * (J - 1) * C_iso_inverse + 2 * (J ** (-2 / 3)) * (
+        param_c_10 * I - (1 / 3) * param_c_10 * I_C_iso * C_iso_inverse
     )
 
     # 1. Piola-Kirchoff stress tensor
@@ -96,5 +97,5 @@ def _extract_bulk_modulus_K(x_param: Tensor) -> Tensor:
     return torch.unsqueeze(x_param[0], dim=0)
 
 
-def _extract_rivlin_saunders_c_10(x_param: Tensor) -> Tensor:
+def _extract_shear_modulus_G(x_param: Tensor) -> Tensor:
     return torch.unsqueeze(x_param[1], dim=0)
