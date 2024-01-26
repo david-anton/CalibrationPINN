@@ -200,7 +200,7 @@ class NeoHookeanProblem:
         max_strain_xy = np.amax(np.absolute(strain[:, 0, 1]))
         max_strain_yx = np.amax(np.absolute(strain[:, 1, 0]))
         print(
-            f"Maximum Green strains: eps_xx = {max_strain_xx}, eps_yy = {max_strain_yy}, eps_xy = {max_strain_xy}, eps_yx = {max_strain_yx}"
+            f"Maximum infinitesimal strains: eps_xx = {max_strain_xx}, eps_yy = {max_strain_yy}, eps_xy = {max_strain_xy}, eps_yx = {max_strain_yx}"
         )
 
     def _print_maximum_green_strain(self, solution_function: DFunction) -> None:
