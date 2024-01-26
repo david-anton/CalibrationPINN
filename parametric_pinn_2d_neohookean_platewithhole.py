@@ -76,7 +76,7 @@ volume_force_x = 0.0
 volume_force_y = 0.0
 min_bulk_modulus = 1000.0
 max_bulk_modulus = 20000.0
-min_rivlin_saunders_c_10 = 200.0
+min_rivlin_saunders_c_10 = 150.0
 max_rivlin_saunders_c_10 = 2000.0
 # Network
 layer_sizes = [4, 64, 64, 64, 64, 2]
