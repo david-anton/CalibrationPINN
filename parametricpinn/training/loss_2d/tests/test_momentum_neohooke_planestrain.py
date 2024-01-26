@@ -55,7 +55,8 @@ def calculate_first_piola_stress_tensor(
 
     # # Material parameters
     param_K = x_parameters[0]
-    param_c_10 = x_parameters[1]
+    param_G = x_parameters[1]
+    param_c_10 = param_G / 2
 
     # # Isochoric deformation tensors and invariants
     C_iso = (J ** (-2 / 3)) * C  # Isochoric right Cauchy-Green tensor
