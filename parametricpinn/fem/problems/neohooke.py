@@ -25,7 +25,7 @@ from parametricpinn.fem.problems.base import (
     save_displacements,
     save_parameters,
 )
-from parametricpinn.fem.problems.mechanics import (
+from parametricpinn.fem.mechanics import (
     compute_green_strain_function,
     compute_infinitesimal_strain_function,
 )
@@ -36,20 +36,20 @@ UFLEpsilonFunc: TypeAlias = Callable[[UFLTrialFunction], UFLOperator]
 
 
 @dataclass
-class NeoHookeanProblemConfig:
+class NeoHookeProblemConfig:
     material_parameter_names = ("bulk modulus", "shear modulus")
     material_parameters: MaterialParameters
 
 
 @dataclass
-class NeoHookeanResults(BaseSimulationResults):
+class NeoHookeResults(BaseSimulationResults):
     pass
 
 
-class NeoHookeanProblem:
+class NeoHookeProblem:
     def __init__(
         self,
-        config: NeoHookeanProblemConfig,
+        config: NeoHookeProblemConfig,
         domain: Domain,
         function_space: DFunctionSpace,
         volume_force: DConstant,
@@ -82,7 +82,7 @@ class NeoHookeanProblem:
         self._print_maximum_green_strain(self._solution_function)
         return self._solution_function
 
-    def compile_results(self, approximate_solution: DFunction) -> NeoHookeanResults:
+    def compile_results(self, approximate_solution: DFunction) -> NeoHookeResults:
         coordinates = self._function_space.tabulate_dof_coordinates()
         coordinates_x = coordinates[:, 0].reshape((-1, 1))
         coordinates_y = coordinates[:, 1].reshape((-1, 1))
@@ -93,7 +93,7 @@ class NeoHookeanProblem:
         displacements_x = displacements[:, 0].reshape((-1, 1))
         displacements_y = displacements[:, 1].reshape((-1, 1))
 
-        results = NeoHookeanResults(
+        results = NeoHookeResults(
             material_parameter_names=self._config.material_parameter_names,
             material_parameters=self._config.material_parameters,
             coordinates_x=coordinates_x,

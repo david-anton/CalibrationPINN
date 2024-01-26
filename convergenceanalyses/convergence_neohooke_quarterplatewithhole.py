@@ -9,7 +9,7 @@ from matplotlib.ticker import MaxNLocator
 from scipy.interpolate import griddata
 
 from parametricpinn.fem import (
-    NeoHookeanProblemConfig,
+    NeoHookeProblemConfig,
     QuarterPlateWithHoleDomainConfig,
     SimulationConfig,
     run_simulation,
@@ -230,7 +230,7 @@ def plot_solution(function: DFunction, element_size: int) -> None:
 
 def calculate_approximate_solution(element_size) -> DFunction:
     domain_config = create_fem_domain_config(element_size)
-    problem_config = NeoHookeanProblemConfig(
+    problem_config = NeoHookeProblemConfig(
         bulk_modulus=bulk_modulus,
         rivlin_saunders_c_10=rivlin_saunders_c_10,
     )

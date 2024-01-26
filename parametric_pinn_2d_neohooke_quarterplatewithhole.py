@@ -42,7 +42,7 @@ from parametricpinn.data.validationdata_2d import (
     create_validation_dataset,
 )
 from parametricpinn.fem import (
-    NeoHookeanProblemConfig,
+    NeoHookeProblemConfig,
     QuarterPlateWithHoleDomainConfig,
     SimulationConfig,
     generate_validation_data,
@@ -181,7 +181,7 @@ def create_datasets() -> (
             problem_configs = []
             for i in range(num_samples_valid):
                 problem_configs.append(
-                    NeoHookeanProblemConfig(
+                    NeoHookeProblemConfig(
                         material_parameters=(bulk_moduli[i], shear_moduli[i]),
                     )
                 )
@@ -291,7 +291,7 @@ def create_ansatz() -> StandardAnsatz:
                 "Run FE simulations to determine normalization values in x-direction ..."
             )
             domain_config = create_fem_domain_config()
-            problem_config_x = NeoHookeanProblemConfig(
+            problem_config_x = NeoHookeProblemConfig(
                 material_parameters=(min_bulk_modulus, min_shear_modulus)
             )
             simulation_config_x = SimulationConfig(
@@ -311,7 +311,7 @@ def create_ansatz() -> StandardAnsatz:
             print(
                 "Run FE simulations to determine normalization values in y-direction ..."
             )
-            problem_config_y = NeoHookeanProblemConfig(
+            problem_config_y = NeoHookeProblemConfig(
                 material_parameters=(max_bulk_modulus, min_shear_modulus)
             )
             simulation_config_y = SimulationConfig(
@@ -393,7 +393,7 @@ def training_step() -> None:
         problem_configs = []
         for i in range(len(parameters_list)):
             problem_configs.append(
-                NeoHookeanProblemConfig(
+                NeoHookeProblemConfig(
                     material_parameters=(bulk_moduli[i], shear_moduli[i])
                 )
             )
@@ -423,7 +423,7 @@ def calibration_step() -> None:
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
         domain_config = create_fem_domain_config()
-        problem_config = NeoHookeanProblemConfig(
+        problem_config = NeoHookeProblemConfig(
             material_parameters=(exact_bulk_modulus, exact_shear_modulus)
         )
         simulation_config = SimulationConfig(

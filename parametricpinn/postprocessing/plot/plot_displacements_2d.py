@@ -13,7 +13,7 @@ from parametricpinn.fem import (
     DogBoneDomainConfig,
     LinearElasticityProblemConfig_E_nu,
     LinearElasticityProblemConfig_K_G,
-    NeoHookeanProblemConfig,
+    NeoHookeProblemConfig,
     PlateWithHoleDomainConfig,
     ProblemConfigs,
     QuarterPlateWithHoleDomainConfig,
@@ -27,7 +27,7 @@ from parametricpinn.types import Device, Module, NPArray, PLTAxes, PLTFigure
 ProblemConfigLists: TypeAlias = Union[
     list[LinearElasticityProblemConfig_E_nu],
     list[LinearElasticityProblemConfig_K_G],
-    list[NeoHookeanProblemConfig],
+    list[NeoHookeProblemConfig],
 ]
 DomainConfigs: TypeAlias = Union[
     QuarterPlateWithHoleDomainConfig,
@@ -738,7 +738,7 @@ def _get_file_name_parameter_prefix_from_problem(problem_config: ProblemConfigs)
         bulk_modulus = round(problem_config.material_parameters[0], 2)
         shear_modulus = round(problem_config.material_parameters[1], 2)
         return f"K_{bulk_modulus}_G_{shear_modulus}"
-    elif isinstance(problem_config, NeoHookeanProblemConfig):
+    elif isinstance(problem_config, NeoHookeProblemConfig):
         bulk_modulus = round(problem_config.material_parameters[0], 2)
         shear_modulus = round(problem_config.material_parameters[1], 2)
         return f"K_{bulk_modulus}_G_{shear_modulus}"

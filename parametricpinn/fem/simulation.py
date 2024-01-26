@@ -19,7 +19,7 @@ from parametricpinn.fem.domains import (
 from parametricpinn.fem.problems import (
     LinearElasticityProblemConfig_E_nu,
     LinearElasticityProblemConfig_K_G,
-    NeoHookeanProblemConfig,
+    NeoHookeProblemConfig,
     Problem,
     ProblemConfigs,
     SimulationResults,
@@ -32,7 +32,7 @@ from parametricpinn.io.readerswriters import DataclassWriter
 ProblemConfigList: TypeAlias = Union[
     list[LinearElasticityProblemConfig_E_nu],
     list[LinearElasticityProblemConfig_K_G],
-    list[NeoHookeanProblemConfig],
+    list[NeoHookeProblemConfig],
 ]
 
 

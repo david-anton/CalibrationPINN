@@ -8,7 +8,7 @@ from .domains import (
 from .problems import (
     LinearElasticityProblemConfig_E_nu,
     LinearElasticityProblemConfig_K_G,
-    NeoHookeanProblemConfig,
+    NeoHookeProblemConfig,
     ProblemConfigs,
 )
 from .simulation import SimulationConfig, generate_validation_data, run_simulation
@@ -21,7 +21,7 @@ __all__ = [
     "SimplifiedDogBoneDomainConfig",
     "LinearElasticityProblemConfig_E_nu",
     "LinearElasticityProblemConfig_K_G",
-    "NeoHookeanProblemConfig",
+    "NeoHookeProblemConfig",
     "ProblemConfigs",
     "SimulationConfig",
     "generate_validation_data",
