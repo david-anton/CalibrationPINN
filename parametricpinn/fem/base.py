@@ -27,6 +27,7 @@ DDofs: TypeAlias = npt.NDArray[np.int32]
 DMeshTags: TypeAlias = Any  # dolfinx.mesh.MeshTags
 DDirichletBC: TypeAlias = dolfinx.fem.DirichletBC
 DForm: TypeAlias = dolfinx.fem.forms.Form
+UFLVariable: TypeAlias = ufl.variable
 UFLOperator: TypeAlias = ufl.core.operator.Operator
 UFLExpression: TypeAlias = ufl.core.expr.Expr
 UFLTrialFunction: TypeAlias = ufl.TrialFunction
