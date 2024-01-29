@@ -59,7 +59,7 @@ from parametricpinn.training.loss_2d.momentum_linearelasticity_K_G import (
     calculate_K_from_E_and_nu_factory,
     calculate_nu_from_K_and_G_factory,
 )
-from parametricpinn.training.training_standard_linearelasticity_quarterplatewithhole import (
+from parametricpinn.training.training_standard_linearelasticity_quarterplatewithhole_K_G import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
