@@ -60,7 +60,7 @@ from parametricpinn.training.training_standard_linearelasticity_quarterplatewith
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -85,12 +85,12 @@ num_points_per_bc = 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 20000
+number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20240126_validation_data_linearelasticity_quarterplatewithhole_E_160k_240k_nu_02_04_edge_100_radius_10_traction_100_elementsize_01_E_nu"
 num_samples_valid = 32
 validation_interval = 1
@@ -98,9 +98,9 @@ num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
 use_least_squares = True
-use_random_walk_metropolis_hasting = True
-use_hamiltonian = True
-use_efficient_nuts = True
+use_random_walk_metropolis_hasting = False
+use_hamiltonian = False
+use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
@@ -427,7 +427,7 @@ def calibration_step() -> None:
     )
 
     mean_displacements = torch.mean(torch.absolute(noisy_displacements), dim=0)
-    residual_weights = 1 / mean_displacements
+    residual_weights = torch.tensor([1.0, 1.0])  # 1 / mean_displacements
     print(f"Used residual weights: {residual_weights}")
 
     least_squares_config = LeastSquaresConfig(
