@@ -49,16 +49,16 @@ def calculate_first_piola_stress_tensor(
     )
     J = torch.unsqueeze(torch.det(F), dim=0)
 
-    # # Right Cauchy-Green tensor
+    # Right Cauchy-Green tensor
     F_transpose = torch.transpose(F, 0, 1)
     C = torch.matmul(F_transpose, F)
 
-    # # Material parameters
+    # Material parameters
     param_K = x_parameters[0]
     param_G = x_parameters[1]
     param_c_10 = param_G / 2
 
-    # # Isochoric deformation tensors and invariants
+    # Isochoric deformation tensors and invariants
     C_iso = (J ** (-2 / 3)) * C  # Isochoric right Cauchy-Green tensor
     I_C_iso = torch.trace(C_iso)  # Isochoric first invariant
 
