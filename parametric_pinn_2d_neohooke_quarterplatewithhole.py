@@ -78,7 +78,7 @@ max_bulk_modulus = min_bulk_modulus  # 10000.0
 min_shear_modulus = 400.0
 max_shear_modulus = min_shear_modulus  # 2000.0
 # Network
-layer_sizes = [4, 64, 64, 64, 64, 64, 64, 2]
+layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]  # [4, 64, 64, 64, 64, 64, 64, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
@@ -112,7 +112,7 @@ fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_forward_pinn_neohooke_quarterplatewithhole_K_1k_G_400_col_8192_bc_256_neurons_6_64"  # f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_col_128_bc_64_neurons_6_64"
+output_subdirectory = f"{output_date}_forward_pinn_neohooke_quarterplatewithhole_K_1k_G_400_col_8192_bc_256_neurons_6_128"  # f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_col_128_bc_64_neurons_6_64"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
