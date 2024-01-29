@@ -96,7 +96,7 @@ weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20240126_validation_data_linearelasticity_quarterplatewithhole_E_160k_240k_nu_02_04_edge_100_radius_10_traction_100_elementsize_01_K_G"
 num_samples_valid = 32
 validation_interval = 1
