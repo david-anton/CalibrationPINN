@@ -78,7 +78,7 @@ max_bulk_modulus = 10000.0
 min_shear_modulus = 400.0
 max_shear_modulus = 2000.0
 # Network
-layer_sizes = [4, 64, 64, 64, 64, 2]
+layer_sizes = [4, 64, 64, 64, 64, 64, 64, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
@@ -93,7 +93,7 @@ weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20240126_validation_data_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_edge_100_radius_10_traction_100_elementsize_02"
 num_samples_valid = 32
 validation_interval = 1
@@ -112,7 +112,7 @@ fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_col_128_bc_64_neurons_4_64"
+output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_col_128_bc_64_neurons_6_64"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
