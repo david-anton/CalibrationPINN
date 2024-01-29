@@ -107,7 +107,7 @@ fem_element_degree = 1
 fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = 20240126
 output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_160k_240k_nu_02_04_samples_32_col_128_bc_64_neurons_4_64_E_nu"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
