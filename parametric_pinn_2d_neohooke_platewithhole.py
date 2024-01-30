@@ -79,7 +79,16 @@ max_bulk_modulus = min_bulk_modulus  # 10000.0
 min_shear_modulus = 400.0
 max_shear_modulus = min_shear_modulus  # 2000.0
 # Network
-layer_sizes = [4, 64, 64, 64, 64, 64, 64, 2]  # [4, 128, 128, 128, 128, 128, 128, 2]
+layer_sizes = [
+    4,
+    128,
+    128,
+    128,
+    128,
+    128,
+    128,
+    2,
+]  # [4, 128, 128, 128, 128, 128, 128, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
@@ -93,7 +102,7 @@ weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = True  # False
+regenerate_valid_data = False
 input_subdir_valid = "20240130_validation_data_neohooke_platewithhole_K_1k_G_400_length_200_height_100_radius_20_traction_100_elementsize_02"  # "20240126_validation_data_neohooke_platewithhole_K_1k_10k_G_400_2k_length_200_height_100_radius_10_traction_100_elementsize_02"
 num_samples_valid = 1  # 32
 validation_interval = 1
@@ -112,7 +121,7 @@ fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_forward_pinn_neohooke_platewithhole_K_1k_G_400_col_8192_bc_256_neurons_6_64"  # f"{output_date}_parametric_pinn_neohooke_platewithhole_K_1k_10k_G_400_2k_col_64_bc_64_neurons_6_128"
+output_subdirectory = f"{output_date}_forward_pinn_neohooke_platewithhole_K_1k_G_400_col_8192_bc_256_neurons_6_128"  # f"{output_date}_parametric_pinn_neohooke_platewithhole_K_1k_10k_G_400_2k_col_64_bc_64_neurons_6_128"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -384,9 +393,9 @@ def training_step() -> None:
         displacements_plotter_config = DisplacementsPlotterConfig2D()
         parameters_list = [
             (min_bulk_modulus, min_shear_modulus),
-            (min_bulk_modulus, max_shear_modulus),
-            (max_bulk_modulus, min_shear_modulus),
-            (max_bulk_modulus, max_shear_modulus),
+            # (min_bulk_modulus, max_shear_modulus),
+            # (max_bulk_modulus, min_shear_modulus),
+            # (max_bulk_modulus, max_shear_modulus),
         ]
         bulk_moduli, shear_moduli = zip(*parameters_list)
 
