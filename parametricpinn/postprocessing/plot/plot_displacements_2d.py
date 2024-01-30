@@ -452,13 +452,22 @@ def _generate_coordinate_grid(
         x_max = domain_config.right_half_box_length
         y_min = -domain_config.half_box_height
         y_max = domain_config.half_box_height
-    elif isinstance(domain_config, QuarterPlateWithHoleDomainConfig) or isinstance(
-        domain_config, PlateWithHoleDomainConfig
-    ):
+    elif isinstance(domain_config, QuarterPlateWithHoleDomainConfig):
         x_min = -domain_config.edge_length
         x_max = 0.0
         y_min = 0.0
         y_max = domain_config.edge_length
+    elif isinstance(domain_config, PlateWithHoleDomainConfig):
+        half_length = domain_config.plate_length / 2
+        half_height = domain_config.plate_height / 2
+        x_min = -half_length
+        x_max = half_length
+        y_min = -half_height
+        y_max = half_height
+    else:
+        raise FEMDomainConfigError(
+            f"There is no implementation for the requested FEM domain {domain_config}."
+        )
 
     grid_coordinates_x = np.linspace(
         x_min,
@@ -579,11 +588,9 @@ def _add_geometry_specific_patches(
         axes.add_patch(hole)
 
     def add_hole(axes: PLTAxes, domain_config: PlateWithHoleDomainConfig) -> None:
-        length = domain_config.plate_length
-        height = domain_config.plate_height
         radius = domain_config.hole_radius
         hole = plt.Circle(
-            (length / 2, height / 2),
+            (0.0, 0.0),
             radius=radius,
             color="white",
         )
