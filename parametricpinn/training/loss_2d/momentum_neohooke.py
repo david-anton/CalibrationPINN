@@ -18,8 +18,13 @@ def momentum_equation_func_factory() -> MomentumFunc:
     return momentum_equation_func(stress_func_single_input)
 
 
-def stress_func_factory() -> StressFunc:
+def first_piola_kirchhoff_stress_func_factory() -> StressFunc:
     stress_func_single_input = _first_piola_stress_tensor_func
+    return stress_func(stress_func_single_input)
+
+
+def cauchy_stress_func_factory() -> StressFunc:
+    stress_func_single_input = _cauchy_stress_func
     return stress_func(stress_func_single_input)
 
 
@@ -70,6 +75,14 @@ def _first_piola_stress_tensor_func(
     return P_2D
 
 
+def _cauchy_stress_func(ansatz: TModule, x_coor: Tensor, x_param: Tensor) -> Tensor:
+    P = _first_piola_stress_tensor_func(ansatz, x_coor, x_param)
+    F = _deformation_gradient_func(ansatz, x_coor, x_param)
+    F_transpose = torch.transpose(F, 0, 1)
+    J = _calculate_determinant(F)
+    return J ** (-1) * torch.matmul(P, F_transpose)
+
+
 def _deformation_gradient_func(
     ansatz: TModule, x_coor: Tensor, x_param: Tensor
 ) -> Tensor:
@@ -85,8 +98,8 @@ def _calculate_determinant(tensor: Tensor) -> Tensor:
 
 def _calculate_right_cauchy_green_tensor(deformation_gradient: Tensor) -> Tensor:
     F = deformation_gradient
-    transposed_F = torch.transpose(F, 0, 1)
-    return torch.matmul(transposed_F, F)
+    F_transpose = torch.transpose(F, 0, 1)
+    return torch.matmul(F_transpose, F)
 
 
 def _calculate_first_invariant(tensor: Tensor):

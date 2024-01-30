@@ -21,7 +21,7 @@ from parametricpinn.postprocessing.plot import (
 )
 from parametricpinn.training.loss_2d.momentum_neohooke import (
     momentum_equation_func_factory,
-    stress_func_factory,
+    cauchy_stress_func_factory,
     traction_func_factory,
 )
 from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm
@@ -65,7 +65,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
     ### Loss function
     momentum_equation_func = momentum_equation_func_factory()
-    stress_func = stress_func_factory()
+    cauchy_stress_func = cauchy_stress_func_factory()
     traction_func = traction_func_factory()
 
     lambda_pde_loss = torch.tensor(weight_pde_loss, requires_grad=True).to(device)
@@ -97,24 +97,16 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         ) -> Tensor:
             x_coor = stress_bc_data.x_coor.to(device)
             x_param = stress_bc_data.x_params.to(device)
-            shear_stress_filter_right = torch.tensor([[0.0, 0.0], [1.0, 0.0]]).repeat(
-                num_points_per_bc, 1, 1
-            )
-            shear_stress_filter_bottom = torch.tensor([[0.0, 1.0], [0.0, 0.0]]).repeat(
-                num_points_per_bc, 1, 1
-            )
             shear_stress_filter = (
-                torch.concat(
-                    (shear_stress_filter_right, shear_stress_filter_bottom), dim=0
-                )
-                .repeat(train_batch_size, 1, 1)
+                torch.tensor([[0.0, 1.0], [1.0, 0.0]])
+                .repeat(len(x_coor), 1, 1)
                 .to(device)
             )
-            stress_tensors = stress_func(ansatz, x_coor, x_param)
-            y = shear_stress_filter * stress_tensors
+            cauchy_stress_tensors = cauchy_stress_func(ansatz, x_coor, x_param)
+            y = shear_stress_filter * cauchy_stress_tensors
             y_true = (
                 torch.tensor([[0.0, 0.0], [0.0, 0.0]])
-                .repeat(train_batch_size * 2 * num_points_per_bc, 1, 1)
+                .repeat(len(x_coor), 1, 1)
                 .to(device)
             )
             return loss_metric(y_true, y)
