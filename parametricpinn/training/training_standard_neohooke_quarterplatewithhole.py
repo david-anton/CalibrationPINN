@@ -20,8 +20,8 @@ from parametricpinn.postprocessing.plot import (
     plot_valid_history,
 )
 from parametricpinn.training.loss_2d.momentum_neohooke import (
-    momentum_equation_func_factory,
     cauchy_stress_func_factory,
+    momentum_equation_func_factory,
     traction_func_factory,
 )
 from parametricpinn.training.metrics import mean_absolute_error, relative_l2_norm
