@@ -177,7 +177,7 @@ def test_sample_traction_bc__x_coordinates(
     ("idx_sample", "expected"),
     generate_expected_x_parameters(num_points_traction_bcs),
 )
-def test_sample_traction_bc__x_youngs_modulus(
+def test_sample_traction_bc__x_parameters(
     sut: PlateWithHoleTrainingDataset2D, idx_sample: int, expected: Tensor
 ) -> None:
     _, sample_traction_bc = sut[idx_sample]

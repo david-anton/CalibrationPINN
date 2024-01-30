@@ -38,20 +38,20 @@ num_samples = 2
 
 coordinates_x = torch.tensor([1.0, 2.0, 3.0, 4.0]).reshape((-1, 1))
 coordinates_y = torch.tensor([1.1, 2.1, 3.1, 4.1]).reshape((-1, 1))
-youngs_modulus_0 = torch.tensor([11.0])
-poissons_ratio_0 = torch.tensor([11.1])
-youngs_modulus_1 = torch.tensor([21.0])
-poissons_ratio_1 = torch.tensor([21.1])
+parameter_0_sample_0 = torch.tensor([11.0])
+parameter_1_sample_0 = torch.tensor([11.1])
+parameter_0_sample_1 = torch.tensor([21.0])
+parameter_1_sample_1 = torch.tensor([21.1])
 displacements_x_0 = torch.tensor([31.0, 32.0, 33.0, 34.0]).reshape((-1, 1))
 displacements_y_0 = torch.tensor([31.1, 32.1, 33.1, 34.1]).reshape((-1, 1))
 displacements_x_1 = torch.tensor([41.0, 42.0, 43.0, 44.0]).reshape((-1, 1))
 displacements_y_1 = torch.tensor([41.1, 42.1, 43.1, 44.1]).reshape((-1, 1))
 
 coordinates_all = torch.concat((coordinates_x, coordinates_y), dim=1)
-parameters_0_all = torch.concat((youngs_modulus_0, poissons_ratio_0)).repeat(
+parameters_0_all = torch.concat((parameter_0_sample_0, parameter_1_sample_0)).repeat(
     (size_validation_data, 1)
 )
-parameters_1_all = torch.concat((youngs_modulus_1, poissons_ratio_1)).repeat(
+parameters_1_all = torch.concat((parameter_0_sample_1, parameter_1_sample_1)).repeat(
     (size_validation_data, 1)
 )
 displacements_0_all = torch.concat((displacements_x_0, displacements_y_0), dim=1)
@@ -66,8 +66,8 @@ def write_input_data() -> None:
         "displacements_y": np.ravel(displacements_y_0.numpy()),
     }
     parameters_input_0 = {
-        "youngs_modulus": youngs_modulus_0.numpy(),
-        "poissons_ratio": poissons_ratio_0.numpy(),
+        "parameter_0": parameter_0_sample_0.numpy(),
+        "parameter_1": parameter_1_sample_0.numpy(),
     }
     output_subdir_0 = os.path.join(input_subdir, "sample_0")
     data_writer.write(
@@ -91,8 +91,8 @@ def write_input_data() -> None:
         "displacements_y": np.ravel(displacements_y_1.numpy()),
     }
     parameters_input_1 = {
-        "youngs_modulus": youngs_modulus_1.numpy(),
-        "poissons_ratio": poissons_ratio_1.numpy(),
+        "parameter_0": parameter_0_sample_1.numpy(),
+        "parameetr_1": parameter_1_sample_1.numpy(),
     }
     output_subdir_1 = os.path.join(input_subdir, "sample_1")
     data_writer.write(
@@ -194,7 +194,7 @@ def fake_batch() -> list[tuple[Tensor, Tensor]]:
     return [(sample_x_0, sample_y_true_0), (sample_x_1, sample_y_true_1)]
 
 
-def test_batch_pde__x(
+def test_batch__x(
     sut: ValidationDataset2D,
     fake_batch: list[tuple[Tensor, Tensor]],
 ):
@@ -208,7 +208,7 @@ def test_batch_pde__x(
     torch.testing.assert_close(actual, expected)
 
 
-def test_batch_pde__y_true(
+def test_batch__y_true(
     sut: ValidationDataset2D,
     fake_batch: list[tuple[Tensor, Tensor]],
 ):
