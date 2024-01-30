@@ -74,37 +74,37 @@ traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
 min_bulk_modulus = 1000.0
-max_bulk_modulus = min_bulk_modulus  # 10000.0
+max_bulk_modulus = 10000.0
 min_shear_modulus = 400.0
-max_shear_modulus = min_shear_modulus  # 2000.0
+max_shear_modulus = 2000.0
 # Network
-layer_sizes = [4, 64, 64, 64, 64, 64, 64, 2]  # [4, 128, 128, 128, 128, 128, 128, 2]
+layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_per_parameter = 1  # 32
-num_collocation_points = 8192  # 64
-number_points_per_bc = 256  # 64
+num_samples_per_parameter = 32
+num_collocation_points = 64
+number_points_per_bc = 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 10000  # 20000
+number_training_epochs = 20000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = True  # False
-input_subdir_valid = "20240130_validation_data_neohooke_quarterplatewithhole_K_1k_G_400_edge_100_radius_10_traction_100_elementsize_02"  # "20240126_validation_data_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_edge_100_radius_10_traction_100_elementsize_02"
-num_samples_valid = 1  # 32
+regenerate_valid_data = False
+input_subdir_valid = "20240126_validation_data_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_edge_100_radius_10_traction_100_elementsize_02"
+num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
 consider_model_error = False
-use_least_squares = False  # True
-use_random_walk_metropolis_hasting = False  # True
-use_hamiltonian = False  # True
-use_efficient_nuts = False  # True
+use_least_squares = True
+use_random_walk_metropolis_hasting = True
+use_hamiltonian = False
+use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
@@ -112,7 +112,7 @@ fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_forward_pinn_neohooke_quarterplatewithhole_K_1k_G_400_col_8192_bc_256_neurons_6_64"  # f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_col_64_bc_64_neurons_6_128"
+output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_col_64_bc_64_neurons_6_128"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
