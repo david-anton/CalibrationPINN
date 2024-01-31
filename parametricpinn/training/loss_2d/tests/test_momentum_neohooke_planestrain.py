@@ -119,9 +119,9 @@ def _calculate_single_first_piola_kirchhoff_stress_tensor(
 
     # 2. Piola-Kirchoff stress tensor
     I = torch.eye(3)
-    inv_C_iso = torch.inverse(C_iso)
-    T = J * param_K * (J - 1) * inv_C_iso + 2 * (J ** (-2 / 3)) * (
-        param_c_10 * I - (1 / 3) * param_c_10 * I_C_iso * inv_C_iso
+    C_iso_inverse = torch.inverse(C_iso)
+    T = (J ** (1 / 3)) * param_K * (J - 1) * C_iso_inverse + 2 * (J ** (-2 / 3)) * (
+        param_c_10 * I - (1 / 3) * param_c_10 * I_C_iso * C_iso_inverse
     )
 
     # 1. Piola-Kirchoff stress tensor
