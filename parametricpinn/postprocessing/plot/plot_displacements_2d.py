@@ -513,18 +513,22 @@ def _plot_once(
     figure, axes = plt.subplots()
 
     def _set_figure_size(figure: PLTFigure) -> None:
+        fig_height = 4.0
+        fig_width = 4.0
+        if isinstance(simulation_config.domain_config, PlateWithHoleDomainConfig):
+            box_length = simulation_config.domain_config.plate_length
+            box_height = simulation_config.domain_config.plate_height
+            fig_width = (box_length / box_height) * fig_height + 1
         if isinstance(simulation_config.domain_config, DogBoneDomainConfig):
-            fig_height = 4
             box_length = simulation_config.domain_config.box_length
             box_height = simulation_config.domain_config.box_height
-            figure.set_figheight(fig_height)
-            figure.set_figwidth((box_length / box_height) * fig_height + 1)
+            fig_width = (box_length / box_height) * fig_height + 1
         if isinstance(simulation_config.domain_config, SimplifiedDogBoneDomainConfig):
-            fig_height = 4
             box_length = simulation_config.domain_config.box_length
             box_height = simulation_config.domain_config.box_height
-            figure.set_figheight(fig_height)
-            figure.set_figwidth((box_length / box_height) * fig_height + 1)
+            fig_width = (box_length / box_height) * fig_height + 1
+        figure.set_figheight(fig_height)
+        figure.set_figwidth(fig_width)
 
     def _set_title_and_labels(axes: PLTAxes) -> None:
         axes.set_title(title, pad=plot_config.title_pad, **plot_config.font)
