@@ -69,7 +69,7 @@ retrain_parametric_pinn = True
 num_material_parameters = 2
 plate_length = 200.0
 plate_height = 100.0
-hole_radius = 20.0
+hole_radius = 10.0
 traction_right_x = 100.0
 traction_right_y = 0.0
 volume_force_x = 0.0
@@ -79,16 +79,7 @@ max_bulk_modulus = min_bulk_modulus  # 10000.0
 min_shear_modulus = 400.0
 max_shear_modulus = min_shear_modulus  # 2000.0
 # Network
-layer_sizes = [
-    4,
-    128,
-    128,
-    128,
-    128,
-    128,
-    128,
-    2,
-]  # [4, 128, 128, 128, 128, 128, 128, 2]
+layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
@@ -99,11 +90,11 @@ bcs_overlap_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 10000  # 20000
 weight_pde_loss = 1.0
-weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
+weight_symmetry_bc_loss = 1e5
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = "20240130_validation_data_neohooke_platewithhole_K_1k_G_400_length_200_height_100_radius_20_traction_100_elementsize_02"  # "20240126_validation_data_neohooke_platewithhole_K_1k_10k_G_400_2k_length_200_height_100_radius_10_traction_100_elementsize_02"
+regenerate_valid_data = True
+input_subdir_valid = "20240131_validation_data_neohooke_platewithhole_K_1k_G_400_length_200_height_100_radius_10_traction_100_elementsize_02"  # "20240131_validation_data_neohooke_platewithhole_K_1k_10k_G_400_2k_length_200_height_100_radius_10_traction_100_elementsize_02"
 num_samples_valid = 1  # 32
 validation_interval = 1
 num_points_valid = 1024
@@ -379,6 +370,7 @@ def training_step() -> None:
         number_points_per_bc=number_points_per_bc,
         weight_pde_loss=weight_pde_loss,
         weight_traction_bc_loss=weight_traction_bc_loss,
+        weight_symmetry_bc_loss=weight_symmetry_bc_loss,
         training_dataset=training_dataset,
         number_training_epochs=number_training_epochs,
         training_batch_size=training_batch_size,
