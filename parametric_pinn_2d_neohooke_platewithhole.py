@@ -70,7 +70,7 @@ num_material_parameters = 2
 plate_length = 200.0
 plate_height = 100.0
 hole_radius = 10.0
-traction_right_x = 10.0
+traction_right_x = 100.0
 traction_right_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
@@ -84,20 +84,20 @@ layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 1  # 32
-num_collocation_points = 8192  # 64
-number_points_per_bc = 256  # 64
+num_collocation_points = 16384  # 64
+number_points_per_bc = 512  # 64
 bcs_overlap_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 10000  # 20000
+number_training_epochs = 20000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
-weight_symmetry_bc_loss = 1e5
+weight_symmetry_bc_loss = 1e3
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20240131_validation_data_neohooke_platewithhole_K_1k_G_400_length_200_height_100_radius_10_traction_10_elementsize_02"  # "20240131_validation_data_neohooke_platewithhole_K_1k_10k_G_400_2k_length_200_height_100_radius_10_traction_100_elementsize_02"
+input_subdir_valid = "20240131_validation_data_neohooke_platewithhole_K_1k_G_400_length_200_height_100_radius_10_traction_100_elementsize_02"  # "20240131_validation_data_neohooke_platewithhole_K_1k_10k_G_400_2k_length_200_height_100_radius_10_traction_100_elementsize_02"
 num_samples_valid = 1  # 32
 validation_interval = 1
-num_points_valid = 1024
+num_points_valid = 2048  # 1024
 batch_size_valid = num_samples_valid
 # Calibration
 consider_model_error = False
