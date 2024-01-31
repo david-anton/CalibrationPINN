@@ -37,8 +37,9 @@ num_samples = len(parameters)
 num_collocation_points = 32
 num_points_per_bc = 3
 num_traction_bcs = 4
-num_symmetry_bcs = 2
+num_symmetry_bcs = 1
 num_points_traction_bcs = num_traction_bcs * num_points_per_bc
+num_points_symmetry_bcs = num_symmetry_bcs * num_points_per_bc
 bcs_overlap_distance = 1.0
 
 set_default_dtype(torch.float64)
@@ -319,6 +320,20 @@ def test_sample_symmetry_bc__x_coordinates_2(
             [x_min_without_overlap + plate_length_without_overlap, y_min],
         ]
     )
+    torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize(
+    ("idx_sample", "expected"),
+    generate_expected_x_parameters(num_points_symmetry_bcs),
+)
+def test_sample_symmetry_bc__x_parameters(
+    sut: PlateWithHoleTrainingDataset2D, idx_sample: int, expected: Tensor
+) -> None:
+    _, _, sample_symmetry_bc = sut[idx_sample]
+
+    actual = sample_symmetry_bc.x_params
+
     torch.testing.assert_close(actual, expected)
 
 

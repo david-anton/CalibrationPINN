@@ -46,7 +46,7 @@ class PlateWithHoleTrainingDataset2D(Dataset):
     ):
         super().__init__()
         self._num_traction_bcs = 4
-        self._num_symmetry_bcs = 2
+        self._num_symmetry_bcs = 1
         self._bcs_overlap_distance = bcs_overlap_distance
         self._parameters_samples = parameters_samples
         self._geometry = geometry
