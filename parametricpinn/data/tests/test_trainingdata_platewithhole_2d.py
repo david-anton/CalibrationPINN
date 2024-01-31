@@ -1,4 +1,5 @@
 import math
+from typing import TypeAlias
 
 import pytest
 import shapely
@@ -6,6 +7,7 @@ import torch
 
 from parametricpinn.data.dataset import (
     TrainingData2DCollocation,
+    TrainingData2DSymmetryBC,
     TrainingData2DTractionBC,
 )
 from parametricpinn.data.trainingdata_2d import (
@@ -35,6 +37,7 @@ num_samples = len(parameters)
 num_collocation_points = 32
 num_points_per_bc = 3
 num_traction_bcs = 4
+num_symmetry_bcs = 2
 num_points_traction_bcs = num_traction_bcs * num_points_per_bc
 bcs_overlap_distance = 1.0
 
@@ -95,7 +98,7 @@ def test_len(sut: PlateWithHoleTrainingDataset2D) -> None:
 def test_sample_pde__x_coordinates(
     sut: PlateWithHoleTrainingDataset2D, idx_sample: int
 ) -> None:
-    sample_pde, _ = sut[idx_sample]
+    sample_pde, _, _ = sut[idx_sample]
 
     actual = sample_pde.x_coor
 
@@ -109,7 +112,7 @@ def test_sample_pde__x_coordinates(
 def test_sample_pde__x_parameters(
     sut: PlateWithHoleTrainingDataset2D, idx_sample: int, expected: Tensor
 ) -> None:
-    sample_pde, _ = sut[idx_sample]
+    sample_pde, _, _ = sut[idx_sample]
 
     actual = sample_pde.x_params
 
@@ -120,7 +123,7 @@ def test_sample_pde__x_parameters(
 def test_sample_pde__volume_force(
     sut: PlateWithHoleTrainingDataset2D, idx_sample: int
 ) -> None:
-    sample_pde, _ = sut[idx_sample]
+    sample_pde, _, _ = sut[idx_sample]
 
     actual = sample_pde.f
 
@@ -132,7 +135,7 @@ def test_sample_pde__volume_force(
 def test_sample_traction_bc__x_coordinates(
     sut: PlateWithHoleTrainingDataset2D, idx_sample: int
 ) -> None:
-    _, sample_traction_bc = sut[idx_sample]
+    _, sample_traction_bc, _ = sut[idx_sample]
 
     actual = sample_traction_bc.x_coor
 
@@ -180,7 +183,7 @@ def test_sample_traction_bc__x_coordinates(
 def test_sample_traction_bc__x_parameters(
     sut: PlateWithHoleTrainingDataset2D, idx_sample: int, expected: Tensor
 ) -> None:
-    _, sample_traction_bc = sut[idx_sample]
+    _, sample_traction_bc, _ = sut[idx_sample]
 
     actual = sample_traction_bc.x_params
 
@@ -191,7 +194,7 @@ def test_sample_traction_bc__x_parameters(
 def test_sample_traction_bc__normal(
     sut: PlateWithHoleTrainingDataset2D, idx_sample: int
 ) -> None:
-    _, sample_traction_bc = sut[idx_sample]
+    _, sample_traction_bc, _ = sut[idx_sample]
 
     actual = sample_traction_bc.normal
 
@@ -227,7 +230,7 @@ def test_sample_traction_bc__normal(
 def test_sample_traction_bc__area_fractions(
     sut: PlateWithHoleTrainingDataset2D, idx_sample: int
 ) -> None:
-    _, sample_traction_bc = sut[idx_sample]
+    _, sample_traction_bc, _ = sut[idx_sample]
 
     actual = sample_traction_bc.area_frac
 
@@ -255,7 +258,7 @@ def test_sample_traction_bc__area_fractions(
 def test_sample_traction_bc__y_true(
     sut: PlateWithHoleTrainingDataset2D, idx_sample: int
 ) -> None:
-    _, sample_traction_bc = sut[idx_sample]
+    _, sample_traction_bc, _ = sut[idx_sample]
 
     actual = sample_traction_bc.y_true
 
@@ -279,27 +282,74 @@ def test_sample_traction_bc__y_true(
     torch.testing.assert_close(actual, expected)
 
 
-### Test collate_func()
-@pytest.fixture
-def fake_batch() -> (
-    list[
-        tuple[
-            TrainingData2DCollocation,
-            TrainingData2DTractionBC,
+@pytest.mark.parametrize(("idx_sample"), range(num_samples))
+def test_sample_symmetry_bc__x_coordinates_1(
+    sut: PlateWithHoleTrainingDataset2D, idx_sample: int
+) -> None:
+    _, _, sample_symmetry_bc = sut[idx_sample]
+
+    actual = sample_symmetry_bc.x_coor_1
+
+    x_min_without_overlap = x_min + bcs_overlap_distance
+    plate_length_without_overlap = plate_length - (2 * bcs_overlap_distance)
+    expected = torch.tensor(
+        [
+            [x_min_without_overlap + 0 * plate_length_without_overlap, y_max],
+            [x_min_without_overlap + 1 / 2 * plate_length_without_overlap, y_max],
+            [x_min_without_overlap + plate_length_without_overlap, y_max],
         ]
+    )
+    torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize(("idx_sample"), range(num_samples))
+def test_sample_symmetry_bc__x_coordinates_2(
+    sut: PlateWithHoleTrainingDataset2D, idx_sample: int
+) -> None:
+    _, _, sample_symmetry_bc = sut[idx_sample]
+
+    actual = sample_symmetry_bc.x_coor_2
+
+    x_min_without_overlap = x_min + bcs_overlap_distance
+    plate_length_without_overlap = plate_length - (2 * bcs_overlap_distance)
+    expected = torch.tensor(
+        [
+            [x_min_without_overlap + 0 * plate_length_without_overlap, y_min],
+            [x_min_without_overlap + 1 / 2 * plate_length_without_overlap, y_min],
+            [x_min_without_overlap + plate_length_without_overlap, y_min],
+        ]
+    )
+    torch.testing.assert_close(actual, expected)
+
+
+### Test collate_func()
+FakeBatch: TypeAlias = list[
+    tuple[
+        TrainingData2DCollocation,
+        TrainingData2DTractionBC,
+        TrainingData2DSymmetryBC,
     ]
-):
+]
+
+
+@pytest.fixture
+def fake_batch() -> FakeBatch:
     sample_collocation_0 = TrainingData2DCollocation(
         x_coor=torch.tensor([[1.0, 1.0]]),
         x_params=torch.tensor([[1.1, 1.1]]),
         f=torch.tensor([[1.2, 1.2]]),
     )
     sample_traction_bc_0 = TrainingData2DTractionBC(
-        x_coor=torch.tensor([[3.0, 3.0]]),
-        x_params=torch.tensor([[3.1, 3.1]]),
-        normal=torch.tensor([[3.2, 3.2]]),
-        area_frac=torch.tensor([[3.3]]),
-        y_true=torch.tensor([[3.4, 3.4]]),
+        x_coor=torch.tensor([[2.0, 2.0]]),
+        x_params=torch.tensor([[2.1, 2.1]]),
+        normal=torch.tensor([[2.2, 2.2]]),
+        area_frac=torch.tensor([[2.3]]),
+        y_true=torch.tensor([[2.4, 2.4]]),
+    )
+    sample_symmetry_bc_0 = TrainingData2DSymmetryBC(
+        x_coor_1=torch.tensor([[3.0, 3.0]]),
+        x_coor_2=torch.tensor([[3.1, 3.1]]),
+        x_params=torch.tensor([[3.2, 3.2]]),
     )
     sample_collocation_1 = TrainingData2DCollocation(
         x_coor=torch.tensor([[10.0, 10.0]]),
@@ -307,30 +357,30 @@ def fake_batch() -> (
         f=torch.tensor([[10.2, 10.2]]),
     )
     sample_traction_bc_1 = TrainingData2DTractionBC(
-        x_coor=torch.tensor([[30.0, 30.0]]),
-        x_params=torch.tensor([[30.1, 30.1]]),
-        normal=torch.tensor([[30.2, 30.2]]),
-        area_frac=torch.tensor([[30.3]]),
-        y_true=torch.tensor([[30.4, 30.4]]),
+        x_coor=torch.tensor([[20.0, 20.0]]),
+        x_params=torch.tensor([[20.1, 20.1]]),
+        normal=torch.tensor([[20.2, 20.2]]),
+        area_frac=torch.tensor([[20.3]]),
+        y_true=torch.tensor([[20.4, 20.4]]),
+    )
+    sample_symmetry_bc_1 = TrainingData2DSymmetryBC(
+        x_coor_1=torch.tensor([[30.0, 30.0]]),
+        x_coor_2=torch.tensor([[30.1, 30.1]]),
+        x_params=torch.tensor([[30.2, 30.2]]),
     )
     return [
-        (sample_collocation_0, sample_traction_bc_0),
-        (sample_collocation_1, sample_traction_bc_1),
+        (sample_collocation_0, sample_traction_bc_0, sample_symmetry_bc_0),
+        (sample_collocation_1, sample_traction_bc_1, sample_symmetry_bc_1),
     ]
 
 
 def test_batch_pde__x_coordinate(
     sut: PlateWithHoleTrainingDataset2D,
-    fake_batch: list[
-        tuple[
-            TrainingData2DCollocation,
-            TrainingData2DTractionBC,
-        ]
-    ],
+    fake_batch: FakeBatch,
 ):
     collate_func = sut.get_collate_func()
 
-    batch_pde, _ = collate_func(fake_batch)
+    batch_pde, _, _ = collate_func(fake_batch)
     actual = batch_pde.x_coor
 
     expected = torch.tensor([[1.0, 1.0], [10.0, 10.0]])
@@ -339,16 +389,11 @@ def test_batch_pde__x_coordinate(
 
 def test_batch_pde__x_parameters(
     sut: PlateWithHoleTrainingDataset2D,
-    fake_batch: list[
-        tuple[
-            TrainingData2DCollocation,
-            TrainingData2DTractionBC,
-        ]
-    ],
+    fake_batch: FakeBatch,
 ):
     collate_func = sut.get_collate_func()
 
-    batch_pde, _ = collate_func(fake_batch)
+    batch_pde, _, _ = collate_func(fake_batch)
     actual = batch_pde.x_params
 
     expected = torch.tensor([[1.1, 1.1], [10.1, 10.1]])
@@ -357,16 +402,11 @@ def test_batch_pde__x_parameters(
 
 def test_batch_pde__volume_force(
     sut: PlateWithHoleTrainingDataset2D,
-    fake_batch: list[
-        tuple[
-            TrainingData2DCollocation,
-            TrainingData2DTractionBC,
-        ]
-    ],
+    fake_batch: FakeBatch,
 ):
     collate_func = sut.get_collate_func()
 
-    batch_pde, _ = collate_func(fake_batch)
+    batch_pde, _, _ = collate_func(fake_batch)
     actual = batch_pde.f
 
     expected = torch.tensor([[1.2, 1.2], [10.2, 10.2]])
@@ -375,89 +415,103 @@ def test_batch_pde__volume_force(
 
 def test_batch_traction_bc__x_coordinate(
     sut: PlateWithHoleTrainingDataset2D,
-    fake_batch: list[
-        tuple[
-            TrainingData2DCollocation,
-            TrainingData2DTractionBC,
-        ]
-    ],
+    fake_batch: FakeBatch,
 ):
     collate_func = sut.get_collate_func()
 
-    _, batch_traction_bc = collate_func(fake_batch)
+    _, batch_traction_bc, _ = collate_func(fake_batch)
     actual = batch_traction_bc.x_coor
 
-    expected = torch.tensor([[3.0, 3.0], [30.0, 30.0]])
+    expected = torch.tensor([[2.0, 2.0], [20.0, 20.0]])
     torch.testing.assert_close(actual, expected)
 
 
 def test_batch_traction_bc__x_parameters(
     sut: PlateWithHoleTrainingDataset2D,
-    fake_batch: list[
-        tuple[
-            TrainingData2DCollocation,
-            TrainingData2DTractionBC,
-        ]
-    ],
+    fake_batch: FakeBatch,
 ):
     collate_func = sut.get_collate_func()
 
-    _, batch_traction_bc = collate_func(fake_batch)
+    _, batch_traction_bc, _ = collate_func(fake_batch)
     actual = batch_traction_bc.x_params
 
-    expected = torch.tensor([[3.1, 3.1], [30.1, 30.1]])
+    expected = torch.tensor([[2.1, 2.1], [20.1, 20.1]])
     torch.testing.assert_close(actual, expected)
 
 
 def test_batch_traction_bc__normal(
     sut: PlateWithHoleTrainingDataset2D,
-    fake_batch: list[
-        tuple[
-            TrainingData2DCollocation,
-            TrainingData2DTractionBC,
-        ]
-    ],
+    fake_batch: FakeBatch,
 ):
     collate_func = sut.get_collate_func()
 
-    _, batch_traction_bc = collate_func(fake_batch)
+    _, batch_traction_bc, _ = collate_func(fake_batch)
     actual = batch_traction_bc.normal
 
-    expected = torch.tensor([[3.2, 3.2], [30.2, 30.2]])
+    expected = torch.tensor([[2.2, 2.2], [20.2, 20.2]])
     torch.testing.assert_close(actual, expected)
 
 
 def test_batch_traction_bc__area_fraction(
     sut: PlateWithHoleTrainingDataset2D,
-    fake_batch: list[
-        tuple[
-            TrainingData2DCollocation,
-            TrainingData2DTractionBC,
-        ]
-    ],
+    fake_batch: FakeBatch,
 ):
     collate_func = sut.get_collate_func()
 
-    _, batch_traction_bc = collate_func(fake_batch)
+    _, batch_traction_bc, _ = collate_func(fake_batch)
     actual = batch_traction_bc.area_frac
 
-    expected = torch.tensor([[3.3], [30.3]])
+    expected = torch.tensor([[2.3], [20.3]])
     torch.testing.assert_close(actual, expected)
 
 
 def test_batch_traction_bc__y_true(
     sut: PlateWithHoleTrainingDataset2D,
-    fake_batch: list[
-        tuple[
-            TrainingData2DCollocation,
-            TrainingData2DTractionBC,
-        ]
-    ],
+    fake_batch: FakeBatch,
 ):
     collate_func = sut.get_collate_func()
 
-    _, batch_traction_bc = collate_func(fake_batch)
+    _, batch_traction_bc, _ = collate_func(fake_batch)
     actual = batch_traction_bc.y_true
 
-    expected = torch.tensor([[3.4, 3.4], [30.4, 30.4]])
+    expected = torch.tensor([[2.4, 2.4], [20.4, 20.4]])
+    torch.testing.assert_close(actual, expected)
+
+
+def test_batch_symmetry_bc__x_coordinate_1(
+    sut: PlateWithHoleTrainingDataset2D,
+    fake_batch: FakeBatch,
+):
+    collate_func = sut.get_collate_func()
+
+    _, _, batch_symmetry_bc = collate_func(fake_batch)
+    actual = batch_symmetry_bc.x_coor_1
+
+    expected = torch.tensor([[3.0, 3.0], [30.0, 30.0]])
+    torch.testing.assert_close(actual, expected)
+
+
+def test_batch_symmetry_bc__x_coordinate_2(
+    sut: PlateWithHoleTrainingDataset2D,
+    fake_batch: FakeBatch,
+):
+    collate_func = sut.get_collate_func()
+
+    _, _, batch_symmetry_bc = collate_func(fake_batch)
+    actual = batch_symmetry_bc.x_coor_2
+
+    expected = torch.tensor([[3.1, 3.1], [30.1, 30.1]])
+    torch.testing.assert_close(actual, expected)
+
+
+def test_batch_symmetry_bc__x_parameters(
+    sut: PlateWithHoleTrainingDataset2D,
+    fake_batch: FakeBatch,
+):
+    collate_func = sut.get_collate_func()
+
+    _, _, batch_symmetry_bc = collate_func(fake_batch)
+    actual = batch_symmetry_bc.x_params
+
+    expected = torch.tensor([[3.2, 3.2], [30.2, 30.2]])
     torch.testing.assert_close(actual, expected)
