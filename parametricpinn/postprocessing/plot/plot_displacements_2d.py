@@ -514,19 +514,20 @@ def _plot_once(
 
     def _set_figure_size(figure: PLTFigure) -> None:
         fig_height = 4.0
-        fig_width = 4.0
         if isinstance(simulation_config.domain_config, PlateWithHoleDomainConfig):
             box_length = simulation_config.domain_config.plate_length
             box_height = simulation_config.domain_config.plate_height
             fig_width = (box_length / box_height) * fig_height + 1
-        if isinstance(simulation_config.domain_config, DogBoneDomainConfig):
+        elif isinstance(simulation_config.domain_config, DogBoneDomainConfig):
             box_length = simulation_config.domain_config.box_length
             box_height = simulation_config.domain_config.box_height
             fig_width = (box_length / box_height) * fig_height + 1
-        if isinstance(simulation_config.domain_config, SimplifiedDogBoneDomainConfig):
+        elif isinstance(simulation_config.domain_config, SimplifiedDogBoneDomainConfig):
             box_length = simulation_config.domain_config.box_length
             box_height = simulation_config.domain_config.box_height
             fig_width = (box_length / box_height) * fig_height + 1
+        else:
+            return
         figure.set_figheight(fig_height)
         figure.set_figwidth(fig_width)
 
