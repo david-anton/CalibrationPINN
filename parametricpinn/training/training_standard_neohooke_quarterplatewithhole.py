@@ -20,7 +20,7 @@ from parametricpinn.postprocessing.plot import (
     plot_valid_history,
 )
 from parametricpinn.training.loss_2d.momentum_neohooke import (
-    first_piola_kirchhoff_stress_func_factory,
+    cauchy_stress_func_factory,
     momentum_equation_func_factory,
     traction_func_factory,
 )
@@ -65,7 +65,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
 
     ### Loss function
     momentum_equation_func = momentum_equation_func_factory()
-    stress_func = first_piola_kirchhoff_stress_func_factory()
+    cauchy_stress_func = cauchy_stress_func_factory()
     traction_func = traction_func_factory()
 
     lambda_pde_loss = torch.tensor(weight_pde_loss, requires_grad=True).to(device)
@@ -97,26 +97,14 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         ) -> Tensor:
             x_coor = stress_bc_data.x_coor.to(device)
             x_param = stress_bc_data.x_params.to(device)
-            shear_stress_filter_right = torch.tensor([[0.0, 0.0], [1.0, 0.0]]).repeat(
-                num_points_per_bc, 1, 1
-            )
-            shear_stress_filter_bottom = torch.tensor([[0.0, 1.0], [0.0, 0.0]]).repeat(
-                num_points_per_bc, 1, 1
-            )
-            stress_filter = (
-                torch.concat(
-                    (shear_stress_filter_right, shear_stress_filter_bottom), dim=0
-                )
-                .repeat(train_batch_size, 1, 1)
-                .to(device)
-            )
-            stress_tensors = stress_func(ansatz, x_coor, x_param)
-            y = stress_filter * stress_tensors
-            y_true = (
-                torch.tensor([[0.0, 0.0], [0.0, 0.0]])
+            shear_stress_filter = (
+                torch.tensor([[0.0, 1.0], [1.0, 0.0]])
                 .repeat(len(x_coor), 1, 1)
                 .to(device)
             )
+            cauchy_stress_tensors = cauchy_stress_func(ansatz, x_coor, x_param)
+            y = shear_stress_filter * cauchy_stress_tensors
+            y_true = torch.zeros(2, 2).repeat(len(x_coor), 1, 1).to(device)
             return loss_metric(y_true, y)
 
         def loss_func_traction_bc(
