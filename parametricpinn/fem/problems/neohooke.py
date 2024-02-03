@@ -137,7 +137,8 @@ class NeoHookeProblem:
         # Right Cauchy-Green tensor
         F_transpose = ufl.variable(ufl.transpose(F))
         C = ufl.variable(F_transpose * F)
-        J = ufl.variable(ufl.det(C) ** (1 / 2))  # J = ufl.variable(ufl.det(F))
+        J = ufl.variable(ufl.det(F))
+        # J = ufl.variable(ufl.det(C) ** (1 / 2))
 
         # Material parameters
         K = fem.Constant(
@@ -149,21 +150,26 @@ class NeoHookeProblem:
         c_10 = G / 2
 
         # Isochoric deformation tensors and invariants
-        C_iso = ufl.variable((J ** (-2 / 3)) * C)  # Isochoric right Cauchy-Green tensor
-        I_C_iso = ufl.variable(ufl.tr(C_iso))  # Isochoric first invariant
+        F_iso = ufl.variable((J ** (-1 / 3)) * F)
+        F_iso_transpose = ufl.variable(ufl.transpose(F_iso))
+        C_iso = ufl.variable(F_iso_transpose * F_iso)
+        I_C_iso = ufl.variable(ufl.tr(C_iso))
+        # C_iso = ufl.variable((J ** (-2 / 3)) * C)  # Isochoric right Cauchy-Green tensor
+        # I_C_iso = ufl.variable(ufl.tr(C_iso))  # Isochoric first invariant
 
         ### Strain Energy
         # Volumetric part of strain energy
-        W_vol = (K / 2) * (J - 1) ** 2
+        W_vol = (K / 2) * ((J - 1) ** 2)
         # Isochoric part of strain energy
         W_iso = c_10 * (I_C_iso - 3)
         W = W_vol + W_iso
 
         # 2. Piola-Kirchoff stress tensor
-        T = 2 * ufl.diff(W, C)
+        # T = 2 * ufl.diff(W, C)
 
         # 1. Piola-Kirchoff stress tensor
-        P = ufl.variable(F * T)
+        # P = ufl.variable(F * T)
+        P = ufl.diff(W, F)
         P_2D = ufl.as_matrix([[P[0, 0], P[0, 1]], [P[1, 0], P[1, 1]]])
 
         # Define variational form
