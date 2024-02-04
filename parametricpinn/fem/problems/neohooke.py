@@ -137,8 +137,7 @@ class NeoHookeProblem:
         # Right Cauchy-Green tensor
         F_transpose = ufl.variable(ufl.transpose(F))
         C = ufl.variable(F_transpose * F)
-        J = ufl.variable(ufl.det(F))
-        # J = ufl.variable(ufl.det(C) ** (1 / 2))
+        J = ufl.variable(ufl.det(C) ** (1 / 2))  # J = ufl.variable(ufl.det(F))
 
         # Material parameters
         K = fem.Constant(
@@ -161,12 +160,12 @@ class NeoHookeProblem:
         W = W_vol + W_iso
 
         # 2. Piola-Kirchoff stress tensor
-        I_3D = ufl.variable(ufl.Identity(3))
-        C_iso_inverse = ufl.inv(C_iso)
-        T = (J ** (1 / 3)) * K * (J - 1) * C_iso_inverse + 2 * (J ** (-2 / 3)) * (
-            c_10 * I_3D - (1 / 3) * c_10 * I_C_iso * C_iso_inverse
-        )
-        # T = 2 * ufl.diff(W, C)
+        T = 2 * ufl.diff(W, C)
+        # I_3D = ufl.variable(ufl.Identity(3))
+        # C_iso_inverse = ufl.inv(C_iso)
+        # T = (J ** (1 / 3)) * K * (J - 1) * C_iso_inverse + 2 * (J ** (-2 / 3)) * (
+        #     c_10 * I_3D - (1 / 3) * c_10 * I_C_iso * C_iso_inverse
+        # )
 
         # 1. Piola-Kirchoff stress tensor
         P = ufl.variable(F * T)
