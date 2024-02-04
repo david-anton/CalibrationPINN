@@ -69,7 +69,7 @@ retrain_parametric_pinn = True
 num_material_parameters = 2
 edge_length = 100.0
 radius = 10.0
-traction_left_x = -100.0
+traction_left_x = -50.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
@@ -94,7 +94,7 @@ weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20240204_validation_data_neohooke_quarterplatewithhole_K_1k_G_400_edge_100_radius_10_traction_100_elementsize_02"  # "20240126_validation_data_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_edge_100_radius_10_traction_100_elementsize_02"
+input_subdir_valid = "20240204_validation_data_neohooke_quarterplatewithhole_K_1k_G_400_edge_100_radius_10_traction_50_elementsize_02"  # "20240126_validation_data_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_edge_100_radius_10_traction_100_elementsize_02"
 num_samples_valid = 1  # 32
 validation_interval = 1
 num_points_valid = 1024
@@ -112,7 +112,7 @@ fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_forward_pinn_neohooke_quarterplatewithhole_K_1k_G_400_col_8192_bc_256_neurons_6_128_traction_100"  # f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_col_64_bc_64_neurons_6_128"
+output_subdirectory = f"{output_date}_forward_pinn_neohooke_quarterplatewithhole_K_1k_G_400_col_8192_bc_256_neurons_6_128_traction_50"  # f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_1k_10k_G_400_2k_col_64_bc_64_neurons_6_128"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
