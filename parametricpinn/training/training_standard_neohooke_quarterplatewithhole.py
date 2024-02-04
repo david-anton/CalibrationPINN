@@ -110,9 +110,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
                 .repeat(train_batch_size, 1, 1)
                 .to(device)
             )
-            stress_tensors = first_piola_kirchhoff_stress_func_factory(
-                ansatz, x_coor, x_param
-            )
+            stress_tensors = first_piola_kirchhoff_stress_func(ansatz, x_coor, x_param)
             y = shear_stress_filter * stress_tensors
             y_true = torch.zeros(2, 2).repeat(len(x_coor), 1, 1).to(device)
             return loss_metric(y_true, y)
