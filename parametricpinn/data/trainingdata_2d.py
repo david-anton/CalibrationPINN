@@ -3,6 +3,8 @@ from typing import TypeAlias, Union
 from parametricpinn.data.dataset import (
     DogBoneTrainingDataset2D,
     DogBoneTrainingDataset2DConfig,
+    PlateTrainingDataset2D,
+    PlateTrainingDataset2DConfig,
     PlateWithHoleTrainingDataset2D,
     PlateWithHoleTrainingDataset2DConfig,
     QuarterPlateWithHoleTrainingDataset2D,
@@ -13,6 +15,7 @@ from parametricpinn.data.dataset import (
 from parametricpinn.data.geometry import (
     DogBone2D,
     DogBoneGeometryConfig,
+    Plate2D,
     PlateWithHole2D,
     QuarterPlateWithHole2D,
     SimplifiedDogBone2D,
@@ -23,12 +26,14 @@ from parametricpinn.errors import DatasetConfigError
 TrainingDatasetConfig: TypeAlias = Union[
     QuarterPlateWithHoleTrainingDataset2DConfig,
     PlateWithHoleTrainingDataset2DConfig,
+    PlateTrainingDataset2DConfig,
     DogBoneTrainingDataset2DConfig,
     SimplifiedDogBoneTrainingDataset2DConfig,
 ]
 TrainingDataset: TypeAlias = Union[
     QuarterPlateWithHoleTrainingDataset2D,
     PlateWithHoleTrainingDataset2D,
+    PlateTrainingDataset2D,
     DogBoneTrainingDataset2D,
     SimplifiedDogBoneTrainingDataset2D,
 ]
@@ -58,6 +63,20 @@ def create_training_dataset(config: TrainingDatasetConfig) -> TrainingDataset:
         return PlateWithHoleTrainingDataset2D(
             parameters_samples=config.parameters_samples,
             geometry=geometry_pwh,
+            traction_right=config.traction_right,
+            volume_force=config.volume_force,
+            num_collocation_points=config.num_collocation_points,
+            num_points_per_bc=config.num_points_per_bc,
+            bcs_overlap_distance=config.bcs_overlap_distance,
+        )
+    elif isinstance(config, PlateTrainingDataset2DConfig):
+        geometry = Plate2D(
+            plate_length=config.plate_length,
+            plate_height=config.plate_height,
+        )
+        return PlateTrainingDataset2D(
+            parameters_samples=config.parameters_samples,
+            geometry=geometry,
             traction_right=config.traction_right,
             volume_force=config.volume_force,
             num_collocation_points=config.num_collocation_points,
