@@ -70,7 +70,7 @@ num_material_parameters = 2
 plate_length = 200.0
 plate_height = 100.0
 traction_right_x = 0.0
-traction_right_y = -50.0
+traction_right_y = -10.0
 volume_force_x = 0.0
 volume_force_y = 0.0
 min_bulk_modulus = 1000.0
@@ -92,7 +92,7 @@ weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20240205_validation_data_neohooke_plate_K_1k_G_400_length_200_height_100_traction_y_-50_elementsize_1"
+input_subdir_valid = "20240205_validation_data_neohooke_plate_K_1k_G_400_length_200_height_100_traction_y_-10_elementsize_1"
 num_samples_valid = 1  # 32
 validation_interval = 1
 num_points_valid = 1024
@@ -110,7 +110,7 @@ fem_element_size = 1.0
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_forward_pinn_neohooke_plate_K_1k_G_400_col_8192_bc_256_neurons_6_128_traction_y_-50"
+output_subdirectory = f"{output_date}_forward_pinn_neohooke_plate_K_1k_G_400_col_8192_bc_256_neurons_6_128_traction_y_-10"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
