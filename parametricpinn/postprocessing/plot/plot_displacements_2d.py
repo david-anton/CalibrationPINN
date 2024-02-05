@@ -15,6 +15,7 @@ from parametricpinn.fem import (
     LinearElasticityProblemConfig_K_G,
     NeoHookeProblemConfig,
     PlateWithHoleDomainConfig,
+    PlateDomainConfig,
     ProblemConfigs,
     QuarterPlateWithHoleDomainConfig,
     SimplifiedDogBoneDomainConfig,
@@ -32,6 +33,7 @@ ProblemConfigLists: TypeAlias = Union[
 DomainConfigs: TypeAlias = Union[
     QuarterPlateWithHoleDomainConfig,
     PlateWithHoleDomainConfig,
+    PlateDomainConfig,
     DogBoneDomainConfig,
     SimplifiedDogBoneDomainConfig,
 ]
@@ -464,6 +466,13 @@ def _generate_coordinate_grid(
         x_max = half_length
         y_min = -half_height
         y_max = half_height
+    elif isinstance(domain_config, PlateDomainConfig):
+        half_length = domain_config.plate_length / 2
+        half_height = domain_config.plate_height / 2
+        x_min = -half_length
+        x_max = half_length
+        y_min = -half_height
+        y_max = half_height
     else:
         raise FEMDomainConfigError(
             f"There is no implementation for the requested FEM domain {domain_config}."
@@ -515,6 +524,10 @@ def _plot_once(
     def _set_figure_size(figure: PLTFigure) -> None:
         fig_height = 4.0
         if isinstance(simulation_config.domain_config, PlateWithHoleDomainConfig):
+            box_length = simulation_config.domain_config.plate_length
+            box_height = simulation_config.domain_config.plate_height
+            fig_width = (box_length / box_height) * fig_height + 1
+        if isinstance(simulation_config.domain_config, PlateDomainConfig):
             box_length = simulation_config.domain_config.plate_length
             box_height = simulation_config.domain_config.plate_height
             fig_width = (box_length / box_height) * fig_height + 1
