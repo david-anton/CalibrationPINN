@@ -728,10 +728,6 @@ def _add_geometry_specific_patches(
         cut_dog_bone(axes=axes, domain_config=domain_config)
     elif isinstance(domain_config, SimplifiedDogBoneDomainConfig):
         cut_simplified_dog_bone(axes=axes, domain_config=domain_config)
-    else:
-        raise FEMDomainConfigError(
-            f"There is no implementation for the requested FEM domain {domain_config}."
-        )
 
 
 def _save_plot(
