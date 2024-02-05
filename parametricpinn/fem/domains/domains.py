@@ -28,6 +28,7 @@ from parametricpinn.io import ProjectDirectory
 DomainConfig: TypeAlias = Union[
     QuarterPlateWithHoleDomainConfig,
     PlateWithHoleDomainConfig,
+    PlateDomainConfig,
     DogBoneDomainConfig,
     SimplifiedDogBoneDomainConfig,
 ]
