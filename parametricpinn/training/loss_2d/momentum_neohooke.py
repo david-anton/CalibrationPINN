@@ -69,12 +69,12 @@ def _first_piola_stress_tensor_func(
     # T = (J ** (1 / 3)) * param_K * (J - 1) * C_iso_inverse + 2 * (J ** (-2 / 3)) * (
     #     param_c_10 * I - (1 / 3) * param_c_10 * I_C_iso * C_iso_inverse
     # )
-    T = param_K / 2 * (J**2 - 1) * C_inverse + 2 * (J ** (-2 / 3)) * (
-        param_c_10 * I - (1 / 3) * param_c_10 * I_C_iso * C_iso_inverse
-    )
+    T_vol = param_K / 2 * (J**2 - 1) * C_inverse
+    T_iso = 2 * param_c_10 * (J ** (-2 / 3)) * (I - (1 / 3) * I_C_iso * C_iso_inverse)
+    T = T_vol + T_iso
 
     # 1. Piola-Kirchoff stress tensor
-    P = F * T
+    P = torch.matmul(F, T)
     P_2D = P[0:2, 0:2]
     return P_2D
 
