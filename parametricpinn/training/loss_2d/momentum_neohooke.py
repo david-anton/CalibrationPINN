@@ -64,8 +64,12 @@ def _first_piola_stress_tensor_func(
 
     # 2. Piola-Kirchoff stress tensor
     I = torch.eye(3, device=device)
+    C_inverse = torch.inverse(C)
     C_iso_inverse = torch.inverse(C_iso)
-    T = (J ** (1 / 3)) * param_K * (J - 1) * C_iso_inverse + 2 * (J ** (-2 / 3)) * (
+    # T = (J ** (1 / 3)) * param_K * (J - 1) * C_iso_inverse + 2 * (J ** (-2 / 3)) * (
+    #     param_c_10 * I - (1 / 3) * param_c_10 * I_C_iso * C_iso_inverse
+    # )
+    T = param_K / 2 * (J**2 - 1) * C_inverse + 2 * (J ** (-2 / 3)) * (
         param_c_10 * I - (1 / 3) * param_c_10 * I_C_iso * C_iso_inverse
     )
 
