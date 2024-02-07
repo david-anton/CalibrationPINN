@@ -88,12 +88,12 @@ number_points_per_bc = 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 20000
+number_training_epochs = 40000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = "20240207_validation_data_neohooke_quarterplatewithhole_K_2k_10k_G_500_2500_edge_100_radius_10_traction_100_elementsize_02"
 num_samples_valid = 32
 validation_interval = 1
