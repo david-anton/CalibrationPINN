@@ -102,27 +102,24 @@ def _calculate_single_first_piola_kirchhoff_stress_tensor(
         ),
         dim=0,
     )
-    J = torch.unsqueeze(torch.det(F), dim=0)
+    F_transpose = torch.transpose(F, 0, 1)
 
     # Right Cauchy-Green tensor
-    F_transpose = torch.transpose(F, 0, 1)
     C = torch.matmul(F_transpose, F)
+
+    # Invariants
+    J = torch.unsqueeze(torch.det(F), dim=0)
+    I_C = torch.trace(C)  # First invariant
 
     # Material parameters
     param_K = x_parameters[0]
     param_G = x_parameters[1]
-    param_c_10 = param_G / 2
-
-    # Isochoric deformation tensors and invariants
-    C_iso = (J ** (-2 / 3)) * C  # Isochoric right Cauchy-Green tensor
-    I_C_iso = torch.trace(C_iso)  # Isochoric first invariant
 
     # 2. Piola-Kirchoff stress tensor
     I = torch.eye(3)
     C_inverse = torch.inverse(C)
-    C_iso_inverse = torch.inverse(C_iso)
     T_vol = param_K / 2 * (J**2 - 1) * C_inverse
-    T_iso = 2 * param_c_10 * (J ** (-2 / 3)) * (I - (1 / 3) * I_C_iso * C_iso_inverse)
+    T_iso = param_G * (J ** (-2 / 3)) * (I - (1 / 3) * I_C * C_inverse)
     T = T_vol + T_iso
 
     # 1. Piola-Kirchoff stress tensor

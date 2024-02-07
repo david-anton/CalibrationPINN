@@ -63,7 +63,6 @@ def _first_piola_stress_tensor_func(
     # Material parameters
     param_K = _extract_bulk_modulus_K(x_param)
     param_G = _extract_shear_modulus_G(x_param)
-    param_c_10 = param_G / 2
 
     # 2. Piola-Kirchoff stress tensor
     I = torch.eye(3, device=device)
