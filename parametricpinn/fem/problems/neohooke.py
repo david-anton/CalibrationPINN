@@ -117,6 +117,10 @@ class NeoHookeProblem:
 
     def _define(self) -> tuple[PETSNonlinearProblem, DFunction]:
         ### Plane strain assumed
+        # References:
+        # - "Nonlinear Finite Element Method", P. Wriggers, 2008
+        # - https://reference.wolfram.com/language/PDEModels/tutorial/StructuralMechanics/Hyperelasticity.html, 7.2.2024
+
         # Solution and test function
         test_function = ufl.TestFunction(self._function_space)
         solution_function = fem.Function(self._function_space)
@@ -133,28 +137,27 @@ class NeoHookeProblem:
                 ]
             )
         )
-
-        # Right Cauchy-Green tensor
         F_transpose = ufl.variable(ufl.transpose(F))
-        C = ufl.variable(F_transpose * F)
-        J = ufl.variable(ufl.det(C) ** (1 / 2))  # J = ufl.variable(ufl.det(F))
+
+        # Right Cauchy-Green tensor and invariants
+        C = ufl.variable(F_transpose * F)  # Right Cauchy-Green tensor
+        J = ufl.variable(ufl.det(C) ** (1 / 2))
+
+        # Isochoric right Cauchy-Green tensor and invariants
+        C_iso = ufl.variable((J ** (-2 / 3)) * C)  # Isochoric right Cauchy-Green tensor
+        I_C_iso = ufl.variable(ufl.tr(C_iso))  # Isochoric first invariant
 
         # Material parameters
         K = fem.Constant(
             self._mesh, default_scalar_type(self._config.material_parameters[0])
-        )
+        )  # Bulk modulus
         G = fem.Constant(
             self._mesh, default_scalar_type(self._config.material_parameters[1])
-        )
-        c_10 = G / 2
-
-        # Isochoric deformation tensors and invariants
-        C_iso = ufl.variable((J ** (-2 / 3)) * C)  # Isochoric right Cauchy-Green tensor
-        I_C_iso = ufl.variable(ufl.tr(C_iso))  # Isochoric first invariant
+        )  # Shear modulus
+        c_10 = G / 2  # Mooney-Rivlin material parameter
 
         ### Strain Energy
         # Volumetric part of strain energy
-        # W_vol = (K / 2) * ((J - 1) ** 2)
         W_vol = (K / 4) * (J**2 - 1 - 2 * ufl.ln(J))
         # Isochoric part of strain energy
         W_iso = c_10 * (I_C_iso - 3)
@@ -162,11 +165,6 @@ class NeoHookeProblem:
 
         # 2. Piola-Kirchoff stress tensor
         T = 2 * ufl.diff(W, C)
-        # I_3D = ufl.variable(ufl.Identity(3))
-        # C_iso_inverse = ufl.inv(C_iso)
-        # T = (J ** (1 / 3)) * K * (J - 1) * C_iso_inverse + 2 * (J ** (-2 / 3)) * (
-        #     c_10 * I_3D - (1 / 3) * c_10 * I_C_iso * C_iso_inverse
-        # )
 
         # 1. Piola-Kirchoff stress tensor
         P = ufl.variable(F * T)
