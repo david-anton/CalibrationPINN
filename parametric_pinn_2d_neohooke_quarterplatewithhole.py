@@ -64,7 +64,7 @@ from parametricpinn.training.training_standard_neohooke_quarterplatewithhole imp
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 num_material_parameters = 2
 edge_length = 100.0
@@ -88,7 +88,7 @@ number_points_per_bc = 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 40000
+number_training_epochs = 20000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
@@ -103,8 +103,8 @@ batch_size_valid = num_samples_valid
 consider_model_error = False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
-use_hamiltonian = True
-use_efficient_nuts = True
+use_hamiltonian = False
+use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
@@ -112,7 +112,7 @@ fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_2k_10k_G_500_2500_col_64_bc_64_neurons_6_128_epochs_40k"
+output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_2k_10k_G_500_2500_col_64_bc_64_neurons_6_128"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -479,7 +479,7 @@ def calibration_step() -> None:
         std_noise=std_noise,
     )
 
-    prior_mean_bulk_modulus = 3000
+    prior_mean_bulk_modulus = 8000
     prior_std_bulk_modulus = 200
     prior_mean_shear_modulus = 600
     prior_std_shear_modulus = 50
@@ -579,8 +579,8 @@ def calibration_step() -> None:
         .repeat((num_data_points, 1))
         .ravel(),
     )
-    std_proposal_density_bulk_modulus = 10.0
-    std_proposal_density_shear_modulus = 5.0
+    std_proposal_density_bulk_modulus = 1.0
+    std_proposal_density_shear_modulus = 0.5
     if consider_model_error:
         std_proposal_density_gp_output_scale = 1e-3
         std_proposal_density_gp_length_scale = 1e-3
