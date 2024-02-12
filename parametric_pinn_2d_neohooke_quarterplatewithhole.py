@@ -111,7 +111,7 @@ fem_element_degree = 2
 fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = 20240207
 output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_2k_10k_G_500_2500_col_64_bc_64_neurons_6_128"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
