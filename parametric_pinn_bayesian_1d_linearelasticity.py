@@ -17,7 +17,7 @@ from parametricpinn.calibration import (
     MetropolisHastingsConfig,
     calibrate,
 )
-from parametricpinn.calibration.bayesianinference.parametric_pinn import (
+from parametricpinn.calibration.bayesianinference.likelihoods import (
     create_bayesian_ppinn_likelihood_for_noise,
 )
 from parametricpinn.calibration.bayesianinference.plot import (

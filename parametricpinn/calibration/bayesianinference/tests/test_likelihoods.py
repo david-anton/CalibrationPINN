@@ -12,7 +12,7 @@ from parametricpinn.ansatz.base import (
     StandardNetworks,
 )
 from parametricpinn.calibration.base import PreprocessedCalibrationData
-from parametricpinn.calibration.bayesianinference.parametric_pinn import (
+from parametricpinn.calibration.bayesianinference.likelihoods import (
     BayesianPPINNLikelihood,
     NoiseAndModelErrorLikelihoodStrategy,
     NoiseLikelihoodStrategy,
