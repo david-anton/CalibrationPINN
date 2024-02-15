@@ -103,8 +103,12 @@ class IndependentMultivariateNormalDistributon:
         self.standard_deviations = self._distribution.stddev
         self.dim = torch.numel(means)
 
+    def log_probs_individual(self, sample: Tensor) -> Tensor:
+        return self._distribution.log_prob(sample)
+
     def log_prob(self, sample: Tensor) -> Tensor:
-        log_prob = torch.sum(self._distribution.log_prob(sample))
+        log_probs_individual = self.log_probs_individual(sample)
+        log_prob = torch.sum(log_probs_individual)
         return squeeze_if_necessary(log_prob)
 
     def sample(self) -> Tensor:

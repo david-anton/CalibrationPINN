@@ -114,6 +114,55 @@ def _expected_independent_multivariate_normal_distribution() -> (
     ]
 
 
+def _expected_independent_multivariate_normal_distribution_individual() -> (
+    list[tuple[Tensor, Tensor]]
+):
+    mean = torch.tensor([0.0])
+    standard_deviation = torch.tensor([1.0])
+    return [
+        (
+            torch.tensor([-1.0, -1.0, -1.0]),
+            torch.tensor(
+                [
+                    torch.distributions.Normal(loc=mean, scale=standard_deviation)
+                    .log_prob(torch.tensor([-1.0]))
+                    .type(torch.float64)[0]
+                ]
+            ).repeat(
+                3,
+            ),
+        ),
+        (
+            torch.tensor([1.0, 1.0, 1.0]),
+            torch.tensor(
+                [
+                    torch.distributions.Normal(loc=mean, scale=standard_deviation)
+                    .log_prob(torch.tensor([1.0]))
+                    .type(torch.float64)[0],
+                ],
+            ).repeat(
+                3,
+            ),
+        ),
+        (
+            torch.tensor([-1.0, 0.0, 1.0]),
+            torch.tensor(
+                [
+                    torch.distributions.Normal(loc=mean, scale=standard_deviation)
+                    .log_prob(torch.tensor([-1.0]))
+                    .type(torch.float64)[0],
+                    torch.distributions.Normal(loc=mean, scale=standard_deviation)
+                    .log_prob(torch.tensor([0.0]))
+                    .type(torch.float64)[0],
+                    torch.distributions.Normal(loc=mean, scale=standard_deviation)
+                    .log_prob(torch.tensor([1.0]))
+                    .type(torch.float64)[0],
+                ],
+            ),
+        ),
+    ]
+
+
 def _expected_mixed_independent_multivariate_distribution() -> (
     list[tuple[Tensor, Tensor]]
 ):
@@ -239,6 +288,24 @@ def test_independent_multivariate_normal_distribution(
     )
 
     actual = sut.log_prob(parameter)
+
+    torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize(
+    ("parameter", "expected"),
+    _expected_independent_multivariate_normal_distribution_individual(),
+)
+def test_independent_multivariate_normal_distribution_individual(
+    parameter: Tensor, expected: Tensor
+) -> None:
+    means = torch.tensor([0.0, 0.0, 0.0])
+    standard_deviations = torch.tensor([1.0, 1.0, 1.0])
+    sut = create_independent_multivariate_normal_distribution(
+        means=means, standard_deviations=standard_deviations, device=device
+    )
+
+    actual = sut.log_probs_individual(parameter)
 
     torch.testing.assert_close(actual, expected)
 
