@@ -17,6 +17,7 @@ from parametricpinn.calibration.bayesianinference.likelihoods import (
     NoiseAndModelErrorLikelihoodStrategy,
     NoiseLikelihoodStrategy,
     StandardPPINNLikelihood,
+    StandardResidualCalculator,
 )
 from parametricpinn.errors import TestConfigurationError
 from parametricpinn.gps import IndependentMultiOutputGP, ZeroMeanScaledRBFKernelGP
@@ -96,12 +97,17 @@ def test_standard_calibration_likelihood_for_noise_single_data_single_dimension(
         num_data_points=1,
         dim_outputs=1,
     )
-    likelihood_strategy = NoiseLikelihoodStrategy(data=data, device=device)
+    residual_calculator = StandardResidualCalculator(
+        model=model, data=data, device=device
+    )
+    likelihood_strategy = NoiseLikelihoodStrategy(
+        residual_calculator=residual_calculator,
+        data=data,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
     sut = StandardPPINNLikelihood(
         likelihood_strategy=likelihood_strategy,
-        model=model,
-        num_model_parameters=num_model_parameters,
-        data=data,
         device=device,
     )
 
@@ -128,12 +134,17 @@ def test_standard_calibration_likelihood_for_noise_multiple_data_single_dimensio
         num_data_points=2,
         dim_outputs=1,
     )
-    likelihood_strategy = NoiseLikelihoodStrategy(data=data, device=device)
+    residual_calculator = StandardResidualCalculator(
+        model=model, data=data, device=device
+    )
+    likelihood_strategy = NoiseLikelihoodStrategy(
+        residual_calculator=residual_calculator,
+        data=data,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
     sut = StandardPPINNLikelihood(
         likelihood_strategy=likelihood_strategy,
-        model=model,
-        num_model_parameters=num_model_parameters,
-        data=data,
         device=device,
     )
 
@@ -162,12 +173,17 @@ def test_standard_calibration_likelihood_for_noise_single_data_multiple_dimensio
         num_data_points=1,
         dim_outputs=2,
     )
-    likelihood_strategy = NoiseLikelihoodStrategy(data=data, device=device)
+    residual_calculator = StandardResidualCalculator(
+        model=model, data=data, device=device
+    )
+    likelihood_strategy = NoiseLikelihoodStrategy(
+        residual_calculator=residual_calculator,
+        data=data,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
     sut = StandardPPINNLikelihood(
         likelihood_strategy=likelihood_strategy,
-        model=model,
-        num_model_parameters=num_model_parameters,
-        data=data,
         device=device,
     )
 
@@ -196,12 +212,17 @@ def test_standard_calibration_likelihood_for_noise_multiple_data_multiple_dimens
         num_data_points=2,
         dim_outputs=2,
     )
-    likelihood_strategy = NoiseLikelihoodStrategy(data=data, device=device)
+    residual_calculator = StandardResidualCalculator(
+        model=model, data=data, device=device
+    )
+    likelihood_strategy = NoiseLikelihoodStrategy(
+        residual_calculator=residual_calculator,
+        data=data,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
     sut = StandardPPINNLikelihood(
         likelihood_strategy=likelihood_strategy,
-        model=model,
-        num_model_parameters=num_model_parameters,
-        data=data,
         device=device,
     )
 
@@ -228,7 +249,7 @@ class FakeLazyTensor(torch.Tensor):
     def __init__(self, torch_tensor: Tensor) -> None:
         self._torch_tensor = torch_tensor
 
-    def to_dense(self) -> Tensor:
+    def to_dense(self, dtype=None, *, masked_grad=True) -> Tensor:
         return self._torch_tensor
 
 
@@ -297,15 +318,19 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_s
         num_data_points=1,
         dim_outputs=1,
     )
+    residual_calculator = StandardResidualCalculator(
+        model=model, data=data, device=device
+    )
     model_error_gp = FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error)
     likelihood_strategy = NoiseAndModelErrorLikelihoodStrategy(
-        data=data, model_error_gp=model_error_gp, device=device
+        residual_calculator=residual_calculator,
+        data=data,
+        num_model_parameters=num_model_parameters,
+        model_error_gp=model_error_gp,
+        device=device,
     )
     sut = StandardPPINNLikelihood(
         likelihood_strategy=likelihood_strategy,
-        model=model,
-        num_model_parameters=num_model_parameters,
-        data=data,
         device=device,
     )
 
@@ -336,15 +361,19 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data
         num_data_points=2,
         dim_outputs=1,
     )
+    residual_calculator = StandardResidualCalculator(
+        model=model, data=data, device=device
+    )
     model_error_gp = FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error)
     likelihood_strategy = NoiseAndModelErrorLikelihoodStrategy(
-        data=data, model_error_gp=model_error_gp, device=device
+        residual_calculator=residual_calculator,
+        data=data,
+        num_model_parameters=num_model_parameters,
+        model_error_gp=model_error_gp,
+        device=device,
     )
     sut = StandardPPINNLikelihood(
         likelihood_strategy=likelihood_strategy,
-        model=model,
-        num_model_parameters=num_model_parameters,
-        data=data,
         device=device,
     )
 
@@ -377,6 +406,9 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_m
         num_data_points=1,
         dim_outputs=2,
     )
+    residual_calculator = StandardResidualCalculator(
+        model=model, data=data, device=device
+    )
     model_error_gp = IndependentMultiOutputGP(
         [
             FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error),
@@ -386,13 +418,14 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_m
     )
 
     likelihood_strategy = NoiseAndModelErrorLikelihoodStrategy(
-        data=data, model_error_gp=model_error_gp, device=device
+        residual_calculator=residual_calculator,
+        data=data,
+        num_model_parameters=num_model_parameters,
+        model_error_gp=model_error_gp,
+        device=device,
     )
     sut = StandardPPINNLikelihood(
         likelihood_strategy=likelihood_strategy,
-        model=model,
-        num_model_parameters=num_model_parameters,
-        data=data,
         device=device,
     )
 
@@ -425,6 +458,9 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data
         num_data_points=2,
         dim_outputs=2,
     )
+    residual_calculator = StandardResidualCalculator(
+        model=model, data=data, device=device
+    )
     model_error_gp = IndependentMultiOutputGP(
         [
             FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error),
@@ -433,13 +469,14 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data
         device=device,
     )
     likelihood_strategy = NoiseAndModelErrorLikelihoodStrategy(
-        data=data, model_error_gp=model_error_gp, device=device
+        residual_calculator=residual_calculator,
+        data=data,
+        num_model_parameters=num_model_parameters,
+        model_error_gp=model_error_gp,
+        device=device,
     )
     sut = StandardPPINNLikelihood(
         likelihood_strategy=likelihood_strategy,
-        model=model,
-        num_model_parameters=num_model_parameters,
-        data=data,
         device=device,
     )
 
