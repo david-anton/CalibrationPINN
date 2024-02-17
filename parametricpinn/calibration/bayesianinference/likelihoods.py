@@ -1,6 +1,7 @@
 from typing import Protocol, TypeAlias, Union
 
 import torch
+from torch.func import jacrev, vmap
 
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
 from parametricpinn.calibration.base import (
@@ -80,7 +81,14 @@ class NoiseLikelihoodStrategy:
         residuals = self._residual_calculator.calculate_residuals(model_parameters)
         return self._distribution.log_prob(residuals)
 
-    def _initialize_likelihood_distribution(self) -> LikelihoodDistributions:
+    def log_probs_pointwise(self, parameters: Tensor) -> Tensor:
+        model_parameters = parameters[: self._num_model_parameters]
+        residuals = self._residual_calculator.calculate_residuals(model_parameters)
+        return self._distribution.log_probs_individual(residuals)
+
+    def _initialize_likelihood_distribution(
+        self,
+    ) -> IndependentMultivariateNormalDistributon:
         means = self._assemble_residual_means()
         standard_deviations = self._assemble_residual_standard_deviations()
         return create_independent_multivariate_normal_distribution(
@@ -101,6 +109,59 @@ class NoiseLikelihoodStrategy:
             dtype=torch.float64,
             device=self._device,
         )
+
+
+class NoiseQLikelihoodStrategy:
+    def __init__(
+        self,
+        standard_likelihood_strategy: NoiseLikelihoodStrategy,
+        data: PreprocessedCalibrationData,
+        device: Device,
+    ) -> None:
+        self._standard_likelihood_strategy = standard_likelihood_strategy
+        self._standard_deviation_noise = data.std_noise
+        self._num_data_points = data.num_data_points
+        self._num_flattened_outputs = data.num_data_points * data.dim_outputs
+        self._device = device
+
+    def log_prob(self, parameters: Tensor) -> Tensor:
+        return self._calibrated_log_likelihood(parameters)
+
+    def _calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
+        Q = self._determine_q(parameters)
+        M = torch.absolute(Q)
+        return torch.log(M ** (-1 / 2)) - Q
+
+    def _determine_q(self, parameters: Tensor) -> Tensor:
+        scores, total_score = self._calculate_scores(parameters)
+        W = self._estimate_covariance(scores, total_score)
+        total_score = torch.unsqueeze(total_score, dim=0)
+        sqrt_num_data_points = torch.sqrt(
+            torch.tensor(self._num_data_points, device=self._device)
+        )
+        return (1 / 2) * (
+            (total_score / sqrt_num_data_points)
+            @ torch.inverse(W)
+            @ torch.transpose(total_score / sqrt_num_data_points, 0, 1)
+        )
+
+    def _calculate_scores(self, parameters: Tensor) -> tuple[Tensor, Tensor]:
+        scores = jacrev(self._standard_likelihood_strategy.log_probs_pointwise)(
+            parameters
+        )
+        print(f"Size of scores: {scores.size}")
+        total_score = torch.sum(scores, dim=0)
+        return scores, total_score
+
+    def _estimate_covariance(self, scores: Tensor, total_score: Tensor) -> Tensor:
+        mean_score = total_score / self._num_data_points
+
+        def _vmap_calculate_covariance(score) -> Tensor:
+            deviation = torch.unsqueeze(score - mean_score, dim=0)
+            return torch.matmul(torch.transpose(deviation, 0, 1), deviation)
+
+        covariances = vmap(_vmap_calculate_covariance)(scores)
+        return torch.mean(covariances, dim=0)
 
 
 class NoiseAndModelErrorLikelihoodStrategy:
@@ -211,6 +272,35 @@ def create_standard_ppinn_likelihood_for_noise(
     )
     return StandardPPINNLikelihood(
         likelihood_strategy=likelihood_strategy,
+        device=device,
+    )
+
+
+def create_standard_ppinn_q_likelihood_for_noise(
+    model: StandardAnsatz,
+    num_model_parameters: int,
+    data: CalibrationData,
+    device: Device,
+) -> StandardPPINNLikelihood:
+    preprocessed_data = preprocess_calibration_data(data)
+    residual_calculator = StandardResidualCalculator(
+        model=model,
+        data=preprocessed_data,
+        device=device,
+    )
+    standard_likelihood_strategy = NoiseLikelihoodStrategy(
+        residual_calculator=residual_calculator,
+        data=preprocessed_data,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
+    q_likelihood_strategy = NoiseQLikelihoodStrategy(
+        standard_likelihood_strategy=standard_likelihood_strategy,
+        data=preprocessed_data,
+        device=device,
+    )
+    return StandardPPINNLikelihood(
+        likelihood_strategy=q_likelihood_strategy,
         device=device,
     )
 
