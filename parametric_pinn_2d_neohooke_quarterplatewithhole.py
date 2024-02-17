@@ -24,6 +24,7 @@ from parametricpinn.calibration import (
 )
 from parametricpinn.calibration.bayesianinference.likelihoods import (
     create_standard_ppinn_likelihood_for_noise,
+    create_standard_ppinn_q_likelihood_for_noise,
     create_standard_ppinn_likelihood_for_noise_and_model_error,
 )
 from parametricpinn.calibration.bayesianinference.plot import (
@@ -100,7 +101,7 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-consider_model_error = False
+consider_model_error = True
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -505,10 +506,16 @@ def calibration_step() -> None:
             ],
             device=device,
         ).to(device)
-        likelihood = create_standard_ppinn_likelihood_for_noise_and_model_error(
+        # likelihood = create_standard_ppinn_likelihood_for_noise_and_model_error(
+        #     model=model,
+        #     num_model_parameters=num_material_parameters,
+        #     model_error_gp=model_error_gp,
+        #     data=data,
+        #     device=device,
+        # )
+        likelihood = create_standard_ppinn_q_likelihood_for_noise(
             model=model,
             num_model_parameters=num_material_parameters,
-            model_error_gp=model_error_gp,
             data=data,
             device=device,
         )

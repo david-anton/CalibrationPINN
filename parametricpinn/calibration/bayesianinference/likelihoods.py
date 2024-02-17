@@ -116,16 +116,19 @@ class NoiseQLikelihoodStrategy:
         self,
         standard_likelihood_strategy: NoiseLikelihoodStrategy,
         data: PreprocessedCalibrationData,
+        num_model_parameters: int,
         device: Device,
     ) -> None:
         self._standard_likelihood_strategy = standard_likelihood_strategy
         self._standard_deviation_noise = data.std_noise
         self._num_data_points = data.num_data_points
         self._num_flattened_outputs = data.num_data_points * data.dim_outputs
+        self._num_model_parameters = num_model_parameters
         self._device = device
 
     def log_prob(self, parameters: Tensor) -> Tensor:
-        return self._calibrated_log_likelihood(parameters)
+        model_parameters = parameters[: self._num_model_parameters]
+        return self._calibrated_log_likelihood(model_parameters)
 
     def _calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
         Q = self._determine_q(parameters)
@@ -149,7 +152,6 @@ class NoiseQLikelihoodStrategy:
         scores = jacrev(self._standard_likelihood_strategy.log_probs_pointwise)(
             parameters
         )
-        print(f"Size of scores: {scores.size}")
         total_score = torch.sum(scores, dim=0)
         return scores, total_score
 
@@ -297,6 +299,7 @@ def create_standard_ppinn_q_likelihood_for_noise(
     q_likelihood_strategy = NoiseQLikelihoodStrategy(
         standard_likelihood_strategy=standard_likelihood_strategy,
         data=preprocessed_data,
+        num_model_parameters=num_model_parameters,
         device=device,
     )
     return StandardPPINNLikelihood(
