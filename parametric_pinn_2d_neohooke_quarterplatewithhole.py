@@ -480,10 +480,10 @@ def calibration_step() -> None:
         std_noise=std_noise,
     )
 
-    prior_mean_bulk_modulus = 8000
-    prior_std_bulk_modulus = 200
-    prior_mean_shear_modulus = 600
-    prior_std_shear_modulus = 50
+    prior_mean_bulk_modulus = 8000.0
+    prior_std_bulk_modulus = 200.0
+    prior_mean_shear_modulus = 600.0
+    prior_std_shear_modulus = 50.0
     prior_bulk_modulus = create_univariate_normal_distributed_prior(
         mean=prior_mean_bulk_modulus,
         standard_deviation=prior_std_bulk_modulus,
