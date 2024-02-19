@@ -6,11 +6,15 @@ from .bayesianinference.mcmc import (
 )
 from .calibration import calibrate
 from .leastsquares import LeastSquaresConfig
+from .validation import test_coverage, test_least_squares_calibration
 
 __all__ = [
-    "CalibrationData" "EfficientNUTSConfig",
+    "CalibrationData",
+    "EfficientNUTSConfig",
     "HamiltonianConfig",
     "MetropolisHastingsConfig",
     "LeastSquaresConfig",
     "calibrate",
+    "test_coverage",
+    "test_least_squares_calibration",
 ]

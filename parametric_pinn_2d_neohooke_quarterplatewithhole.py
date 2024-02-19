@@ -10,6 +10,7 @@ from parametricpinn.ansatz import (
     StandardAnsatz,
     create_standard_normalized_hbc_ansatz_quarter_plate_with_hole,
 )
+from parametricpinn.bayesian.likelihood import Likelihood
 from parametricpinn.bayesian.prior import (
     create_univariate_normal_distributed_prior,
     multiply_priors,
@@ -21,6 +22,8 @@ from parametricpinn.calibration import (
     LeastSquaresConfig,
     MetropolisHastingsConfig,
     calibrate,
+    test_coverage,
+    test_least_squares_calibration,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods import (
     create_standard_ppinn_likelihood_for_noise,
@@ -62,7 +65,7 @@ from parametricpinn.training.training_standard_neohooke_quarterplatewithhole imp
     TrainingConfiguration,
     train_parametric_pinn,
 )
-from parametricpinn.types import Tensor
+from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
 retrain_parametric_pinn = False
@@ -103,7 +106,7 @@ batch_size_valid = num_samples_valid
 # Calibration
 consider_model_error = True
 use_least_squares = True
-use_random_walk_metropolis_hasting = True
+use_random_walk_metropolis_hasting = False
 use_hamiltonian = False
 use_efficient_nuts = False
 # FEM
@@ -417,73 +420,14 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    exact_bulk_modulus = 7800
-    exact_shear_modulus = 670
     num_data_points = 128
     std_noise = 5 * 1e-4
-
-    def generate_calibration_data() -> tuple[Tensor, Tensor]:
-        domain_config = create_fem_domain_config()
-        problem_config = NeoHookeProblemConfig(
-            material_parameters=(exact_bulk_modulus, exact_shear_modulus)
-        )
-        simulation_config = SimulationConfig(
-            domain_config=domain_config,
-            problem_config=problem_config,
-            volume_force_x=volume_force_x,
-            volume_force_y=volume_force_y,
-        )
-        simulation_results = run_simulation(
-            simulation_config=simulation_config,
-            save_results=False,
-            save_metadata=False,
-            output_subdir=output_subdirectory,
-            project_directory=project_directory,
-        )
-        total_size_data = simulation_results.coordinates_x.shape[0]
-        random_indices = torch.randint(
-            low=0, high=total_size_data + 1, size=(num_data_points,)
-        )
-        coordinates_x = torch.tensor(simulation_results.coordinates_x)[random_indices]
-        coordinates_y = torch.tensor(simulation_results.coordinates_y)[random_indices]
-        coordinates = torch.concat((coordinates_x, coordinates_y), dim=1).to(device)
-        clean_displacements_x = torch.tensor(simulation_results.displacements_x)[
-            random_indices
-        ]
-        clean_displacements_y = torch.tensor(simulation_results.displacements_y)[
-            random_indices
-        ]
-        noisy_displacements_x = clean_displacements_x + torch.normal(
-            mean=0.0, std=std_noise, size=clean_displacements_x.size()
-        )
-        noisy_displacements_y = clean_displacements_y + torch.normal(
-            mean=0.0, std=std_noise, size=clean_displacements_y.size()
-        )
-        noisy_displacements = torch.concat(
-            (noisy_displacements_x, noisy_displacements_y), dim=1
-        ).to(device)
-        return coordinates, noisy_displacements
-
-    name_model_parameters_file = "model_parameters"
-    model = load_model(
-        model=ansatz,
-        name_model_parameters_file=name_model_parameters_file,
-        input_subdir=output_subdirectory,
-        project_directory=project_directory,
-        device=device,
-    )
-
-    coordinates, noisy_displacements = generate_calibration_data()
-    data = CalibrationData(
-        inputs=coordinates,
-        outputs=noisy_displacements,
-        std_noise=std_noise,
-    )
-
+    num_test_cases = 3
     prior_mean_bulk_modulus = 8000.0
     prior_std_bulk_modulus = 200.0
     prior_mean_shear_modulus = 600.0
     prior_std_shear_modulus = 50.0
+
     prior_bulk_modulus = create_univariate_normal_distributed_prior(
         mean=prior_mean_bulk_modulus,
         standard_deviation=prior_std_bulk_modulus,
@@ -494,273 +438,274 @@ def calibration_step() -> None:
         standard_deviation=prior_std_shear_modulus,
         device=device,
     )
-    initial_material_parameters = torch.tensor(
+    prior = multiply_priors([prior_bulk_modulus, prior_shear_modulus])
+    parameter_names = ("bulk modulus", "shear modulus")
+    initial_parameters = torch.tensor(
         [prior_mean_bulk_modulus, prior_mean_shear_modulus], device=device
     )
 
-    # if consider_model_error:
-    #     model_error_gp = IndependentMultiOutputGP(
-    #         independent_gps=[
-    #             ZeroMeanScaledRBFKernelGP(device),
-    #             ZeroMeanScaledRBFKernelGP(device),
-    #         ],
-    #         device=device,
-    #     ).to(device)
-    #     likelihood = create_standard_ppinn_likelihood_for_noise_and_model_error(
-    #         model=model,
-    #         num_model_parameters=num_material_parameters,
-    #         model_error_gp=model_error_gp,
-    #         data=data,
-    #         device=device,
-    #     )
+    def generate_calibration_data() -> tuple[tuple[CalibrationData], NPArray]:
+        true_bulk_moduli = [
+            prior_bulk_modulus.sample().item() for _ in range(num_test_cases)
+        ]
+        true_shear_moduli = [
+            prior_shear_modulus.sample().item() for _ in range(num_test_cases)
+        ]
 
-    #     model_error_prior = model_error_gp.get_uninformed_parameters_prior(
-    #         device,
-    #         upper_limit_output_scale=2.0,
-    #         upper_limit_length_scale=2.0,
-    #     )
-    #     prior = multiply_priors(
-    #         [prior_bulk_modulus, prior_shear_modulus, model_error_prior]
-    #     )
+        domain_config = create_fem_domain_config()
+        problem_configs = [
+            NeoHookeProblemConfig(material_parameters=(bulk_modulus, shear_modulus))
+            for bulk_modulus, shear_modulus in zip(
+                (true_bulk_moduli, true_shear_moduli)
+            )
+        ]
+        simulation_configs = [
+            SimulationConfig(
+                domain_config=domain_config,
+                problem_config=problem_config,
+                volume_force_x=volume_force_x,
+                volume_force_y=volume_force_y,
+            )
+            for problem_config in problem_configs
+        ]
 
-    #     parameter_names = (
-    #         "bulk modulus",
-    #         "shear modulus",
-    #         "error output scale 1",
-    #         "error length scale 1",
-    #         "error output scale 2",
-    #         "error length scale 2",
-    #     )
-    #     true_parameters = (
-    #         exact_bulk_modulus,
-    #         exact_shear_modulus,
-    #         None,
-    #         None,
-    #         None,
-    #         None,
-    #     )
-    #     initial_gp_output_scale = 1.0
-    #     initial_gp_length_scale = 1.0
-    #     initial_model_error_parameters = torch.tensor(
-    #         [
-    #             initial_gp_output_scale,
-    #             initial_gp_length_scale,
-    #             initial_gp_output_scale,
-    #             initial_gp_length_scale,
-    #         ],
-    #         dtype=torch.float64,
-    #         device=device,
-    #     )
-    #     initial_parameters = torch.concat(
-    #         [initial_material_parameters, initial_model_error_parameters]
-    #     )
-    # else:
-    #     likelihood = create_standard_ppinn_likelihood_for_noise(
-    #         model=model,
-    #         num_model_parameters=num_material_parameters,
-    #         data=data,
-    #         device=device,
-    #     )
-    #     prior = multiply_priors([prior_bulk_modulus, prior_shear_modulus])
+        def generate_one_calibration_dataset(
+            simulation_config: SimulationConfig,
+        ) -> CalibrationData:
+            simulation_results = run_simulation(
+                simulation_config=simulation_config,
+                save_results=False,
+                save_metadata=False,
+                output_subdir=output_subdirectory,
+                project_directory=project_directory,
+            )
+            total_size_data = simulation_results.coordinates_x.shape[0]
+            random_indices = torch.randint(
+                low=0, high=total_size_data + 1, size=(num_data_points,)
+            )
+            coordinates_x = torch.tensor(simulation_results.coordinates_x)[
+                random_indices
+            ]
+            coordinates_y = torch.tensor(simulation_results.coordinates_y)[
+                random_indices
+            ]
+            coordinates = torch.concat((coordinates_x, coordinates_y), dim=1).to(device)
+            clean_displacements_x = torch.tensor(simulation_results.displacements_x)[
+                random_indices
+            ]
+            clean_displacements_y = torch.tensor(simulation_results.displacements_y)[
+                random_indices
+            ]
+            noisy_displacements_x = clean_displacements_x + torch.normal(
+                mean=0.0, std=std_noise, size=clean_displacements_x.size()
+            )
+            noisy_displacements_y = clean_displacements_y + torch.normal(
+                mean=0.0, std=std_noise, size=clean_displacements_y.size()
+            )
+            noisy_displacements = torch.concat(
+                (noisy_displacements_x, noisy_displacements_y), dim=1
+            ).to(device)
+            return CalibrationData(
+                inputs=coordinates,
+                outputs=noisy_displacements,
+                std_noise=std_noise,
+            )
 
-    #     parameter_names = ("bulk modulus", "shear modulus")
-    #     true_parameters = (exact_bulk_modulus, exact_shear_modulus)
-    #     initial_parameters = initial_material_parameters
+        calibration_data = (
+            generate_one_calibration_dataset(config) for config in simulation_configs
+        )
+        shape = (-1, 1)
+        true_parameters = np.concatenate(
+            (
+                np.reshape(np.array(true_bulk_moduli), shape),
+                np.reshape(np.array(true_shear_moduli), shape),
+            ),
+            dim=1,
+        )
+        return calibration_data, true_parameters
+
+    name_model_parameters_file = "model_parameters"
+    model = load_model(
+        model=ansatz,
+        name_model_parameters_file=name_model_parameters_file,
+        input_subdir=output_subdirectory,
+        project_directory=project_directory,
+        device=device,
+    )
+
+    calibration_data, true_parameters = generate_calibration_data()
 
     if consider_model_error:
-        likelihood = create_standard_ppinn_q_likelihood_for_noise(
-            model=model,
-            num_model_parameters=num_material_parameters,
-            data=data,
-            device=device,
-        )
-    else:
-        likelihood = create_standard_ppinn_likelihood_for_noise(
-            model=model,
-            num_model_parameters=num_material_parameters,
-            data=data,
-            device=device,
-        )
-
-    prior = multiply_priors([prior_bulk_modulus, prior_shear_modulus])
-    parameter_names = ("bulk modulus", "shear modulus")
-    true_parameters = (exact_bulk_modulus, exact_shear_modulus)
-    initial_parameters = initial_material_parameters
-
-    mean_displacements = torch.mean(torch.absolute(noisy_displacements), dim=0)
-    residual_weights = 1 / mean_displacements
-    print(f"Used residual weights: {residual_weights}")
-
-    least_squares_config = LeastSquaresConfig(
-        ansatz=model,
-        calibration_data=data,
-        initial_parameters=initial_material_parameters,
-        num_iterations=1000,
-        resdiual_weights=residual_weights.to(device)
-        .repeat((num_data_points, 1))
-        .ravel(),
-    )
-    std_proposal_density_bulk_modulus = 1.0
-    std_proposal_density_shear_modulus = 0.5
-
-    # if consider_model_error:
-    #     std_proposal_density_gp_output_scale = 1e-3
-    #     std_proposal_density_gp_length_scale = 1e-3
-    #     cov_proposal_density = torch.diag(
-    #         torch.tensor(
-    #             [
-    #                 std_proposal_density_bulk_modulus,
-    #                 std_proposal_density_shear_modulus,
-    #                 std_proposal_density_gp_output_scale,
-    #                 std_proposal_density_gp_length_scale,
-    #                 std_proposal_density_gp_output_scale,
-    #                 std_proposal_density_gp_length_scale,
-    #             ],
-    #             dtype=torch.float64,
-    #             device=device,
-    #         )
-    #         ** 2
-    #     )
-    # else:
-    # cov_proposal_density = torch.diag(
-    #     torch.tensor(
-    #         [
-    #             std_proposal_density_bulk_modulus,
-    #             std_proposal_density_shear_modulus,
-    #         ],
-    #         dtype=torch.float64,
-    #         device=device,
-    #     )
-    #     ** 2
-    # )
-
-    cov_proposal_density = torch.diag(
-        torch.tensor(
-            [
-                std_proposal_density_bulk_modulus,
-                std_proposal_density_shear_modulus,
-            ],
-            dtype=torch.float64,
-            device=device,
-        )
-        ** 2
-    )
-
-    mcmc_config_mh = MetropolisHastingsConfig(
-        likelihood=likelihood,
-        prior=prior,
-        initial_parameters=initial_parameters,
-        num_iterations=int(1e5),
-        num_burn_in_iterations=int(1e5),
-        cov_proposal_density=cov_proposal_density,
-    )
-    mcmc_config_h = HamiltonianConfig(
-        likelihood=likelihood,
-        prior=prior,
-        initial_parameters=initial_parameters,
-        num_iterations=int(1e4),
-        num_burn_in_iterations=int(1e4),
-        num_leabfrog_steps=256,
-        leapfrog_step_sizes=torch.tensor([1, 0.01], device=device),
-    )
-    mcmc_config_enuts = EfficientNUTSConfig(
-        likelihood=likelihood,
-        prior=prior,
-        initial_parameters=initial_parameters,
-        num_iterations=int(1e4),
-        num_burn_in_iterations=int(1e4),
-        max_tree_depth=8,
-        leapfrog_step_sizes=torch.tensor([1, 0.01], device=device),
-    )
-    if consider_model_error:
+        likelihoods = [
+            create_standard_ppinn_q_likelihood_for_noise(
+                model=model,
+                num_model_parameters=num_material_parameters,
+                data=data,
+                device=device,
+            )
+            for data in calibration_data
+        ]
         output_subdir_calibration = os.path.join(
             output_subdirectory, "calibration_with_model_error"
         )
     else:
+        likelihoods = [
+            create_standard_ppinn_likelihood_for_noise(
+                model=model,
+                num_model_parameters=num_material_parameters,
+                data=data,
+                device=device,
+            )
+            for data in calibration_data
+        ]
         output_subdir_calibration = os.path.join(
             output_subdirectory, "calibration_without_model_error"
         )
+
+    def set_up_least_squares_configs(
+        calibration_data: tuple[CalibrationData],
+    ) -> tuple[LeastSquaresConfig]:
+        configs = []
+        for data in calibration_data:
+            mean_displacements = torch.mean(torch.absolute(data.outputs), dim=0)
+            residual_weights = (
+                (1 / mean_displacements).to(device).repeat((num_data_points, 1)).ravel()
+            )
+            config = LeastSquaresConfig(
+                ansatz=model,
+                calibration_data=data,
+                initial_parameters=initial_parameters,
+                num_iterations=1000,
+                resdiual_weights=residual_weights,
+            )
+            configs.append(config)
+        return tuple(configs)
+
+    def set_up_metropolis_hastings_configs(
+        likelihoods: tuple[Likelihood],
+    ) -> tuple[MetropolisHastingsConfig]:
+        configs = []
+        for likelihood in likelihoods:
+            std_proposal_density_bulk_modulus = 1.0
+            std_proposal_density_shear_modulus = 0.5
+            cov_proposal_density = torch.diag(
+                torch.tensor(
+                    [
+                        std_proposal_density_bulk_modulus,
+                        std_proposal_density_shear_modulus,
+                    ],
+                    dtype=torch.float64,
+                    device=device,
+                )
+                ** 2
+            )
+            config = MetropolisHastingsConfig(
+                likelihood=likelihood,
+                prior=prior,
+                initial_parameters=initial_parameters,
+                num_iterations=int(1e5),
+                num_burn_in_iterations=int(1e5),
+                cov_proposal_density=cov_proposal_density,
+            )
+            configs.append(config)
+        return tuple(configs)
+
+    def set_up_hamiltonian_configs(
+        likelihoods: tuple[Likelihood],
+    ) -> tuple[HamiltonianConfig]:
+        configs = []
+        for likelihood in likelihoods:
+            config = HamiltonianConfig(
+                likelihood=likelihood,
+                prior=prior,
+                initial_parameters=initial_parameters,
+                num_iterations=int(1e4),
+                num_burn_in_iterations=int(1e4),
+                num_leabfrog_steps=256,
+                leapfrog_step_sizes=torch.tensor([1, 0.01], device=device),
+            )
+            configs.append(config)
+        return tuple(configs)
+
+    def set_up_efficient_nuts_configs_configs(
+        likelihoods: tuple[Likelihood],
+    ) -> tuple[EfficientNUTSConfig]:
+        configs = []
+        for likelihood in likelihoods:
+            config = EfficientNUTSConfig(
+                likelihood=likelihood,
+                prior=prior,
+                initial_parameters=initial_parameters,
+                num_iterations=int(1e4),
+                num_burn_in_iterations=int(1e4),
+                max_tree_depth=8,
+                leapfrog_step_sizes=torch.tensor([1, 0.01], device=device),
+            )
+            configs.append(config)
+        return tuple(configs)
+
     if use_least_squares:
+        configs = set_up_least_squares_configs(calibration_data)
         start = perf_counter()
-        identified_parameters, _ = calibrate(
-            calibration_config=least_squares_config,
+        test_least_squares_calibration(
+            calibration_configs=configs,
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            output_subdir=os.path.join(output_subdir_calibration, "least_squares"),
+            project_directory=project_directory,
             device=device,
         )
         end = perf_counter()
         time = end - start
-        identified_bulk_modulus = identified_parameters[0]
-        identified_shear_modulus = identified_parameters[1]
-        print(
-            f"Identified parameters : bulk modulus = {identified_bulk_modulus}, shear modulus = {identified_shear_modulus}"
-        )
-        print(f"Run time least squares: {time}")
+        print(f"Run time least squares test: {time}")
         print("############################################################")
     if use_random_walk_metropolis_hasting:
+        configs = set_up_metropolis_hastings_configs(likelihoods)
         start = perf_counter()
-        posterior_moments_mh, samples_mh = calibrate(
-            calibration_config=mcmc_config_mh,
+        test_coverage(
+            calibration_configs=configs,
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            output_subdir=os.path.join(
+                output_subdir_calibration, "metropolis_hastings"
+            ),
+            project_directory=project_directory,
             device=device,
         )
         end = perf_counter()
         time = end - start
-        print(
-            f"Identified moments (normal distribution assumed): {posterior_moments_mh}"
-        )
-        print(f"Run time Metropolis-Hasting: {time}")
+        print(f"Run time Metropolis-Hasting coverage test: {time}")
         print("############################################################")
-        plot_posterior_normal_distributions(
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
-            moments=posterior_moments_mh,
-            samples=samples_mh,
-            mcmc_algorithm="metropolis_hastings",
-            output_subdir=output_subdir_calibration,
-            project_directory=project_directory,
-        )
     if use_hamiltonian:
+        configs = set_up_hamiltonian_configs(likelihoods)
         start = perf_counter()
-        posterior_moments_h, samples_h = calibrate(
-            calibration_config=mcmc_config_h,
+        test_coverage(
+            calibration_configs=configs,
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            output_subdir=os.path.join(output_subdir_calibration, "hamiltonian"),
+            project_directory=project_directory,
             device=device,
         )
         end = perf_counter()
         time = end - start
-        print(
-            f"Identified moments (normal distribution assumed): {posterior_moments_h}"
-        )
-        print(f"Run time Hamiltonian: {time}")
+        print(f"Run time Hamiltonian coverage test: {time}")
         print("############################################################")
-        plot_posterior_normal_distributions(
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
-            moments=posterior_moments_h,
-            samples=samples_h,
-            mcmc_algorithm="hamiltonian",
-            output_subdir=output_subdir_calibration,
-            project_directory=project_directory,
-        )
     if use_efficient_nuts:
+        configs = set_up_efficient_nuts_configs_configs(likelihoods)
         start = perf_counter()
-        posterior_moments_enuts, samples_enuts = calibrate(
-            calibration_config=mcmc_config_enuts,
+        test_coverage(
+            calibration_configs=configs,
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            output_subdir=os.path.join(output_subdir_calibration, "efficient_nuts"),
+            project_directory=project_directory,
             device=device,
         )
         end = perf_counter()
         time = end - start
-        print(
-            f"Identified moments (normal distribution assumed): {posterior_moments_enuts}"
-        )
-        print(f"Run time efficient NUTS: {time}")
+        print(f"Run time efficient NUTS coverage test: {time}")
         print("############################################################")
-        plot_posterior_normal_distributions(
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
-            moments=posterior_moments_enuts,
-            samples=samples_enuts,
-            mcmc_algorithm="efficient_nuts",
-            output_subdir=output_subdir_calibration,
-            project_directory=project_directory,
-        )
     print("Calibration finished.")
 
 

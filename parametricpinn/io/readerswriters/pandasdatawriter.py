@@ -19,7 +19,7 @@ class PandasDataWriter:
         data: PDDataFrame,
         file_name: str,
         subdir_name: str,
-        header: Union[bool, list[str]] = False,
+        header: Union[bool, list[str], tuple[str, ...]] = False,
         index: bool = False,
         save_to_input_dir: bool = False,
     ) -> None:
