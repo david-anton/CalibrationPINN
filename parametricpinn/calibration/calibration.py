@@ -24,15 +24,13 @@ CalibrationAlgorithmClosure: TypeAlias = Callable[[], CalibrationOutput]
 
 
 @overload
-def calibrate(calibration_config: MCMCConfig, device: Device) -> MCMCOutput:
-    ...
+def calibrate(calibration_config: MCMCConfig, device: Device) -> MCMCOutput: ...
 
 
 @overload
 def calibrate(
     calibration_config: LeastSquaresConfig, device: Device
-) -> LeastSquaresOutput:
-    ...
+) -> LeastSquaresOutput: ...
 
 
 def calibrate(
@@ -63,7 +61,6 @@ def _create_calibration_algorithm(
             )
 
         return mcmc_mh_algorithm
-
     elif isinstance(calibration_config, HamiltonianConfig):
         config_h = cast(HamiltonianConfig, calibration_config)
         print("MCMC algorithm used: Hamiltonian")

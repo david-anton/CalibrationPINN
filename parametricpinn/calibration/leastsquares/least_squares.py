@@ -78,6 +78,7 @@ def least_squares(
     residual_weights: Tensor,
     device: Device,
 ) -> LeastSquaresOutput:
+    initial_parameters = initial_parameters.clone()
     preprocessed_data = preprocess_calibration_data(calibration_data)
     model_closure = ModelClosure(ansatz, initial_parameters, preprocessed_data, device)
     flattened_outputs = preprocessed_data.outputs.ravel().detach().to(device)

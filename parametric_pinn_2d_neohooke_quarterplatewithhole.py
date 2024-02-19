@@ -422,11 +422,11 @@ def calibration_step() -> None:
     print("Start calibration ...")
     num_data_points = 128
     std_noise = 5 * 1e-4
-    num_test_cases = 3
-    prior_mean_bulk_modulus = 8000.0
+    num_test_cases = 10
+    prior_mean_bulk_modulus = 6000.0
     prior_std_bulk_modulus = 200.0
-    prior_mean_shear_modulus = 600.0
-    prior_std_shear_modulus = 50.0
+    prior_mean_shear_modulus = 1000.0
+    prior_std_shear_modulus = 100.0
 
     prior_bulk_modulus = create_univariate_normal_distributed_prior(
         mean=prior_mean_bulk_modulus,
@@ -444,7 +444,7 @@ def calibration_step() -> None:
         [prior_mean_bulk_modulus, prior_mean_shear_modulus], device=device
     )
 
-    def generate_calibration_data() -> tuple[tuple[CalibrationData], NPArray]:
+    def generate_calibration_data() -> tuple[tuple[CalibrationData, ...], NPArray]:
         true_bulk_moduli = [
             prior_bulk_modulus.sample().item() for _ in range(num_test_cases)
         ]
@@ -455,9 +455,7 @@ def calibration_step() -> None:
         domain_config = create_fem_domain_config()
         problem_configs = [
             NeoHookeProblemConfig(material_parameters=(bulk_modulus, shear_modulus))
-            for bulk_modulus, shear_modulus in zip(
-                (true_bulk_moduli, true_shear_moduli)
-            )
+            for bulk_modulus, shear_modulus in zip(true_bulk_moduli, true_shear_moduli)
         ]
         simulation_configs = [
             SimulationConfig(
@@ -511,16 +509,16 @@ def calibration_step() -> None:
                 std_noise=std_noise,
             )
 
-        calibration_data = (
+        calibration_data = tuple(
             generate_one_calibration_dataset(config) for config in simulation_configs
         )
         shape = (-1, 1)
         true_parameters = np.concatenate(
             (
-                np.reshape(np.array(true_bulk_moduli), shape),
-                np.reshape(np.array(true_shear_moduli), shape),
+                np.reshape(np.array(true_bulk_moduli, dtype=np.float64), shape),
+                np.reshape(np.array(true_shear_moduli, dtype=np.float64), shape),
             ),
-            dim=1,
+            axis=1,
         )
         return calibration_data, true_parameters
 

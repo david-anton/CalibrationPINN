@@ -12,7 +12,7 @@ from parametricpinn.calibration.leastsquares import (
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import PandasDataWriter
-from parametricpinn.types import Device, NPArray, Tensor
+from parametricpinn.types import Device, NPArray
 
 ParametersList: TypeAlias = list[NPArray]
 
@@ -23,7 +23,7 @@ def test_coverage() -> None:
 
 
 def test_least_squares_calibration(
-    calibration_configs: tuple[LeastSquaresConfig],
+    calibration_configs: tuple[LeastSquaresConfig, ...],
     parameter_names: tuple[str],
     true_parameters: NPArray,
     output_subdir: str,
@@ -37,18 +37,20 @@ def test_least_squares_calibration(
             identified_parameters, _ = calibrate(calibration_config, device)
             return identified_parameters
 
-        return np.concatenate(
-            [calibrate_once(config) for config in calibration_configs], axis=0
+        return np.stack(
+            tuple(calibrate_once(config) for config in calibration_configs), axis=0
         )
 
-    def calculate_relative_errors(identified_parameters: NPArray) -> NPArray:
-        return ((identified_parameters - true_parameters) / true_parameters) * 100.0
+    def calculate_absolute_relative_errors(identified_parameters: NPArray) -> NPArray:
+        return (
+            np.absolute(identified_parameters - true_parameters) / true_parameters
+        ) * 100.0
 
     def save_results(identified_parameters: NPArray, relative_errors: NPArray) -> None:
         def compile_header() -> tuple[str, ...]:
             true_parameter_names = [f"true {p}" for p in parameter_names]
             identified_parameter_names = [f"identified {p}" for p in parameter_names]
-            relative_error_names = [f"rel. error {p} [%]" for p in parameter_names]
+            relative_error_names = [f"abs. rel. error {p} [%]" for p in parameter_names]
             return tuple(
                 true_parameter_names + identified_parameter_names + relative_error_names
             )
@@ -70,10 +72,10 @@ def test_least_squares_calibration(
 
     def save_results_summary(relative_errors: NPArray) -> None:
         def compile_header() -> tuple[str, ...]:
-            return tuple(f"rel. error {p} [%]" for p in parameter_names)
+            return ("mean", "standard error")
 
         def compile_index() -> tuple[str, ...]:
-            return ("mean", "standard error")
+            return tuple(f"abs. rel. error {p} [%]" for p in parameter_names)
 
         def compile_results() -> NPArray:
             means = np.mean(relative_errors, axis=0)
@@ -100,7 +102,7 @@ def test_least_squares_calibration(
             index=True,
         )
 
-    identified_parameters = identify_parameters()
-    relative_errors = calculate_relative_errors(identified_parameters)
-    save_results(identified_parameters, relative_errors)
-    save_results_summary(relative_errors)
+    identified_parameters_list = identify_parameters()
+    abs_relative_errors = calculate_absolute_relative_errors(identified_parameters_list)
+    save_results(identified_parameters_list, abs_relative_errors)
+    save_results_summary(abs_relative_errors)
