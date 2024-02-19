@@ -9,6 +9,7 @@ from parametricpinn.calibration.bayesianinference.mcmc.base import (
     IsAccepted,
     MCMCOutput,
     Parameters,
+    Probability,
     Samples,
     _log_unnormalized_posterior,
     evaluate_acceptance_ratio,
@@ -51,7 +52,6 @@ def mcmc_metropolishastings(
     device: Device,
 ) -> MCMCOutput:
     num_total_iterations = expand_num_iterations(num_iterations, num_burn_in_iterations)
-
     log_unnorm_posterior = _log_unnormalized_posterior(likelihood, prior)
 
     def compile_proposal_density(
@@ -72,48 +72,70 @@ def mcmc_metropolishastings(
         initial_parameters, cov_proposal_density
     )
 
+    @dataclass
+    class CurrentParameters:
+        parameters: Parameters
+        log_unnorm_posterior_prob: Probability
+        is_accepted: IsAccepted
+
     def metropolis_hastings_sampler(
-        parameters: Parameters,
-    ) -> tuple[Parameters, IsAccepted]:
+        current_parameters: CurrentParameters,
+    ) -> CurrentParameters:
+        @dataclass
+        class MHUpdateInput:
+            parameters: Parameters
+            log_unnorm_posterior_prob: Probability
+            next_parameters: Parameters
+
         def propose_next_parameters(parameters: Parameters) -> Parameters:
             return parameters + proposal_density.sample()
 
-        @dataclass
-        class MHUpdateState:
-            parameters: Parameters
-            next_parameters: Parameters
+        def metropolis_hastings_update(upate_input: MHUpdateInput) -> CurrentParameters:
+            log_unnorm_posterior_prob = upate_input.log_unnorm_posterior_prob
+            next_parameters = upate_input.next_parameters
 
-        def metropolis_hastings_update(
-            state: MHUpdateState,
-        ) -> tuple[Parameters, IsAccepted]:
-            log_acceptance_probability = log_unnorm_posterior(
-                state.next_parameters
-            ) - log_unnorm_posterior(state.parameters)
+            next_log_unnorm_posterior_prob = log_unnorm_posterior(next_parameters)
+            log_acceptance_prob = (
+                next_log_unnorm_posterior_prob - log_unnorm_posterior_prob
+            )
 
-            next_parameters = state.next_parameters
             is_accepted = True
-            if not log_bernoulli(log_acceptance_probability, device):
-                next_parameters = state.parameters
+            if not log_bernoulli(log_acceptance_prob, device):
+                next_parameters = upate_input.parameters
+                next_log_unnorm_posterior_prob = log_unnorm_posterior_prob
                 is_accepted = False
-            return next_parameters, is_accepted
 
+            return CurrentParameters(
+                parameters=next_parameters,
+                log_unnorm_posterior_prob=next_log_unnorm_posterior_prob,
+                is_accepted=is_accepted,
+            )
+
+        parameters = current_parameters.parameters
+        log_unnorm_posterior_prob = current_parameters.log_unnorm_posterior_prob
         next_parameters = propose_next_parameters(parameters)
-        mh_update_state = MHUpdateState(
+        update_input = MHUpdateInput(
             parameters=parameters,
+            log_unnorm_posterior_prob=log_unnorm_posterior_prob,
             next_parameters=next_parameters,
         )
-        return metropolis_hastings_update(mh_update_state)
+        return metropolis_hastings_update(update_input)
 
-    def one_iteration(parameters: Tensor) -> tuple[Tensor, bool]:
-        return metropolis_hastings_sampler(parameters)
+    def one_iteration(current_parameters: CurrentParameters) -> CurrentParameters:
+        return metropolis_hastings_sampler(current_parameters)
 
     samples_list: Samples = []
     num_accepted_proposals = 0
     parameters = initial_parameters.to(device)
+    current_parameters = CurrentParameters(
+        parameters=parameters,
+        log_unnorm_posterior_prob=log_unnorm_posterior(parameters),
+        is_accepted=False,
+    )
     for i in range(num_total_iterations):
-        parameters, is_accepted = one_iteration(parameters)
-        samples_list.append(parameters)
-        if i > num_burn_in_iterations and is_accepted:
+        current_parameters = one_iteration(current_parameters)
+        samples_list.append(current_parameters.parameters)
+        if i > num_burn_in_iterations and current_parameters.is_accepted:
             num_accepted_proposals += 1
 
     samples_list = remove_burn_in_phase(
