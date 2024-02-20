@@ -11,7 +11,6 @@ from parametricpinn.ansatz.base import (
     StandardAnsatz,
     StandardNetworks,
 )
-from parametricpinn.calibration.base import PreprocessedCalibrationData
 from parametricpinn.calibration.bayesianinference.likelihoods import (
     BayesianPPINNLikelihood,
     NoiseAndModelErrorLikelihoodStrategy,
@@ -19,6 +18,7 @@ from parametricpinn.calibration.bayesianinference.likelihoods import (
     StandardPPINNLikelihood,
     StandardResidualCalculator,
 )
+from parametricpinn.calibration.data import PreprocessedCalibrationData
 from parametricpinn.errors import TestConfigurationError
 from parametricpinn.gps import IndependentMultiOutputGP, ZeroMeanScaledRBFKernelGP
 from parametricpinn.network import BFFNN, FFNN

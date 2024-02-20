@@ -5,13 +5,13 @@ import torch
 import torch.nn as nn
 
 from parametricpinn.ansatz import StandardAnsatz
-from parametricpinn.calibration.base import (
+from parametricpinn.calibration.config import CalibrationConfig
+from parametricpinn.calibration.data import (
     CalibrationData,
     Parameters,
     PreprocessedCalibrationData,
     preprocess_calibration_data,
 )
-from parametricpinn.calibration.config import CalibrationConfig
 from parametricpinn.calibration.utility import freeze_model
 from parametricpinn.types import Device, NPArray, Tensor
 

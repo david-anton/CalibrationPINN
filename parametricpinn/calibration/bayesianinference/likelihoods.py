@@ -4,7 +4,7 @@ import torch
 from torch.func import jacrev, vmap
 
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
-from parametricpinn.calibration.base import (
+from parametricpinn.calibration.data import (
     CalibrationData,
     PreprocessedCalibrationData,
     preprocess_calibration_data,

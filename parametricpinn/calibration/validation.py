@@ -9,6 +9,9 @@ from parametricpinn.calibration.bayesianinference.mcmc import MCMCConfig
 from parametricpinn.calibration.bayesianinference.mcmc.base import (
     MomentsMultivariateNormal,
 )
+from parametricpinn.calibration.bayesianinference.plot import (
+    plot_posterior_normal_distributions,
+)
 from parametricpinn.calibration.leastsquares import (
     LeastSquaresConfig,
     LeastSquaresOutput,
@@ -16,9 +19,6 @@ from parametricpinn.calibration.leastsquares import (
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import PandasDataWriter
 from parametricpinn.types import Device, NPArray
-from parametricpinn.calibration.bayesianinference.plot import (
-    plot_posterior_normal_distributions,
-)
 
 ParametersList: TypeAlias = list[NPArray]
 
@@ -171,7 +171,6 @@ def test_least_squares_calibration(
     project_directory: ProjectDirectory,
     device: Device,
 ) -> None:
-
     def calibrate_model() -> NPArray:
         def calibrate_once(calibration_config: LeastSquaresConfig) -> NPArray:
             identified_parameters, _ = calibrate(calibration_config, device)

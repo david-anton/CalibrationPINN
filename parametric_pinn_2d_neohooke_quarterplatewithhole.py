@@ -17,6 +17,7 @@ from parametricpinn.bayesian.prior import (
 )
 from parametricpinn.calibration import (
     CalibrationData,
+    CalibrationDataLoader2D,
     EfficientNUTSConfig,
     HamiltonianConfig,
     LeastSquaresConfig,
@@ -62,7 +63,7 @@ from parametricpinn.training.training_standard_neohooke_quarterplatewithhole imp
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 num_material_parameters = 2
 edge_length = 100.0
@@ -71,10 +72,14 @@ traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-min_bulk_modulus = 2000.0
-max_bulk_modulus = 10000.0
-min_shear_modulus = 500.0
-max_shear_modulus = 2500.0
+mean_bulk_modulus = 6000.0
+standard_deviation_bulk_modulus = 400.0
+min_bulk_modulus = mean_bulk_modulus - 3 * standard_deviation_bulk_modulus
+max_bulk_modulus = mean_bulk_modulus + 3 * standard_deviation_bulk_modulus
+mean_shear_modulus = 1000.0
+standard_deviation_shear_modulus = 200.0
+min_shear_modulus = mean_shear_modulus - 3 * standard_deviation_shear_modulus
+max_shear_modulus = mean_shear_modulus + 3 * standard_deviation_shear_modulus
 # Network
 layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 # Ansatz
@@ -90,9 +95,13 @@ number_training_epochs = 20000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
+# FEM
+fem_element_family = "Lagrange"
+fem_element_degree = 2
+fem_element_size = 0.2
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = "20240207_validation_data_neohooke_quarterplatewithhole_K_2k_10k_G_500_2500_edge_100_radius_10_traction_100_elementsize_02"
+regenerate_valid_data = True
+input_subdir_valid = f"20240220_validation_data_neohooke_quarterplatewithhole_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_edge_{edge_length}_radius_{radius}_traction_{traction_left_x}_elementsize_{fem_element_size}"
 num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
@@ -103,14 +112,10 @@ use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
 use_efficient_nuts = False
-# FEM
-fem_element_family = "Lagrange"
-fem_element_degree = 2
-fem_element_size = 0.2
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = 20240207
-output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_2k_10k_G_500_2500_col_64_bc_64_neurons_6_128"
+output_date = current_date
+output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_col_{num_collocation_points}_bc_{number_points_per_bc}_neurons_6_128"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -414,13 +419,13 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    num_data_points = 256
+    num_data_points = 1024
     std_noise = 5 * 1e-4
-    num_test_cases = 32
-    prior_mean_bulk_modulus = 6000.0
-    prior_std_bulk_modulus = 200.0
-    prior_mean_shear_modulus = 1000.0
-    prior_std_shear_modulus = 100.0
+    num_test_cases = num_samples_valid
+    prior_mean_bulk_modulus = mean_bulk_modulus
+    prior_std_bulk_modulus = standard_deviation_bulk_modulus
+    prior_mean_shear_modulus = mean_shear_modulus
+    prior_std_shear_modulus = standard_deviation_shear_modulus
 
     prior_bulk_modulus = create_univariate_normal_distributed_prior(
         mean=prior_mean_bulk_modulus,
@@ -439,82 +444,15 @@ def calibration_step() -> None:
     )
 
     def generate_calibration_data() -> tuple[tuple[CalibrationData, ...], NPArray]:
-        true_bulk_moduli = [
-            prior_bulk_modulus.sample().item() for _ in range(num_test_cases)
-        ]
-        true_shear_moduli = [
-            prior_shear_modulus.sample().item() for _ in range(num_test_cases)
-        ]
-
-        domain_config = create_fem_domain_config()
-        problem_configs = [
-            NeoHookeProblemConfig(material_parameters=(bulk_modulus, shear_modulus))
-            for bulk_modulus, shear_modulus in zip(true_bulk_moduli, true_shear_moduli)
-        ]
-        simulation_configs = [
-            SimulationConfig(
-                domain_config=domain_config,
-                problem_config=problem_config,
-                volume_force_x=volume_force_x,
-                volume_force_y=volume_force_y,
-            )
-            for problem_config in problem_configs
-        ]
-
-        def generate_one_calibration_dataset(
-            simulation_config: SimulationConfig,
-        ) -> CalibrationData:
-            simulation_results = run_simulation(
-                simulation_config=simulation_config,
-                save_results=False,
-                save_metadata=False,
-                output_subdir=output_subdirectory,
-                project_directory=project_directory,
-            )
-            total_size_data = simulation_results.coordinates_x.shape[0]
-            random_indices = torch.randint(
-                low=0, high=total_size_data + 1, size=(num_data_points,)
-            )
-            coordinates_x = torch.tensor(simulation_results.coordinates_x)[
-                random_indices
-            ]
-            coordinates_y = torch.tensor(simulation_results.coordinates_y)[
-                random_indices
-            ]
-            coordinates = torch.concat((coordinates_x, coordinates_y), dim=1).to(device)
-            clean_displacements_x = torch.tensor(simulation_results.displacements_x)[
-                random_indices
-            ]
-            clean_displacements_y = torch.tensor(simulation_results.displacements_y)[
-                random_indices
-            ]
-            noisy_displacements_x = clean_displacements_x + torch.normal(
-                mean=0.0, std=std_noise, size=clean_displacements_x.size()
-            )
-            noisy_displacements_y = clean_displacements_y + torch.normal(
-                mean=0.0, std=std_noise, size=clean_displacements_y.size()
-            )
-            noisy_displacements = torch.concat(
-                (noisy_displacements_x, noisy_displacements_y), dim=1
-            ).to(device)
-            return CalibrationData(
-                inputs=coordinates,
-                outputs=noisy_displacements,
-                std_noise=std_noise,
-            )
-
-        calibration_data = tuple(
-            generate_one_calibration_dataset(config) for config in simulation_configs
+        calibration_data_loader = CalibrationDataLoader2D(
+            input_subdir=input_subdir_valid,
+            num_data_points=num_data_points,
+            std_noise=std_noise,
+            num_cases=num_test_cases,
+            project_directory=project_directory,
         )
-        shape = (-1, 1)
-        true_parameters = np.concatenate(
-            (
-                np.reshape(np.array(true_bulk_moduli, dtype=np.float64), shape),
-                np.reshape(np.array(true_shear_moduli, dtype=np.float64), shape),
-            ),
-            axis=1,
-        )
-        return calibration_data, true_parameters
+        calibration_data_sets, true_parameters = calibration_data_loader.get_data()
+        return calibration_data_sets, true_parameters.detach().cpu().numpy()
 
     name_model_parameters_file = "model_parameters"
     model = load_model(
