@@ -47,7 +47,6 @@ from parametricpinn.fem import (
     generate_validation_data,
     run_simulation,
 )
-from parametricpinn.gps import IndependentMultiOutputGP, ZeroMeanScaledRBFKernelGP
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader, PandasDataWriter
 from parametricpinn.network import FFNN
@@ -415,7 +414,7 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    num_data_points = 128
+    num_data_points = 256
     std_noise = 5 * 1e-4
     num_test_cases = 32
     prior_mean_bulk_modulus = 6000.0
