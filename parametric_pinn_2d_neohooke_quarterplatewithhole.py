@@ -101,7 +101,7 @@ fem_element_degree = 2
 fem_element_size = 0.2
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = f"20240220_validation_data_neohooke_quarterplatewithhole_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_edge_{edge_length}_radius_{radius}_traction_{traction_left_x}_elementsize_{fem_element_size}"
+input_subdir_valid = f"20240220_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
 num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
@@ -115,7 +115,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_col_{num_collocation_points}_bc_{number_points_per_bc}_neurons_6_128"
+output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_col_{int(num_collocation_points)}_bc_{int(number_points_per_bc)}_neurons_6_128"
 output_subdirectory_training = os.path.join(output_subdirectory, "training")
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
