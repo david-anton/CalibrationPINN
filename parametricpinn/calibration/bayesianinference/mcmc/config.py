@@ -10,3 +10,4 @@ class MCMCConfig(CalibrationConfig):
     likelihood: Likelihood
     prior: Prior
     num_burn_in_iterations: int
+    algorithm_name: str

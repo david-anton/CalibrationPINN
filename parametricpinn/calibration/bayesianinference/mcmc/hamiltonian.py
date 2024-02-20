@@ -50,6 +50,7 @@ MCMCHamiltonianFunc: TypeAlias = Callable[
 class HamiltonianConfig(MCMCConfig):
     leapfrog_step_sizes: Tensor
     num_leabfrog_steps: int
+    algorithm_name = "hamiltonian"
 
 
 def mcmc_hamiltonian(

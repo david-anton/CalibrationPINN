@@ -69,6 +69,7 @@ class EfficientTree(Tree):
     parameters_candidate: Parameters
     candidate_set_size: CandidateSetSize
     is_terminated: TerminationFlag
+    algorithm_name = "efficient_nuts"
 
 
 def mcmc_efficientnuts(

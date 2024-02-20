@@ -40,6 +40,7 @@ MCMCMetropolisHastingsFunc: TypeAlias = Callable[
 @dataclass
 class MetropolisHastingsConfig(MCMCConfig):
     cov_proposal_density: Tensor
+    algorithm_name = "metropolis_hastings"
 
 
 def mcmc_metropolishastings(
