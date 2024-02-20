@@ -116,6 +116,7 @@ use_efficient_nuts = False
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
 output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_col_{num_collocation_points}_bc_{number_points_per_bc}_neurons_6_128"
+output_subdirectory_training = os.path.join(output_subdirectory, "training")
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -303,11 +304,14 @@ def create_ansatz() -> StandardAnsatz:
                 volume_force_x=volume_force_x,
                 volume_force_y=volume_force_y,
             )
+            output_subdir_x = os.path.join(
+                normalization_values_subdir, "displacements_x"
+            )
             simulation_results_x = run_simulation(
                 simulation_config=simulation_config_x,
                 save_results=True,
                 save_metadata=True,
-                output_subdir=normalization_values_subdir,
+                output_subdir=output_subdir_x,
                 project_directory=project_directory,
             )
 
@@ -323,11 +327,14 @@ def create_ansatz() -> StandardAnsatz:
                 volume_force_x=volume_force_x,
                 volume_force_y=volume_force_y,
             )
+            output_subdir_y = os.path.join(
+                normalization_values_subdir, "displacements_y"
+            )
             simulation_results_y = run_simulation(
                 simulation_config=simulation_config_y,
                 save_results=True,
                 save_metadata=True,
-                output_subdir=normalization_values_subdir,
+                output_subdir=output_subdir_y,
                 project_directory=project_directory,
             )
 
@@ -377,7 +384,7 @@ def training_step() -> None:
         training_batch_size=training_batch_size,
         validation_dataset=validation_dataset,
         validation_interval=validation_interval,
-        output_subdirectory=output_subdirectory,
+        output_subdirectory=output_subdirectory_training,
         project_directory=project_directory,
         device=device,
     )
@@ -407,7 +414,7 @@ def training_step() -> None:
             problem_configs=problem_configs,
             volume_force_x=volume_force_x,
             volume_force_y=volume_force_y,
-            output_subdir=output_subdirectory,
+            output_subdir=output_subdirectory_training,
             project_directory=project_directory,
             plot_config=displacements_plotter_config,
             device=device,
@@ -419,7 +426,7 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    num_data_points = 1024
+    num_data_points = 256
     std_noise = 5 * 1e-4
     num_test_cases = num_samples_valid
     prior_mean_bulk_modulus = mean_bulk_modulus
@@ -458,7 +465,7 @@ def calibration_step() -> None:
     model = load_model(
         model=ansatz,
         name_model_parameters_file=name_model_parameters_file,
-        input_subdir=output_subdirectory,
+        input_subdir=output_subdirectory_training,
         project_directory=project_directory,
         device=device,
     )
@@ -494,7 +501,7 @@ def calibration_step() -> None:
 
     def set_up_least_squares_configs(
         calibration_data: tuple[CalibrationData, ...],
-    ) -> tuple[LeastSquaresConfig]:
+    ) -> tuple[LeastSquaresConfig, ...]:
         configs = []
         for data in calibration_data:
             mean_displacements = torch.mean(torch.absolute(data.outputs), dim=0)
@@ -516,8 +523,8 @@ def calibration_step() -> None:
     ) -> tuple[MetropolisHastingsConfig, ...]:
         configs = []
         for likelihood in likelihoods:
-            std_proposal_density_bulk_modulus = 1.0
-            std_proposal_density_shear_modulus = 0.5
+            std_proposal_density_bulk_modulus = 10.0
+            std_proposal_density_shear_modulus = 2.0
             cov_proposal_density = torch.diag(
                 torch.tensor(
                     [
@@ -534,7 +541,7 @@ def calibration_step() -> None:
                 prior=prior,
                 initial_parameters=initial_parameters,
                 num_iterations=int(1e5),
-                num_burn_in_iterations=int(1e5),
+                num_burn_in_iterations=int(1e4),
                 cov_proposal_density=cov_proposal_density,
             )
             configs.append(config)
