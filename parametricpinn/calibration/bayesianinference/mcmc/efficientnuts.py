@@ -62,6 +62,7 @@ MCMCEfficientNUTSFunc: TypeAlias = Callable[
 class EfficientNUTSConfig(MCMCConfig):
     leapfrog_step_sizes: Tensor
     max_tree_depth: TreeDepth
+    algorithm_name = "efficient_nuts"
 
 
 @dataclass
@@ -69,7 +70,6 @@ class EfficientTree(Tree):
     parameters_candidate: Parameters
     candidate_set_size: CandidateSetSize
     is_terminated: TerminationFlag
-    algorithm_name = "efficient_nuts"
 
 
 def mcmc_efficientnuts(

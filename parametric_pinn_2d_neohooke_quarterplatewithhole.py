@@ -21,17 +21,12 @@ from parametricpinn.calibration import (
     HamiltonianConfig,
     LeastSquaresConfig,
     MetropolisHastingsConfig,
-    calibrate,
     test_coverage,
     test_least_squares_calibration,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods import (
     create_standard_ppinn_likelihood_for_noise,
-    create_standard_ppinn_likelihood_for_noise_and_model_error,
     create_standard_ppinn_q_likelihood_for_noise,
-)
-from parametricpinn.calibration.bayesianinference.plot import (
-    plot_posterior_normal_distributions,
 )
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.data.parameterssampling import sample_uniform_grid
@@ -106,7 +101,7 @@ batch_size_valid = num_samples_valid
 # Calibration
 consider_model_error = True
 use_least_squares = True
-use_random_walk_metropolis_hasting = False
+use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
 use_efficient_nuts = False
 # FEM
@@ -422,7 +417,7 @@ def calibration_step() -> None:
     print("Start calibration ...")
     num_data_points = 128
     std_noise = 5 * 1e-4
-    num_test_cases = 10
+    num_test_cases = 32
     prior_mean_bulk_modulus = 6000.0
     prior_std_bulk_modulus = 200.0
     prior_mean_shear_modulus = 1000.0
@@ -534,7 +529,7 @@ def calibration_step() -> None:
     calibration_data, true_parameters = generate_calibration_data()
 
     if consider_model_error:
-        likelihoods = [
+        likelihoods = tuple(
             create_standard_ppinn_q_likelihood_for_noise(
                 model=model,
                 num_model_parameters=num_material_parameters,
@@ -542,12 +537,12 @@ def calibration_step() -> None:
                 device=device,
             )
             for data in calibration_data
-        ]
+        )
         output_subdir_calibration = os.path.join(
             output_subdirectory, "calibration_with_model_error"
         )
     else:
-        likelihoods = [
+        likelihoods = tuple(
             create_standard_ppinn_likelihood_for_noise(
                 model=model,
                 num_model_parameters=num_material_parameters,
@@ -555,13 +550,13 @@ def calibration_step() -> None:
                 device=device,
             )
             for data in calibration_data
-        ]
+        )
         output_subdir_calibration = os.path.join(
             output_subdirectory, "calibration_without_model_error"
         )
 
     def set_up_least_squares_configs(
-        calibration_data: tuple[CalibrationData],
+        calibration_data: tuple[CalibrationData, ...],
     ) -> tuple[LeastSquaresConfig]:
         configs = []
         for data in calibration_data:
@@ -580,8 +575,8 @@ def calibration_step() -> None:
         return tuple(configs)
 
     def set_up_metropolis_hastings_configs(
-        likelihoods: tuple[Likelihood],
-    ) -> tuple[MetropolisHastingsConfig]:
+        likelihoods: tuple[Likelihood, ...],
+    ) -> tuple[MetropolisHastingsConfig, ...]:
         configs = []
         for likelihood in likelihoods:
             std_proposal_density_bulk_modulus = 1.0
@@ -609,8 +604,8 @@ def calibration_step() -> None:
         return tuple(configs)
 
     def set_up_hamiltonian_configs(
-        likelihoods: tuple[Likelihood],
-    ) -> tuple[HamiltonianConfig]:
+        likelihoods: tuple[Likelihood, ...],
+    ) -> tuple[HamiltonianConfig, ...]:
         configs = []
         for likelihood in likelihoods:
             config = HamiltonianConfig(
@@ -626,8 +621,8 @@ def calibration_step() -> None:
         return tuple(configs)
 
     def set_up_efficient_nuts_configs_configs(
-        likelihoods: tuple[Likelihood],
-    ) -> tuple[EfficientNUTSConfig]:
+        likelihoods: tuple[Likelihood, ...],
+    ) -> tuple[EfficientNUTSConfig, ...]:
         configs = []
         for likelihood in likelihoods:
             config = EfficientNUTSConfig(
@@ -643,10 +638,10 @@ def calibration_step() -> None:
         return tuple(configs)
 
     if use_least_squares:
-        configs = set_up_least_squares_configs(calibration_data)
+        configs_ls = set_up_least_squares_configs(calibration_data)
         start = perf_counter()
         test_least_squares_calibration(
-            calibration_configs=configs,
+            calibration_configs=configs_ls,
             parameter_names=parameter_names,
             true_parameters=true_parameters,
             output_subdir=os.path.join(output_subdir_calibration, "least_squares"),
@@ -658,10 +653,10 @@ def calibration_step() -> None:
         print(f"Run time least squares test: {time}")
         print("############################################################")
     if use_random_walk_metropolis_hasting:
-        configs = set_up_metropolis_hastings_configs(likelihoods)
+        configs_mh = set_up_metropolis_hastings_configs(likelihoods)
         start = perf_counter()
         test_coverage(
-            calibration_configs=configs,
+            calibration_configs=configs_mh,
             parameter_names=parameter_names,
             true_parameters=true_parameters,
             output_subdir=os.path.join(
@@ -675,10 +670,10 @@ def calibration_step() -> None:
         print(f"Run time Metropolis-Hasting coverage test: {time}")
         print("############################################################")
     if use_hamiltonian:
-        configs = set_up_hamiltonian_configs(likelihoods)
+        configs_h = set_up_hamiltonian_configs(likelihoods)
         start = perf_counter()
         test_coverage(
-            calibration_configs=configs,
+            calibration_configs=configs_h,
             parameter_names=parameter_names,
             true_parameters=true_parameters,
             output_subdir=os.path.join(output_subdir_calibration, "hamiltonian"),
@@ -690,10 +685,10 @@ def calibration_step() -> None:
         print(f"Run time Hamiltonian coverage test: {time}")
         print("############################################################")
     if use_efficient_nuts:
-        configs = set_up_efficient_nuts_configs_configs(likelihoods)
+        configs_en = set_up_efficient_nuts_configs_configs(likelihoods)
         start = perf_counter()
         test_coverage(
-            calibration_configs=configs,
+            calibration_configs=configs_en,
             parameter_names=parameter_names,
             true_parameters=true_parameters,
             output_subdir=os.path.join(output_subdir_calibration, "efficient_nuts"),

@@ -25,7 +25,7 @@ ParametersList: TypeAlias = list[NPArray]
 
 def test_coverage(
     calibration_configs: tuple[MCMCConfig, ...],
-    parameter_names: tuple[str],
+    parameter_names: tuple[str, ...],
     true_parameters: NPArray,
     output_subdir: str,
     project_directory: ProjectDirectory,
@@ -89,8 +89,12 @@ def test_coverage(
         credible_interval = credible_standard_factor * standard_deviations
         lower_bound = means - credible_interval
         upper_bound = means + credible_interval
-        condition = true_parameters >= lower_bound and true_parameters <= upper_bound
-        return np.where(condition, 1, 0)
+        condition = np.logical_and(
+            true_parameters >= lower_bound, true_parameters <= upper_bound
+        )
+        coverage_individual = np.where(condition, True, False)
+        coverage_combined = coverage_individual.all(axis=1, keepdims=True)
+        return np.concatenate((coverage_individual, coverage_combined), axis=1)
 
     def save_results(
         means: NPArray, standard_deviations: NPArray, credible_test_results: NPArray
@@ -103,7 +107,7 @@ def test_coverage(
             ]
             credible_test_names = [
                 f"is {p} in credible interval" for p in parameter_names
-            ]
+            ] + ["are all parameters in credible interval"]
             return tuple(
                 true_parameter_names
                 + mean_parameter_names
@@ -131,13 +135,13 @@ def test_coverage(
 
     def save_coverage_test_summary(credible_test_results: NPArray) -> None:
         def compile_header() -> tuple[str, ...]:
-            return parameter_names
+            return parameter_names + ("combined",)
 
-        def compile_index() -> tuple[str, ...]:
-            return tuple("coverage [%]")
+        def compile_index() -> tuple[str]:
+            return ("coverage [%]",)
 
         def compile_coverage_results() -> NPArray:
-            return np.mean(credible_test_results, axis=0) * 100
+            return np.mean(credible_test_results, axis=0, keepdims=True) * 100
 
         header = compile_header()
         index = compile_index()
@@ -161,7 +165,7 @@ def test_coverage(
 
 def test_least_squares_calibration(
     calibration_configs: tuple[LeastSquaresConfig, ...],
-    parameter_names: tuple[str],
+    parameter_names: tuple[str, ...],
     true_parameters: NPArray,
     output_subdir: str,
     project_directory: ProjectDirectory,
