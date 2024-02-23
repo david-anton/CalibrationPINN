@@ -71,7 +71,7 @@ class CalibrationDataLoader2D:
         outputs_all = displacements[:, self._slice_displacements]
         outputs = outputs_all[random_indices, :]
         noisy_outputs = outputs + torch.normal(
-            mean=0.0, std=self._std_noise, size=outputs.size()
+            mean=0.0, std=self._std_noise, size=outputs.size(), device=self._device
         )
         data_set = CalibrationData(
             inputs=inputs, outputs=noisy_outputs, std_noise=self._std_noise
