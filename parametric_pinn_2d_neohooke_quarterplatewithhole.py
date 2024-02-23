@@ -457,6 +457,7 @@ def calibration_step() -> None:
             std_noise=std_noise,
             num_cases=num_test_cases,
             project_directory=project_directory,
+            device=device,
         )
         calibration_data_sets, true_parameters = calibration_data_loader.get_data()
         return calibration_data_sets, true_parameters.detach().cpu().numpy()

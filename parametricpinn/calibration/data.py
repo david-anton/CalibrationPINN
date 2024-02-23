@@ -7,7 +7,7 @@ import torch
 from parametricpinn.errors import UnvalidCalibrationDataError
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader
-from parametricpinn.types import Tensor
+from parametricpinn.types import Tensor, Device
 
 Parameters: TypeAlias = Tensor
 
@@ -27,12 +27,14 @@ class CalibrationDataLoader2D:
         std_noise: float,
         num_cases: int,
         project_directory: ProjectDirectory,
+        device: Device,
     ) -> None:
         self._input_subdir = input_subdir
         self._num_data_points = num_data_points
         self._std_noise = std_noise
         self._num_cases = num_cases
         self._data_reader = CSVDataReader(project_directory)
+        self._device = device
         self._file_name_displacements = "displacements"
         self._file_name_parameters = "parameters"
         self._slice_coordinates = slice(0, 2)
@@ -58,7 +60,7 @@ class CalibrationDataLoader2D:
         sample_subdir = f"sample_{idx_sample}"
         input_subdir = os.path.join(self._input_subdir, sample_subdir)
         data = self._data_reader.read(file_name, input_subdir)
-        return torch.tensor(data, dtype=torch.get_default_dtype())
+        return torch.tensor(data, dtype=torch.get_default_dtype(), device=self._device)
 
     def _generate_random_indices(self, max_index: int):
         return torch.randperm(max_index)[: self._num_data_points]
