@@ -647,7 +647,7 @@ def calibration_step() -> None:
     print("Calibration finished.")
 
 
+training_dataset, validation_dataset = create_datasets()
 if retrain_parametric_pinn:
-    training_dataset, validation_dataset = create_datasets()
     training_step()
 calibration_step()
