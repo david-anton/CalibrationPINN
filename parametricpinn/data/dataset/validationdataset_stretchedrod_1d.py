@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import cast
+from typing import Callable, TypeAlias, cast
 
 import torch
 from torch.utils.data import Dataset
@@ -12,6 +12,10 @@ from parametricpinn.data.dataset.dataset import (
 )
 from parametricpinn.data.geometry import StretchedRod1D
 from parametricpinn.types import Tensor
+
+LinearElasticDispalcementSolutionFunc: TypeAlias = Callable[
+    [Tensor | float, float, Tensor | float, float, float], Tensor | float
+]
 
 
 def calculate_linear_elastic_displacements_solution(

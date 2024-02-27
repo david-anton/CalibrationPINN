@@ -1,5 +1,6 @@
 from datetime import date
 from time import perf_counter
+import os
 
 import torch
 
@@ -7,23 +8,24 @@ from parametricpinn.ansatz import (
     StandardAnsatz,
     create_standard_normalized_hbc_ansatz_stretched_rod,
 )
+from parametricpinn.bayesian.likelihood import Likelihood
 from parametricpinn.bayesian.prior import create_univariate_normal_distributed_prior
 from parametricpinn.calibration import (
     CalibrationData,
+    CalibrationDataGenerator1D,
     EfficientNUTSConfig,
     HamiltonianConfig,
     LeastSquaresConfig,
     MetropolisHastingsConfig,
-    calibrate,
+    test_coverage,
+    test_least_squares_calibration,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods import (
     create_standard_ppinn_likelihood_for_noise,
-)
-from parametricpinn.calibration.bayesianinference.plot import (
-    plot_posterior_normal_distributions,
+    create_standard_ppinn_q_likelihood_for_noise,
 )
 from parametricpinn.calibration.utility import load_model
-from parametricpinn.data.parameterssampling import sample_uniform_grid
+from parametricpinn.data.parameterssampling import sample_uniform_grid, sample_random
 from parametricpinn.data.trainingdata_1d import (
     StretchedRodTrainingDataset1D,
     StretchedRodTrainingDataset1DConfig,
@@ -46,12 +48,12 @@ from parametricpinn.training.training_standard_linearelasticity_stretchedrod imp
     StandardTrainingConfiguration,
     train_parametric_pinn,
 )
-from parametricpinn.types import Tensor
+from parametricpinn.types import Tensor, NPArray
 
 ### Configuration
 retrain_parametric_pinn = True
 # Set up
-num_model_parameters = 1
+num_material_parameters = 1
 length = 100.0
 traction = 1.0
 volume_force = 1.0
@@ -63,16 +65,19 @@ layer_sizes = [2, 16, 16, 16, 16, 1]
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_train = 128
+num_parameter_samples = 128
 num_points_pde = 128
-training_batch_size = num_samples_train
+training_batch_size = num_parameter_samples
 number_training_epochs = 300
+weight_pde_loss = 1.0
+weight_traction_bc_loss = 1.0
 # Validation
 num_samples_valid = 64
 valid_interval = 1
 num_points_valid = 512
 batch_size_valid = num_samples_valid
 # Calibration
+consider_model_error = True
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -81,6 +86,7 @@ use_efficient_nuts = False
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
 output_subdirectory = f"{output_date}_Parametric_PINN_1D"
+output_subdirectory_training = os.path.join(output_subdirectory, "training")
 
 
 ### Set up simulation
@@ -96,31 +102,41 @@ def create_datasets() -> (
         StretchedRodTrainingDataset1D, StretchedRodValidationDatasetLinearElasticity1D
     ]
 ):
-    parameter_samples = sample_uniform_grid(
-        min_parameters=[min_youngs_modulus],
-        max_parameters=[max_youngs_modulus],
-        num_steps=[num_samples_train],
-        device=device,
-    )
-    config_training_dataset = StretchedRodTrainingDataset1DConfig(
-        parameters_samples=parameter_samples,
-        length=length,
-        traction=traction,
-        volume_force=volume_force,
-        num_points_pde=num_points_pde,
-    )
-    train_dataset = create_training_dataset(config_training_dataset)
-    config_validation_dataset = StretchedRodValidationDatasetLinearElasticity1DConfig(
-        length=length,
-        min_youngs_modulus=min_youngs_modulus,
-        max_youngs_modulus=max_youngs_modulus,
-        traction=traction,
-        volume_force=volume_force,
-        num_points=num_points_valid,
-        num_samples=num_samples_valid,
-    )
-    valid_dataset = create_validation_dataset(config_validation_dataset)
-    return train_dataset, valid_dataset
+    def _create_training_dataset() -> StretchedRodTrainingDataset1D:
+        parameter_samples = sample_uniform_grid(
+            min_parameters=[min_youngs_modulus],
+            max_parameters=[max_youngs_modulus],
+            num_steps=[num_parameter_samples],
+            device=device,
+        )
+        config_training_dataset = StretchedRodTrainingDataset1DConfig(
+            parameters_samples=parameter_samples,
+            length=length,
+            traction=traction,
+            volume_force=volume_force,
+            num_points_pde=num_points_pde,
+        )
+        return create_training_dataset(config_training_dataset)
+
+    def _create_validation_dataset() -> (
+        StretchedRodValidationDatasetLinearElasticity1DConfig
+    ):
+        config_validation_dataset = (
+            StretchedRodValidationDatasetLinearElasticity1DConfig(
+                length=length,
+                min_youngs_modulus=min_youngs_modulus,
+                max_youngs_modulus=max_youngs_modulus,
+                traction=traction,
+                volume_force=volume_force,
+                num_points=num_points_valid,
+                num_samples=num_samples_valid,
+            )
+        )
+        return create_validation_dataset(config_validation_dataset)
+
+    training_dataset = _create_training_dataset()
+    validation_dataset = _create_validation_dataset()
+    return training_dataset, validation_dataset
 
 
 def create_ansatz() -> StandardAnsatz:
@@ -165,11 +181,13 @@ ansatz = create_ansatz()
 def training_step() -> None:
     train_config = StandardTrainingConfiguration(
         ansatz=ansatz,
+        weight_pde_loss=weight_pde_loss,
+        weight_traction_bc_loss=weight_traction_bc_loss,
         training_dataset=training_dataset,
         number_training_epochs=number_training_epochs,
         training_batch_size=training_batch_size,
         validation_dataset=validation_dataset,
-        output_subdirectory=output_subdirectory,
+        output_subdirectory=output_subdirectory_training,
         project_directory=project_directory,
         device=device,
     )
@@ -180,7 +198,7 @@ def training_step() -> None:
         plot_displacements_1d(
             ansatz=ansatz,
             length=length,
-            youngs_modulus_list=[187634, 238695],
+            youngs_modulus_list=[min_youngs_modulus, 210000, max_youngs_modulus],
             traction=traction,
             volume_force=volume_force,
             output_subdir=output_subdirectory,
@@ -195,32 +213,40 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    exact_youngs_modulus = 195000
-    num_points_calibration = 32
+    num_data_points = 32
     std_noise = 5 * 1e-4
+    num_test_cases = num_samples_valid
+    prior_mean_youngs_modulus = 210000
+    prior_std_youngs_modulus = 10000
 
-    def generate_calibration_data() -> tuple[Tensor, Tensor]:
-        config_validation_dataset = (
-            StretchedRodValidationDatasetLinearElasticity1DConfig(
-                length=length,
-                min_youngs_modulus=exact_youngs_modulus,
-                max_youngs_modulus=exact_youngs_modulus,
-                traction=traction,
-                volume_force=volume_force,
-                num_points=num_points_calibration,
-                num_samples=1,
-            )
+    prior = create_univariate_normal_distributed_prior(
+        mean=prior_mean_youngs_modulus,
+        standard_deviation=prior_std_youngs_modulus,
+        device=device,
+    )
+    parameter_names = ("Youngs modulus",)
+    initial_parameters = torch.tensor([prior_mean_youngs_modulus], device=device)
+
+    def generate_calibration_data() -> tuple[tuple[CalibrationData, ...], NPArray]:
+        true_parameters = sample_random(
+            min_parameters=[min_youngs_modulus],
+            max_parameters=[max_youngs_modulus],
+            num_samples=num_test_cases,
+            device=device,
         )
-        calibration_dataset = create_validation_dataset(config_validation_dataset)
-        inputs, outputs = calibration_dataset[0]
-        coordinates = torch.reshape(inputs[:, 0], (-1, 1)).to(device)
-        clean_displacements = outputs.to(device)
-        noise = torch.normal(
-            mean=torch.tensor(0.0, device=device),
-            std=torch.tensor(std_noise, device=device),
+        calibration_data_generator = CalibrationDataGenerator1D(
+            true_parameters=true_parameters,
+            traction=traction,
+            volume_force=volume_force,
+            length=length,
+            num_data_points=num_data_points,
+            std_noise=std_noise,
+            num_cases=num_test_cases,
+            solution_func=calculate_linear_elastic_displacements_solution,
+            device=device,
         )
-        noisy_displacements = clean_displacements + noise
-        return coordinates, noisy_displacements
+        calibration_data_sets = calibration_data_generator.generate_data()
+        return calibration_data_sets, true_parameters.detach().cpu().numpy()
 
     name_model_parameters_file = "model_parameters"
     model = load_model(
@@ -231,127 +257,177 @@ def calibration_step() -> None:
         device=device,
     )
 
-    coordinates, noisy_displacements = generate_calibration_data()
-    data = CalibrationData(
-        inputs=coordinates,
-        outputs=noisy_displacements,
-        std_noise=std_noise,
-    )
-    likelihood = create_standard_ppinn_likelihood_for_noise(
-        model=model, num_model_parameters=num_model_parameters, data=data, device=device
-    )
+    calibration_data, true_parameters = generate_calibration_data()
 
-    prior_mean_youngs_modulus = 210000
-    prior_std_youngs_modulus = 10000
-    prior = create_univariate_normal_distributed_prior(
-        mean=prior_mean_youngs_modulus,
-        standard_deviation=prior_std_youngs_modulus,
-        device=device,
-    )
+    if consider_model_error:
+        likelihoods = tuple(
+            create_standard_ppinn_q_likelihood_for_noise(
+                model=model,
+                num_model_parameters=num_material_parameters,
+                data=data,
+                device=device,
+            )
+            for data in calibration_data
+        )
+        output_subdir_calibration = os.path.join(
+            output_subdirectory, "calibration_with_model_error"
+        )
+    else:
+        likelihoods = tuple(
+            create_standard_ppinn_likelihood_for_noise(
+                model=model,
+                num_model_parameters=num_material_parameters,
+                data=data,
+                device=device,
+            )
+            for data in calibration_data
+        )
+        output_subdir_calibration = os.path.join(
+            output_subdirectory, "calibration_without_model_error"
+        )
 
-    parameter_names = ("Youngs modulus",)
-    true_parameters = (exact_youngs_modulus,)
-    initial_parameters = torch.tensor([prior_mean_youngs_modulus], device=device)
+    def set_up_least_squares_configs(
+        calibration_data: tuple[CalibrationData, ...],
+    ) -> tuple[LeastSquaresConfig, ...]:
+        configs = []
+        for data in calibration_data:
+            mean_displacements = torch.mean(torch.absolute(data.outputs), dim=0)
+            residual_weights = (
+                (1 / mean_displacements).to(device).repeat((num_data_points, 1)).ravel()
+            )
+            config = LeastSquaresConfig(
+                ansatz=model,
+                calibration_data=data,
+                initial_parameters=initial_parameters,
+                num_iterations=100,
+                resdiual_weights=residual_weights,
+            )
+            configs.append(config)
+        return tuple(configs)
 
-    least_squares_config = LeastSquaresConfig(
-        ansatz=model,
-        calibration_data=data,
-        initial_parameters=initial_parameters,
-        num_iterations=100,
-        resdiual_weights=torch.tensor([1e2], device=device)
-        .repeat((num_points_calibration, 1))
-        .ravel(),
-    )
-    mcmc_config_mh = MetropolisHastingsConfig(
-        likelihood=likelihood,
-        prior=prior,
-        initial_parameters=initial_parameters,
-        num_iterations=int(1e4),
-        num_burn_in_iterations=int(1e3),
-        cov_proposal_density=torch.pow(torch.tensor([1000], device=device), 2),
-    )
-    mcmc_config_h = HamiltonianConfig(
-        likelihood=likelihood,
-        prior=prior,
-        initial_parameters=initial_parameters,
-        num_iterations=int(1e4),
-        num_burn_in_iterations=int(1e3),
-        num_leabfrog_steps=256,
-        leapfrog_step_sizes=torch.tensor(1.0, device=device),
-    )
-    mcmc_config_enuts = EfficientNUTSConfig(
-        likelihood=likelihood,
-        prior=prior,
-        initial_parameters=initial_parameters,
-        num_iterations=int(1e4),
-        num_burn_in_iterations=int(1e3),
-        max_tree_depth=8,
-        leapfrog_step_sizes=torch.tensor(10.0, device=device),
-    )
+    def set_up_metropolis_hastings_configs(
+        likelihoods: tuple[Likelihood, ...],
+    ) -> tuple[MetropolisHastingsConfig, ...]:
+        configs = []
+        for likelihood in likelihoods:
+            std_proposal_density_youngs_modulus = 5.0
+            cov_proposal_density = torch.diag(
+                torch.tensor(
+                    [
+                        std_proposal_density_youngs_modulus,
+                    ],
+                    dtype=torch.float64,
+                    device=device,
+                )
+                ** 2
+            )
+            config = MetropolisHastingsConfig(
+                likelihood=likelihood,
+                prior=prior,
+                initial_parameters=initial_parameters,
+                num_iterations=int(1e4),
+                num_burn_in_iterations=int(1e3),
+                cov_proposal_density=cov_proposal_density,
+            )
+            configs.append(config)
+        return tuple(configs)
+
+    def set_up_hamiltonian_configs(
+        likelihoods: tuple[Likelihood, ...],
+    ) -> tuple[HamiltonianConfig, ...]:
+        configs = []
+        for likelihood in likelihoods:
+            config = HamiltonianConfig(
+                likelihood=likelihood,
+                prior=prior,
+                initial_parameters=initial_parameters,
+                num_iterations=int(1e4),
+                num_burn_in_iterations=int(1e3),
+                num_leabfrog_steps=256,
+                leapfrog_step_sizes=torch.tensor(1.0, device=device),
+            )
+            configs.append(config)
+        return tuple(configs)
+
+    def set_up_efficient_nuts_configs_configs(
+        likelihoods: tuple[Likelihood, ...],
+    ) -> tuple[EfficientNUTSConfig, ...]:
+        configs = []
+        for likelihood in likelihoods:
+            config = EfficientNUTSConfig(
+                likelihood=likelihood,
+                prior=prior,
+                initial_parameters=initial_parameters,
+                num_iterations=int(1e4),
+                num_burn_in_iterations=int(1e3),
+                max_tree_depth=8,
+                leapfrog_step_sizes=torch.tensor(1.0, device=device),
+            )
+            configs.append(config)
+        return tuple(configs)
+
     if use_least_squares:
+        configs_ls = set_up_least_squares_configs(calibration_data)
         start = perf_counter()
-        identified_parameters, _ = calibrate(
-            calibration_config=least_squares_config,
+        test_least_squares_calibration(
+            calibration_configs=configs_ls,
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            output_subdir=os.path.join(output_subdir_calibration, "least_squares"),
+            project_directory=project_directory,
             device=device,
         )
         end = perf_counter()
         time = end - start
-        print(f"Identified parameter: {identified_parameters}")
-        print(f"Run time least squares: {time}")
+        print(f"Run time least squares test: {time}")
+        print("############################################################")
     if use_random_walk_metropolis_hasting:
+        configs_mh = set_up_metropolis_hastings_configs(likelihoods)
         start = perf_counter()
-        posterior_moments_mh, samples_mh = calibrate(
-            calibration_config=mcmc_config_mh,
+        test_coverage(
+            calibration_configs=configs_mh,
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            output_subdir=os.path.join(
+                output_subdir_calibration, "metropolis_hastings"
+            ),
+            project_directory=project_directory,
             device=device,
         )
         end = perf_counter()
         time = end - start
-        print(f"Run time Metropolis-Hasting: {time}")
-        plot_posterior_normal_distributions(
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
-            moments=posterior_moments_mh,
-            samples=samples_mh,
-            mcmc_algorithm="metropolis_hastings",
-            output_subdir=output_subdirectory,
-            project_directory=project_directory,
-        )
+        print(f"Run time Metropolis-Hasting coverage test: {time}")
+        print("############################################################")
     if use_hamiltonian:
+        configs_h = set_up_hamiltonian_configs(likelihoods)
         start = perf_counter()
-        posterior_moments_h, samples_h = calibrate(
-            calibration_config=mcmc_config_h,
+        test_coverage(
+            calibration_configs=configs_h,
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            output_subdir=os.path.join(output_subdir_calibration, "hamiltonian"),
+            project_directory=project_directory,
             device=device,
         )
         end = perf_counter()
         time = end - start
-        print(f"Run time Hamiltonian: {time}")
-        plot_posterior_normal_distributions(
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
-            moments=posterior_moments_h,
-            samples=samples_h,
-            mcmc_algorithm="hamiltonian",
-            output_subdir=output_subdirectory,
-            project_directory=project_directory,
-        )
+        print(f"Run time Hamiltonian coverage test: {time}")
+        print("############################################################")
     if use_efficient_nuts:
+        configs_en = set_up_efficient_nuts_configs_configs(likelihoods)
         start = perf_counter()
-        posterior_moments_enuts, samples_enuts = calibrate(
-            calibration_config=mcmc_config_enuts,
+        test_coverage(
+            calibration_configs=configs_en,
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            output_subdir=os.path.join(output_subdir_calibration, "efficient_nuts"),
+            project_directory=project_directory,
             device=device,
         )
         end = perf_counter()
         time = end - start
-        print(f"Run time efficient NUTS: {time}")
-        plot_posterior_normal_distributions(
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
-            moments=posterior_moments_enuts,
-            samples=samples_enuts,
-            mcmc_algorithm="efficient_nuts",
-            output_subdir=output_subdirectory,
-            project_directory=project_directory,
-        )
+        print(f"Run time efficient NUTS coverage test: {time}")
+        print("############################################################")
     print("Calibration finished.")
 
 

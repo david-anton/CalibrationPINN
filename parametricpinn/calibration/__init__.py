@@ -4,7 +4,7 @@ from .bayesianinference.mcmc import (
     MetropolisHastingsConfig,
 )
 from .calibration import calibrate
-from .data import CalibrationData, CalibrationDataLoader2D
+from .data import CalibrationData, CalibrationDataGenerator1D, CalibrationDataLoader2D
 from .leastsquares import LeastSquaresConfig
 from .validation import test_coverage, test_least_squares_calibration
 
@@ -12,10 +12,11 @@ __all__ = [
     "EfficientNUTSConfig",
     "HamiltonianConfig",
     "MetropolisHastingsConfig",
-    "LeastSquaresConfig",
     "calibrate",
     "CalibrationData",
+    "CalibrationDataGenerator1D",
     "CalibrationDataLoader2D",
+    "LeastSquaresConfig",
     "test_coverage",
     "test_least_squares_calibration",
 ]

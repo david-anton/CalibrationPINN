@@ -459,7 +459,7 @@ def calibration_step() -> None:
             project_directory=project_directory,
             device=device,
         )
-        calibration_data_sets, true_parameters = calibration_data_loader.get_data()
+        calibration_data_sets, true_parameters = calibration_data_loader.load_data()
         return calibration_data_sets, true_parameters.detach().cpu().numpy()
 
     name_model_parameters_file = "model_parameters"

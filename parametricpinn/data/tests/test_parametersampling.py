@@ -3,9 +3,10 @@ import torch
 
 from parametricpinn.data.parameterssampling import (
     sample_quasirandom_sobol,
+    sample_random,
     sample_uniform_grid,
 )
-from parametricpinn.settings import set_default_dtype
+from parametricpinn.settings import set_default_dtype, set_seed
 from parametricpinn.types import Tensor
 
 min_parameter_1 = 0.0
@@ -181,7 +182,7 @@ def _create_quasirandom_sobol_sampled_parameters(
     ("num_samples"),
     [1, 2, 3],
 )
-def test_sample_sample_quasirandom_sobol_1_parameter(num_samples: int) -> None:
+def test_sample_quasirandom_sobol_1_parameter(num_samples: int) -> None:
     min_parameters = [min_parameter_1]
     max_parameters = [max_parameter_1]
     sut = sample_quasirandom_sobol
@@ -203,7 +204,7 @@ def test_sample_sample_quasirandom_sobol_1_parameter(num_samples: int) -> None:
     ("num_samples"),
     [1, 2, 4],
 )
-def test_sample_sample_quasirandom_sobol_2_parameter(num_samples: int) -> None:
+def test_sample_quasirandom_sobol_2_parameter(num_samples: int) -> None:
     min_parameters = [min_parameter_1, min_parameter_2]
     max_parameters = [max_parameter_1, max_parameter_2]
     sut = sample_quasirandom_sobol
@@ -225,7 +226,7 @@ def test_sample_sample_quasirandom_sobol_2_parameter(num_samples: int) -> None:
     ("num_samples"),
     [1, 3, 9],
 )
-def test_sample_sample_quasirandom_sobol_3_parameter(num_samples: int) -> None:
+def test_sample_quasirandom_sobol_3_parameter(num_samples: int) -> None:
     min_parameters = [min_parameter_1, min_parameter_2, min_parameter_3]
     max_parameters = [max_parameter_1, max_parameter_2, max_parameter_3]
     sut = sample_quasirandom_sobol
@@ -238,6 +239,99 @@ def test_sample_sample_quasirandom_sobol_3_parameter(num_samples: int) -> None:
     )
 
     expected = _create_quasirandom_sobol_sampled_parameters(
+        min_parameters, max_parameters, num_samples
+    )
+    torch.testing.assert_close(actual, expected)
+
+
+### sample random
+
+
+def _create_random_sampled_parameters(
+    min_parameters: list[float], max_parameters: list[float], num_samples: int
+) -> Tensor:
+    assert len(min_parameters) == len(
+        max_parameters
+    ), "It is expected that the length of the minimum and maximum parameters is the same."
+    num_dimensions = len(min_parameters)
+    normalized_parameters = torch.rand(
+        size=(num_samples, len(min_parameters)), requires_grad=True, device=device
+    )
+    parameters = torch.tensor(min_parameters) + normalized_parameters * (
+        torch.tensor(max_parameters) - torch.tensor(min_parameters)
+    )
+    if num_dimensions == 1:
+        parameters = parameters.reshape((-1, 1))
+    return parameters
+
+
+@pytest.mark.parametrize(
+    ("num_samples"),
+    [1, 2, 3],
+)
+def test_sample_random_1_parameter(num_samples: int) -> None:
+    min_parameters = [min_parameter_1]
+    max_parameters = [max_parameter_1]
+    sut = sample_random
+
+    set_seed(0)
+    actual = sut(
+        min_parameters=min_parameters,
+        max_parameters=max_parameters,
+        num_samples=num_samples,
+        device=device,
+    )
+
+    set_seed(0)
+    expected = _create_random_sampled_parameters(
+        min_parameters, max_parameters, num_samples
+    )
+    torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize(
+    ("num_samples"),
+    [1, 2, 4],
+)
+def test_sample_random_2_parameter(num_samples: int) -> None:
+    min_parameters = [min_parameter_1, min_parameter_2]
+    max_parameters = [max_parameter_1, max_parameter_2]
+    sut = sample_random
+
+    set_seed(0)
+    actual = sut(
+        min_parameters=min_parameters,
+        max_parameters=max_parameters,
+        num_samples=num_samples,
+        device=device,
+    )
+
+    set_seed(0)
+    expected = _create_random_sampled_parameters(
+        min_parameters, max_parameters, num_samples
+    )
+    torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize(
+    ("num_samples"),
+    [1, 3, 9],
+)
+def test_sample_random_3_parameter(num_samples: int) -> None:
+    min_parameters = [min_parameter_1, min_parameter_2, min_parameter_3]
+    max_parameters = [max_parameter_1, max_parameter_2, max_parameter_3]
+    sut = sample_random
+
+    set_seed(0)
+    actual = sut(
+        min_parameters=min_parameters,
+        max_parameters=max_parameters,
+        num_samples=num_samples,
+        device=device,
+    )
+
+    set_seed(0)
+    expected = _create_random_sampled_parameters(
         min_parameters, max_parameters, num_samples
     )
     torch.testing.assert_close(actual, expected)

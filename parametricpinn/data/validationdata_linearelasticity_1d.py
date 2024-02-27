@@ -5,6 +5,7 @@ from parametricpinn.data.dataset import (
     StretchedRodValidationDatasetLinearElasticity1DConfig,
 )
 from parametricpinn.data.dataset.validationdataset_stretchedrod_1d import (
+    LinearElasticDispalcementSolutionFunc,
     calculate_linear_elastic_displacements_solution,
 )
 from parametricpinn.data.geometry import StretchedRod1D

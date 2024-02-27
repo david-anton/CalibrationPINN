@@ -31,6 +31,8 @@ from parametricpinn.types import Device, Tensor
 @dataclass
 class StandardTrainingConfiguration:
     ansatz: StandardAnsatz
+    weight_pde_loss: float
+    weight_traction_bc_loss: float
     training_dataset: StretchedRodTrainingDataset1D
     number_training_epochs: int
     training_batch_size: int
@@ -42,6 +44,8 @@ class StandardTrainingConfiguration:
 
 def train_parametric_pinn(train_config: StandardTrainingConfiguration) -> None:
     ansatz = train_config.ansatz
+    weight_pde_loss = train_config.weight_pde_loss
+    weight_traction_bc_loss = train_config.weight_traction_bc_loss
     train_dataset = train_config.training_dataset
     train_num_epochs = train_config.number_training_epochs
     train_batch_size = train_config.training_batch_size
@@ -53,11 +57,16 @@ def train_parametric_pinn(train_config: StandardTrainingConfiguration) -> None:
 
     loss_metric = torch.nn.MSELoss()
 
+    lambda_pde_loss = torch.tensor(weight_pde_loss, requires_grad=True).to(device)
+    lambda_traction_bc_loss = torch.tensor(
+        weight_traction_bc_loss, requires_grad=True
+    ).to(device)
+
     ### Loss function
     def loss_func(
         ansatz: StandardAnsatz,
         pde_data: TrainingData1DCollocation,
-        stress_bc_data: TrainingData1DTractionBC,
+        traction_bc_data: TrainingData1DTractionBC,
     ) -> tuple[Tensor, Tensor]:
         def loss_func_pde(
             ansatz: StandardAnsatz, pde_data: TrainingData1DCollocation
@@ -69,18 +78,20 @@ def train_parametric_pinn(train_config: StandardTrainingConfiguration) -> None:
             y_true = torch.zeros_like(y)
             return loss_metric(y_true, y)
 
-        def loss_func_stress_bc(
-            ansatz: StandardAnsatz, stress_bc_data: TrainingData1DTractionBC
+        def loss_func_traction_bc(
+            ansatz: StandardAnsatz, traction_bc_data: TrainingData1DTractionBC
         ) -> Tensor:
-            x_coor = stress_bc_data.x_coor.to(device)
-            x_params = stress_bc_data.x_params.to(device)
-            y_true = stress_bc_data.y_true.to(device)
+            x_coor = traction_bc_data.x_coor.to(device)
+            x_params = traction_bc_data.x_params.to(device)
+            y_true = traction_bc_data.y_true.to(device)
             y = traction_func(ansatz, x_coor, x_params)
             return loss_metric(y_true, y)
 
-        loss_pde = loss_func_pde(ansatz, pde_data)
-        loss_stress_bc = loss_func_stress_bc(ansatz, stress_bc_data)
-        return loss_pde, loss_stress_bc
+        loss_pde = lambda_pde_loss * loss_func_pde(ansatz, pde_data)
+        loss_traction_bc = lambda_traction_bc_loss * loss_func_traction_bc(
+            ansatz, traction_bc_data
+        )
+        return loss_pde, loss_traction_bc
 
     ### Validation
     def validate_model(
@@ -134,7 +145,7 @@ def train_parametric_pinn(train_config: StandardTrainingConfiguration) -> None:
     )
 
     loss_hist_pde = []
-    loss_hist_stress_bc = []
+    loss_hist_traction_bc = []
     valid_hist_mae = []
     valid_hist_rl2 = []
     valid_epochs = []
@@ -142,8 +153,8 @@ def train_parametric_pinn(train_config: StandardTrainingConfiguration) -> None:
     # Closure for LBFGS
     def loss_func_closure() -> float:
         optimizer.zero_grad()
-        loss_pde, loss_stress_bc = loss_func(ansatz, batch_pde, batch_stress_bc)
-        loss = loss_pde + loss_stress_bc
+        loss_pde, loss_traction_bc = loss_func(ansatz, batch_pde, batch_traction_bc)
+        loss = loss_pde + loss_traction_bc
         loss.backward()
         return loss.item()
 
@@ -151,24 +162,24 @@ def train_parametric_pinn(train_config: StandardTrainingConfiguration) -> None:
     for epoch in range(train_num_epochs):
         train_batches = iter(train_dataloader)
         loss_hist_pde_batches = []
-        loss_hist_stress_bc_batches = []
+        loss_hist_traction_bc_batches = []
 
-        for batch_pde, batch_stress_bc in train_batches:
+        for batch_pde, batch_traction_bc in train_batches:
             ansatz.train()
 
             # Forward pass
-            loss_pde, loss_stress_bc = loss_func(ansatz, batch_pde, batch_stress_bc)
+            loss_pde, loss_traction_bc = loss_func(ansatz, batch_pde, batch_traction_bc)
 
             # Update parameters
             optimizer.step(loss_func_closure)
 
             loss_hist_pde_batches.append(loss_pde.detach().cpu().item())
-            loss_hist_stress_bc_batches.append(loss_stress_bc.detach().cpu().item())
+            loss_hist_traction_bc_batches.append(loss_traction_bc.detach().cpu().item())
 
         mean_loss_pde = statistics.mean(loss_hist_pde_batches)
-        mean_loss_stress_bc = statistics.mean(loss_hist_stress_bc_batches)
+        mean_loss_traction_bc = statistics.mean(loss_hist_traction_bc_batches)
         loss_hist_pde.append(mean_loss_pde)
-        loss_hist_stress_bc.append(mean_loss_stress_bc)
+        loss_hist_traction_bc.append(mean_loss_traction_bc)
 
         if epoch % 1 == 0:
             mae, rl2 = validate_model(ansatz, valid_dataloader)
@@ -181,8 +192,8 @@ def train_parametric_pinn(train_config: StandardTrainingConfiguration) -> None:
     history_plotter_config = HistoryPlotterConfig()
 
     plot_loss_history(
-        loss_hists=[loss_hist_pde, loss_hist_stress_bc],
-        loss_hist_names=["PDE", "Stress BC"],
+        loss_hists=[loss_hist_pde, loss_hist_traction_bc],
+        loss_hist_names=["PDE", "Traction BC"],
         file_name="loss_pinn.png",
         output_subdir=output_subdir,
         project_directory=project_directory,

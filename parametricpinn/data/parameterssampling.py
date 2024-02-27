@@ -53,6 +53,25 @@ def sample_quasirandom_sobol(
     return parameters
 
 
+def sample_random(
+    min_parameters: FloatList,
+    max_parameters: FloatList,
+    num_samples: int,
+    device: Device,
+) -> Tensor:
+    _validate_equal_length_of_lists([min_parameters, max_parameters])
+    num_dimensions = len(min_parameters)
+    normalized_parameters = torch.rand(
+        size=(num_samples, len(min_parameters)), requires_grad=True, device=device
+    )
+    parameters = torch.tensor(min_parameters) + normalized_parameters * (
+        torch.tensor(max_parameters) - torch.tensor(min_parameters)
+    )
+    if num_dimensions == 1:
+        parameters = _reshape_parameters_for_one_dimension(parameters)
+    return parameters
+
+
 def _validate_equal_length_of_lists(lists: list[Lists]) -> None:
     list_lengths = [len(list_i) for list_i in lists]
     grouped_lengths = groupby(list_lengths)
