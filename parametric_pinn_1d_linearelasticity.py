@@ -51,12 +51,12 @@ from parametricpinn.training.training_standard_linearelasticity_stretchedrod imp
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 num_material_parameters = 1
 length = 100.0
-traction = 10.0
-volume_force = 0.0
+traction = 1.0
+volume_force = 1.0
 min_youngs_modulus = 180000.0
 max_youngs_modulus = 240000.0
 displacement_left = 0.0
@@ -77,7 +77,7 @@ valid_interval = 1
 num_points_valid = 512
 batch_size_valid = num_samples_valid
 # Calibration
-consider_model_error = True
+consider_model_error = False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
