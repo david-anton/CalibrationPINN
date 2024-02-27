@@ -51,7 +51,7 @@ from parametricpinn.training.training_standard_linearelasticity_stretchedrod imp
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 num_material_parameters = 1
 length = 100.0
@@ -310,7 +310,7 @@ def calibration_step() -> None:
     ) -> tuple[MetropolisHastingsConfig, ...]:
         configs = []
         for likelihood in likelihoods:
-            std_proposal_density_youngs_modulus = 5.0
+            std_proposal_density_youngs_modulus = 100.0
             cov_proposal_density = torch.diag(
                 torch.tensor(
                     [
