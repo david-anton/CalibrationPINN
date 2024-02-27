@@ -1,6 +1,6 @@
+import os
 from datetime import date
 from time import perf_counter
-import os
 
 import torch
 
@@ -25,7 +25,7 @@ from parametricpinn.calibration.bayesianinference.likelihoods import (
     create_standard_ppinn_q_likelihood_for_noise,
 )
 from parametricpinn.calibration.utility import load_model
-from parametricpinn.data.parameterssampling import sample_uniform_grid, sample_random
+from parametricpinn.data.parameterssampling import sample_random, sample_uniform_grid
 from parametricpinn.data.trainingdata_1d import (
     StretchedRodTrainingDataset1D,
     StretchedRodTrainingDataset1DConfig,
@@ -48,7 +48,7 @@ from parametricpinn.training.training_standard_linearelasticity_stretchedrod imp
     StandardTrainingConfiguration,
     train_parametric_pinn,
 )
-from parametricpinn.types import Tensor, NPArray
+from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
 retrain_parametric_pinn = True
