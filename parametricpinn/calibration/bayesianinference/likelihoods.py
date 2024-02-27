@@ -131,22 +131,11 @@ class NoiseQLikelihoodStrategy:
         return self._calibrated_log_likelihood(model_parameters)
 
     def _calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
-        Q = self._determine_q(parameters)
-        M = torch.absolute(Q)
-        return torch.log(M ** (-1 / 2)) - Q
-
-    def _determine_q(self, parameters: Tensor) -> Tensor:
         scores, total_score = self._calculate_scores(parameters)
         W = self._estimate_covariance(scores, total_score)
-        total_score = torch.unsqueeze(total_score, dim=0)
-        sqrt_num_data_points = torch.sqrt(
-            torch.tensor(self._num_data_points, device=self._device)
-        )
-        return (1 / 2) * (
-            (total_score / sqrt_num_data_points)
-            @ torch.inverse(W)
-            @ torch.transpose(total_score / sqrt_num_data_points, 0, 1)
-        )
+        Q = self._determine_q(total_score, W)
+        M = torch.det(W)
+        return torch.log(M ** (-1 / 2)) - Q
 
     def _calculate_scores(self, parameters: Tensor) -> tuple[Tensor, Tensor]:
         scores = jacrev(self._standard_likelihood_strategy.log_probs_pointwise)(
@@ -164,6 +153,22 @@ class NoiseQLikelihoodStrategy:
 
         covariances = vmap(_vmap_calculate_covariance)(scores)
         return torch.mean(covariances, dim=0)
+
+    def _determine_q(self, total_score: Tensor, covariance: Tensor) -> Tensor:
+        sqrt_num_data_points = torch.sqrt(
+            torch.tensor(self._num_data_points, device=self._device)
+        )
+        return torch.squeeze(
+            (1 / 2)
+            * (
+                (total_score / sqrt_num_data_points)
+                @ torch.inverse(covariance)
+                @ torch.transpose(
+                    torch.unsqueeze((total_score / sqrt_num_data_points), dim=0), 0, 1
+                )
+            ),
+            dim=0,
+        )
 
 
 class NoiseAndModelErrorLikelihoodStrategy:
