@@ -48,7 +48,10 @@ def test_coverage(
                 output_subdir=output_subdir_case,
             )
             means = moments.mean
-            standard_deviations = np.sqrt(np.diagonal(moments.covariance))
+            if np.shape(moments.covariance) == (1,):
+                standard_deviations = np.sqrt(moments.covariance)
+            else:
+                standard_deviations = np.sqrt(np.diagonal(moments.covariance))
             return means, standard_deviations
 
         def postprocess_one_mcmc_result(

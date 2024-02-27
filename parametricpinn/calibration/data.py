@@ -123,12 +123,15 @@ class CalibrationDataGenerator1D:
         )
 
     def _generate_random_coordinates(self) -> Tensor:
-        return torch.rand(self._num_data_points, device=self._device)
+        normalized_length = torch.rand(
+            size=(self._num_data_points, 1), requires_grad=True, device=self._device
+        )
+        return self._length * normalized_length
 
     def _calculate_clean_displacements(
         self, coordinates: Tensor, true_parameter: Tensor
     ) -> Tensor:
-        return torch.tensor(
+        return (
             self._solution_func(
                 coordinates,
                 self._length,
@@ -136,6 +139,8 @@ class CalibrationDataGenerator1D:
                 self._traction,
                 self._volume_force,
             )
+            .clone()
+            .detach()
         )
 
 
@@ -149,7 +154,10 @@ def preprocess_calibration_data(data: CalibrationData) -> PreprocessedCalibratio
     _validate_calibration_data(data)
     outputs = data.outputs
     num_data_points = outputs.size()[0]
-    dim_outputs = outputs.size()[1]
+    if outputs.size() == torch.Size([num_data_points]):
+        dim_outputs = 1
+    else:
+        dim_outputs = outputs.size()[1]
 
     return PreprocessedCalibrationData(
         inputs=data.inputs,

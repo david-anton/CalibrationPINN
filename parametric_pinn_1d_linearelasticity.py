@@ -77,7 +77,7 @@ valid_interval = 1
 num_points_valid = 512
 batch_size_valid = num_samples_valid
 # Calibration
-consider_model_error = True
+consider_model_error = False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -216,8 +216,8 @@ def calibration_step() -> None:
     num_data_points = 32
     std_noise = 5 * 1e-4
     num_test_cases = num_samples_valid
-    prior_mean_youngs_modulus = 210000
-    prior_std_youngs_modulus = 10000
+    prior_mean_youngs_modulus = 210000.0
+    prior_std_youngs_modulus = 10000.0
 
     prior = create_univariate_normal_distributed_prior(
         mean=prior_mean_youngs_modulus,
@@ -252,7 +252,7 @@ def calibration_step() -> None:
     model = load_model(
         model=ansatz,
         name_model_parameters_file=name_model_parameters_file,
-        input_subdir=output_subdirectory,
+        input_subdir=output_subdirectory_training,
         project_directory=project_directory,
         device=device,
     )
