@@ -181,11 +181,19 @@ def train_parametric_pinn(train_config: StandardTrainingConfiguration) -> None:
         loss_hist_pde.append(mean_loss_pde)
         loss_hist_traction_bc.append(mean_loss_traction_bc)
 
+        print("##################################################")
+        print(f"Epoch {epoch} / {train_num_epochs - 1}")
+        print(f"PDE: \t\t {mean_loss_pde}")
+        print(f"TRACTION_BC: \t {mean_loss_traction_bc}")
+        print("##################################################")
         if epoch % 1 == 0:
             mae, rl2 = validate_model(ansatz, valid_dataloader)
             valid_hist_mae.append(mae)
             valid_hist_rl2.append(rl2)
             valid_epochs.append(epoch)
+            print(
+                f"Validation: Epoch {epoch} / {train_num_epochs - 1}, MAE: {mae}, rL2: {rl2}"
+            )
 
     ### Postprocessing
     print("Postprocessing ...")
