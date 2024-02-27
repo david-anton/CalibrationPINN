@@ -170,8 +170,10 @@ def _create_quasirandom_sobol_sampled_parameters(
     normalized_parameters = (
         sobol_engine.draw(num_samples).to(device).requires_grad_(True)
     )
-    parameters = torch.tensor(min_parameters) + normalized_parameters * (
-        torch.tensor(max_parameters) - torch.tensor(min_parameters)
+    min_parameters_tensor = torch.tensor(min_parameters, device=device)
+    max_parameters_tensor = torch.tensor(max_parameters, device=device)
+    parameters = min_parameters_tensor + normalized_parameters * (
+        max_parameters_tensor - min_parameters_tensor
     )
     if num_dimensions == 1:
         parameters = parameters.reshape((-1, 1))
@@ -257,8 +259,10 @@ def _create_random_sampled_parameters(
     normalized_parameters = torch.rand(
         size=(num_samples, len(min_parameters)), requires_grad=True, device=device
     )
-    parameters = torch.tensor(min_parameters) + normalized_parameters * (
-        torch.tensor(max_parameters) - torch.tensor(min_parameters)
+    min_parameters_tensor = torch.tensor(min_parameters, device=device)
+    max_parameters_tensor = torch.tensor(max_parameters, device=device)
+    parameters = min_parameters_tensor + normalized_parameters * (
+        max_parameters_tensor - min_parameters_tensor
     )
     if num_dimensions == 1:
         parameters = parameters.reshape((-1, 1))
