@@ -55,8 +55,8 @@ retrain_parametric_pinn = True
 # Set up
 num_material_parameters = 1
 length = 100.0
-traction = 1.0
-volume_force = 1.0
+traction = 10.0
+volume_force = 0.0
 min_youngs_modulus = 180000.0
 max_youngs_modulus = 240000.0
 displacement_left = 0.0
@@ -65,14 +65,14 @@ layer_sizes = [2, 16, 16, 16, 16, 1]
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_parameter_samples = 128
-num_points_pde = 128
+num_parameter_samples = 256
+num_collocation_points = 128
 training_batch_size = num_parameter_samples
-number_training_epochs = 300
+number_training_epochs = 1000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-num_samples_valid = 64
+num_samples_valid = 128
 valid_interval = 1
 num_points_valid = 512
 batch_size_valid = num_samples_valid
@@ -85,7 +85,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_Parametric_PINN_1D"
+output_subdirectory = f"{output_date}_Parametric_PINN_1D_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_samples_{int(num_parameter_samples)}_col_{int(num_collocation_points)}_neurons_4_16"
 output_subdirectory_training = os.path.join(output_subdirectory, "training")
 
 
@@ -114,7 +114,7 @@ def create_datasets() -> (
             length=length,
             traction=traction,
             volume_force=volume_force,
-            num_points_pde=num_points_pde,
+            num_points_pde=num_collocation_points,
         )
         return create_training_dataset(config_training_dataset)
 
@@ -201,7 +201,7 @@ def training_step() -> None:
             youngs_modulus_list=[min_youngs_modulus, 210000, max_youngs_modulus],
             traction=traction,
             volume_force=volume_force,
-            output_subdir=output_subdirectory,
+            output_subdir=output_subdirectory_training,
             project_directory=project_directory,
             config=displacements_plotter_config,
             device=device,
