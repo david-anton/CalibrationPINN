@@ -83,7 +83,6 @@ def least_squares(
     model_closure = ModelClosure(ansatz, initial_parameters, preprocessed_data, device)
     flattened_outputs = preprocessed_data.outputs.ravel().detach().to(device)
     residual_weights = residual_weights.to(device)
-    loss_metric = torch.nn.MSELoss()
 
     optimizer = torch.optim.LBFGS(
         params=model_closure.parameters(),
@@ -100,8 +99,9 @@ def least_squares(
         flattened_model_outputs = model_closure().ravel()
         residuals = flattened_model_outputs - flattened_outputs
         weighted_residuals = residual_weights * residuals
-        return loss_metric(
-            weighted_residuals, torch.zeros_like(residuals, device=device)
+        return (1 / 2) * torch.matmul(
+            weighted_residuals,
+            torch.transpose(torch.unsqueeze(weighted_residuals, dim=0), 0, 1),
         )
 
     def loss_func_closure() -> float:
