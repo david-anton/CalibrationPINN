@@ -77,7 +77,7 @@ valid_interval = 1
 num_points_valid = 512
 batch_size_valid = num_samples_valid
 # Calibration
-consider_model_error = True
+consider_model_error = False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
