@@ -213,7 +213,7 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    num_data_points = 32
+    num_data_points = 128  # 32
     std_noise = 5 * 1e-4
     num_test_cases = num_samples_valid
     prior_mean_youngs_modulus = 210000.0
@@ -326,7 +326,7 @@ def calibration_step() -> None:
                 prior=prior,
                 initial_parameters=initial_parameters,
                 num_iterations=int(1e4),
-                num_burn_in_iterations=int(1e3),
+                num_burn_in_iterations=int(5e3),
                 cov_proposal_density=cov_proposal_density,
             )
             configs.append(config)
