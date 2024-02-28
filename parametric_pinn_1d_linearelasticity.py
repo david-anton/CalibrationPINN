@@ -310,7 +310,7 @@ def calibration_step() -> None:
     ) -> tuple[MetropolisHastingsConfig, ...]:
         configs = []
         for likelihood in likelihoods:
-            std_proposal_density_youngs_modulus = 100.0
+            std_proposal_density_youngs_modulus = 1000.0
             cov_proposal_density = torch.diag(
                 torch.tensor(
                     [
