@@ -109,8 +109,8 @@ batch_size_valid = num_samples_valid
 # Calibration
 consider_model_error = True
 use_least_squares = True
-use_random_walk_metropolis_hasting = True
-use_hamiltonian = False
+use_random_walk_metropolis_hasting = False  # True
+use_hamiltonian = True  # False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
@@ -426,7 +426,7 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    num_data_points = 1024
+    num_data_points = 256
     std_noise = 5 * 1e-4
     num_test_cases = num_samples_valid
     prior_mean_bulk_modulus = mean_bulk_modulus
