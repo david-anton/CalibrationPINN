@@ -524,8 +524,8 @@ def calibration_step() -> None:
     ) -> tuple[MetropolisHastingsConfig, ...]:
         configs = []
         for likelihood in likelihoods:
-            std_proposal_density_bulk_modulus = 100.0
-            std_proposal_density_shear_modulus = 10.0
+            std_proposal_density_bulk_modulus = 50.0
+            std_proposal_density_shear_modulus = 5.0
             cov_proposal_density = torch.diag(
                 torch.tensor(
                     [
@@ -558,7 +558,7 @@ def calibration_step() -> None:
                 prior=prior,
                 initial_parameters=initial_parameters,
                 num_iterations=int(1e4),
-                num_burn_in_iterations=int(1e4),
+                num_burn_in_iterations=int(5e3),
                 num_leabfrog_steps=256,
                 leapfrog_step_sizes=torch.tensor([1, 0.01], device=device),
             )
