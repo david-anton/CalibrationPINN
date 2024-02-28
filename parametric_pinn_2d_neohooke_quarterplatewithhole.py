@@ -102,7 +102,7 @@ fem_element_size = 0.2
 # Validation
 regenerate_valid_data = False
 input_subdir_valid = f"20240223_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
-num_samples_valid = 100
+num_samples_valid = 1  # 100
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
@@ -524,8 +524,8 @@ def calibration_step() -> None:
     ) -> tuple[MetropolisHastingsConfig, ...]:
         configs = []
         for likelihood in likelihoods:
-            std_proposal_density_bulk_modulus = 5.0
-            std_proposal_density_shear_modulus = 1.0
+            std_proposal_density_bulk_modulus = 100.0
+            std_proposal_density_shear_modulus = 10.0
             cov_proposal_density = torch.diag(
                 torch.tensor(
                     [
@@ -541,8 +541,8 @@ def calibration_step() -> None:
                 likelihood=likelihood,
                 prior=prior,
                 initial_parameters=initial_parameters,
-                num_iterations=int(1e4),
-                num_burn_in_iterations=int(5e3),
+                num_iterations=int(1e5),
+                num_burn_in_iterations=int(1e4),
                 cov_proposal_density=cov_proposal_density,
             )
             configs.append(config)
