@@ -212,4 +212,4 @@ def plot_univariate_normal_distribution(
         file_name=file_name, subdir_name=output_subdir
     )
     figure.savefig(output_path, bbox_inches="tight", dpi=config.dpi)
-    plt.clf()
+    plt.close()
