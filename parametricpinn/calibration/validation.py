@@ -33,7 +33,7 @@ def test_coverage(
 ) -> None:
     credible_standard_factor = 1.959963984540
 
-    def perform_bayesian_inference() -> tuple[NPArray, NPArray]:
+    def perform_bayesian_inference() -> tuple[NPArray, NPArray, NPArray]:
         def calibrate_once(
             calibration_config: MCMCConfig,
             true_parameters_tuple: tuple[float, ...],
@@ -85,8 +85,9 @@ def test_coverage(
             standard_deviations_list.append(standard_deviations)
 
         stacked_means = np.stack(tuple(means_list), axis=0)
+        stacked_biases = stacked_means - true_parameters
         stacked_standard_deviations = np.stack(tuple(standard_deviations_list), axis=0)
-        return stacked_means, stacked_standard_deviations
+        return stacked_means, stacked_biases, stacked_standard_deviations
 
     def test_credibe_intervals(means: NPArray, standard_deviations: NPArray) -> NPArray:
         credible_interval = credible_standard_factor * standard_deviations
@@ -100,12 +101,16 @@ def test_coverage(
         return np.concatenate((coverage_individual, coverage_combined), axis=1)
 
     def save_results(
-        means: NPArray, standard_deviations: NPArray, credible_test_results: NPArray
+        means: NPArray,
+        biases: NPArray,
+        standard_deviations: NPArray,
+        credible_test_results: NPArray,
     ) -> None:
         def compile_header() -> tuple[str, ...]:
             true_parameter_names = [f"true {p}" for p in parameter_names]
-            mean_parameter_names = [f"mean {p}" for p in parameter_names]
-            standard_deviation_parameter_names = [
+            mean_names = [f"mean {p}" for p in parameter_names]
+            bias_names = [f"bias {p}" for p in parameter_names]
+            standard_deviation_names = [
                 f"standard deviation {p}" for p in parameter_names
             ]
             credible_test_names = [
@@ -113,14 +118,21 @@ def test_coverage(
             ] + ["are all parameters in credible interval"]
             return tuple(
                 true_parameter_names
-                + mean_parameter_names
-                + standard_deviation_parameter_names
+                + mean_names
+                + bias_names
+                + standard_deviation_names
                 + credible_test_names
             )
 
         def compile_results() -> NPArray:
             return np.concatenate(
-                (true_parameters, means, standard_deviations, credible_test_results),
+                (
+                    true_parameters,
+                    means,
+                    biases,
+                    standard_deviations,
+                    credible_test_results,
+                ),
                 axis=1,
             )
 
@@ -129,6 +141,36 @@ def test_coverage(
         data_frame = pd.DataFrame(results, columns=header)
         data_writer = PandasDataWriter(project_directory)
         file_name = "results.csv"
+        data_writer.write(
+            data=data_frame,
+            file_name=file_name,
+            subdir_name=output_subdir,
+            header=header,
+        )
+
+    def save_statistics_summary(biases: NPArray, standard_deviations: NPArray) -> None:
+        def compile_header() -> tuple[str, ...]:
+            mean_bias_names = [f"mean bias {p}" for p in parameter_names]
+            mean_stdandard_deviation_names = [
+                f"mean standard deviation {p}" for p in parameter_names
+            ]
+            return tuple(mean_bias_names + mean_stdandard_deviation_names)
+
+        def compile_results() -> NPArray:
+            mean_biases = np.mean(biases, axis=0, keepdims=True)
+            mean_standard_deviations = np.mean(
+                standard_deviations, axis=0, keepdims=True
+            )
+            return np.concatenate(
+                (mean_biases, mean_standard_deviations),
+                axis=1,
+            )
+
+        header = compile_header()
+        results = compile_results()
+        data_frame = pd.DataFrame(results, columns=header)
+        data_writer = PandasDataWriter(project_directory)
+        file_name = "summary_statistics.csv"
         data_writer.write(
             data=data_frame,
             file_name=file_name,
@@ -151,7 +193,7 @@ def test_coverage(
         coverage_results = compile_coverage_results()
         data = pd.DataFrame(coverage_results, index=index, columns=header)
         data_writer = PandasDataWriter(project_directory)
-        file_name = "coverage_test.csv"
+        file_name = "summary_coverage_test.csv"
         data_writer.write(
             data=data,
             file_name=file_name,
@@ -160,9 +202,10 @@ def test_coverage(
             index=True,
         )
 
-    means, standard_deviations = perform_bayesian_inference()
+    means, biases, standard_deviations = perform_bayesian_inference()
     credible_test_results = test_credibe_intervals(means, standard_deviations)
-    save_results(means, standard_deviations, credible_test_results)
+    save_results(means, biases, standard_deviations, credible_test_results)
+    save_statistics_summary(biases, standard_deviations)
     save_coverage_test_summary(credible_test_results)
 
 
