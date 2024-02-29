@@ -122,7 +122,6 @@ class NoiseQLikelihoodStrategy:
         self._standard_likelihood_strategy = standard_likelihood_strategy
         self._standard_deviation_noise = data.std_noise
         self._num_data_points = data.num_data_points
-        self._num_flattened_outputs = data.num_data_points * data.dim_outputs
         self._num_model_parameters = num_model_parameters
         self._device = device
 
@@ -133,7 +132,7 @@ class NoiseQLikelihoodStrategy:
     def _calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
         scores, total_score = self._calculate_scores(parameters)
         W = self._estimate_covariance(scores, total_score)
-        Q = self._determine_q(total_score, W)
+        Q = self._calculate_q(total_score, W)
         M = torch.det(W)
         return torch.log(M ** (-1 / 2)) - Q
 
@@ -154,7 +153,7 @@ class NoiseQLikelihoodStrategy:
         covariances = vmap(_vmap_calculate_covariance)(scores)
         return torch.mean(covariances, dim=0)
 
-    def _determine_q(self, total_score: Tensor, covariance: Tensor) -> Tensor:
+    def _calculate_q(self, total_score: Tensor, covariance: Tensor) -> Tensor:
         sqrt_num_data_points = torch.sqrt(
             torch.tensor(self._num_data_points, device=self._device)
         )
