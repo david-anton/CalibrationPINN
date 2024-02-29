@@ -42,7 +42,22 @@ class UnivariateUniformDistributionError(Error):
         super().__init__(message)
 
 
+class MultivariateUniformDistributionError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
 class UnivariateNormalDistributionError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
+class MultivariateNormalDistributionError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
+class IndependentMultivariateNormalDistributionError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
 

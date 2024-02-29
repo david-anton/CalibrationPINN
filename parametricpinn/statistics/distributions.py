@@ -3,7 +3,10 @@ from typing import Protocol, TypeAlias, Union
 import torch
 
 from parametricpinn.errors import (
+    IndependentMultivariateNormalDistributionError,
     MixedDistributionError,
+    MultivariateNormalDistributionError,
+    MultivariateUniformDistributionError,
     UnivariateNormalDistributionError,
     UnivariateUniformDistributionError,
 )
@@ -33,13 +36,6 @@ class UnivariateUniformDistributon:
         )
         self.dim = 1
 
-    def _validate_sample(self, sample: Tensor) -> None:
-        shape = sample.shape
-        if not (shape == torch.Size([1]) or shape == torch.Size([])):
-            raise UnivariateUniformDistributionError(
-                f"Unexpected shape of sample: {shape}."
-            )
-
     def log_prob(self, sample: Tensor) -> Tensor:
         self._validate_sample(sample)
         log_prob = self._distribution.log_prob(sample)
@@ -47,6 +43,47 @@ class UnivariateUniformDistributon:
 
     def sample(self) -> Tensor:
         return self._distribution.rsample()
+
+    def _validate_sample(self, sample: Tensor) -> None:
+        shape = sample.shape
+        if not (shape == torch.Size([1]) or shape == torch.Size([])):
+            raise UnivariateUniformDistributionError(
+                f"Unexpected shape of sample: {shape}."
+            )
+
+
+class MultivariateUniformDistribution:
+    def __init__(self, lower_limits: Tensor, upper_limits: Tensor, device: Device):
+        self._validate_limits(lower_limits, upper_limits)
+        self._distribution = torch.distributions.Uniform(
+            low=lower_limits.type(torch.float64).to(device),
+            high=upper_limits.type(torch.float64).to(device),
+            validate_args=False,
+        )
+        self.dim = torch.numel(lower_limits)
+
+    def log_prob(self, sample: Tensor) -> Tensor:
+        self._validate_sample(sample)
+        log_prob = torch.sum(self._distribution.log_prob(sample), dim=0)
+        return squeeze_if_necessary(log_prob)
+
+    def sample(self) -> Tensor:
+        return self._distribution.rsample()
+
+    def _validate_limits(self, lower_limits: Tensor, upper_limits: Tensor) -> None:
+        shape_lower_limits = lower_limits.size()
+        shape_upper_limits = upper_limits.size()
+        if not shape_lower_limits == shape_upper_limits:
+            raise MultivariateUniformDistributionError(
+                "Different shape of lower and upper limits: {shape_lower_limits} and {shape_upper_limits}"
+            )
+
+    def _validate_sample(self, sample: Tensor) -> None:
+        shape = sample.shape
+        if not shape == torch.Size([self.dim]):
+            raise MultivariateUniformDistributionError(
+                f"Unexpected shape of sample: {shape}."
+            )
 
 
 class UnivariateNormalDistributon:
@@ -59,13 +96,6 @@ class UnivariateNormalDistributon:
         )
         self.dim = 1
 
-    def _validate_sample(self, sample: Tensor) -> None:
-        shape = sample.shape
-        if not (shape == torch.Size([1]) or shape == torch.Size([])):
-            raise UnivariateNormalDistributionError(
-                f"Unexpected shape of sample: {shape}."
-            )
-
     def log_prob(self, sample: Tensor) -> Tensor:
         self._validate_sample(sample)
         log_prob = self._distribution.log_prob(sample)
@@ -73,6 +103,13 @@ class UnivariateNormalDistributon:
 
     def sample(self) -> Tensor:
         return self._distribution.rsample()
+
+    def _validate_sample(self, sample: Tensor) -> None:
+        shape = sample.shape
+        if not (shape == torch.Size([1]) or shape == torch.Size([])):
+            raise UnivariateNormalDistributionError(
+                f"Unexpected shape of sample: {shape}."
+            )
 
 
 class MultivariateNormalDistributon:
@@ -86,11 +123,19 @@ class MultivariateNormalDistributon:
         self.dim = torch.numel(means)
 
     def log_prob(self, sample: Tensor) -> Tensor:
+        self._validate_sample(sample)
         log_prob = self._distribution.log_prob(sample)
         return squeeze_if_necessary(log_prob)
 
     def sample(self) -> Tensor:
         return self._distribution.rsample()
+
+    def _validate_sample(self, sample: Tensor) -> None:
+        shape = sample.shape
+        if not shape == torch.Size([self.dim]):
+            raise MultivariateNormalDistributionError(
+                f"Unexpected shape of sample: {shape}."
+            )
 
 
 class IndependentMultivariateNormalDistributon:
@@ -107,12 +152,20 @@ class IndependentMultivariateNormalDistributon:
         return self._distribution.log_prob(sample)
 
     def log_prob(self, sample: Tensor) -> Tensor:
+        self._validate_sample(sample)
         log_probs_individual = self.log_probs_individual(sample)
         log_prob = torch.sum(log_probs_individual)
         return squeeze_if_necessary(log_prob)
 
     def sample(self) -> Tensor:
         return self._distribution.rsample()
+
+    def _validate_sample(self, sample: Tensor) -> None:
+        shape = sample.shape
+        if not shape == torch.Size([self.dim]):
+            raise IndependentMultivariateNormalDistributionError(
+                f"Unexpected shape of sample: {shape}."
+            )
 
 
 UnivariateDistributions: TypeAlias = Union[
@@ -124,16 +177,6 @@ class MixedIndependetMultivariateDistribution:
     def __init__(self, distributions: list[UnivariateDistributions]) -> None:
         self._distributions = distributions
         self.dim = len(distributions)
-
-    def _validate_sample(self, sample: Tensor) -> None:
-        if sample.dim() != 1:
-            raise MixedDistributionError(
-                "Sample is expected to be a one-dimensional tensor."
-            )
-        if sample.size()[0] != len(self._distributions):
-            raise MixedDistributionError(
-                "The size of sample does not match the number of mixed distributions."
-            )
 
     def log_prob(self, sample: Tensor) -> Tensor:
         self._validate_sample(sample)
@@ -151,11 +194,27 @@ class MixedIndependetMultivariateDistribution:
         samples = [distribution.sample() for distribution in self._distributions]
         return torch.concat(samples, dim=0)
 
+    def _validate_sample(self, sample: Tensor) -> None:
+        if sample.dim() != 1:
+            raise MixedDistributionError(
+                "Sample is expected to be a one-dimensional tensor."
+            )
+        if sample.size()[0] != len(self._distributions):
+            raise MixedDistributionError(
+                "The size of sample does not match the number of mixed distributions."
+            )
+
 
 def create_univariate_uniform_distribution(
     lower_limit: float, upper_limit: float, device: Device
 ) -> UnivariateUniformDistributon:
     return UnivariateUniformDistributon(lower_limit, upper_limit, device)
+
+
+def create_multivariate_uniform_distribution(
+    lower_limits: Tensor, upper_limits: Tensor, device: Device
+) -> MultivariateUniformDistribution:
+    return MultivariateUniformDistribution(lower_limits, upper_limits, device)
 
 
 def create_univariate_normal_distribution(

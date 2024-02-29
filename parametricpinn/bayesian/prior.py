@@ -6,12 +6,14 @@ from parametricpinn.statistics.distributions import (
     IndependentMultivariateNormalDistributon,
     MixedIndependetMultivariateDistribution,
     MultivariateNormalDistributon,
+    MultivariateUniformDistribution,
     UnivariateDistributions,
     UnivariateNormalDistributon,
     UnivariateUniformDistributon,
     create_independent_multivariate_normal_distribution,
     create_mixed_independent_multivariate_distribution,
     create_multivariate_normal_distribution,
+    create_multivariate_uniform_distribution,
     create_univariate_normal_distribution,
     create_univariate_uniform_distribution,
 )
@@ -21,6 +23,7 @@ PriorDistribution: TypeAlias = Union[
     UnivariateUniformDistributon,
     UnivariateNormalDistributon,
     MultivariateNormalDistributon,
+    MultivariateUniformDistribution,
     MixedIndependetMultivariateDistribution,
     IndependentMultivariateNormalDistributon,
 ]
@@ -87,6 +90,15 @@ def create_univariate_uniform_distributed_prior(
 ) -> Prior:
     distribution = create_univariate_uniform_distribution(
         lower_limit, upper_limit, device
+    )
+    return Prior(distribution)
+
+
+def create_multivariate_uniform_distributed_prior(
+    lower_limits: Tensor, upper_limits: Tensor, device: Device
+) -> Prior:
+    distribution = create_multivariate_uniform_distribution(
+        lower_limits, upper_limits, device
     )
     return Prior(distribution)
 

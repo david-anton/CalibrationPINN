@@ -7,6 +7,7 @@ from parametricpinn.statistics.distributions import (
     create_multivariate_normal_distribution,
     create_univariate_normal_distribution,
     create_univariate_uniform_distribution,
+    create_multivariate_uniform_distribution,
 )
 from parametricpinn.types import Tensor
 
@@ -18,6 +19,14 @@ def _expected_univariate_uniform_distribution() -> list[tuple[Tensor, Tensor]]:
         (torch.tensor([0.0]), torch.log(torch.tensor(0.5, dtype=torch.float64))),
         (torch.tensor([-2.0]), torch.log(torch.tensor(0.0, dtype=torch.float64))),
         (torch.tensor([2.0]), torch.log(torch.tensor(0.0, dtype=torch.float64))),
+    ]
+
+
+def _expected_multivariate_uniform_distribution() -> list[tuple[Tensor, Tensor]]:
+    return [
+        (torch.tensor([0.0, 0.0]), torch.log(torch.tensor(0.25, dtype=torch.float64))),
+        (torch.tensor([-2.0, 0.0]), torch.log(torch.tensor(0.0, dtype=torch.float64))),
+        (torch.tensor([0.0, 2.0]), torch.log(torch.tensor(0.0, dtype=torch.float64))),
     ]
 
 
@@ -215,6 +224,34 @@ def test_univariate_uniform_distribution_dimension() -> None:
 
     actual = sut.dim
     expected = 1
+
+    torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize(
+    ("parameter", "expected"), _expected_multivariate_uniform_distribution()
+)
+def test_multivariate_uniform_distribution(parameter: Tensor, expected: Tensor) -> None:
+    lower_limits = torch.tensor([-1.0, -1.0])
+    upper_limits = torch.tensor([1.0, 1.0])
+    sut = create_multivariate_uniform_distribution(
+        lower_limits=lower_limits, upper_limits=upper_limits, device=device
+    )
+
+    actual = sut.log_prob(parameter)
+
+    torch.testing.assert_close(actual, expected)
+
+
+def test_multivariate_uniform_distribution_dimension() -> None:
+    lower_limits = torch.tensor([-1.0, -1.0])
+    upper_limits = torch.tensor([1.0, 1.0])
+    sut = create_multivariate_uniform_distribution(
+        lower_limits=lower_limits, upper_limits=upper_limits, device=device
+    )
+
+    actual = sut.dim
+    expected = 2
 
     torch.testing.assert_close(actual, expected)
 
