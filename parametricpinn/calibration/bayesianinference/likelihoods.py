@@ -1,7 +1,7 @@
 from typing import Protocol, TypeAlias, Union
 
 import torch
-from torch.func import jacrev, vmap
+from torch.func import vmap, jacfwd
 
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
 from parametricpinn.calibration.data import (
@@ -138,7 +138,7 @@ class NoiseQLikelihoodStrategy:
         return torch.log(M ** (-1 / 2)) - Q
 
     def _calculate_scores(self, parameters: Tensor) -> tuple[Tensor, Tensor]:
-        scores = jacrev(self._standard_likelihood_strategy.log_probs_pointwise)(
+        scores = jacfwd(self._standard_likelihood_strategy.log_probs_pointwise)(
             parameters
         )
         total_score = torch.sum(scores, dim=0)
