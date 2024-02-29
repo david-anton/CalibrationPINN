@@ -108,9 +108,9 @@ num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
 consider_model_error = True
-use_least_squares = False  # True
-use_random_walk_metropolis_hasting = True
-use_hamiltonian = False
+use_least_squares = True
+use_random_walk_metropolis_hasting = False
+use_hamiltonian = True
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
