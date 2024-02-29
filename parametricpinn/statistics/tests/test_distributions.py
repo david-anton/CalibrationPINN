@@ -5,9 +5,9 @@ from parametricpinn.statistics.distributions import (
     create_independent_multivariate_normal_distribution,
     create_mixed_independent_multivariate_distribution,
     create_multivariate_normal_distribution,
+    create_multivariate_uniform_distribution,
     create_univariate_normal_distribution,
     create_univariate_uniform_distribution,
-    create_multivariate_uniform_distribution,
 )
 from parametricpinn.types import Tensor
 
