@@ -1,8 +1,8 @@
 from typing import Protocol, TypeAlias, Union
 
 import torch
-from torch.func import jacfwd, vmap
 from scipy import stats
+from torch.func import jacfwd, vmap
 
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
 from parametricpinn.calibration.data import (
