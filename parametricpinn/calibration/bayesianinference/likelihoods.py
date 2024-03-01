@@ -2,6 +2,7 @@ from typing import Protocol, TypeAlias, Union
 
 import torch
 from torch.func import jacfwd, vmap
+from scipy import stats
 
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
 from parametricpinn.calibration.data import (
@@ -117,12 +118,14 @@ class NoiseQLikelihoodStrategy:
         standard_likelihood_strategy: NoiseLikelihoodStrategy,
         data: PreprocessedCalibrationData,
         num_model_parameters: int,
+        make_robust: bool,
         device: Device,
     ) -> None:
         self._standard_likelihood_strategy = standard_likelihood_strategy
         self._standard_deviation_noise = data.std_noise
         self._num_data_points = data.num_data_points
         self._num_model_parameters = num_model_parameters
+        self._make_robust = make_robust
         self._device = device
 
     def log_prob(self, parameters: Tensor) -> Tensor:
@@ -130,11 +133,33 @@ class NoiseQLikelihoodStrategy:
         return self._calibrated_log_likelihood(model_parameters)
 
     def _calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
+        if self._make_robust:
+            self._robust_calibrated_log_likelihood(parameters)
+        return self._default_calibrated_log_likelihood(parameters)
+
+    def _robust_calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
         scores, total_score = self._calculate_scores(parameters)
-        W = self._estimate_covariance(scores, total_score)
+        W = self._estimate_robust_covariance_matrix(scores, total_score)
         Q = self._calculate_q(total_score, W)
         M = torch.det(W)
-        return torch.log(M ** (-1 / 2)) - Q
+
+        gamma = 0.1
+        d_0 = stats.chi2.ppf(0.99, self._num_model_parameters)
+        k = (2 * d_0 ** (2 - gamma)) / gamma
+        c = d_0**2 - k * d_0**gamma
+
+        def g(x: Tensor) -> Tensor:
+            abs_x = torch.absolute(x)
+            return torch.where(abs_x <= d_0, x**2, k * abs_x**gamma + c)
+
+        return (-1 / 2) * torch.log(M) - (1 / 2) * g(torch.sqrt(2 * Q))
+
+    def _default_calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
+        scores, total_score = self._calculate_scores(parameters)
+        W = self._estimate_default_covariance_matrix(scores, total_score)
+        Q = self._calculate_q(total_score, W)
+        M = torch.det(W)
+        return (-1 / 2) * torch.log(M) - Q
 
     def _calculate_scores(self, parameters: Tensor) -> tuple[Tensor, Tensor]:
         scores = jacfwd(self._standard_likelihood_strategy.log_probs_pointwise)(
@@ -143,7 +168,68 @@ class NoiseQLikelihoodStrategy:
         total_score = torch.sum(scores, dim=0)
         return scores, total_score
 
-    def _estimate_covariance(self, scores: Tensor, total_score: Tensor) -> Tensor:
+    def _estimate_robust_covariance_matrix(
+        self, scores: Tensor, total_score: Tensor
+    ) -> Tensor:
+        mean_score = total_score / self._num_data_points
+
+        ### 1
+        S = scores - mean_score
+        D_bar = torch.diag(torch.sqrt(torch.mean(S**2, dim=0)))
+        _, R_bar = torch.linalg.qr(
+            (S @ torch.inverse(D_bar))
+            / torch.sqrt(torch.tensor(self._num_data_points - 1, device=self._device))
+        )
+        R_bar_T = torch.transpose(R_bar, 0, 1)
+        covar_bar_inv = torch.inverse(D_bar @ R_bar_T @ R_bar @ D_bar)
+
+        ### 2
+        def vmap_calculate_mahalanobis_distance(score: Tensor) -> Tensor:
+            deviation = score - mean_score
+            return deviation @ covar_bar_inv @ deviation
+
+        m = vmap(vmap_calculate_mahalanobis_distance)(scores)
+
+        ### 3
+        num_statistics = torch.tensor(self._num_model_parameters, device=self._device)
+        m_0 = torch.sqrt(num_statistics) + torch.sqrt(
+            torch.tensor(2, device=self._device)
+        )
+
+        weights = torch.where(
+            m > m_0,
+            (m_0 / m) * torch.exp(-((m - m_0) ** 2) / 2),
+            torch.tensor(1.0, device=self._device),
+        )
+
+        ### 4
+        redefined_mean_score = (weights @ scores) / torch.sum(weights)
+        redefined_S = scores - redefined_mean_score
+
+        ### 5
+        D = torch.diag(torch.sqrt(torch.mean(redefined_S**2, dim=0)))
+        W = torch.diag(weights)
+
+        _, R = torch.linalg.qr(
+            (
+                W
+                @ redefined_S
+                @ torch.inverse(D)
+                / torch.sqrt(
+                    (torch.sum(weights**2 - torch.tensor(1.0, device=self._device)))
+                )
+            )
+        )
+
+        ### 6
+        R_T = torch.transpose(R, 0, 1)
+        covariance = D @ R_T @ R @ D
+
+        return covariance
+
+    def _estimate_default_covariance_matrix(
+        self, scores: Tensor, total_score: Tensor
+    ) -> Tensor:
         mean_score = total_score / self._num_data_points
 
         def _vmap_calculate_covariance(score) -> Tensor:
@@ -286,6 +372,7 @@ def create_standard_ppinn_q_likelihood_for_noise(
     model: StandardAnsatz,
     num_model_parameters: int,
     data: CalibrationData,
+    make_robust: bool,
     device: Device,
 ) -> StandardPPINNLikelihood:
     preprocessed_data = preprocess_calibration_data(data)
@@ -304,6 +391,7 @@ def create_standard_ppinn_q_likelihood_for_noise(
         standard_likelihood_strategy=standard_likelihood_strategy,
         data=preprocessed_data,
         num_model_parameters=num_model_parameters,
+        make_robust=make_robust,
         device=device,
     )
     return StandardPPINNLikelihood(
