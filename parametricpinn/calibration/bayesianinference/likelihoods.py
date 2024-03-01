@@ -247,7 +247,7 @@ class NoiseQLikelihoodStrategy:
             (1 / 2)
             * (
                 (total_score / sqrt_num_data_points)
-                @ torch.inverse(covariance)
+                @ torch.inverse(self._num_data_points * covariance)
                 @ torch.transpose(
                     torch.unsqueeze((total_score / sqrt_num_data_points), dim=0), 0, 1
                 )
