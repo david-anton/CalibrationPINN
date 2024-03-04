@@ -94,7 +94,9 @@ def generate_calibration_data(
 
 
 def generate_likelihoods(
-    consider_model_error: bool, calibration_data: tuple[CalibrationData, ...]
+    consider_model_error: bool,
+    make_robust: bool,
+    calibration_data: tuple[CalibrationData, ...],
 ) -> tuple[Likelihood, ...]:
     if consider_model_error:
         return tuple(
@@ -102,6 +104,7 @@ def generate_likelihoods(
                 model=model,
                 num_model_parameters=num_parameters,
                 data=data,
+                make_robust=make_robust,
                 device=device,
             )
             for data in calibration_data
@@ -146,15 +149,19 @@ def set_up_mcmc_configs(
 
 def run_coverage_test(
     consider_model_error: bool,
+    make_robust: bool,
     gamma: float,
     parameter_names: tuple[str, ...],
     prior: Prior,
 ) -> None:
     output_subdir_calibration = os.path.join(
-        output_subdirectory, f"gamma_{gamma}_q_posterior_{consider_model_error}"
+        output_subdirectory,
+        f"gamma_{gamma}_q_posterior_{consider_model_error}_make_robust_{make_robust}",
     )
     calibration_data, true_parameters = generate_calibration_data(gamma)
-    likelihoods = generate_likelihoods(consider_model_error, calibration_data)
+    likelihoods = generate_likelihoods(
+        consider_model_error, make_robust, calibration_data
+    )
     mcmc_configs = set_up_mcmc_configs(likelihoods, prior, consider_model_error)
     print("############################################################")
     print(f"Q-posterior used: {consider_model_error}")
@@ -186,26 +193,32 @@ if __name__ == "__main__":
 
     model = LinearRegressionModel(num_inputs)
 
-    run_coverage_test(
-        consider_model_error=False,
-        gamma=0.0,
-        parameter_names=parameter_names,
-        prior=prior,
-    )
+    make_calibration_with_error_robust = True
+
+    # run_coverage_test(
+    #     consider_model_error=False,
+    #     make_robust = False,
+    #     gamma=0.0,
+    #     parameter_names=parameter_names,
+    #     prior=prior,
+    # )
     run_coverage_test(
         consider_model_error=True,
+        make_robust=make_calibration_with_error_robust,
         gamma=0.0,
         parameter_names=parameter_names,
         prior=prior,
     )
     run_coverage_test(
         consider_model_error=False,
+        make_robust=False,
         gamma=2.0,
         parameter_names=parameter_names,
         prior=prior,
     )
     run_coverage_test(
         consider_model_error=True,
+        make_robust=make_calibration_with_error_robust,
         gamma=2.0,
         parameter_names=parameter_names,
         prior=prior,
