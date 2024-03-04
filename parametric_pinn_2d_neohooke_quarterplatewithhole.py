@@ -479,13 +479,13 @@ def calibration_step() -> None:
                 model=model,
                 num_model_parameters=num_material_parameters,
                 data=data,
-                make_robust=False,
+                make_robust=True,
                 device=device,
             )
             for data in calibration_data
         )
         output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration_with_model_error_SL_variance"
+            output_subdirectory, "calibration_with_model_error_SL_variance_robust"
         )
     else:
         likelihoods = tuple(
