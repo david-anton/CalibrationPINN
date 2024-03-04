@@ -12,7 +12,7 @@ from parametricpinn.ansatz import (
 )
 from parametricpinn.bayesian.likelihood import Likelihood
 from parametricpinn.bayesian.prior import (
-    create_univariate_normal_distributed_prior,
+    create_univariate_uniform_distributed_prior,
     multiply_priors,
 )
 from parametricpinn.calibration import (
@@ -72,14 +72,10 @@ traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-mean_bulk_modulus = 6000.0
-standard_deviation_bulk_modulus = 400.0
-min_bulk_modulus = mean_bulk_modulus - 3 * standard_deviation_bulk_modulus
-max_bulk_modulus = mean_bulk_modulus + 3 * standard_deviation_bulk_modulus
-mean_shear_modulus = 1000.0
-standard_deviation_shear_modulus = 200.0
-min_shear_modulus = mean_shear_modulus - 3 * standard_deviation_shear_modulus
-max_shear_modulus = mean_shear_modulus + 3 * standard_deviation_shear_modulus
+min_bulk_modulus = 4000.0
+max_bulk_modulus = 8000.0
+min_shear_modulus = 500.0
+max_shear_modulus = 1500.0
 # Network
 layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 # Ansatz
@@ -117,7 +113,7 @@ current_date = date.today().strftime("%Y%m%d")
 output_date = "20240220"
 output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_col_{int(num_collocation_points)}_bc_{int(number_points_per_bc)}_neurons_6_128"
 output_subdirectory_training = os.path.join(output_subdirectory, "training")
-output_subdirectory_preprocessing = f"{output_date}_preprocessing"
+output_subdirectory_training = os.path.join(output_subdirectory, "preprocessing")
 save_metadata = True
 
 
@@ -175,10 +171,10 @@ def create_datasets() -> (
                 random_params = min_value + torch.rand(size) * (max_value - min_value)
                 return random_params.tolist()
 
-            bulk_moduli = _generate_random_parameter_list(
+            bulk_moduli_list = _generate_random_parameter_list(
                 num_samples_valid, min_bulk_modulus, max_bulk_modulus
             )
-            shear_moduli = _generate_random_parameter_list(
+            shear_moduli_list = _generate_random_parameter_list(
                 num_samples_valid, min_shear_modulus, max_shear_modulus
             )
             domain_config = create_fem_domain_config()
@@ -186,7 +182,7 @@ def create_datasets() -> (
             for i in range(num_samples_valid):
                 problem_configs.append(
                     NeoHookeProblemConfig(
-                        material_parameters=(bulk_moduli[i], shear_moduli[i]),
+                        material_parameters=(bulk_moduli_list[i], shear_moduli_list[i]),
                     )
                 )
 
@@ -200,10 +196,11 @@ def create_datasets() -> (
                 project_directory=project_directory,
             )
 
-        print("Load validation data ...")
         if regenerate_valid_data:
             print("Run FE simulations to generate validation data ...")
             _generate_validation_data()
+        else:
+            print("Load validation data ...")
         config_validation_data = ValidationDataset2DConfig(
             input_subdir=input_subdir_valid,
             num_points=num_points_valid,
@@ -345,10 +342,10 @@ def create_ansatz() -> StandardAnsatz:
             min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
             max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
             normalization_values = {
-                "min_inputs": min_inputs.to(device),
-                "max_inputs": max_inputs.to(device),
-                "min_outputs": min_outputs.to(device),
-                "max_outputs": max_outputs.to(device),
+                key_min_inputs: min_inputs.to(device),
+                key_max_inputs: max_inputs.to(device),
+                key_min_outputs: min_outputs.to(device),
+                key_max_outputs: max_outputs.to(device),
             }
             _save_normalization_values(normalization_values)
         else:
@@ -359,10 +356,10 @@ def create_ansatz() -> StandardAnsatz:
     normalization_values = _determine_normalization_values()
     network = FFNN(layer_sizes=layer_sizes)
     return create_standard_normalized_hbc_ansatz_quarter_plate_with_hole(
-        min_inputs=normalization_values["min_inputs"],
-        max_inputs=normalization_values["max_inputs"],
-        min_outputs=normalization_values["min_outputs"],
-        max_outputs=normalization_values["max_outputs"],
+        min_inputs=normalization_values[key_min_inputs],
+        max_inputs=normalization_values[key_max_inputs],
+        min_outputs=normalization_values[key_min_outputs],
+        max_outputs=normalization_values[key_max_outputs],
         network=network,
         distance_function_type=distance_function,
         device=device,
@@ -429,25 +426,20 @@ def calibration_step() -> None:
     num_data_points = 128
     std_noise = 5 * 1e-4
     num_test_cases = num_samples_valid
-    prior_mean_bulk_modulus = mean_bulk_modulus
-    prior_std_bulk_modulus = standard_deviation_bulk_modulus
-    prior_mean_shear_modulus = mean_shear_modulus
-    prior_std_shear_modulus = standard_deviation_shear_modulus
 
-    prior_bulk_modulus = create_univariate_normal_distributed_prior(
-        mean=prior_mean_bulk_modulus,
-        standard_deviation=prior_std_bulk_modulus,
-        device=device,
+    initial_bulk_modulus = 6000.0
+    initial_shear_modulus = 1000.0
+    prior_bulk_modulus = create_univariate_uniform_distributed_prior(
+        lower_limit=min_bulk_modulus, upper_limit=max_bulk_modulus, device=device
     )
-    prior_shear_modulus = create_univariate_normal_distributed_prior(
-        mean=prior_mean_shear_modulus,
-        standard_deviation=prior_std_shear_modulus,
-        device=device,
+    prior_shear_modulus = create_univariate_uniform_distributed_prior(
+        lower_limit=min_shear_modulus, upper_limit=max_shear_modulus, device=device
     )
+
     prior = multiply_priors([prior_bulk_modulus, prior_shear_modulus])
     parameter_names = ("bulk modulus", "shear modulus")
     initial_parameters = torch.tensor(
-        [prior_mean_bulk_modulus, prior_mean_shear_modulus], device=device
+        [initial_bulk_modulus, initial_shear_modulus], device=device
     )
 
     def generate_calibration_data() -> tuple[tuple[CalibrationData, ...], NPArray]:

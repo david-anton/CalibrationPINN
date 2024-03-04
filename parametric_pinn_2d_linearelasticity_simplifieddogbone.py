@@ -2,30 +2,36 @@ import os
 from datetime import date
 from time import perf_counter
 
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import torch
+from matplotlib.colors import BoundaryNorm
+from matplotlib.ticker import MaxNLocator
+from scipy.interpolate import griddata
 
 from parametricpinn.ansatz import (
     StandardAnsatz,
     create_standard_normalized_hbc_ansatz_clamped_left,
 )
+from parametricpinn.bayesian.likelihood import Likelihood
 from parametricpinn.bayesian.prior import (
-    create_univariate_normal_distributed_prior,
+    create_univariate_uniform_distributed_prior,
     multiply_priors,
 )
 from parametricpinn.calibration import (
     CalibrationData,
+    CalibrationDataLoader2D,
     EfficientNUTSConfig,
     HamiltonianConfig,
     LeastSquaresConfig,
     MetropolisHastingsConfig,
-    calibrate,
+    test_coverage,
+    test_least_squares_calibration,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods import (
     create_standard_ppinn_likelihood_for_noise,
-)
-from parametricpinn.calibration.bayesianinference.plot import (
-    plot_posterior_normal_distributions,
+    create_standard_ppinn_q_likelihood_for_noise,
 )
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.data.parameterssampling import sample_uniform_grid
@@ -48,7 +54,7 @@ from parametricpinn.fem import (
     run_simulation,
 )
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.io.readerswriters import CSVDataReader
+from parametricpinn.io.readerswriters import CSVDataReader, PandasDataWriter
 from parametricpinn.network import FFNN
 from parametricpinn.postprocessing.plot import (
     DisplacementsPlotterConfig2D,
@@ -65,10 +71,10 @@ from parametricpinn.training.training_standard_linearelasticity_simplifieddogbon
     TrainingConfiguration,
     train_parametric_pinn,
 )
-from parametricpinn.types import Tensor
+from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -95,10 +101,14 @@ number_training_epochs = 30000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_symmetry_bc_loss = 1e5
+# FEM
+fem_element_family = "Lagrange"
+fem_element_degree = 1
+fem_element_size = 0.1
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = "20240126_validation_data_linearelasticity_simplifieddogbone_E_160k_240k_nu_02_04_elementsize_01_K_G"
-num_samples_valid = 32
+regenerate_valid_data = True
+input_subdir_valid = "20240304_validation_data_linearelasticity_simplifieddogbone_E_160k_240k_nu_02_04_elementsize_01_K_G"
+num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
@@ -107,19 +117,17 @@ input_subdir_calibration = os.path.join(
     "Paper_PINNs", "20240123_experimental_dic_data_dogbone"
 )
 input_file_name_calibration = "displacements_dic.csv"
+consider_model_error = True
 use_least_squares = True
-use_random_walk_metropolis_hasting = False
+use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
 use_efficient_nuts = False
-# FEM
-fem_element_family = "Lagrange"
-fem_element_degree = 1
-fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = "20240126"
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_160k_240k_nu_02_04_col_64_bc_64_neurons_6_128_K_G"
-output_subdirectory_preprocessing = f"{output_date}_preprocessing"
+output_date = current_date
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_160k_240k_nu_02_04_col_64_bc_64_neurons_6_128"
+output_subdirectory_training = os.path.join(output_subdirectory, "training")
+output_subdirectory_preprocessing = os.path.join(output_subdirectory, "preprocessing")
 save_metadata = True
 
 
@@ -130,23 +138,39 @@ device = get_device()
 set_default_dtype(torch.float64)
 set_seed(0)
 
-geometry_config = SimplifiedDogBoneGeometryConfig()
-
+# Convert material parameters
 calculate_K_from_E_and_nu = calculate_K_from_E_and_nu_factory(material_model)
 calculate_E_from_K_and_G = calculate_E_from_K_and_G_factory(material_model)
 calculate_nu_from_K_and_G = calculate_nu_from_K_and_G_factory(material_model)
-min_bulk_modulus = calculate_K_from_E_and_nu(
-    E=min_youngs_modulus, nu=min_poissons_ratio
-)
-max_bulk_modulus = calculate_K_from_E_and_nu(
-    E=max_youngs_modulus, nu=max_poissons_ratio
-)
-min_shear_modulus = calculate_G_from_E_and_nu(
-    E=min_youngs_modulus, nu=max_poissons_ratio
-)
-max_shear_modulus = calculate_G_from_E_and_nu(
-    E=max_youngs_modulus, nu=min_poissons_ratio
-)
+if material_model == "plane stress":
+    min_bulk_modulus = calculate_K_from_E_and_nu(
+        E=min_youngs_modulus, nu=min_poissons_ratio
+    )
+    max_bulk_modulus = calculate_K_from_E_and_nu(
+        E=max_youngs_modulus, nu=max_poissons_ratio
+    )
+    min_shear_modulus = calculate_G_from_E_and_nu(
+        E=min_youngs_modulus, nu=max_poissons_ratio
+    )
+    max_shear_modulus = calculate_G_from_E_and_nu(
+        E=max_youngs_modulus, nu=min_poissons_ratio
+    )
+if material_model == "plane strain":
+    min_bulk_modulus = calculate_K_from_E_and_nu(
+        E=min_youngs_modulus, nu=min_poissons_ratio
+    )
+    max_bulk_modulus = calculate_K_from_E_and_nu(
+        E=max_youngs_modulus, nu=max_poissons_ratio
+    )
+    min_shear_modulus = calculate_G_from_E_and_nu(
+        E=min_youngs_modulus, nu=max_poissons_ratio
+    )
+    max_shear_modulus = calculate_G_from_E_and_nu(
+        E=max_youngs_modulus, nu=min_poissons_ratio
+    )
+
+
+geometry_config = SimplifiedDogBoneGeometryConfig()
 
 
 def create_fem_domain_config() -> SimplifiedDogBoneDomainConfig:
@@ -163,28 +187,17 @@ def create_fem_domain_config() -> SimplifiedDogBoneDomainConfig:
 def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, ValidationDataset2D]:
     def _create_training_dataset() -> SimplifiedDogBoneTrainingDataset2D:
         print("Generate training data ...")
-        parameters_samples_E_nu = sample_uniform_grid(
-            min_parameters=[min_youngs_modulus, min_poissons_ratio],
-            max_parameters=[max_youngs_modulus, max_poissons_ratio],
+        parameters_samples = sample_uniform_grid(
+            min_parameters=[min_bulk_modulus, min_shear_modulus],
+            max_parameters=[max_bulk_modulus, max_shear_modulus],
             num_steps=[num_samples_per_parameter, num_samples_per_parameter],
             device=device,
-        )
-        parameter_samples_E = parameters_samples_E_nu[:, 0]
-        parameter_samples_nu = parameters_samples_E_nu[:, 1]
-        parameter_samples_K = calculate_K_from_E_and_nu(
-            E=parameter_samples_E, nu=parameter_samples_nu
-        ).reshape((-1, 1))
-        parameter_samples_G = calculate_G_from_E_and_nu(
-            E=parameter_samples_E, nu=parameter_samples_nu
-        ).reshape((-1, 1))
-        parameters_samples_K_G = torch.concat(
-            (parameter_samples_K, parameter_samples_G), dim=1
         )
 
         traction_right = torch.tensor([traction_right_x, traction_right_y])
         volume_force = torch.tensor([volume_force_x, volume_force_y])
         config_training_data = SimplifiedDogBoneTrainingDataset2DConfig(
-            parameters_samples=parameters_samples_K_G,
+            parameters_samples=parameters_samples,
             traction_right=traction_right,
             volume_force=volume_force,
             num_collocation_points=num_collocation_points,
@@ -196,34 +209,35 @@ def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, ValidationDat
 
     def _create_validation_dataset() -> ValidationDataset2D:
         def _generate_validation_data() -> None:
+            offset_training_range_bulk_modulus = 1000.0
+            offset_training_range_shear_modulus = 500.0
+
             def _generate_random_parameter_list(
                 size: int, min_value: float, max_value: float
             ) -> list[float]:
                 random_params = min_value + torch.rand(size) * (max_value - min_value)
                 return random_params.tolist()
 
-            youngs_moduli = _generate_random_parameter_list(
-                num_samples_valid, min_youngs_modulus, max_youngs_modulus
+            bulk_moduli_list = _generate_random_parameter_list(
+                num_samples_valid,
+                min_bulk_modulus + offset_training_range_bulk_modulus,
+                max_bulk_modulus - offset_training_range_bulk_modulus,
             )
-            poissons_ratios = _generate_random_parameter_list(
-                num_samples_valid, min_poissons_ratio, max_poissons_ratio
+            shear_moduli_list = _generate_random_parameter_list(
+                num_samples_valid,
+                min_shear_modulus + offset_training_range_shear_modulus,
+                max_shear_modulus - offset_training_range_shear_modulus,
             )
             domain_config = create_fem_domain_config()
-            problem_configs = []
-            for i in range(num_samples_valid):
-                problem_configs.append(
-                    LinearElasticityProblemConfig_K_G(
-                        model=material_model,
-                        material_parameters=(
-                            calculate_K_from_E_and_nu(
-                                E=youngs_moduli[i], nu=poissons_ratios[i]
-                            ),
-                            calculate_G_from_E_and_nu(
-                                E=youngs_moduli[i], nu=poissons_ratios[i]
-                            ),
-                        ),
-                    )
+            problem_configs = [
+                LinearElasticityProblemConfig_K_G(
+                    model=material_model,
+                    material_parameters=(bulk_modulus, shear_modulus),
                 )
+                for bulk_modulus, shear_modulus in zip(
+                    bulk_moduli_list, shear_moduli_list
+                )
+            ]
             generate_validation_data(
                 domain_config=domain_config,
                 problem_configs=problem_configs,
@@ -234,10 +248,11 @@ def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, ValidationDat
                 project_directory=project_directory,
             )
 
-        print("Load validation data ...")
         if regenerate_valid_data:
-            print("Run FE simulations to generate validation data ...")
+            print("Generate validation data ...")
             _generate_validation_data()
+        else:
+            print("Load validation data ...")
         config_validation_data = ValidationDataset2DConfig(
             input_subdir=input_subdir_valid,
             num_points=num_points_valid,
@@ -252,62 +267,129 @@ def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, ValidationDat
 
 
 def create_ansatz() -> StandardAnsatz:
+    normalization_values_subdir = os.path.join(
+        output_subdirectory, "normalization_values"
+    )
+    key_min_inputs = "min_inputs"
+    key_max_inputs = "max_inputs"
+    key_min_outputs = "min_outputs"
+    key_max_outputs = "max_outputs"
+    file_name_min_inputs = "minimum_inputs.csv"
+    file_name_max_inputs = "maximum_inputs.csv"
+    file_name_min_outputs = "minimum_outputs.csv"
+    file_name_max_outputs = "maximum_outputs.csv"
+
+    def _save_normalization_values(normalization_values: dict[str, Tensor]) -> None:
+        data_writer = PandasDataWriter(project_directory)
+
+        def _save_one_value_tensor(key: str, file_name: str) -> None:
+            data_writer.write(
+                data=pd.DataFrame([normalization_values[key].cpu().detach().numpy()]),
+                file_name=file_name,
+                subdir_name=normalization_values_subdir,
+                header=True,
+            )
+
+        _save_one_value_tensor(key_min_inputs, file_name_min_inputs)
+        _save_one_value_tensor(key_max_inputs, file_name_max_inputs)
+        _save_one_value_tensor(key_min_outputs, file_name_min_outputs)
+        _save_one_value_tensor(key_max_outputs, file_name_max_outputs)
+
+    def _read_normalization_values() -> dict[str, Tensor]:
+        data_reader = CSVDataReader(project_directory)
+        normalization_values = {}
+
+        def _add_one_value_tensor(key: str, file_name: str) -> None:
+            values = data_reader.read(
+                file_name=file_name,
+                subdir_name=normalization_values_subdir,
+                read_from_output_dir=True,
+            )
+
+            normalization_values[key] = (
+                torch.from_numpy(values[0]).type(torch.float64).to(device)
+            )
+
+        _add_one_value_tensor(key_min_inputs, file_name_min_inputs)
+        _add_one_value_tensor(key_max_inputs, file_name_max_inputs)
+        _add_one_value_tensor(key_min_outputs, file_name_min_outputs)
+        _add_one_value_tensor(key_max_outputs, file_name_max_outputs)
+
+        return normalization_values
+
+    def _print_normalization_values(normalization_values: dict[str, Tensor]) -> None:
+        print("###########################")
+        print(f"Min inputs {normalization_values[key_min_inputs]}")
+        print(f"Max inputs {normalization_values[key_max_inputs]}")
+        print(f"Min outputs {normalization_values[key_min_outputs]}")
+        print(f"Max outputs {normalization_values[key_max_outputs]}")
+        print("###########################")
+
     def _determine_normalization_values() -> dict[str, Tensor]:
-        min_coordinate_x = -geometry_config.left_half_box_length
-        max_coordinate_x = geometry_config.right_half_box_length
-        min_coordinate_y = -geometry_config.half_box_height
-        max_coordinate_y = geometry_config.half_box_height
-        min_coordinates = torch.tensor([min_coordinate_x, min_coordinate_y])
-        max_coordinates = torch.tensor([max_coordinate_x, max_coordinate_y])
+        if retrain_parametric_pinn:
+            min_coordinate_x = -geometry_config.left_half_box_length
+            max_coordinate_x = geometry_config.right_half_box_length
+            min_coordinate_y = -geometry_config.half_box_height
+            max_coordinate_y = geometry_config.half_box_height
+            min_coordinates = torch.tensor([min_coordinate_x, min_coordinate_y])
+            max_coordinates = torch.tensor([max_coordinate_x, max_coordinate_y])
 
-        min_parameters = torch.tensor([min_bulk_modulus, min_shear_modulus])
-        max_parameters = torch.tensor([max_bulk_modulus, max_shear_modulus])
+            min_parameters = torch.tensor([min_bulk_modulus, min_shear_modulus])
+            max_parameters = torch.tensor([max_bulk_modulus, max_shear_modulus])
 
-        min_inputs = torch.concat((min_coordinates, min_parameters))
-        max_inputs = torch.concat((max_coordinates, max_parameters))
+            min_inputs = torch.concat((min_coordinates, min_parameters))
+            max_inputs = torch.concat((max_coordinates, max_parameters))
 
-        _output_subdir = os.path.join(
-            output_subdirectory_preprocessing,
-            "results_for_determining_normalization_values",
-        )
-        print("Run FE simulation to determine normalization values ...")
-        significant_bulk_modulus = calculate_K_from_E_and_nu(
-            E=min_youngs_modulus, nu=max_poissons_ratio
-        )
-        significant_shear_modulus = calculate_G_from_E_and_nu(
-            E=min_youngs_modulus, nu=max_poissons_ratio
-        )
-        problem_config = LinearElasticityProblemConfig_K_G(
-            model=material_model,
-            material_parameters=(significant_bulk_modulus, significant_shear_modulus),
-        )
-        domain_config = create_fem_domain_config()
-        simulation_config = SimulationConfig(
-            domain_config=domain_config,
-            problem_config=problem_config,
-            volume_force_x=volume_force_x,
-            volume_force_y=volume_force_y,
-        )
-        simulation_results = run_simulation(
-            simulation_config=simulation_config,
-            save_results=False,
-            save_metadata=False,
-            output_subdir=_output_subdir,
-            project_directory=project_directory,
-        )
+            _output_subdir = os.path.join(
+                output_subdirectory_preprocessing,
+                "results_for_determining_normalization_values",
+            )
+            print("Run FE simulation to determine normalization values ...")
+            significant_bulk_modulus = calculate_K_from_E_and_nu(
+                E=min_youngs_modulus, nu=max_poissons_ratio
+            )
+            significant_shear_modulus = calculate_G_from_E_and_nu(
+                E=min_youngs_modulus, nu=max_poissons_ratio
+            )
+            problem_config = LinearElasticityProblemConfig_K_G(
+                model=material_model,
+                material_parameters=(
+                    significant_bulk_modulus,
+                    significant_shear_modulus,
+                ),
+            )
+            domain_config = create_fem_domain_config()
+            simulation_config = SimulationConfig(
+                domain_config=domain_config,
+                problem_config=problem_config,
+                volume_force_x=volume_force_x,
+                volume_force_y=volume_force_y,
+            )
+            simulation_results = run_simulation(
+                simulation_config=simulation_config,
+                save_results=False,
+                save_metadata=False,
+                output_subdir=_output_subdir,
+                project_directory=project_directory,
+            )
 
-        min_displacement_x = float(np.amin(simulation_results.displacements_x))
-        max_displacement_x = float(np.amax(simulation_results.displacements_x))
-        min_displacement_y = float(np.amin(simulation_results.displacements_y))
-        max_displacement_y = float(np.amax(simulation_results.displacements_y))
-        min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
-        max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
-        return {
-            "min_inputs": min_inputs.to(device),
-            "max_inputs": max_inputs.to(device),
-            "min_outputs": min_outputs.to(device),
-            "max_outputs": max_outputs.to(device),
-        }
+            min_displacement_x = float(np.amin(simulation_results.displacements_x))
+            max_displacement_x = float(np.amax(simulation_results.displacements_x))
+            min_displacement_y = float(np.amin(simulation_results.displacements_y))
+            max_displacement_y = float(np.amax(simulation_results.displacements_y))
+            min_outputs = torch.tensor([min_displacement_x, min_displacement_y])
+            max_outputs = torch.tensor([max_displacement_x, max_displacement_y])
+            normalization_values = {
+                "min_inputs": min_inputs.to(device),
+                "max_inputs": max_inputs.to(device),
+                "min_outputs": min_outputs.to(device),
+                "max_outputs": max_outputs.to(device),
+            }
+            _save_normalization_values(normalization_values)
+        else:
+            normalization_values = _read_normalization_values()
+        _print_normalization_values(normalization_values)
+        return normalization_values
 
     normalization_values = _determine_normalization_values()
     network = FFNN(layer_sizes=layer_sizes)
@@ -315,10 +397,10 @@ def create_ansatz() -> StandardAnsatz:
         coordinate_x_left=torch.tensor(
             [-geometry_config.left_half_box_length], device=device
         ),
-        min_inputs=normalization_values["min_inputs"],
-        max_inputs=normalization_values["max_inputs"],
-        min_outputs=normalization_values["min_outputs"],
-        max_outputs=normalization_values["max_outputs"],
+        min_inputs=normalization_values[key_min_inputs],
+        max_inputs=normalization_values[key_max_inputs],
+        min_outputs=normalization_values[key_min_outputs],
+        max_outputs=normalization_values[key_max_outputs],
         network=network,
         distance_function_type=distance_function,
         device=device,
@@ -340,38 +422,31 @@ def training_step() -> None:
         training_batch_size=training_batch_size,
         validation_dataset=validation_dataset,
         validation_interval=validation_interval,
-        output_subdirectory=output_subdirectory,
+        output_subdirectory=output_subdirectory_training,
         project_directory=project_directory,
         device=device,
     )
 
     def _plot_exemplary_displacement_fields() -> None:
         displacements_plotter_config = DisplacementsPlotterConfig2D()
-        youngs_modulus_and_poissons_ratio_list = [
-            (min_youngs_modulus, min_poissons_ratio),
-            (min_youngs_modulus, max_poissons_ratio),
-            (max_youngs_modulus, min_poissons_ratio),
-            (max_youngs_modulus, max_poissons_ratio),
-            (210000.0, 0.3),
+        material_parameters_list = [
+            (min_bulk_modulus, min_shear_modulus),
+            (min_bulk_modulus, max_shear_modulus),
+            (max_bulk_modulus, min_shear_modulus),
+            (max_bulk_modulus, max_shear_modulus),
+            (
+                calculate_K_from_E_and_nu(E=210000.0, nu=0.3),
+                calculate_G_from_E_and_nu(E=210000.0, nu=0.3),
+            ),
         ]
-        youngs_moduli, poissons_ratios = zip(*youngs_modulus_and_poissons_ratio_list)
 
         domain_config = create_fem_domain_config()
-        problem_configs = []
-        for i in range(len(youngs_modulus_and_poissons_ratio_list)):
-            problem_configs.append(
-                LinearElasticityProblemConfig_K_G(
-                    model=material_model,
-                    material_parameters=(
-                        calculate_K_from_E_and_nu(
-                            E=youngs_moduli[i], nu=poissons_ratios[i]
-                        ),
-                        calculate_G_from_E_and_nu(
-                            E=youngs_moduli[i], nu=poissons_ratios[i]
-                        ),
-                    ),
-                )
+        problem_configs = [
+            LinearElasticityProblemConfig_K_G(
+                model=material_model, material_parameters=(bulk_modulus, shear_modulus)
             )
+            for bulk_modulus, shear_modulus in material_parameters_list
+        ]
 
         plot_displacements_2d(
             ansatz=ansatz,
@@ -391,6 +466,9 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
+    num_data_points = 5240
+    std_noise = 5 * 1e-4
+
     exact_youngs_modulus = 192800.0
     exact_poissons_ratio = 0.2491
     exact_bulk_modulus = calculate_K_from_E_and_nu(
@@ -399,10 +477,25 @@ def calibration_step() -> None:
     exact_shear_modulus = calculate_G_from_E_and_nu(
         E=exact_youngs_modulus, nu=exact_poissons_ratio
     )
-    num_data_points = 5240
-    std_noise = 5 * 1e-4
+    true_parameters = np.array([exact_bulk_modulus, exact_shear_modulus])
 
-    def generate_calibration_data() -> tuple[Tensor, Tensor]:
+    initial_bulk_modulus = 160000.0
+    initial_shear_modulus = 79000.0
+
+    prior_bulk_modulus = create_univariate_uniform_distributed_prior(
+        lower_limit=min_bulk_modulus, upper_limit=max_bulk_modulus, device=device
+    )
+    prior_shear_modulus = create_univariate_uniform_distributed_prior(
+        lower_limit=min_shear_modulus, upper_limit=max_shear_modulus, device=device
+    )
+
+    prior = multiply_priors([prior_bulk_modulus, prior_shear_modulus])
+    parameter_names = ("bulk modulus", "shear modulus")
+    initial_parameters = torch.tensor(
+        [initial_bulk_modulus, initial_shear_modulus], device=device
+    )
+
+    def generate_calibration_data() -> CalibrationData:
         csv_reader = CSVDataReader(project_directory)
         data = csv_reader.read(
             file_name=input_file_name_calibration, subdir_name=input_subdir_calibration
@@ -447,17 +540,13 @@ def calibration_step() -> None:
         coordinates = full_coordinates[random_indices, :].to(device)
         displacements = full_displacements[random_indices, :].to(device)
 
-        return coordinates, displacements
+        return CalibrationData(
+            inputs=coordinates,
+            outputs=displacements,
+            std_noise=std_noise,
+        )
 
-    def visualize_data(coordinates: Tensor, displacements: Tensor) -> None:
-        # imports
-        import matplotlib.pyplot as plt
-        from matplotlib.colors import BoundaryNorm
-        from matplotlib.ticker import MaxNLocator
-        from scipy.interpolate import griddata
-
-        from parametricpinn.types import NPArray
-
+    def visualize_data(calibration_data: CalibrationData) -> None:
         class PlotterConfigData:
             def __init__(self) -> None:
                 # label size
@@ -495,8 +584,8 @@ def calibration_step() -> None:
 
         plot_config = PlotterConfigData()
 
-        coordinates_np = coordinates.detach().cpu().numpy()
-        displacements_np = displacements.detach().cpu().numpy()
+        coordinates_np = calibration_data.inputs.detach().cpu().numpy()
+        displacements_np = calibration_data.outputs.detach().cpu().numpy()
 
         def plot_one_displacements(
             coordinates: NPArray,
@@ -653,71 +742,52 @@ def calibration_step() -> None:
         device=device,
     )
 
-    coordinates, displacements = generate_calibration_data()
-    visualize_data(coordinates, displacements)
-    data = CalibrationData(
-        inputs=coordinates,
-        outputs=displacements,
-        std_noise=std_noise,
-    )
-    likelihood = create_standard_ppinn_likelihood_for_noise(
-        model=model,
-        data=data,
-        num_model_parameters=num_material_parameters,
-        device=device,
-    )
+    calibration_data = generate_calibration_data()
+    visualize_data(calibration_data)
 
-    prior_mean_youngs_modulus = 210000
-    prior_mean_poissons_ratio = 0.3
-    prior_mean_bulk_modulus = calculate_K_from_E_and_nu(
-        E=prior_mean_youngs_modulus, nu=prior_mean_poissons_ratio
-    )
-    prior_std_bulk_modulus = 10000
-    prior_mean_shear_modulus = calculate_G_from_E_and_nu(
-        E=prior_mean_youngs_modulus, nu=prior_mean_poissons_ratio
-    )
-    prior_std_shear_modulus = 1000
-    prior_bulk_modulus = create_univariate_normal_distributed_prior(
-        mean=prior_mean_bulk_modulus,
-        standard_deviation=prior_std_bulk_modulus,
-        device=device,
-    )
-    prior_shear_modulus = create_univariate_normal_distributed_prior(
-        mean=prior_mean_shear_modulus,
-        standard_deviation=prior_std_shear_modulus,
-        device=device,
-    )
-    prior = multiply_priors([prior_bulk_modulus, prior_shear_modulus])
+    if consider_model_error:
+        likelihood = create_standard_ppinn_q_likelihood_for_noise(
+            model=model,
+            num_model_parameters=num_material_parameters,
+            data=calibration_data,
+            make_robust=False,
+            device=device,
+        )
+        output_subdir_calibration = os.path.join(
+            output_subdirectory, "calibration_with_model_error"
+        )
+    else:
+        likelihood = create_standard_ppinn_likelihood_for_noise(
+            model=model,
+            num_model_parameters=num_material_parameters,
+            data=calibration_data,
+            device=device,
+        )
+        output_subdir_calibration = os.path.join(
+            output_subdirectory, "calibration_without_model_error"
+        )
 
-    parameter_names = ("bulk modulus", "shear modulus")
-    true_parameters = (exact_bulk_modulus, exact_shear_modulus)
-    initial_parameters = torch.tensor(
-        [prior_mean_bulk_modulus, prior_mean_shear_modulus], device=device
-    )
+    def set_up_least_squares_config(
+        data: CalibrationData,
+    ) -> LeastSquaresConfig:
+        mean_displacements = torch.mean(torch.absolute(data.outputs), dim=0)
+        residual_weights = (
+            (1 / mean_displacements).to(device).repeat((num_data_points, 1)).ravel()
+        )
+        return LeastSquaresConfig(
+            ansatz=model,
+            calibration_data=data,
+            initial_parameters=initial_parameters,
+            num_iterations=1000,
+            resdiual_weights=residual_weights,
+        )
 
-    mean_displacements = torch.mean(torch.absolute(displacements), dim=0)
-    residual_weights = 1 / mean_displacements
-    print(f"Used residual weights: {residual_weights}")
-
-    least_squares_config = LeastSquaresConfig(
-        ansatz=model,
-        calibration_data=data,
-        initial_parameters=initial_parameters,
-        num_iterations=1000,
-        resdiual_weights=residual_weights.to(device)
-        .repeat((num_data_points, 1))
-        .ravel(),
-    )
-
-    std_proposal_density_bulk_modulus = 100
-    std_proposal_density_shear_modulus = 50
-    mcmc_config_mh = MetropolisHastingsConfig(
-        likelihood=likelihood,
-        prior=prior,
-        initial_parameters=initial_parameters,
-        num_iterations=int(1e5),
-        num_burn_in_iterations=int(5e4),
-        cov_proposal_density=torch.diag(
+    def set_up_metropolis_hastings_config(
+        likelihood: Likelihood,
+    ) -> MetropolisHastingsConfig:
+        std_proposal_density_bulk_modulus = 100.0
+        std_proposal_density_shear_modulus = 50.0
+        cov_proposal_density = torch.diag(
             torch.tensor(
                 [
                     std_proposal_density_bulk_modulus,
@@ -727,108 +797,104 @@ def calibration_step() -> None:
                 device=device,
             )
             ** 2
-        ),
-    )
-    mcmc_config_h = HamiltonianConfig(
-        likelihood=likelihood,
-        prior=prior,
-        initial_parameters=initial_parameters,
-        num_iterations=int(1e4),
-        num_burn_in_iterations=int(1e4),
-        num_leabfrog_steps=256,
-        leapfrog_step_sizes=torch.tensor([1, 1], device=device),
-    )
-    mcmc_config_enuts = EfficientNUTSConfig(
-        likelihood=likelihood,
-        prior=prior,
-        initial_parameters=initial_parameters,
-        num_iterations=int(1e4),
-        num_burn_in_iterations=int(1e4),
-        max_tree_depth=8,
-        leapfrog_step_sizes=torch.tensor([1, 1], device=device),
-    )
+        )
+        return MetropolisHastingsConfig(
+            likelihood=likelihood,
+            prior=prior,
+            initial_parameters=initial_parameters,
+            num_iterations=int(1e5),
+            num_burn_in_iterations=int(1e4),
+            cov_proposal_density=cov_proposal_density,
+        )
+
+    def set_up_hamiltonian_configs(
+        likelihood: Likelihood,
+    ) -> HamiltonianConfig:
+        return HamiltonianConfig(
+            likelihood=likelihood,
+            prior=prior,
+            initial_parameters=initial_parameters,
+            num_iterations=int(1e4),
+            num_burn_in_iterations=int(5e3),
+            num_leabfrog_steps=256,
+            leapfrog_step_sizes=torch.tensor([1, 1], device=device),
+        )
+
+    def set_up_efficient_nuts_configs_configs(
+        likelihood: Likelihood,
+    ) -> EfficientNUTSConfig:
+        return EfficientNUTSConfig(
+            likelihood=likelihood,
+            prior=prior,
+            initial_parameters=initial_parameters,
+            num_iterations=int(1e4),
+            num_burn_in_iterations=int(5e3),
+            max_tree_depth=8,
+            leapfrog_step_sizes=torch.tensor([1, 1], device=device),
+        )
+
     if use_least_squares:
+        configs_ls = set_up_least_squares_config(calibration_data)
         start = perf_counter()
-        identified_parameters, _ = calibrate(
-            calibration_config=least_squares_config,
+        test_least_squares_calibration(
+            calibration_configs=(configs_ls,),
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            output_subdir=os.path.join(output_subdir_calibration, "least_squares"),
+            project_directory=project_directory,
             device=device,
         )
         end = perf_counter()
         time = end - start
-        identified_K = identified_parameters[0]
-        identified_G = identified_parameters[1]
-        identified_E = calculate_E_from_K_and_G(K=identified_K, G=identified_G)
-        identified_nu = calculate_nu_from_K_and_G(K=identified_K, G=identified_G)
-        print(f"Identified parameters: K = {identified_K} and G = {identified_G}")
-        print(f"Identified parameters: E = {identified_E} and nu = {identified_nu}")
-        print(f"Run time least squares: {time}")
+        print(f"Run time least squares test: {time}")
         print("############################################################")
     if use_random_walk_metropolis_hasting:
+        configs_mh = set_up_metropolis_hastings_config(likelihood)
         start = perf_counter()
-        posterior_moments_mh, samples_mh = calibrate(
-            calibration_config=mcmc_config_mh,
+        test_coverage(
+            calibration_configs=(configs_mh,),
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            output_subdir=os.path.join(
+                output_subdir_calibration, "metropolis_hastings"
+            ),
+            project_directory=project_directory,
             device=device,
         )
         end = perf_counter()
         time = end - start
-        print(
-            f"Identified moments (normal distribution assumed): {posterior_moments_mh}"
-        )
-        print(f"Run time Metropolis-Hasting: {time}")
+        print(f"Run time Metropolis-Hasting coverage test: {time}")
         print("############################################################")
-        plot_posterior_normal_distributions(
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
-            moments=posterior_moments_mh,
-            samples=samples_mh,
-            mcmc_algorithm="metropolis_hastings",
-            output_subdir=output_subdirectory,
-            project_directory=project_directory,
-        )
     if use_hamiltonian:
+        configs_h = set_up_hamiltonian_configs(likelihood)
         start = perf_counter()
-        posterior_moments_h, samples_h = calibrate(
-            calibration_config=mcmc_config_h,
+        test_coverage(
+            calibration_configs=(configs_h,),
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            output_subdir=os.path.join(output_subdir_calibration, "hamiltonian"),
+            project_directory=project_directory,
             device=device,
         )
         end = perf_counter()
         time = end - start
-        print(
-            f"Identified moments (normal distribution assumed): {posterior_moments_h}"
-        )
-        print(f"Run time Hamiltonian: {time}")
+        print(f"Run time Hamiltonian coverage test: {time}")
         print("############################################################")
-        plot_posterior_normal_distributions(
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
-            moments=posterior_moments_h,
-            samples=samples_h,
-            mcmc_algorithm="hamiltonian",
-            output_subdir=output_subdirectory,
-            project_directory=project_directory,
-        )
     if use_efficient_nuts:
+        configs_en = set_up_efficient_nuts_configs_configs(likelihood)
         start = perf_counter()
-        posterior_moments_enuts, samples_enuts = calibrate(
-            calibration_config=mcmc_config_enuts,
+        test_coverage(
+            calibration_configs=(configs_en,),
+            parameter_names=parameter_names,
+            true_parameters=true_parameters,
+            output_subdir=os.path.join(output_subdir_calibration, "efficient_nuts"),
+            project_directory=project_directory,
             device=device,
         )
         end = perf_counter()
         time = end - start
-        print(
-            f"Identified moments (normal distribution assumed): {posterior_moments_enuts}"
-        )
-        print(f"Run time efficient NUTS: {time}")
+        print(f"Run time efficient NUTS coverage test: {time}")
         print("############################################################")
-        plot_posterior_normal_distributions(
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
-            moments=posterior_moments_enuts,
-            samples=samples_enuts,
-            mcmc_algorithm="efficient_nuts",
-            output_subdir=output_subdirectory,
-            project_directory=project_directory,
-        )
     print("Calibration finished.")
 
 

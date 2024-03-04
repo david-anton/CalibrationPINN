@@ -9,7 +9,7 @@ from parametricpinn.ansatz import (
     create_standard_normalized_hbc_ansatz_stretched_rod,
 )
 from parametricpinn.bayesian.likelihood import Likelihood
-from parametricpinn.bayesian.prior import create_univariate_normal_distributed_prior
+from parametricpinn.bayesian.prior import create_univariate_uniform_distributed_prior
 from parametricpinn.calibration import (
     CalibrationData,
     CalibrationDataGenerator1D,
@@ -213,19 +213,17 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    num_data_points = 128  # 32
+    num_data_points = 128
     std_noise = 5 * 1e-4
     num_test_cases = num_samples_valid
-    prior_mean_youngs_modulus = 210000.0
-    prior_std_youngs_modulus = 10000.0
 
-    prior = create_univariate_normal_distributed_prior(
-        mean=prior_mean_youngs_modulus,
-        standard_deviation=prior_std_youngs_modulus,
-        device=device,
+    initial_youngs_modulus = 210000.0
+    prior = create_univariate_uniform_distributed_prior(
+        lower_limit=min_youngs_modulus, upper_limit=max_youngs_modulus, device=device
     )
+
     parameter_names = ("Youngs modulus",)
-    initial_parameters = torch.tensor([prior_mean_youngs_modulus], device=device)
+    initial_parameters = torch.tensor([initial_youngs_modulus], device=device)
 
     def generate_calibration_data() -> tuple[tuple[CalibrationData, ...], NPArray]:
         true_parameters = sample_random(
