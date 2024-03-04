@@ -485,7 +485,7 @@ def calibration_step() -> None:
             for data in calibration_data
         )
         output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration_with_model_error"
+            output_subdirectory, "calibration_with_model_error_SL_variance"
         )
     else:
         likelihoods = tuple(
@@ -525,8 +525,8 @@ def calibration_step() -> None:
     ) -> tuple[MetropolisHastingsConfig, ...]:
         configs = []
         for likelihood in likelihoods:
-            std_proposal_density_bulk_modulus = 10.0
-            std_proposal_density_shear_modulus = 1.0
+            std_proposal_density_bulk_modulus = 100.0
+            std_proposal_density_shear_modulus = 10.0
             cov_proposal_density = torch.diag(
                 torch.tensor(
                     [
@@ -542,8 +542,8 @@ def calibration_step() -> None:
                 likelihood=likelihood,
                 prior=prior,
                 initial_parameters=initial_parameters,
-                num_iterations=int(1e4),
-                num_burn_in_iterations=int(5e3),
+                num_iterations=int(2e4),
+                num_burn_in_iterations=int(1e4),
                 cov_proposal_density=cov_proposal_density,
             )
             configs.append(config)
