@@ -123,7 +123,7 @@ class NoiseQLikelihoodStrategy:
     ) -> None:
         self._standard_likelihood_strategy = standard_likelihood_strategy
         self._standard_deviation_noise = data.std_noise
-        self._num_data_points = data.num_data_points
+        self._num_flattened_data_points = data.num_data_points * data.dim_outputs
         self._num_model_parameters = num_model_parameters
         self._make_robust = make_robust
         self._device = device
@@ -171,14 +171,16 @@ class NoiseQLikelihoodStrategy:
     def _estimate_robust_covariance_matrix(
         self, scores: Tensor, total_score: Tensor
     ) -> Tensor:
-        mean_score = total_score / self._num_data_points
+        mean_score = total_score / self._num_flattened_data_points
 
         ### 1
         S = scores - mean_score
         D_bar = torch.diag(torch.sqrt(torch.mean(S**2, dim=0)))
         _, R_bar = torch.linalg.qr(
             (S @ torch.inverse(D_bar))
-            / torch.sqrt(torch.tensor(self._num_data_points - 1, device=self._device))
+            / torch.sqrt(
+                torch.tensor(self._num_flattened_data_points - 1, device=self._device)
+            )
         )
         R_bar_T = torch.transpose(R_bar, 0, 1)
         covar_bar_inv = torch.inverse(D_bar @ R_bar_T @ R_bar @ D_bar)
@@ -230,7 +232,7 @@ class NoiseQLikelihoodStrategy:
     def _estimate_default_covariance_matrix(
         self, scores: Tensor, total_score: Tensor
     ) -> Tensor:
-        mean_score = total_score / self._num_data_points
+        mean_score = total_score / self._num_flattened_data_points
 
         def _vmap_calculate_covariance(score) -> Tensor:
             deviation = torch.unsqueeze(score - mean_score, dim=0)
@@ -241,7 +243,7 @@ class NoiseQLikelihoodStrategy:
 
     def _calculate_q(self, total_score: Tensor, covariance: Tensor) -> Tensor:
         sqrt_num_data_points = torch.sqrt(
-            torch.tensor(self._num_data_points, device=self._device)
+            torch.tensor(self._num_flattened_data_points, device=self._device)
         )
         return torch.squeeze(
             (1 / 2)
