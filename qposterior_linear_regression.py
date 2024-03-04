@@ -32,12 +32,12 @@ set_seed(0)
 num_inputs = 3
 num_parameters = num_inputs
 num_observations = 100
-num_tests = 1000
+num_tests = 100
 true_sigma = torch.tensor(1.0, device=device)
 true_beta = torch.ones(num_inputs, device=device)
 # Output
 output_date = date.today().strftime("%Y%m%d")
-output_subdirectory = f"{output_date}_qposterior_linear_regression"
+output_subdirectory = f"{output_date}_qposterior_test_linear_regression"
 
 
 def model_func(x: Tensor, beta: Tensor) -> Tensor:
