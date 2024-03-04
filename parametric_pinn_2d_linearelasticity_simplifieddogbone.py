@@ -41,7 +41,7 @@ from parametricpinn.data.validationdata_2d import (
     create_validation_dataset,
 )
 from parametricpinn.fem import (
-    LinearElasticityProblemConfig_E_nu,
+    LinearElasticityProblemConfig_K_G,
     SimplifiedDogBoneDomainConfig,
     SimulationConfig,
     generate_validation_data,
@@ -55,14 +55,20 @@ from parametricpinn.postprocessing.plot import (
     plot_displacements_2d,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.training_standard_linearelasticity_simplifieddogbone_E_nu import (
+from parametricpinn.training.loss_2d.momentum_linearelasticity_K_G import (
+    calculate_E_from_K_and_G_factory,
+    calculate_G_from_E_and_nu,
+    calculate_K_from_E_and_nu_factory,
+    calculate_nu_from_K_and_G_factory,
+)
+from parametricpinn.training.training_standard_linearelasticity_simplifieddogbone import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
 from parametricpinn.types import Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -90,8 +96,8 @@ weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_symmetry_bc_loss = 1e5
 # Validation
-regenerate_valid_data = True
-input_subdir_valid = "20240126_validation_data_linearelasticity_simplifieddogbone_E_160k_240k_nu_02_04_elementsize_01_E_nu"
+regenerate_valid_data = False
+input_subdir_valid = "20240126_validation_data_linearelasticity_simplifieddogbone_E_160k_240k_nu_02_04_elementsize_01_K_G"
 num_samples_valid = 32
 validation_interval = 1
 num_points_valid = 1024
@@ -102,17 +108,17 @@ input_subdir_calibration = os.path.join(
 )
 input_file_name_calibration = "displacements_dic.csv"
 use_least_squares = True
-use_random_walk_metropolis_hasting = True
-use_hamiltonian = True
-use_efficient_nuts = True
+use_random_walk_metropolis_hasting = False
+use_hamiltonian = False
+use_efficient_nuts = False
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size = 0.1
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_160k_240k_nu_02_04_col_64_bc_64_neurons_6_128_E_nu"
+output_date = "20240126"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_160k_240k_nu_02_04_col_64_bc_64_neurons_6_128_K_G"
 output_subdirectory_preprocessing = f"{output_date}_preprocessing"
 save_metadata = True
 
@@ -125,6 +131,22 @@ set_default_dtype(torch.float64)
 set_seed(0)
 
 geometry_config = SimplifiedDogBoneGeometryConfig()
+
+calculate_K_from_E_and_nu = calculate_K_from_E_and_nu_factory(material_model)
+calculate_E_from_K_and_G = calculate_E_from_K_and_G_factory(material_model)
+calculate_nu_from_K_and_G = calculate_nu_from_K_and_G_factory(material_model)
+min_bulk_modulus = calculate_K_from_E_and_nu(
+    E=min_youngs_modulus, nu=min_poissons_ratio
+)
+max_bulk_modulus = calculate_K_from_E_and_nu(
+    E=max_youngs_modulus, nu=max_poissons_ratio
+)
+min_shear_modulus = calculate_G_from_E_and_nu(
+    E=min_youngs_modulus, nu=max_poissons_ratio
+)
+max_shear_modulus = calculate_G_from_E_and_nu(
+    E=max_youngs_modulus, nu=min_poissons_ratio
+)
 
 
 def create_fem_domain_config() -> SimplifiedDogBoneDomainConfig:
@@ -141,16 +163,28 @@ def create_fem_domain_config() -> SimplifiedDogBoneDomainConfig:
 def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, ValidationDataset2D]:
     def _create_training_dataset() -> SimplifiedDogBoneTrainingDataset2D:
         print("Generate training data ...")
-        parameters_samples = sample_uniform_grid(
+        parameters_samples_E_nu = sample_uniform_grid(
             min_parameters=[min_youngs_modulus, min_poissons_ratio],
             max_parameters=[max_youngs_modulus, max_poissons_ratio],
             num_steps=[num_samples_per_parameter, num_samples_per_parameter],
             device=device,
         )
+        parameter_samples_E = parameters_samples_E_nu[:, 0]
+        parameter_samples_nu = parameters_samples_E_nu[:, 1]
+        parameter_samples_K = calculate_K_from_E_and_nu(
+            E=parameter_samples_E, nu=parameter_samples_nu
+        ).reshape((-1, 1))
+        parameter_samples_G = calculate_G_from_E_and_nu(
+            E=parameter_samples_E, nu=parameter_samples_nu
+        ).reshape((-1, 1))
+        parameters_samples_K_G = torch.concat(
+            (parameter_samples_K, parameter_samples_G), dim=1
+        )
+
         traction_right = torch.tensor([traction_right_x, traction_right_y])
         volume_force = torch.tensor([volume_force_x, volume_force_y])
         config_training_data = SimplifiedDogBoneTrainingDataset2DConfig(
-            parameters_samples=parameters_samples,
+            parameters_samples=parameters_samples_K_G,
             traction_right=traction_right,
             volume_force=volume_force,
             num_collocation_points=num_collocation_points,
@@ -178,9 +212,16 @@ def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, ValidationDat
             problem_configs = []
             for i in range(num_samples_valid):
                 problem_configs.append(
-                    LinearElasticityProblemConfig_E_nu(
+                    LinearElasticityProblemConfig_K_G(
                         model=material_model,
-                        material_parameters=(youngs_moduli[i], poissons_ratios[i]),
+                        material_parameters=(
+                            calculate_K_from_E_and_nu(
+                                E=youngs_moduli[i], nu=poissons_ratios[i]
+                            ),
+                            calculate_G_from_E_and_nu(
+                                E=youngs_moduli[i], nu=poissons_ratios[i]
+                            ),
+                        ),
                     )
                 )
             generate_validation_data(
@@ -219,8 +260,8 @@ def create_ansatz() -> StandardAnsatz:
         min_coordinates = torch.tensor([min_coordinate_x, min_coordinate_y])
         max_coordinates = torch.tensor([max_coordinate_x, max_coordinate_y])
 
-        min_parameters = torch.tensor([min_youngs_modulus, min_poissons_ratio])
-        max_parameters = torch.tensor([max_youngs_modulus, max_poissons_ratio])
+        min_parameters = torch.tensor([min_bulk_modulus, min_shear_modulus])
+        max_parameters = torch.tensor([max_bulk_modulus, max_shear_modulus])
 
         min_inputs = torch.concat((min_coordinates, min_parameters))
         max_inputs = torch.concat((max_coordinates, max_parameters))
@@ -230,9 +271,15 @@ def create_ansatz() -> StandardAnsatz:
             "results_for_determining_normalization_values",
         )
         print("Run FE simulation to determine normalization values ...")
-        problem_config = LinearElasticityProblemConfig_E_nu(
+        significant_bulk_modulus = calculate_K_from_E_and_nu(
+            E=min_youngs_modulus, nu=max_poissons_ratio
+        )
+        significant_shear_modulus = calculate_G_from_E_and_nu(
+            E=min_youngs_modulus, nu=max_poissons_ratio
+        )
+        problem_config = LinearElasticityProblemConfig_K_G(
             model=material_model,
-            material_parameters=(min_youngs_modulus, max_poissons_ratio),
+            material_parameters=(significant_bulk_modulus, significant_shear_modulus),
         )
         domain_config = create_fem_domain_config()
         simulation_config = SimulationConfig(
@@ -305,7 +352,7 @@ def training_step() -> None:
             (min_youngs_modulus, max_poissons_ratio),
             (max_youngs_modulus, min_poissons_ratio),
             (max_youngs_modulus, max_poissons_ratio),
-            (210000, 0.3),
+            (210000.0, 0.3),
         ]
         youngs_moduli, poissons_ratios = zip(*youngs_modulus_and_poissons_ratio_list)
 
@@ -313,9 +360,16 @@ def training_step() -> None:
         problem_configs = []
         for i in range(len(youngs_modulus_and_poissons_ratio_list)):
             problem_configs.append(
-                LinearElasticityProblemConfig_E_nu(
+                LinearElasticityProblemConfig_K_G(
                     model=material_model,
-                    material_parameters=(youngs_moduli[i], poissons_ratios[i]),
+                    material_parameters=(
+                        calculate_K_from_E_and_nu(
+                            E=youngs_moduli[i], nu=poissons_ratios[i]
+                        ),
+                        calculate_G_from_E_and_nu(
+                            E=youngs_moduli[i], nu=poissons_ratios[i]
+                        ),
+                    ),
                 )
             )
 
@@ -339,52 +393,16 @@ def calibration_step() -> None:
     print("Start calibration ...")
     exact_youngs_modulus = 192800.0
     exact_poissons_ratio = 0.2491
+    exact_bulk_modulus = calculate_K_from_E_and_nu(
+        E=exact_youngs_modulus, nu=exact_poissons_ratio
+    )
+    exact_shear_modulus = calculate_G_from_E_and_nu(
+        E=exact_youngs_modulus, nu=exact_poissons_ratio
+    )
     num_data_points = 5240
     std_noise = 5 * 1e-4
 
     def generate_calibration_data() -> tuple[Tensor, Tensor]:
-        # domain_config = create_fem_domain_config()
-        # problem_config = LinearElasticityProblemConfig_E_nu(
-        #     model=material_model,
-        #     material_parameters=(exact_youngs_modulus, exact_poissons_ratio),
-        # )
-        # simulation_config = SimulationConfig(
-        #     domain_config=domain_config,
-        #     problem_config=problem_config,
-        #     volume_force_x=volume_force_x,
-        #     volume_force_y=volume_force_y,
-        # )
-        # simulation_results = run_simulation(
-        #     simulation_config=simulation_config,
-        #     save_results=False,
-        #     save_metadata=False,
-        #     output_subdir=output_subdirectory,
-        #     project_directory=project_directory,
-        # )
-        # total_size_data = simulation_results.coordinates_x.shape[0]
-        # random_indices = torch.randint(
-        #     low=0, high=total_size_data + 1, size=(num_data_points,)
-        # )
-        # coordinates_x = torch.tensor(simulation_results.coordinates_x)[random_indices]
-        # coordinates_y = torch.tensor(simulation_results.coordinates_y)[random_indices]
-        # coordinates = torch.concat((coordinates_x, coordinates_y), dim=1).to(device)
-        # clean_displacements_x = torch.tensor(simulation_results.displacements_x)[
-        #     random_indices
-        # ]
-        # clean_displacements_y = torch.tensor(simulation_results.displacements_y)[
-        #     random_indices
-        # ]
-        # noisy_displacements_x = clean_displacements_x + torch.normal(
-        #     mean=0.0, std=std_noise, size=clean_displacements_x.size()
-        # )
-        # noisy_displacements_y = clean_displacements_y + torch.normal(
-        #     mean=0.0, std=std_noise, size=clean_displacements_y.size()
-        # )
-        # noisy_displacements = torch.concat(
-        #     (noisy_displacements_x, noisy_displacements_y), dim=1
-        # ).to(device)
-        # return coordinates, noisy_displacements
-        # Read measurement data
         csv_reader = CSVDataReader(project_directory)
         data = csv_reader.read(
             file_name=input_file_name_calibration, subdir_name=input_subdir_calibration
@@ -650,25 +668,31 @@ def calibration_step() -> None:
     )
 
     prior_mean_youngs_modulus = 210000
-    prior_std_youngs_modulus = 10000
     prior_mean_poissons_ratio = 0.3
-    prior_std_poissons_ratio = 0.015
-    prior_youngs_modulus = create_univariate_normal_distributed_prior(
-        mean=prior_mean_youngs_modulus,
-        standard_deviation=prior_std_youngs_modulus,
+    prior_mean_bulk_modulus = calculate_K_from_E_and_nu(
+        E=prior_mean_youngs_modulus, nu=prior_mean_poissons_ratio
+    )
+    prior_std_bulk_modulus = 10000
+    prior_mean_shear_modulus = calculate_G_from_E_and_nu(
+        E=prior_mean_youngs_modulus, nu=prior_mean_poissons_ratio
+    )
+    prior_std_shear_modulus = 1000
+    prior_bulk_modulus = create_univariate_normal_distributed_prior(
+        mean=prior_mean_bulk_modulus,
+        standard_deviation=prior_std_bulk_modulus,
         device=device,
     )
-    prior_poissons_ratio = create_univariate_normal_distributed_prior(
-        mean=prior_mean_poissons_ratio,
-        standard_deviation=prior_std_poissons_ratio,
+    prior_shear_modulus = create_univariate_normal_distributed_prior(
+        mean=prior_mean_shear_modulus,
+        standard_deviation=prior_std_shear_modulus,
         device=device,
     )
-    prior = multiply_priors([prior_youngs_modulus, prior_poissons_ratio])
+    prior = multiply_priors([prior_bulk_modulus, prior_shear_modulus])
 
-    parameter_names = ("Youngs modulus", "Poissons ratio")
-    true_parameters = (exact_youngs_modulus, exact_poissons_ratio)
+    parameter_names = ("bulk modulus", "shear modulus")
+    true_parameters = (exact_bulk_modulus, exact_shear_modulus)
     initial_parameters = torch.tensor(
-        [prior_mean_youngs_modulus, prior_mean_poissons_ratio], device=device
+        [prior_mean_bulk_modulus, prior_mean_shear_modulus], device=device
     )
 
     mean_displacements = torch.mean(torch.absolute(displacements), dim=0)
@@ -684,8 +708,9 @@ def calibration_step() -> None:
         .repeat((num_data_points, 1))
         .ravel(),
     )
-    std_proposal_density_youngs_modulus = 100
-    std_proposal_density_poissons_ratio = 0.0005
+
+    std_proposal_density_bulk_modulus = 100
+    std_proposal_density_shear_modulus = 50
     mcmc_config_mh = MetropolisHastingsConfig(
         likelihood=likelihood,
         prior=prior,
@@ -695,8 +720,8 @@ def calibration_step() -> None:
         cov_proposal_density=torch.diag(
             torch.tensor(
                 [
-                    std_proposal_density_youngs_modulus,
-                    std_proposal_density_poissons_ratio,
+                    std_proposal_density_bulk_modulus,
+                    std_proposal_density_shear_modulus,
                 ],
                 dtype=torch.float64,
                 device=device,
@@ -711,7 +736,7 @@ def calibration_step() -> None:
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e4),
         num_leabfrog_steps=256,
-        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
+        leapfrog_step_sizes=torch.tensor([1, 1], device=device),
     )
     mcmc_config_enuts = EfficientNUTSConfig(
         likelihood=likelihood,
@@ -720,7 +745,7 @@ def calibration_step() -> None:
         num_iterations=int(1e4),
         num_burn_in_iterations=int(1e4),
         max_tree_depth=8,
-        leapfrog_step_sizes=torch.tensor([1, 0.001], device=device),
+        leapfrog_step_sizes=torch.tensor([1, 1], device=device),
     )
     if use_least_squares:
         start = perf_counter()
@@ -730,8 +755,11 @@ def calibration_step() -> None:
         )
         end = perf_counter()
         time = end - start
-        identified_E = identified_parameters[0]
-        identified_nu = identified_parameters[1]
+        identified_K = identified_parameters[0]
+        identified_G = identified_parameters[1]
+        identified_E = calculate_E_from_K_and_G(K=identified_K, G=identified_G)
+        identified_nu = calculate_nu_from_K_and_G(K=identified_K, G=identified_G)
+        print(f"Identified parameters: K = {identified_K} and G = {identified_G}")
         print(f"Identified parameters: E = {identified_E} and nu = {identified_nu}")
         print(f"Run time least squares: {time}")
         print("############################################################")
