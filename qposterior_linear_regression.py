@@ -193,18 +193,16 @@ if __name__ == "__main__":
 
     model = LinearRegressionModel(num_inputs)
 
-    make_calibration_with_error_robust = True
-
-    # run_coverage_test(
-    #     consider_model_error=False,
-    #     make_robust = False,
-    #     gamma=0.0,
-    #     parameter_names=parameter_names,
-    #     prior=prior,
-    # )
+    run_coverage_test(
+        consider_model_error=False,
+        make_robust=False,
+        gamma=0.0,
+        parameter_names=parameter_names,
+        prior=prior,
+    )
     run_coverage_test(
         consider_model_error=True,
-        make_robust=make_calibration_with_error_robust,
+        make_robust=False,
         gamma=0.0,
         parameter_names=parameter_names,
         prior=prior,
@@ -218,7 +216,7 @@ if __name__ == "__main__":
     )
     run_coverage_test(
         consider_model_error=True,
-        make_robust=make_calibration_with_error_robust,
+        make_robust=False,
         gamma=2.0,
         parameter_names=parameter_names,
         prior=prior,
