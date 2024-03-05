@@ -63,7 +63,7 @@ from parametricpinn.training.training_standard_neohooke_quarterplatewithhole imp
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 num_material_parameters = 2
 edge_length = 100.0
@@ -96,8 +96,8 @@ fem_element_family = "Lagrange"
 fem_element_degree = 2
 fem_element_size = 0.2
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = f"20240223_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
+regenerate_valid_data = True
+input_subdir_valid = f"20240305_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
 num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
@@ -110,7 +110,7 @@ use_hamiltonian = False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = "20240220"
+output_date = current_date
 output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_col_{int(num_collocation_points)}_bc_{int(number_points_per_bc)}_neurons_6_128"
 output_subdirectory_training = os.path.join(output_subdirectory, "training")
 output_subdirectory_training = os.path.join(output_subdirectory, "preprocessing")
@@ -165,6 +165,9 @@ def create_datasets() -> (
 
     def _create_validation_dataset() -> ValidationDataset2D:
         def _generate_validation_data() -> None:
+            offset_training_range_bulk_modulus = 200.0
+            offset_training_range_shear_modulus = 50.0
+
             def _generate_random_parameter_list(
                 size: int, min_value: float, max_value: float
             ) -> list[float]:
@@ -172,19 +175,24 @@ def create_datasets() -> (
                 return random_params.tolist()
 
             bulk_moduli_list = _generate_random_parameter_list(
-                num_samples_valid, min_bulk_modulus, max_bulk_modulus
+                num_samples_valid,
+                min_bulk_modulus + offset_training_range_bulk_modulus,
+                max_bulk_modulus - offset_training_range_bulk_modulus,
             )
             shear_moduli_list = _generate_random_parameter_list(
-                num_samples_valid, min_shear_modulus, max_shear_modulus
+                num_samples_valid,
+                min_shear_modulus + offset_training_range_shear_modulus,
+                max_shear_modulus - offset_training_range_shear_modulus,
             )
             domain_config = create_fem_domain_config()
-            problem_configs = []
-            for i in range(num_samples_valid):
-                problem_configs.append(
-                    NeoHookeProblemConfig(
-                        material_parameters=(bulk_moduli_list[i], shear_moduli_list[i]),
-                    )
+            problem_configs = [
+                NeoHookeProblemConfig(
+                    material_parameters=(bulk_modulus, shear_modulus),
                 )
+                for bulk_modulus, shear_modulus in zip(
+                    bulk_moduli_list, shear_moduli_list
+                )
+            ]
 
             generate_validation_data(
                 domain_config=domain_config,
