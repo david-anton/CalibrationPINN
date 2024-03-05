@@ -134,7 +134,7 @@ class NoiseQLikelihoodStrategy:
 
     def _calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
         if self._make_robust:
-            self._robust_calibrated_log_likelihood(parameters)
+            return self._robust_calibrated_log_likelihood(parameters)
         return self._default_calibrated_log_likelihood(parameters)
 
     def _robust_calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
@@ -159,12 +159,24 @@ class NoiseQLikelihoodStrategy:
         W = self._estimate_default_covariance_matrix(scores, total_score)
         Q = self._calculate_q(total_score, W)
         M = torch.det(W)
+
         return (-1 / 2) * torch.log(M) - Q
 
     def _calculate_scores(self, parameters: Tensor) -> tuple[Tensor, Tensor]:
-        scores = jacfwd(self._standard_likelihood_strategy.log_probs_pointwise)(
-            parameters
-        )
+        random_indices = torch.randperm(self._num_flattened_data_points)
+
+        def group_log_probs(parameters: Tensor) -> Tensor:
+            log_probs = self._standard_likelihood_strategy.log_probs_pointwise(
+                parameters
+            )
+            shuffled_log_probs = log_probs[random_indices]
+            return torch.sum(shuffled_log_probs.reshape((-1, 32)), dim=1)
+
+        scores = jacfwd(group_log_probs)(parameters)
+        # scores = jacfwd(self._standard_likelihood_strategy.log_probs_pointwise)(
+        #     parameters
+        # )
+
         total_score = torch.sum(scores, dim=0)
         return scores, total_score
 
@@ -212,13 +224,14 @@ class NoiseQLikelihoodStrategy:
         D = torch.diag(torch.sqrt(torch.mean(redefined_S**2, dim=0)))
         W = torch.diag(weights)
 
+        # It is not clear whether the -1 in the square root is inside or outside the sum
         _, R = torch.linalg.qr(
             (
                 W
                 @ redefined_S
                 @ torch.inverse(D)
                 / torch.sqrt(
-                    (torch.sum(weights**2 - torch.tensor(1.0, device=self._device)))
+                    (torch.sum(weights**2) - torch.tensor(1.0, device=self._device))
                 )
             )
         )
