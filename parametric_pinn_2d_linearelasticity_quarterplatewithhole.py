@@ -104,7 +104,7 @@ fem_element_degree = 1
 fem_element_size = 0.1
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20240304_validation_data_linearelasticity_quarterplatewithhole_E_180k_240k_nu_02_04_edge_100_radius_10_traction_100_elementsize_01_K_G"
+input_subdir_valid = f"20240304_validation_data_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{int(min_poissons_ratio)}_{int(max_poissons_ratio)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}_K_G"
 num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
@@ -118,7 +118,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{min_youngs_modulus}_{max_youngs_modulus}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_4_64"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{int(min_poissons_ratio)}_{int(max_poissons_ratio)}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_4_64"
 output_subdirectory_training = os.path.join(output_subdirectory, "training")
 output_subdirectory_preprocessing = os.path.join(output_subdirectory, "preprocessing")
 save_metadata = True

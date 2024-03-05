@@ -125,7 +125,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_{min_youngs_modulus}_{max_youngs_modulus}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_6_128"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{int(min_poissons_ratio)}_{int(max_poissons_ratio)}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_6_128"
 output_subdirectory_training = os.path.join(output_subdirectory, "training")
 output_subdirectory_preprocessing = os.path.join(output_subdirectory, "preprocessing")
 save_metadata = True
