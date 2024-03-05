@@ -107,7 +107,7 @@ fem_element_degree = 1
 fem_element_size = 0.1
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = "20240304_validation_data_linearelasticity_simplifieddogbone_E_160k_240k_nu_02_04_elementsize_01_K_G"
+input_subdir_valid = f"20240304_validation_data_linearelasticity_simplifieddogbone_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_elementsize_{fem_element_size}_K_G"
 num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
