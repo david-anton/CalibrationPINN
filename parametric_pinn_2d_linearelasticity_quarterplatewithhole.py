@@ -69,7 +69,7 @@ from parametricpinn.training.training_standard_linearelasticity_quarterplatewith
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -103,7 +103,7 @@ fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size = 0.1
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = f"20240304_validation_data_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{int(min_poissons_ratio)}_{int(max_poissons_ratio)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}_K_G"
 num_samples_valid = 100
 validation_interval = 1
@@ -117,8 +117,8 @@ use_hamiltonian = False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{int(min_poissons_ratio)}_{int(max_poissons_ratio)}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_4_64"
+output_date = "20240304"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_4_64"
 output_subdirectory_training = os.path.join(output_subdirectory, "training")
 output_subdirectory_preprocessing = os.path.join(output_subdirectory, "preprocessing")
 save_metadata = True
@@ -495,7 +495,7 @@ def calibration_step() -> None:
     model = load_model(
         model=ansatz,
         name_model_parameters_file=name_model_parameters_file,
-        input_subdir=output_subdirectory,
+        input_subdir=output_subdirectory_training,
         project_directory=project_directory,
         device=device,
     )
@@ -571,8 +571,8 @@ def calibration_step() -> None:
                 likelihood=likelihood,
                 prior=prior,
                 initial_parameters=initial_parameters,
-                num_iterations=int(2e4),
-                num_burn_in_iterations=int(1e4),
+                num_iterations=int(1e4),
+                num_burn_in_iterations=int(5e3),
                 cov_proposal_density=cov_proposal_density,
             )
             configs.append(config)
