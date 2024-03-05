@@ -454,7 +454,7 @@ def training_step() -> None:
             problem_configs=problem_configs,
             volume_force_x=volume_force_x,
             volume_force_y=volume_force_y,
-            output_subdir=output_subdirectory,
+            output_subdir=output_subdirectory_training,
             project_directory=project_directory,
             plot_config=displacements_plotter_config,
             device=device,
