@@ -85,7 +85,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_Parametric_PINN_1D_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_samples_{int(num_parameter_samples)}_col_{int(num_collocation_points)}_neurons_4_16"
+output_subdirectory = f"{output_date}_Parametric_pinn_1D_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_samples_{int(num_parameter_samples)}_col_{int(num_collocation_points)}_neurons_4_16"
 output_subdirectory_training = os.path.join(output_subdirectory, "training")
 
 
