@@ -193,31 +193,31 @@ if __name__ == "__main__":
 
     model = LinearRegressionModel(num_inputs)
 
-    # run_coverage_test(
-    #     consider_model_error=False,
-    #     make_robust=False,
-    #     gamma=0.0,
-    #     parameter_names=parameter_names,
-    #     prior=prior,
-    # )
-    # run_coverage_test(
-    #     consider_model_error=True,
-    #     make_robust=False,
-    #     gamma=0.0,
-    #     parameter_names=parameter_names,
-    #     prior=prior,
-    # )
     run_coverage_test(
         consider_model_error=False,
         make_robust=False,
-        gamma=1.0,
+        gamma=0.0,
         parameter_names=parameter_names,
         prior=prior,
     )
     run_coverage_test(
         consider_model_error=True,
         make_robust=False,
-        gamma=1.0,
+        gamma=0.0,
+        parameter_names=parameter_names,
+        prior=prior,
+    )
+    run_coverage_test(
+        consider_model_error=False,
+        make_robust=False,
+        gamma=2.0,
+        parameter_names=parameter_names,
+        prior=prior,
+    )
+    run_coverage_test(
+        consider_model_error=True,
+        make_robust=False,
+        gamma=2.0,
         parameter_names=parameter_names,
         prior=prior,
     )
