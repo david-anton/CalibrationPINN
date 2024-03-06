@@ -431,7 +431,7 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    num_data_points = 1024
+    num_data_points = 32
     std_noise = 5 * 1e-4
     num_test_cases = num_samples_valid
 
@@ -479,7 +479,7 @@ def calibration_step() -> None:
                 model=model,
                 num_model_parameters=num_material_parameters,
                 data=data,
-                make_robust=True,
+                make_robust=False,
                 device=device,
             )
             for data in calibration_data
