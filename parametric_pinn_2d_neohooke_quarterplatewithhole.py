@@ -431,7 +431,7 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    num_data_points = 1024  # 2048
+    num_data_points = 4 * 2048
     std_noise = 5 * 1e-4
     num_test_cases = num_samples_valid
 
@@ -525,8 +525,8 @@ def calibration_step() -> None:
     ) -> tuple[MetropolisHastingsConfig, ...]:
         configs = []
         for likelihood in likelihoods:
-            std_proposal_density_bulk_modulus = 10.0
-            std_proposal_density_shear_modulus = 2.0
+            std_proposal_density_bulk_modulus = 5.0
+            std_proposal_density_shear_modulus = 1.0
             cov_proposal_density = torch.diag(
                 torch.tensor(
                     [
