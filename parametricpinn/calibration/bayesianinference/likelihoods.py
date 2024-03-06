@@ -144,16 +144,18 @@ class NoiseQLikelihoodStrategy:
         Q = self._calculate_q(scores, W)
         M = torch.det(W)
 
-        gamma = 0.1
-        d_0 = stats.chi2.ppf(0.99, self._num_model_parameters)
-        k = (2 * d_0 ** (2 - gamma)) / gamma
-        c = d_0**2 - k * d_0**gamma
+        return (-1 / 2) * torch.log(M) - Q
 
-        def g(x: Tensor) -> Tensor:
-            abs_x = torch.absolute(x)
-            return torch.where(abs_x <= d_0, x**2, k * abs_x**gamma + c)
+        # gamma = 0.1
+        # d_0 = stats.chi2.ppf(0.99, self._num_model_parameters)
+        # k = (2 * d_0 ** (2 - gamma)) / gamma
+        # c = d_0**2 - k * d_0**gamma
 
-        return (-1 / 2) * torch.log(M) - (1 / 2) * g(torch.sqrt(2 * Q))
+        # def g(x: Tensor) -> Tensor:
+        #     abs_x = torch.absolute(x)
+        #     return torch.where(abs_x <= d_0, x**2, k * abs_x**gamma + c)
+
+        # return (-1 / 2) * torch.log(M) - (1 / 2) * g(torch.sqrt(2 * Q))
 
     def _default_calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
         scores = self._calculate_scores(parameters)
@@ -170,8 +172,8 @@ class NoiseQLikelihoodStrategy:
             log_probs = self._standard_likelihood_strategy.flattened_log_probs(
                 parameters
             )
-            shuffled_log_probs = log_probs[self._random_indices]
-            return torch.sum(shuffled_log_probs.reshape(-1, 64), dim=1)
+            shuffled_log_probs = log_probs  # [self._random_indices]
+            return torch.sum(shuffled_log_probs.reshape(-1, 2), dim=1)
 
         scores = jacfwd(randomly_group_log_probs)(parameters)
         # print(torch.mean(scores, dim=0))
