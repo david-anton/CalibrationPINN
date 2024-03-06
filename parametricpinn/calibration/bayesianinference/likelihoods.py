@@ -82,7 +82,7 @@ class NoiseLikelihoodStrategy:
         residuals = self._residual_calculator.calculate_residuals(model_parameters)
         return self._distribution.log_prob(residuals)
 
-    def log_probs_pointwise(self, parameters: Tensor) -> Tensor:
+    def flattened_log_probs(self, parameters: Tensor) -> Tensor:
         model_parameters = parameters[: self._num_model_parameters]
         residuals = self._residual_calculator.calculate_residuals(model_parameters)
         return self._distribution.log_probs_individual(residuals)
@@ -123,8 +123,8 @@ class NoiseQLikelihoodStrategy:
     ) -> None:
         self._standard_likelihood_strategy = standard_likelihood_strategy
         self._standard_deviation_noise = data.std_noise
-        self._num_flattened_data_points = data.num_data_points * data.dim_outputs
         self._num_model_parameters = num_model_parameters
+        self._num_flattened_data_points = data.num_data_points * data.dim_outputs
         self._make_robust = make_robust
         self._device = device
 
@@ -138,9 +138,9 @@ class NoiseQLikelihoodStrategy:
         return self._default_calibrated_log_likelihood(parameters)
 
     def _robust_calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
-        scores, total_score = self._calculate_scores(parameters)
-        W = self._estimate_robust_covariance_matrix(scores, total_score)
-        Q = self._calculate_q(total_score, W)
+        scores = self._calculate_scores(parameters)
+        W = self._estimate_robust_covariance_matrix(scores)
+        Q = self._calculate_q(scores, W)
         M = torch.det(W)
 
         gamma = 0.1
@@ -155,44 +155,38 @@ class NoiseQLikelihoodStrategy:
         return (-1 / 2) * torch.log(M) - (1 / 2) * g(torch.sqrt(2 * Q))
 
     def _default_calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
-        scores, total_score = self._calculate_scores(parameters)
-        W = self._estimate_default_covariance_matrix(scores, total_score)
-        Q = self._calculate_q(total_score, W)
+        scores = self._calculate_scores(parameters)
+        W = self._estimate_default_covariance_matrix(scores)
+        Q = self._calculate_q(scores, W)
         M = torch.det(W)
 
         return (-1 / 2) * torch.log(M) - Q
 
-    def _calculate_scores(self, parameters: Tensor) -> tuple[Tensor, Tensor]:
-        # random_indices = torch.randperm(self._num_flattened_data_points)
+    def _calculate_scores(self, parameters: Tensor) -> Tensor:
+        random_indices = torch.randperm(self._num_flattened_data_points)
 
-        # def group_log_probs(parameters: Tensor) -> Tensor:
-        #     log_probs = self._standard_likelihood_strategy.log_probs_pointwise(
-        #         parameters
-        #     )
-        #     shuffled_log_probs = log_probs[random_indices]
-        #     return torch.sum(shuffled_log_probs.reshape((-1, 32)), dim=1)
+        def randomly_group_log_probs(parameters: Tensor) -> Tensor:
+            log_probs = self._standard_likelihood_strategy.flattened_log_probs(
+                parameters
+            )
+            shuffled_log_probs = log_probs[random_indices]
+            return torch.sum(shuffled_log_probs.reshape((-1, 32)), dim=1)
 
-        # scores = jacfwd(group_log_probs)(parameters)
-        scores = jacfwd(self._standard_likelihood_strategy.log_probs_pointwise)(
-            parameters
-        )
+        return jacfwd(randomly_group_log_probs)(parameters)
+        # return jacfwd(self._standard_likelihood_strategy.log_probs_pointwise)(
+        #     parameters
+        # )
 
-        total_score = torch.sum(scores, dim=0)
-        return scores, total_score
-
-    def _estimate_robust_covariance_matrix(
-        self, scores: Tensor, total_score: Tensor
-    ) -> Tensor:
-        mean_score = total_score / self._num_flattened_data_points
+    def _estimate_robust_covariance_matrix(self, scores: Tensor) -> Tensor:
+        num_scores = len(scores)
+        mean_score = torch.mean(scores, dim=0)
 
         ### 1
         S = scores - mean_score
         D_bar = torch.diag(torch.sqrt(torch.mean(S**2, dim=0)))
         _, R_bar = torch.linalg.qr(
             (S @ torch.inverse(D_bar))
-            / torch.sqrt(
-                torch.tensor(self._num_flattened_data_points - 1, device=self._device)
-            )
+            / torch.sqrt(torch.tensor(num_scores - 1, device=self._device))
         )
         R_bar_T = torch.transpose(R_bar, 0, 1)
         covar_bar_inv = torch.inverse(D_bar @ R_bar_T @ R_bar @ D_bar)
@@ -242,10 +236,8 @@ class NoiseQLikelihoodStrategy:
 
         return covariance
 
-    def _estimate_default_covariance_matrix(
-        self, scores: Tensor, total_score: Tensor
-    ) -> Tensor:
-        mean_score = total_score / self._num_flattened_data_points
+    def _estimate_default_covariance_matrix(self, scores: Tensor) -> Tensor:
+        mean_score = torch.mean(scores, dim=0)
 
         def _vmap_calculate_covariance(score) -> Tensor:
             deviation = torch.unsqueeze(score - mean_score, dim=0)
@@ -254,19 +246,13 @@ class NoiseQLikelihoodStrategy:
         covariances = vmap(_vmap_calculate_covariance)(scores)
         return torch.mean(covariances, dim=0)
 
-    def _calculate_q(self, total_score: Tensor, covariance: Tensor) -> Tensor:
-        sqrt_num_data_points = torch.sqrt(
-            torch.tensor(self._num_flattened_data_points, device=self._device)
-        )
+    def _calculate_q(self, scores: Tensor, covariance: Tensor) -> Tensor:
+        total_score = torch.sum(scores, dim=0)
+        sqrt_num_scores = torch.sqrt(torch.tensor(len(scores), device=self._device))
+        scaled_total_score = total_score / sqrt_num_scores
         return torch.squeeze(
             (1 / 2)
-            * (
-                (total_score / sqrt_num_data_points)
-                @ torch.inverse(covariance)
-                @ torch.transpose(
-                    torch.unsqueeze((total_score / sqrt_num_data_points), dim=0), 0, 1
-                )
-            ),
+            * (scaled_total_score @ torch.inverse(covariance) @ scaled_total_score),
             dim=0,
         )
 

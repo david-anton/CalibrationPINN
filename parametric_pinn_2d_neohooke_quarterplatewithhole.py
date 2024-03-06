@@ -98,7 +98,7 @@ fem_element_size = 0.2
 # Validation
 regenerate_valid_data = False
 input_subdir_valid = "20240223_validation_data_neohooke_quarterplatewithhole_K_4800_7200_G_400_1600_edge_100_radius_10_traction_-100_elementsize_0.2"  # f"20240305_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
-num_samples_valid = 100
+num_samples_valid = 10  # 100
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
@@ -431,7 +431,7 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    num_data_points = 1024
+    num_data_points = 2048
     std_noise = 5 * 1e-4
     num_test_cases = num_samples_valid
 
