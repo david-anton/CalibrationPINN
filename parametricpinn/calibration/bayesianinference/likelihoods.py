@@ -163,19 +163,19 @@ class NoiseQLikelihoodStrategy:
         return (-1 / 2) * torch.log(M) - Q
 
     def _calculate_scores(self, parameters: Tensor) -> tuple[Tensor, Tensor]:
-        random_indices = torch.randperm(self._num_flattened_data_points)
+        # random_indices = torch.randperm(self._num_flattened_data_points)
 
-        def group_log_probs(parameters: Tensor) -> Tensor:
-            log_probs = self._standard_likelihood_strategy.log_probs_pointwise(
-                parameters
-            )
-            shuffled_log_probs = log_probs[random_indices]
-            return torch.sum(shuffled_log_probs.reshape((-1, 32)), dim=1)
+        # def group_log_probs(parameters: Tensor) -> Tensor:
+        #     log_probs = self._standard_likelihood_strategy.log_probs_pointwise(
+        #         parameters
+        #     )
+        #     shuffled_log_probs = log_probs[random_indices]
+        #     return torch.sum(shuffled_log_probs.reshape((-1, 32)), dim=1)
 
-        scores = jacfwd(group_log_probs)(parameters)
-        # scores = jacfwd(self._standard_likelihood_strategy.log_probs_pointwise)(
-        #     parameters
-        # )
+        # scores = jacfwd(group_log_probs)(parameters)
+        scores = jacfwd(self._standard_likelihood_strategy.log_probs_pointwise)(
+            parameters
+        )
 
         total_score = torch.sum(scores, dim=0)
         return scores, total_score

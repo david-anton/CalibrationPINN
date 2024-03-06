@@ -77,7 +77,7 @@ valid_interval = 1
 num_points_valid = 512
 batch_size_valid = num_samples_valid
 # Calibration
-consider_model_error = True
+consider_model_error = False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -85,7 +85,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_Parametric_pinn_1D_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_samples_{int(num_parameter_samples)}_col_{int(num_collocation_points)}_neurons_4_16"
+output_subdirectory = f"{output_date}_Parametric_pinn_1D_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_samples_{num_parameter_samples}_col_{num_collocation_points}_neurons_4_16"
 output_subdirectory_training = os.path.join(output_subdirectory, "training")
 
 
