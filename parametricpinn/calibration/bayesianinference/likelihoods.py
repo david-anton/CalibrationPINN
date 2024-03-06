@@ -171,7 +171,7 @@ class NoiseQLikelihoodStrategy:
                 parameters
             )
             shuffled_log_probs = log_probs[self._random_indices]
-            return torch.sum(shuffled_log_probs.reshape(-1, 1), dim=1)
+            return torch.sum(shuffled_log_probs.reshape(-1, 64), dim=1)
 
         scores = jacfwd(randomly_group_log_probs)(parameters)
         # print(torch.mean(scores, dim=0))
