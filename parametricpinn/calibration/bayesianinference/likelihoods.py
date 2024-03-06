@@ -125,6 +125,7 @@ class NoiseQLikelihoodStrategy:
         self._standard_deviation_noise = data.std_noise
         self._num_model_parameters = num_model_parameters
         self._num_flattened_data_points = data.num_data_points * data.dim_outputs
+        self._random_indices = torch.randperm(self._num_flattened_data_points)
         self._make_robust = make_robust
         self._device = device
 
@@ -163,16 +164,18 @@ class NoiseQLikelihoodStrategy:
         return (-1 / 2) * torch.log(M) - Q
 
     def _calculate_scores(self, parameters: Tensor) -> Tensor:
-        random_indices = torch.randperm(self._num_flattened_data_points)
+        # random_indices = torch.randperm(self._num_flattened_data_points)
 
         def randomly_group_log_probs(parameters: Tensor) -> Tensor:
             log_probs = self._standard_likelihood_strategy.flattened_log_probs(
                 parameters
             )
-            shuffled_log_probs = log_probs[random_indices]
-            return torch.sum(shuffled_log_probs.reshape((-1, 32)), dim=1)
+            shuffled_log_probs = log_probs[self._random_indices]
+            return torch.sum(shuffled_log_probs.reshape((-1, 8)), dim=1)
 
-        return jacfwd(randomly_group_log_probs)(parameters)
+        scores = jacfwd(randomly_group_log_probs)(parameters)
+        # print(torch.mean(scores, dim=0))
+        return scores
         # return jacfwd(self._standard_likelihood_strategy.log_probs_pointwise)(
         #     parameters
         # )
@@ -252,7 +255,11 @@ class NoiseQLikelihoodStrategy:
         scaled_total_score = total_score / sqrt_num_scores
         return torch.squeeze(
             (1 / 2)
-            * (scaled_total_score @ torch.inverse(covariance) @ scaled_total_score),
+            * (
+                scaled_total_score
+                @ torch.inverse(covariance)
+                @ torch.transpose(torch.unsqueeze(scaled_total_score, dim=0), 0, 1)
+            ),
             dim=0,
         )
 

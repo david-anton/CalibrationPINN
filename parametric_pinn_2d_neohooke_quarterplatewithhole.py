@@ -81,7 +81,7 @@ layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_per_parameter = 32
+num_samples_per_parameter = 2  # 32
 num_collocation_points = 64
 number_points_per_bc = 64
 bcs_overlap_distance = 1e-2
@@ -104,7 +104,7 @@ num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
 consider_model_error = True
-use_least_squares = True
+use_least_squares = False  # True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
 use_efficient_nuts = False
@@ -431,7 +431,7 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    num_data_points = 2048
+    num_data_points = 1024  # 2048
     std_noise = 5 * 1e-4
     num_test_cases = num_samples_valid
 
@@ -525,8 +525,8 @@ def calibration_step() -> None:
     ) -> tuple[MetropolisHastingsConfig, ...]:
         configs = []
         for likelihood in likelihoods:
-            std_proposal_density_bulk_modulus = 1.0
-            std_proposal_density_shear_modulus = 0.1
+            std_proposal_density_bulk_modulus = 10.0
+            std_proposal_density_shear_modulus = 2.0
             cov_proposal_density = torch.diag(
                 torch.tensor(
                     [
