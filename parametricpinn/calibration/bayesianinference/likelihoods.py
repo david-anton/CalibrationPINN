@@ -124,8 +124,6 @@ class NoiseQLikelihoodStrategy:
         self._standard_likelihood_strategy = standard_likelihood_strategy
         self._standard_deviation_noise = data.std_noise
         self._num_model_parameters = num_model_parameters
-        self._num_flattened_data_points = data.num_data_points * data.dim_outputs
-        self._random_indices = torch.randperm(self._num_flattened_data_points)
         self._make_robust = make_robust
         self._device = device
 
@@ -166,21 +164,9 @@ class NoiseQLikelihoodStrategy:
         return (-1 / 2) * torch.log(M) - Q
 
     def _calculate_scores(self, parameters: Tensor) -> Tensor:
-        # random_indices = torch.randperm(self._num_flattened_data_points)
-
-        def randomly_group_log_probs(parameters: Tensor) -> Tensor:
-            log_probs = self._standard_likelihood_strategy.flattened_log_probs(
-                parameters
-            )
-            shuffled_log_probs = log_probs  # [self._random_indices]
-            return torch.sum(shuffled_log_probs.reshape(-1, 2), dim=1)
-
-        scores = jacfwd(randomly_group_log_probs)(parameters)
-        # print(torch.mean(scores, dim=0))
-        return scores
-        # return jacfwd(self._standard_likelihood_strategy.log_probs_pointwise)(
-        #     parameters
-        # )
+        return jacfwd(self._standard_likelihood_strategy.flattened_log_probs)(
+            parameters
+        )
 
     def _estimate_robust_covariance_matrix(self, scores: Tensor) -> Tensor:
         num_scores = len(scores)
@@ -252,14 +238,15 @@ class NoiseQLikelihoodStrategy:
         return torch.mean(covariances, dim=0)
 
     def _calculate_q(self, scores: Tensor, covariance: Tensor) -> Tensor:
+        num_scores = torch.tensor(len(scores), device=self._device)
+        sqrt_num_scores = torch.sqrt(num_scores)
         total_score = torch.sum(scores, dim=0)
-        sqrt_num_scores = torch.sqrt(torch.tensor(len(scores), device=self._device))
         scaled_total_score = total_score / sqrt_num_scores
         return torch.squeeze(
             (1 / 2)
             * (
                 scaled_total_score
-                @ torch.inverse(covariance)
+                @ torch.inverse(num_scores * covariance)
                 @ torch.transpose(torch.unsqueeze(scaled_total_score, dim=0), 0, 1)
             ),
             dim=0,
