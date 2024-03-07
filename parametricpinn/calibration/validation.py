@@ -31,6 +31,8 @@ def test_coverage(
     project_directory: ProjectDirectory,
     device: Device,
 ) -> None:
+    num_considered_parameters = np.shape(true_parameters)[1]
+    considered_parameter_names = parameter_names[:num_considered_parameters]
     credible_standard_factor = 1.959963984540
 
     def perform_bayesian_inference() -> tuple[NPArray, NPArray, NPArray]:
@@ -61,9 +63,12 @@ def test_coverage(
             calibration_config: MCMCConfig,
             output_subdir: str,
         ):
+            extended_true_parameters_tuple = true_parameters_tuple + tuple(
+                None for _ in range(len(parameter_names) - np.shape(true_parameters)[1])
+            )
             plot_posterior_normal_distributions(
                 parameter_names=parameter_names,
-                true_parameters=true_parameters_tuple,
+                true_parameters=extended_true_parameters_tuple,
                 moments=moments,
                 samples=samples,
                 mcmc_algorithm=calibration_config.algorithm_name,
@@ -81,8 +86,10 @@ def test_coverage(
                 true_parameters_tuple=true_parameters_tuple,
                 output_subdir_case=output_subdir_case,
             )
-            means_list.append(means)
-            standard_deviations_list.append(standard_deviations)
+            means_list.append(means[:num_considered_parameters])
+            standard_deviations_list.append(
+                standard_deviations[:num_considered_parameters]
+            )
 
         stacked_means = np.stack(tuple(means_list), axis=0)
         stacked_biases = stacked_means - true_parameters
@@ -107,14 +114,14 @@ def test_coverage(
         credible_test_results: NPArray,
     ) -> None:
         def compile_header() -> tuple[str, ...]:
-            true_parameter_names = [f"true {p}" for p in parameter_names]
-            mean_names = [f"mean {p}" for p in parameter_names]
-            bias_names = [f"bias {p}" for p in parameter_names]
+            true_parameter_names = [f"true {p}" for p in considered_parameter_names]
+            mean_names = [f"mean {p}" for p in considered_parameter_names]
+            bias_names = [f"bias {p}" for p in considered_parameter_names]
             standard_deviation_names = [
-                f"standard deviation {p}" for p in parameter_names
+                f"standard deviation {p}" for p in considered_parameter_names
             ]
             credible_test_names = [
-                f"is {p} in credible interval" for p in parameter_names
+                f"is {p} in credible interval" for p in considered_parameter_names
             ] + ["are all parameters in credible interval"]
             return tuple(
                 true_parameter_names
@@ -150,9 +157,9 @@ def test_coverage(
 
     def save_statistics_summary(biases: NPArray, standard_deviations: NPArray) -> None:
         def compile_header() -> tuple[str, ...]:
-            mean_bias_names = [f"mean bias {p}" for p in parameter_names]
+            mean_bias_names = [f"mean bias {p}" for p in considered_parameter_names]
             mean_stdandard_deviation_names = [
-                f"mean standard deviation {p}" for p in parameter_names
+                f"mean standard deviation {p}" for p in considered_parameter_names
             ]
             return tuple(mean_bias_names + mean_stdandard_deviation_names)
 
@@ -180,7 +187,7 @@ def test_coverage(
 
     def save_coverage_test_summary(credible_test_results: NPArray) -> None:
         def compile_header() -> tuple[str, ...]:
-            return parameter_names + ("combined",)
+            return considered_parameter_names + ("combined",)
 
         def compile_index() -> tuple[str]:
             return ("coverage [%]",)
