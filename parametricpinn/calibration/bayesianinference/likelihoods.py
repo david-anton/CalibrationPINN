@@ -1,7 +1,6 @@
 from typing import Protocol, TypeAlias, Union
 
 import torch
-from scipy import stats
 from torch.func import jacfwd, vmap
 
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
@@ -135,15 +134,24 @@ class NoiseAndModelErrorLikelihoodStrategy:
         distribution = self._initialize_likelihood_distribution(model_error_parameters)
         return distribution.log_prob(residuals)
 
+    def flattened_log_probs(self, parameters: Tensor) -> Tensor:
+        model_parameters = parameters[: self._num_model_parameters]
+        residuals = self._residual_calculator.calculate_residuals(model_parameters)
+        model_error_parameters = parameters[self._num_model_parameters :]
+        distribution = self._initialize_likelihood_distribution(model_error_parameters)
+        return distribution.log_probs_individual(residuals)
+
     def _initialize_likelihood_distribution(
         self, model_error_parameters: Tensor
-    ) -> LikelihoodDistributions:
+    ) -> IndependentMultivariateNormalDistributon:
         means = self._assemble_residual_means()
-        covariance_matrix = self._calculate_residual_covariance_matrix(
+        standard_deviations = self._assemble_residual_standard_deviations(
             model_error_parameters
         )
-        return create_multivariate_normal_distribution(
-            means=means, covariance_matrix=covariance_matrix, device=self._device
+        return create_independent_multivariate_normal_distribution(
+            means=means,
+            standard_deviations=standard_deviations,
+            device=self._device,
         )
 
     def _assemble_residual_means(self) -> Tensor:
@@ -151,16 +159,26 @@ class NoiseAndModelErrorLikelihoodStrategy:
             (self._num_flattened_outputs,), dtype=torch.float64, device=self._device
         )
 
-    def _calculate_residual_covariance_matrix(
+    def _assemble_residual_standard_deviations(
         self, model_error_parameters: Tensor
     ) -> Tensor:
-        noise_covar = self._assemble_error_covar_matrix(self._standard_deviation_noise)
-        model_error_covar = self._assemble_error_covar_matrix(model_error_parameters)
-        return noise_covar + model_error_covar
+        noise_standard_deviations = self._assemble_error_standard_deviations(
+            self._standard_deviation_noise
+        )
+        model_error_standard_deviations = self._assemble_error_standard_deviations(
+            model_error_parameters
+        )
+        return torch.sqrt(
+            noise_standard_deviations**2 + model_error_standard_deviations**2
+        )
 
-    def _assemble_error_covar_matrix(self, error_standard_deviation: Tensor) -> Tensor:
-        return error_standard_deviation**2 * torch.eye(
-            self._num_flattened_outputs, dtype=torch.float64, device=self._device
+    def _assemble_error_standard_deviations(
+        self, error_standard_deviation: Tensor
+    ) -> Tensor:
+        return error_standard_deviation * torch.ones(
+            (self._num_flattened_outputs,),
+            dtype=torch.float64,
+            device=self._device,
         )
 
 
@@ -219,16 +237,21 @@ class NoiseAndModelErrorGPsLikelihoodStrategy:
         return self._model_error_gp.forward_kernel(inputs, inputs)
 
 
-class QLikelihoodWrapper:
+QLikelihoodStrategies: TypeAlias = (
+    NoiseLikelihoodStrategy | NoiseAndModelErrorLikelihoodStrategy
+)
+
+
+class StandardPPINNQLikelihoodWrapper:
     def __init__(
         self,
-        likelihood_strategy: NoiseLikelihoodStrategy,
+        likelihood_strategy: QLikelihoodStrategies,
         data: PreprocessedCalibrationData,
         num_model_parameters: int,
         make_robust: bool,
         device: Device,
     ) -> None:
-        self._standard_likelihood_strategy = likelihood_strategy
+        self._likelihood_strategy = likelihood_strategy
         self._standard_deviation_noise = data.std_noise
         self._num_model_parameters = num_model_parameters
         self._make_robust = make_robust
@@ -271,9 +294,7 @@ class QLikelihoodWrapper:
         return (-1 / 2) * torch.log(M) - Q
 
     def _calculate_scores(self, parameters: Tensor) -> Tensor:
-        return jacfwd(self._standard_likelihood_strategy.flattened_log_probs)(
-            parameters
-        )
+        return jacfwd(self._likelihood_strategy.flattened_log_probs)(parameters)
 
     def _estimate_robust_covariance_matrix(self, scores: Tensor) -> Tensor:
         num_scores = len(scores)
@@ -426,14 +447,46 @@ def create_standard_ppinn_q_likelihood_for_noise(
         data=preprocessed_data,
         device=device,
     )
-    standard_likelihood_strategy = NoiseLikelihoodStrategy(
+    likelihood_strategy = NoiseLikelihoodStrategy(
         residual_calculator=residual_calculator,
         data=preprocessed_data,
         num_model_parameters=num_model_parameters,
         device=device,
     )
-    q_likelihood_strategy = QLikelihoodWrapper(
-        likelihood_strategy=standard_likelihood_strategy,
+    q_likelihood_strategy = StandardPPINNQLikelihoodWrapper(
+        likelihood_strategy=likelihood_strategy,
+        data=preprocessed_data,
+        num_model_parameters=num_model_parameters,
+        make_robust=make_robust,
+        device=device,
+    )
+    return StandardPPINNLikelihood(
+        likelihood_strategy=q_likelihood_strategy,
+        device=device,
+    )
+
+
+def create_standard_ppinn_q_likelihood_for_noise_and_model_error(
+    model: StandardAnsatz,
+    num_model_parameters: int,
+    data: CalibrationData,
+    make_robust: bool,
+    device: Device,
+) -> StandardPPINNLikelihood:
+    preprocessed_data = preprocess_calibration_data(data)
+    residual_calculator = StandardResidualCalculator(
+        model=model,
+        data=preprocessed_data,
+        device=device,
+    )
+    likelihood_strategy = NoiseAndModelErrorLikelihoodStrategy(
+        residual_calculator=residual_calculator,
+        data=preprocessed_data,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
+    q_likelihood_strategy = StandardPPINNQLikelihoodWrapper(
+        likelihood_strategy=likelihood_strategy,
         data=preprocessed_data,
         num_model_parameters=num_model_parameters,
         make_robust=make_robust,
