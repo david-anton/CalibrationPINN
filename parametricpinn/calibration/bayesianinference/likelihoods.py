@@ -19,10 +19,6 @@ from parametricpinn.statistics.distributions import (
 )
 from parametricpinn.types import Device, Tensor
 
-LikelihoodDistributions: TypeAlias = Union[
-    IndependentMultivariateNormalDistributon, MultivariateNormalDistributon
-]
-
 
 class StandardResidualCalculator:
     def __init__(
@@ -123,30 +119,36 @@ class NoiseAndModelErrorLikelihoodStrategy:
         self._data = data
         self._data.inputs.detach().to(device)
         self._standard_deviation_noise = torch.tensor(data.std_noise, device=device)
-        self._num_flattened_outputs = data.num_data_points * data.dim_outputs
+        self._dim_outputs = data.dim_outputs
+        self._num_data_points = data.num_data_points
+        self._num_flattened_outputs = self._num_data_points * self._dim_outputs
         self._num_model_parameters = num_model_parameters
         self._device = device
 
     def log_prob(self, parameters: Tensor) -> Tensor:
         model_parameters = parameters[: self._num_model_parameters]
         residuals = self._residual_calculator.calculate_residuals(model_parameters)
-        model_error_parameters = parameters[self._num_model_parameters :]
-        distribution = self._initialize_likelihood_distribution(model_error_parameters)
+        model_error_standard_deviations = parameters[-self._dim_outputs :]
+        distribution = self._initialize_likelihood_distribution(
+            model_error_standard_deviations
+        )
         return distribution.log_prob(residuals)
 
     def flattened_log_probs(self, parameters: Tensor) -> Tensor:
         model_parameters = parameters[: self._num_model_parameters]
         residuals = self._residual_calculator.calculate_residuals(model_parameters)
-        model_error_parameters = parameters[self._num_model_parameters :]
-        distribution = self._initialize_likelihood_distribution(model_error_parameters)
+        model_error_standard_deviation = parameters[-self._dim_outputs :]
+        distribution = self._initialize_likelihood_distribution(
+            model_error_standard_deviation
+        )
         return distribution.log_probs_individual(residuals)
 
     def _initialize_likelihood_distribution(
-        self, model_error_parameters: Tensor
+        self, model_error_standard_deviations: Tensor
     ) -> IndependentMultivariateNormalDistributon:
         means = self._assemble_residual_means()
         standard_deviations = self._assemble_residual_standard_deviations(
-            model_error_parameters
+            model_error_standard_deviations
         )
         return create_independent_multivariate_normal_distribution(
             means=means,
@@ -160,25 +162,34 @@ class NoiseAndModelErrorLikelihoodStrategy:
         )
 
     def _assemble_residual_standard_deviations(
-        self, model_error_parameters: Tensor
+        self, model_error_standard_deviations: Tensor
     ) -> Tensor:
-        noise_standard_deviations = self._assemble_error_standard_deviations(
-            self._standard_deviation_noise
+        noise_standard_deviations = self._assemble_noise_standard_deviations()
+        error_standard_deviations = self._assemble_error_standard_deviations(
+            model_error_standard_deviations
         )
-        model_error_standard_deviations = self._assemble_error_standard_deviations(
-            model_error_parameters
-        )
-        return torch.sqrt(
-            noise_standard_deviations**2 + model_error_standard_deviations**2
-        )
+        return torch.sqrt(noise_standard_deviations**2 + error_standard_deviations**2)
 
-    def _assemble_error_standard_deviations(
-        self, error_standard_deviation: Tensor
-    ) -> Tensor:
-        return error_standard_deviation * torch.ones(
+    def _assemble_noise_standard_deviations(self) -> Tensor:
+        return self._standard_deviation_noise * torch.ones(
             (self._num_flattened_outputs,),
             dtype=torch.float64,
             device=self._device,
+        )
+
+    def _assemble_error_standard_deviations(
+        self, error_standard_deviations: Tensor
+    ) -> Tensor:
+        normalized_standard_deviation = torch.ones(
+            (self._num_data_points,),
+            dtype=torch.float64,
+            device=self._device,
+        )
+        return torch.concat(
+            tuple(
+                error_stddev * normalized_standard_deviation
+                for error_stddev in error_standard_deviations
+            )
         )
 
 
@@ -209,7 +220,7 @@ class NoiseAndModelErrorGPsLikelihoodStrategy:
 
     def _initialize_likelihood_distribution(
         self, gp_parameters: Tensor
-    ) -> LikelihoodDistributions:
+    ) -> MultivariateNormalDistributon:
         means = self._assemble_residual_means()
         covariance_matrix = self._calculate_residual_covariance_matrix(gp_parameters)
         return create_multivariate_normal_distribution(
@@ -258,8 +269,7 @@ class StandardPPINNQLikelihoodWrapper:
         self._device = device
 
     def log_prob(self, parameters: Tensor) -> Tensor:
-        model_parameters = parameters[: self._num_model_parameters]
-        return self._calibrated_log_likelihood(model_parameters)
+        return self._calibrated_log_likelihood(parameters)
 
     def _calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
         if self._make_robust:
@@ -434,6 +444,56 @@ def create_standard_ppinn_likelihood_for_noise(
     )
 
 
+def create_standard_ppinn_likelihood_for_noise_and_model_error(
+    model: StandardAnsatz,
+    num_model_parameters: int,
+    data: CalibrationData,
+    device: Device,
+) -> StandardPPINNLikelihood:
+    preprocessed_data = preprocess_calibration_data(data)
+    residual_calculator = StandardResidualCalculator(
+        model=model,
+        data=preprocessed_data,
+        device=device,
+    )
+    likelihood_strategy = NoiseAndModelErrorLikelihoodStrategy(
+        residual_calculator=residual_calculator,
+        data=preprocessed_data,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
+    return StandardPPINNLikelihood(
+        likelihood_strategy=likelihood_strategy,
+        device=device,
+    )
+
+
+def create_standard_ppinn_likelihood_for_noise_and_model_error_gps(
+    model: StandardAnsatz,
+    num_model_parameters: int,
+    model_error_gp: GaussianProcess,
+    data: CalibrationData,
+    device: Device,
+) -> StandardPPINNLikelihood:
+    preprocessed_data = preprocess_calibration_data(data)
+    residual_calculator = StandardResidualCalculator(
+        model=model,
+        data=preprocessed_data,
+        device=device,
+    )
+    likelihood_strategy = NoiseAndModelErrorGPsLikelihoodStrategy(
+        residual_calculator=residual_calculator,
+        data=preprocessed_data,
+        num_model_parameters=num_model_parameters,
+        model_error_gp=model_error_gp,
+        device=device,
+    )
+    return StandardPPINNLikelihood(
+        likelihood_strategy=likelihood_strategy,
+        device=device,
+    )
+
+
 def create_standard_ppinn_q_likelihood_for_noise(
     model: StandardAnsatz,
     num_model_parameters: int,
@@ -494,56 +554,6 @@ def create_standard_ppinn_q_likelihood_for_noise_and_model_error(
     )
     return StandardPPINNLikelihood(
         likelihood_strategy=q_likelihood_strategy,
-        device=device,
-    )
-
-
-def create_standard_ppinn_likelihood_for_noise_and_model_error(
-    model: StandardAnsatz,
-    num_model_parameters: int,
-    data: CalibrationData,
-    device: Device,
-) -> StandardPPINNLikelihood:
-    preprocessed_data = preprocess_calibration_data(data)
-    residual_calculator = StandardResidualCalculator(
-        model=model,
-        data=preprocessed_data,
-        device=device,
-    )
-    likelihood_strategy = NoiseAndModelErrorLikelihoodStrategy(
-        residual_calculator=residual_calculator,
-        data=preprocessed_data,
-        num_model_parameters=num_model_parameters,
-        device=device,
-    )
-    return StandardPPINNLikelihood(
-        likelihood_strategy=likelihood_strategy,
-        device=device,
-    )
-
-
-def create_standard_ppinn_likelihood_for_noise_and_model_error_gps(
-    model: StandardAnsatz,
-    num_model_parameters: int,
-    model_error_gp: GaussianProcess,
-    data: CalibrationData,
-    device: Device,
-) -> StandardPPINNLikelihood:
-    preprocessed_data = preprocess_calibration_data(data)
-    residual_calculator = StandardResidualCalculator(
-        model=model,
-        data=preprocessed_data,
-        device=device,
-    )
-    likelihood_strategy = NoiseAndModelErrorGPsLikelihoodStrategy(
-        residual_calculator=residual_calculator,
-        data=preprocessed_data,
-        num_model_parameters=num_model_parameters,
-        model_error_gp=model_error_gp,
-        device=device,
-    )
-    return StandardPPINNLikelihood(
-        likelihood_strategy=likelihood_strategy,
         device=device,
     )
 

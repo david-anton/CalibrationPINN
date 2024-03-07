@@ -341,7 +341,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_m
     total_covar_matrix = torch.diag(
         torch.full((2,), variance_noise + variance_model_error)
     )
-    parameters = torch.tensor([1.0, std_model_error])
+    parameters = torch.tensor([1.0, std_model_error, std_model_error])
     num_model_parameters = 1
     data = PreprocessedCalibrationData(
         inputs=inputs,
@@ -385,7 +385,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data
     total_covar_matrix = torch.diag(
         torch.full((4,), variance_noise + variance_model_error)
     )
-    parameters = torch.tensor([1.0, std_model_error])
+    parameters = torch.tensor([1.0, std_model_error, std_model_error])
     num_model_parameters = 1
     data = PreprocessedCalibrationData(
         inputs=inputs,
