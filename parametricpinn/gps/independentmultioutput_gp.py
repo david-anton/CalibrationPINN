@@ -1,5 +1,5 @@
 from itertools import groupby
-from typing import TypeAlias
+from typing import Any, TypeAlias
 
 import gpytorch
 import torch
@@ -21,9 +21,7 @@ class IndependentMultiOutputGPMultivariateNormal(
         self._multivariate_normals = multivariate_normals
         combined_mean = self._combine_means().to(device)
         combined_covariance_matrix = self._combine_covariance_matrices().to(device)
-        super(IndependentMultiOutputGPMultivariateNormal).__init__(
-            combined_mean, combined_covariance_matrix
-        )
+        super().__init__(combined_mean, combined_covariance_matrix)
         self._device = device
 
     def _validate_equal_size(
@@ -84,7 +82,7 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
         self._device = device
 
     def forward(self, x) -> GPMultivariateNormalList:
-        multivariate_normals = [gp.forward() for gp in self._gps_list]
+        multivariate_normals = [gp.forward(x) for gp in self._gps_list]
         return IndependentMultiOutputGPMultivariateNormal(
             multivariate_normals, self._device
         )
@@ -102,15 +100,11 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
         for i in range(num_outputs - 1):
             index_slice_1 = slice(start_index_1, start_index_1 + num_inputs_1)
             index_slice_2 = slice(start_index_2, start_index_2 + num_inputs_2)
-            covar_matrix_i = (
-                self._gps_list[i].kernel(x_1, x_2).to_dense().to(self._device)
-            )
+            covar_matrix_i = self._gps_list[i].forward_kernel(x_1, x_2)
             covar_matrix[index_slice_1, index_slice_2] = covar_matrix_i
             start_index_1 += num_inputs_1
             start_index_2 += num_inputs_2
-        covar_matrix_last = (
-            self._gps_list[-1].kernel(x_1, x_2).to_dense().to(self._device)
-        )
+        covar_matrix_last = self._gps_list[-1].forward_kernel(x_1, x_2)
         covar_matrix[start_index_1:, start_index_2:] = covar_matrix_last
         return covar_matrix
 
@@ -129,12 +123,12 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
             parameters[start_index : start_index + num_parameters].to(self._device)
         )
 
-    def get_uninformed_parameters_prior(self, device: Device, **kwargs: float) -> Prior:
+    def get_uninformed_parameters_prior(self, device: Device, **kwargs: Any) -> Prior:
         kwargs["device"] = device
         priors = [gp.get_uninformed_parameters_prior(**kwargs) for gp in self._gps_list]
         return MultipliedPriors(priors)
 
-    def _determine_number_of_hyperparameters(self) -> None:
+    def _determine_number_of_hyperparameters(self) -> int:
         num_parameters_list = [gp.num_hyperparameters for gp in self._gps_list]
         return sum(num_parameters_list)
 

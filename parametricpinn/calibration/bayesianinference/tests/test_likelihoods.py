@@ -13,7 +13,7 @@ from parametricpinn.ansatz.base import (
 )
 from parametricpinn.calibration.bayesianinference.likelihoods import (
     BayesianPPINNLikelihood,
-    NoiseAndModelErrorLikelihoodStrategy,
+    NoiseAndModelErrorGPsLikelihoodStrategy,
     NoiseLikelihoodStrategy,
     StandardPPINNLikelihood,
     StandardResidualCalculator,
@@ -322,7 +322,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_s
         model=model, data=data, device=device
     )
     model_error_gp = FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error)
-    likelihood_strategy = NoiseAndModelErrorLikelihoodStrategy(
+    likelihood_strategy = NoiseAndModelErrorGPsLikelihoodStrategy(
         residual_calculator=residual_calculator,
         data=data,
         num_model_parameters=num_model_parameters,
@@ -365,7 +365,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data
         model=model, data=data, device=device
     )
     model_error_gp = FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error)
-    likelihood_strategy = NoiseAndModelErrorLikelihoodStrategy(
+    likelihood_strategy = NoiseAndModelErrorGPsLikelihoodStrategy(
         residual_calculator=residual_calculator,
         data=data,
         num_model_parameters=num_model_parameters,
@@ -417,7 +417,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_m
         device=device,
     )
 
-    likelihood_strategy = NoiseAndModelErrorLikelihoodStrategy(
+    likelihood_strategy = NoiseAndModelErrorGPsLikelihoodStrategy(
         residual_calculator=residual_calculator,
         data=data,
         num_model_parameters=num_model_parameters,
@@ -468,7 +468,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data
         ],
         device=device,
     )
-    likelihood_strategy = NoiseAndModelErrorLikelihoodStrategy(
+    likelihood_strategy = NoiseAndModelErrorGPsLikelihoodStrategy(
         residual_calculator=residual_calculator,
         data=data,
         num_model_parameters=num_model_parameters,

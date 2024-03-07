@@ -9,10 +9,6 @@ from parametricpinn.bayesian.prior import (
     multiply_priors,
 )
 from parametricpinn.gps.utility import validate_parameters_size
-from parametricpinn.statistics.distributions import (
-    create_univariate_normal_distribution,
-    create_univariate_uniform_distribution,
-)
 from parametricpinn.types import Device, Tensor
 
 GPMultivariateNormal: TypeAlias = gpytorch.distributions.MultivariateNormal
@@ -40,7 +36,7 @@ class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
         self._lower_limit_output_scale = 0.0
         self._lower_limit_length_scale = 0.0
 
-    def forward(self, x) -> GPMultivariateNormal:
+    def forward(self, x: Tensor) -> GPMultivariateNormal:
         mean_x = self.mean(x)
         covariance_x = self.kernel(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covariance_x)
@@ -73,10 +69,4 @@ class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
             upper_limit=upper_limit_length_scale,
             device=device,
         )
-        # output_scale_prior = create_univariate_normal_distribution(
-        #     mean=1.0, standard_deviation=1.0, device=device
-        # )
-        # length_scale_prior = create_univariate_normal_distribution(
-        #     mean=1.0, standard_deviation=1.0, device=device
-        # )
         return multiply_priors([output_scale_prior, length_scale_prior])

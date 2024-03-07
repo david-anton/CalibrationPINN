@@ -9,15 +9,17 @@ GPMultivariateNormal: TypeAlias = gpytorch.distributions.MultivariateNormal
 
 
 class GaussianProcess(Protocol):
+    num_gps: int
+    num_hyperparameters: int
+    _device: Device
+
     def __init__(
         self,
         device: Device,
         train_x: Optional[Tensor] = None,
         train_y: Optional[Tensor] = None,
     ) -> None:
-        self.num_gps: int
-        self.num_hyperparameters: int
-        self._device: Device
+        pass
 
     def forward(self, x: Tensor) -> GPMultivariateNormal:
         pass

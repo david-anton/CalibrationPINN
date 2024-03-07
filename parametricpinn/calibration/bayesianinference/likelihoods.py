@@ -112,16 +112,71 @@ class NoiseLikelihoodStrategy:
         )
 
 
-class NoiseQLikelihoodStrategy:
+class NoiseAndModelErrorGPsLikelihoodStrategy:
     def __init__(
         self,
-        standard_likelihood_strategy: NoiseLikelihoodStrategy,
+        residual_calculator: StandardResidualCalculator,
+        data: PreprocessedCalibrationData,
+        num_model_parameters: int,
+        model_error_gp: GaussianProcess,
+        device: Device,
+    ) -> None:
+        self._residual_calculator = residual_calculator
+        self._data = data
+        self._data.inputs.detach().to(device)
+        self._standard_deviation_noise = data.std_noise
+        self._num_flattened_outputs = data.num_data_points * data.dim_outputs
+        self._num_model_parameters = num_model_parameters
+        self._model_error_gp = model_error_gp.to(device)
+        self._device = device
+
+    def log_prob(self, parameters: Tensor) -> Tensor:
+        model_parameters = parameters[: self._num_model_parameters]
+        residuals = self._residual_calculator.calculate_residuals(model_parameters)
+        gp_parameters = parameters[self._num_model_parameters :]
+        distribution = self._initialize_likelihood_distribution(gp_parameters)
+        return distribution.log_prob(residuals)
+
+    def _initialize_likelihood_distribution(
+        self, gp_parameters: Tensor
+    ) -> LikelihoodDistributions:
+        means = self._assemble_residual_means()
+        covariance_matrix = self._calculate_residual_covariance_matrix(gp_parameters)
+        return create_multivariate_normal_distribution(
+            means=means, covariance_matrix=covariance_matrix, device=self._device
+        )
+
+    def _assemble_residual_means(self) -> Tensor:
+        return torch.zeros(
+            (self._num_flattened_outputs,), dtype=torch.float64, device=self._device
+        )
+
+    def _calculate_residual_covariance_matrix(self, gp_parameters: Tensor) -> Tensor:
+        noise_covar = self._assemble_noise_covar_matrix()
+        model_error_covar = self._calculate_model_error_covar_matrix(gp_parameters)
+        return noise_covar + model_error_covar
+
+    def _assemble_noise_covar_matrix(self) -> Tensor:
+        return self._standard_deviation_noise**2 * torch.eye(
+            self._num_flattened_outputs, dtype=torch.float64, device=self._device
+        )
+
+    def _calculate_model_error_covar_matrix(self, gp_parameters: Tensor) -> Tensor:
+        self._model_error_gp.set_parameters(gp_parameters)
+        inputs = self._data.inputs
+        return self._model_error_gp.forward_kernel(inputs, inputs)
+
+
+class QLikelihoodWrapper:
+    def __init__(
+        self,
+        likelihood_strategy: NoiseLikelihoodStrategy,
         data: PreprocessedCalibrationData,
         num_model_parameters: int,
         make_robust: bool,
         device: Device,
     ) -> None:
-        self._standard_likelihood_strategy = standard_likelihood_strategy
+        self._standard_likelihood_strategy = likelihood_strategy
         self._standard_deviation_noise = data.std_noise
         self._num_model_parameters = num_model_parameters
         self._make_robust = make_robust
@@ -244,68 +299,9 @@ class NoiseQLikelihoodStrategy:
         scaled_total_score = total_score / sqrt_num_scores
         return torch.squeeze(
             (1 / 2)
-            * (
-                scaled_total_score
-                @ torch.inverse(num_scores * covariance)
-                @ torch.transpose(torch.unsqueeze(scaled_total_score, dim=0), 0, 1)
-            ),
+            * (scaled_total_score @ torch.inverse(covariance) @ scaled_total_score),
             dim=0,
         )
-
-
-class NoiseAndModelErrorLikelihoodStrategy:
-    def __init__(
-        self,
-        residual_calculator: StandardResidualCalculator,
-        data: PreprocessedCalibrationData,
-        num_model_parameters: int,
-        model_error_gp: GaussianProcess,
-        device: Device,
-    ) -> None:
-        self._residual_calculator = residual_calculator
-        self._data = data
-        self._data.inputs.detach().to(device)
-        self._standard_deviation_noise = data.std_noise
-        self._num_flattened_outputs = data.num_data_points * data.dim_outputs
-        self._num_model_parameters = num_model_parameters
-        self._model_error_gp = model_error_gp.to(device)
-        self._device = device
-
-    def log_prob(self, parameters: Tensor) -> Tensor:
-        model_parameters = parameters[: self._num_model_parameters]
-        residuals = self._residual_calculator.calculate_residuals(model_parameters)
-        gp_parameters = parameters[self._num_model_parameters :]
-        distribution = self._initialize_likelihood_distribution(gp_parameters)
-        return distribution.log_prob(residuals)
-
-    def _initialize_likelihood_distribution(
-        self, gp_parameters: Tensor
-    ) -> LikelihoodDistributions:
-        means = self._assemble_residual_means()
-        covariance_matrix = self._calculate_residual_covariance_matrix(gp_parameters)
-        return create_multivariate_normal_distribution(
-            means=means, covariance_matrix=covariance_matrix, device=self._device
-        )
-
-    def _assemble_residual_means(self) -> Tensor:
-        return torch.zeros(
-            (self._num_flattened_outputs,), dtype=torch.float64, device=self._device
-        )
-
-    def _calculate_residual_covariance_matrix(self, gp_parameters: Tensor) -> Tensor:
-        noise_covar = self._assemble_noise_covar_matrix()
-        model_error_covar = self._calculate_model_error_covar_matrix(gp_parameters)
-        return noise_covar + model_error_covar
-
-    def _assemble_noise_covar_matrix(self) -> Tensor:
-        return self._standard_deviation_noise**2 * torch.eye(
-            self._num_flattened_outputs, dtype=torch.float64, device=self._device
-        )
-
-    def _calculate_model_error_covar_matrix(self, gp_parameters: Tensor) -> Tensor:
-        self._model_error_gp.set_parameters(gp_parameters)
-        inputs = self._data.inputs
-        return self._model_error_gp.forward_kernel(inputs, inputs)
 
 
 class StandardPPINNLikelihood:
@@ -384,8 +380,8 @@ def create_standard_ppinn_q_likelihood_for_noise(
         num_model_parameters=num_model_parameters,
         device=device,
     )
-    q_likelihood_strategy = NoiseQLikelihoodStrategy(
-        standard_likelihood_strategy=standard_likelihood_strategy,
+    q_likelihood_strategy = QLikelihoodWrapper(
+        likelihood_strategy=standard_likelihood_strategy,
         data=preprocessed_data,
         num_model_parameters=num_model_parameters,
         make_robust=make_robust,
@@ -410,7 +406,7 @@ def create_standard_ppinn_likelihood_for_noise_and_model_error(
         data=preprocessed_data,
         device=device,
     )
-    likelihood_strategy = NoiseAndModelErrorLikelihoodStrategy(
+    likelihood_strategy = NoiseAndModelErrorGPsLikelihoodStrategy(
         residual_calculator=residual_calculator,
         data=preprocessed_data,
         num_model_parameters=num_model_parameters,
