@@ -21,7 +21,6 @@ from parametricpinn.bayesian.prior import (
 )
 from parametricpinn.calibration import (
     CalibrationData,
-    CalibrationDataLoader2D,
     EfficientNUTSConfig,
     HamiltonianConfig,
     LeastSquaresConfig,
