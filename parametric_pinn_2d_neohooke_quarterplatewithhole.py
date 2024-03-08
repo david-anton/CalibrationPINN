@@ -85,7 +85,7 @@ layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_per_parameter = 2  # 32
+num_samples_per_parameter = 32
 num_collocation_points = 64
 number_points_per_bc = 64
 bcs_overlap_distance = 1e-2
@@ -101,7 +101,7 @@ fem_element_degree = 2
 fem_element_size = 0.2
 # Validation
 regenerate_valid_data = False
-input_subdir_valid = "20240223_validation_data_neohooke_quarterplatewithhole_K_4800_7200_G_400_1600_edge_100_radius_10_traction_-100_elementsize_0.2"  # f"20240305_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
+input_subdir_valid = f"20240305_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
 num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
@@ -115,9 +115,9 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = "20240220_parametric_pinn_neohooke_quarterplatewithhole_K_4800_7200_G_400_1600_col_64_bc_64_neurons_6_128"  # f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_col_{int(num_collocation_points)}_bc_{int(number_points_per_bc)}_neurons_6_128"
-output_subdirectory_training = os.path.join(output_subdirectory, "training")
-output_subdirectory_preprocessing = os.path.join(output_subdirectory, "preprocessing")
+output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_samples_{num_samples_per_parameter}_col_{int(num_collocation_points)}_bc_{int(number_points_per_bc)}_neurons_6_128"
+output_subdir_training = os.path.join(output_subdirectory, "training")
+output_subdir_normalization = os.path.join(output_subdirectory, "normalization")
 save_metadata = True
 
 
@@ -227,9 +227,6 @@ def create_datasets() -> (
 
 
 def create_ansatz() -> StandardAnsatz:
-    normalization_values_subdir = os.path.join(
-        output_subdirectory, "normalization_values"
-    )
     key_min_inputs = "min_inputs"
     key_max_inputs = "max_inputs"
     key_min_outputs = "min_outputs"
@@ -246,7 +243,7 @@ def create_ansatz() -> StandardAnsatz:
             data_writer.write(
                 data=pd.DataFrame([normalization_values[key].cpu().detach().numpy()]),
                 file_name=file_name,
-                subdir_name=normalization_values_subdir,
+                subdir_name=output_subdir_normalization,
                 header=True,
             )
 
@@ -262,7 +259,7 @@ def create_ansatz() -> StandardAnsatz:
         def _add_one_value_tensor(key: str, file_name: str) -> None:
             values = data_reader.read(
                 file_name=file_name,
-                subdir_name=normalization_values_subdir,
+                subdir_name=output_subdir_normalization,
                 read_from_output_dir=True,
             )
 
@@ -313,14 +310,14 @@ def create_ansatz() -> StandardAnsatz:
                 volume_force_x=volume_force_x,
                 volume_force_y=volume_force_y,
             )
-            output_subdir_x = os.path.join(
-                normalization_values_subdir, "displacements_x"
+            results_output_subdir_x = os.path.join(
+                output_subdir_normalization, "fem_simulation_results_displacements_x"
             )
             simulation_results_x = run_simulation(
                 simulation_config=simulation_config_x,
                 save_results=True,
                 save_metadata=True,
-                output_subdir=output_subdir_x,
+                output_subdir=results_output_subdir_x,
                 project_directory=project_directory,
             )
 
@@ -336,14 +333,14 @@ def create_ansatz() -> StandardAnsatz:
                 volume_force_x=volume_force_x,
                 volume_force_y=volume_force_y,
             )
-            output_subdir_y = os.path.join(
-                normalization_values_subdir, "displacements_y"
+            results_output_subdir_y = os.path.join(
+                output_subdir_normalization, "fem_simulation_results_displacements_y"
             )
             simulation_results_y = run_simulation(
                 simulation_config=simulation_config_y,
                 save_results=True,
                 save_metadata=True,
-                output_subdir=output_subdir_y,
+                output_subdir=results_output_subdir_y,
                 project_directory=project_directory,
             )
 
@@ -393,7 +390,7 @@ def training_step() -> None:
         training_batch_size=training_batch_size,
         validation_dataset=validation_dataset,
         validation_interval=validation_interval,
-        output_subdirectory=output_subdirectory_training,
+        output_subdirectory=output_subdir_training,
         project_directory=project_directory,
         device=device,
     )
@@ -423,7 +420,7 @@ def training_step() -> None:
             problem_configs=problem_configs,
             volume_force_x=volume_force_x,
             volume_force_y=volume_force_y,
-            output_subdir=output_subdirectory_training,
+            output_subdir=output_subdir_training,
             project_directory=project_directory,
             plot_config=displacements_plotter_config,
             device=device,
@@ -470,7 +467,7 @@ def calibration_step() -> None:
     model = load_model(
         model=ansatz,
         name_model_parameters_file=name_model_parameters_file,
-        input_subdir=output_subdirectory_training,
+        input_subdir=output_subdir_training,
         project_directory=project_directory,
         device=device,
     )

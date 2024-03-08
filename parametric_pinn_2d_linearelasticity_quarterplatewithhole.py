@@ -119,8 +119,8 @@ use_efficient_nuts = False
 current_date = date.today().strftime("%Y%m%d")
 output_date = "20240304"
 output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_4_64"
-output_subdirectory_training = os.path.join(output_subdirectory, "training")
-output_subdirectory_preprocessing = os.path.join(output_subdirectory, "preprocessing")
+output_subdir_training = os.path.join(output_subdirectory, "training")
+output_subdir_normalization = os.path.join(output_subdirectory, "normalization")
 save_metadata = True
 
 
@@ -262,9 +262,6 @@ def create_datasets() -> (
 
 
 def create_ansatz() -> StandardAnsatz:
-    normalization_values_subdir = os.path.join(
-        output_subdirectory, "normalization_values"
-    )
     key_min_inputs = "min_inputs"
     key_max_inputs = "max_inputs"
     key_min_outputs = "min_outputs"
@@ -281,7 +278,7 @@ def create_ansatz() -> StandardAnsatz:
             data_writer.write(
                 data=pd.DataFrame([normalization_values[key].cpu().detach().numpy()]),
                 file_name=file_name,
-                subdir_name=normalization_values_subdir,
+                subdir_name=output_subdir_normalization,
                 header=True,
             )
 
@@ -297,7 +294,7 @@ def create_ansatz() -> StandardAnsatz:
         def _add_one_value_tensor(key: str, file_name: str) -> None:
             values = data_reader.read(
                 file_name=file_name,
-                subdir_name=normalization_values_subdir,
+                subdir_name=output_subdir_normalization,
                 read_from_output_dir=True,
             )
 
@@ -335,9 +332,9 @@ def create_ansatz() -> StandardAnsatz:
             min_inputs = torch.concat((min_coordinates, min_parameters))
             max_inputs = torch.concat((max_coordinates, max_parameters))
 
-            output_subdir_normalization = os.path.join(
-                output_subdirectory_preprocessing,
-                "results_for_determining_normalization_values",
+            results_output_subdir = os.path.join(
+                output_subdir_normalization,
+                "fem_simulation_results_displacements",
             )
             print("Run FE simulation to determine normalization values ...")
             domain_config = create_fem_domain_config()
@@ -364,7 +361,7 @@ def create_ansatz() -> StandardAnsatz:
                 simulation_config=simulation_config,
                 save_results=True,
                 save_metadata=True,
-                output_subdir=output_subdir_normalization,
+                output_subdir=results_output_subdir,
                 project_directory=project_directory,
             )
 
@@ -415,7 +412,7 @@ def training_step() -> None:
         training_batch_size=training_batch_size,
         validation_dataset=validation_dataset,
         validation_interval=validation_interval,
-        output_subdirectory=output_subdirectory_training,
+        output_subdirectory=output_subdir_training,
         project_directory=project_directory,
         device=device,
     )
@@ -447,7 +444,7 @@ def training_step() -> None:
             problem_configs=problem_configs,
             volume_force_x=volume_force_x,
             volume_force_y=volume_force_y,
-            output_subdir=output_subdirectory_training,
+            output_subdir=output_subdir_training,
             project_directory=project_directory,
             plot_config=displacements_plotter_config,
             device=device,
@@ -495,7 +492,7 @@ def calibration_step() -> None:
     model = load_model(
         model=ansatz,
         name_model_parameters_file=name_model_parameters_file,
-        input_subdir=output_subdirectory_training,
+        input_subdir=output_subdir_training,
         project_directory=project_directory,
         device=device,
     )
