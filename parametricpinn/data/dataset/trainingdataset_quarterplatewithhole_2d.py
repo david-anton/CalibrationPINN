@@ -130,7 +130,6 @@ class QuarterPlateWithHoleTrainingDataset2D(Dataset):
             self._add_collocation_sample(parameters_sample)
             self._add_traction_bc_sample(parameters_sample)
             self._add_stress_bc_sample(parameters_sample)
-            print(f"Add training sample {sample_idx + 1} / {self._num_samples}")
 
     def _add_collocation_sample(self, parameters_sample: Tensor) -> None:
         shape = (self._num_collocation_points, 1)

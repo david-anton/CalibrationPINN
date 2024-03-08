@@ -105,7 +105,6 @@ class PlateTrainingDataset2D(Dataset):
         for sample_idx, parameters_sample in enumerate(self._parameters_samples):
             self._add_collocation_sample(parameters_sample)
             self._add_traction_bc_sample(parameters_sample)
-            print(f"Add training sample {sample_idx + 1} / {self._num_samples}")
 
     def _add_collocation_sample(self, parameters_sample: Tensor) -> None:
         shape = (self._num_collocation_points, 1)
