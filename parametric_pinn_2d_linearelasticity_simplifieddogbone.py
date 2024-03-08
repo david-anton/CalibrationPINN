@@ -123,7 +123,7 @@ use_hamiltonian = False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = "20240304"
 output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_6_128"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdirectory, "normalization")
