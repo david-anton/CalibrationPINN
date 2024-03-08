@@ -491,6 +491,15 @@ def calibration_step() -> None:
         [initial_bulk_modulus, initial_shear_modulus], device=device
     )
 
+    if consider_model_error:
+        output_subdir_calibration = os.path.join(
+            output_subdirectory, "calibration_with_model_error"
+        )
+    else:
+        output_subdir_calibration = os.path.join(
+            output_subdirectory, "calibration_without_model_error"
+        )
+
     def generate_calibration_data() -> CalibrationData:
         csv_reader = CSVDataReader(project_directory)
         data = csv_reader.read(
@@ -712,7 +721,7 @@ def calibration_step() -> None:
                 f"measurement_data_dispalcements_{dimension}.{plot_config.file_format}"
             )
             save_path = project_directory.create_output_file_path(
-                file_name, output_subdirectory
+                file_name, output_subdir_calibration
             )
             dpi = 300
             figure.savefig(
@@ -748,18 +757,12 @@ def calibration_step() -> None:
             make_robust=False,
             device=device,
         )
-        output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration_with_model_error"
-        )
     else:
         likelihood = create_standard_ppinn_likelihood_for_noise(
             model=model,
             num_model_parameters=num_material_parameters,
             data=calibration_data,
             device=device,
-        )
-        output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration_without_model_error"
         )
 
     def set_up_least_squares_config(
