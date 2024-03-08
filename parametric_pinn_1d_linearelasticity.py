@@ -68,16 +68,16 @@ distance_function = "normalized linear"
 num_parameter_samples = 256
 num_collocation_points = 128
 training_batch_size = num_parameter_samples
-number_training_epochs = 1000
+number_training_epochs = 500
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-num_samples_valid = 128
+num_samples_valid = 1000
 valid_interval = 1
 num_points_valid = 512
 batch_size_valid = num_samples_valid
 # Calibration
-consider_model_error = False
+consider_model_error = True
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -85,7 +85,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_Parametric_pinn_1D_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_samples_{num_parameter_samples}_col_{num_collocation_points}_neurons_4_16"
+output_subdirectory = f"{output_date}_parametric_pinn_1D_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_samples_{num_parameter_samples}_col_{num_collocation_points}_neurons_4_16"
 output_subdirectory_training = os.path.join(output_subdirectory, "training")
 
 

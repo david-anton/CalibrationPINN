@@ -73,7 +73,7 @@ from parametricpinn.training.training_standard_linearelasticity_simplifieddogbon
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -123,7 +123,7 @@ use_hamiltonian = False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = "20240304"
+output_date = current_date
 output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_6_128"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdirectory, "normalization")
@@ -493,11 +493,11 @@ def calibration_step() -> None:
 
     if consider_model_error:
         output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration_with_model_error"
+            output_subdirectory, "calibration", "with_model_error"
         )
     else:
         output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration_without_model_error"
+            output_subdirectory, "calibration", "without_model_error"
         )
 
     def generate_calibration_data() -> CalibrationData:
@@ -783,8 +783,8 @@ def calibration_step() -> None:
     def set_up_metropolis_hastings_config(
         likelihood: Likelihood,
     ) -> MetropolisHastingsConfig:
-        std_proposal_density_bulk_modulus = 100.0
-        std_proposal_density_shear_modulus = 50.0
+        std_proposal_density_bulk_modulus = 200.0
+        std_proposal_density_shear_modulus = 100.0
         cov_proposal_density = torch.diag(
             torch.tensor(
                 [

@@ -69,7 +69,7 @@ from parametricpinn.training.training_standard_linearelasticity_quarterplatewith
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -84,17 +84,17 @@ max_youngs_modulus = 240000.0
 min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
 # Network
-layer_sizes = [4, 64, 64, 64, 64, 2]
+layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 32
-num_collocation_points = 128
+num_collocation_points = 64
 num_points_per_bc = 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 10000
+number_training_epochs = 20000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
@@ -117,8 +117,8 @@ use_hamiltonian = False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = "20240304"
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_4_64"
+output_date = current_date
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_6_128"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdirectory, "normalization")
 save_metadata = True
@@ -511,7 +511,7 @@ def calibration_step() -> None:
             for data in calibration_data
         )
         output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration_with_model_error"
+            output_subdirectory, "calibration", "with_model_error"
         )
     else:
         likelihoods = tuple(
@@ -524,7 +524,7 @@ def calibration_step() -> None:
             for data in calibration_data
         )
         output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration_without_model_error"
+            output_subdirectory, "calibration", "without_model_error"
         )
 
     def set_up_least_squares_configs(
@@ -551,8 +551,8 @@ def calibration_step() -> None:
     ) -> tuple[MetropolisHastingsConfig, ...]:
         configs = []
         for likelihood in likelihoods:
-            std_proposal_density_bulk_modulus = 100.0
-            std_proposal_density_shear_modulus = 50.0
+            std_proposal_density_bulk_modulus = 200.0
+            std_proposal_density_shear_modulus = 100.0
             cov_proposal_density = torch.diag(
                 torch.tensor(
                     [
