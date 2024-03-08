@@ -1,11 +1,13 @@
 from collections import namedtuple
 from typing import TypeAlias, Union
+import math
 
 import matplotlib.pyplot as plt
+import scipy.stats
 import numpy as np
 import torch
 from matplotlib.colors import BoundaryNorm
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, ScalarFormatter
 from scipy.interpolate import griddata
 
 from parametricpinn.errors import FEMDomainConfigError, PlottingConfigError
@@ -70,6 +72,17 @@ class DisplacementsPlotterConfig2D:
         self.num_points_per_edge = 128
         # grid interpolation
         self.interpolation_method = "nearest"
+        # error histogram
+        self.hist_bins = 128
+        self.hist_range_in_std = 4
+        self.hist_color = "tab:cyan"
+        # error pdf
+        self.error_pdf_color = "tab:blue"
+        self.error_pdf_linestyle = "solid"
+        self.error_pdf_mean_color = "tab:red"
+        self.error_pdf_mean_linestyle = "solid"
+        self.error_pdf_interval_color = "tab:red"
+        self.error_pdf_interval_linestyle = "dashed"
         # save options
         self.dpi = 300
         self.file_format = "pdf"
@@ -95,6 +108,8 @@ SimulationResults = namedtuple(
         "fem_displacements_y",
         "pinn_displacements_x",
         "pinn_displacements_y",
+        "ae_displacements_x",
+        "ae_displacements_y",
         "re_displacements_x",
         "re_displacements_y",
     ],
@@ -166,6 +181,12 @@ def _calculate_results(
     pinn_displacements_x, pinn_displacements_y = _run_prametric_pinn(
         ansatz, simulation_config, coordinates_x, coordinates_y, device
     )
+    ae_displacements_x = _calculate_absolute_error(
+        pinn_displacements_x, fem_displacements_x
+    )
+    ae_displacements_y = _calculate_absolute_error(
+        pinn_displacements_y, fem_displacements_y
+    )
     re_displacements_x = _calculate_relative_error(
         pinn_displacements_x, fem_displacements_x
     )
@@ -179,6 +200,8 @@ def _calculate_results(
         fem_displacements_y=fem_displacements_y,
         pinn_displacements_x=pinn_displacements_x,
         pinn_displacements_y=pinn_displacements_y,
+        ae_displacements_x=ae_displacements_x,
+        ae_displacements_y=ae_displacements_y,
         re_displacements_x=re_displacements_x,
         re_displacements_y=re_displacements_y,
     )
@@ -236,6 +259,12 @@ def _run_prametric_pinn(
     return displacements_x, displacements_y
 
 
+def _calculate_absolute_error(
+    predicted_displacements: NPArray, simulated_displacements: NPArray
+) -> NPArray:
+    return predicted_displacements - simulated_displacements
+
+
 def _calculate_relative_error(
     predicted_displacements: NPArray, simulated_displacements: NPArray
 ) -> NPArray:
@@ -277,6 +306,28 @@ def _plot_results(
         simulation_config=simulation_config,
     )
     _plot_errors(
+        errors=simulation_results.ae_displacements_x,
+        coordinates_x=simulation_results.coordinates_x,
+        coordinates_y=simulation_results.coordinates_y,
+        title=r"Absolute error $u_{x}$",
+        file_name_identifier="absolute_error_x",
+        output_subdir=output_subdir,
+        project_directory=project_directory,
+        plot_config=plot_config,
+        simulation_config=simulation_config,
+    )
+    _plot_errors(
+        errors=simulation_results.ae_displacements_y,
+        coordinates_x=simulation_results.coordinates_x,
+        coordinates_y=simulation_results.coordinates_y,
+        title=r"Absolute error $u_{y}$",
+        file_name_identifier="absolute_error_y",
+        output_subdir=output_subdir,
+        project_directory=project_directory,
+        plot_config=plot_config,
+        simulation_config=simulation_config,
+    )
+    _plot_errors(
         errors=simulation_results.re_displacements_x,
         coordinates_x=simulation_results.coordinates_x,
         coordinates_y=simulation_results.coordinates_y,
@@ -298,7 +349,28 @@ def _plot_results(
         plot_config=plot_config,
         simulation_config=simulation_config,
     )
+    _plot_errors_histogram(
+        errors=simulation_results.ae_displacements_x,
+        error_type="absolute error",
+        title=r"Absolute error $u_{x}$",
+        file_name_identifier="absolute_error_histogram_x",
+        output_subdir=output_subdir,
+        project_directory=project_directory,
+        plot_config=plot_config,
+        simulation_config=simulation_config,
+    )
+    _plot_errors_histogram(
+        errors=simulation_results.ae_displacements_y,
+        error_type="absolute error",
+        title=r"Absolute error $u_{x}$",
+        file_name_identifier="absolute_error_histogram_y",
+        output_subdir=output_subdir,
+        project_directory=project_directory,
+        plot_config=plot_config,
+        simulation_config=simulation_config,
+    )
     plt.clf()
+    plt.close()
 
 
 def _plot_simulation_and_prediction(
@@ -728,6 +800,99 @@ def _add_geometry_specific_patches(
         cut_dog_bone(axes=axes, domain_config=domain_config)
     elif isinstance(domain_config, SimplifiedDogBoneDomainConfig):
         cut_simplified_dog_bone(axes=axes, domain_config=domain_config)
+
+
+def _plot_errors_histogram(
+    errors: NPArray,
+    error_type: str,
+    title: str,
+    file_name_identifier: str,
+    output_subdir: str,
+    project_directory: ProjectDirectory,
+    plot_config: DisplacementsPlotterConfig2D,
+    simulation_config: SimulationConfig,
+) -> None:
+    errors = np.ravel(errors) / 1000
+    mean = np.mean(errors)
+    standard_deviation = np.std(errors, ddof=1)
+    figure, axes = plt.subplots()
+    # Histogram
+    range_hist = plot_config.hist_range_in_std * standard_deviation
+    axes.hist(
+        errors,
+        bins=plot_config.hist_bins,
+        range=(mean - range_hist, mean + range_hist),
+        density=True,
+        color=plot_config.hist_color,
+        label="errors",
+    )
+    # PDF
+    x = np.linspace(
+        start=mean - range_hist, stop=mean + range_hist, num=10000, endpoint=True
+    )
+    y = scipy.stats.norm.pdf(x, loc=mean, scale=standard_deviation)
+    axes.plot(
+        x,
+        y,
+        color=plot_config.error_pdf_color,
+        linestyle=plot_config.error_pdf_linestyle,
+        label="pdf",
+    )
+    x_ticks = [
+        mean - standard_deviation,
+        mean,
+        mean + standard_deviation,
+    ]
+    order_x_ticks = math.floor(math.log10(mean))
+    if order_x_ticks < 0:
+        x_ticks = [round(tick, abs(order_x_ticks) + 2) for tick in x_ticks]
+    else:
+        x_ticks = [(round(tick / order_x_ticks, 2) * order_x_ticks) for tick in x_ticks]
+    axes.axvline(
+        x=mean,
+        color=plot_config.error_pdf_mean_color,
+        linestyle=plot_config.error_pdf_mean_linestyle,
+        label=r"$\mu$",
+    )
+    axes.axvline(
+        x=mean - standard_deviation,
+        color=plot_config.error_pdf_interval_color,
+        linestyle=plot_config.error_pdf_interval_linestyle,
+        label=r"$\sigma$",
+    )
+    axes.axvline(
+        x=mean + standard_deviation,
+        color=plot_config.error_pdf_interval_color,
+        linestyle=plot_config.error_pdf_interval_linestyle,
+    )
+    axes.set_xticks(x_ticks)
+    # axes.set_xticklabels(x_tick_labels)
+    axes.xaxis.set_major_formatter(ScalarFormatter())
+    axes.xaxis.set_minor_formatter(ScalarFormatter())
+    axes.ticklabel_format(
+        style="sci", axis="x", scilimits=(0, 0), useMathText=False, useOffset=False
+    )
+    axes.xaxis.offsetText.set_fontsize(plot_config.scientific_notation_size)
+
+    axes.set_title(title, pad=plot_config.title_pad, **plot_config.font)
+    axes.set_xlabel(error_type, **plot_config.font)
+    axes.set_ylabel("probability density", **plot_config.font)
+    axes.tick_params(
+        axis="both", which="minor", labelsize=plot_config.minor_tick_label_size
+    )
+    axes.tick_params(
+        axis="both", which="major", labelsize=plot_config.major_tick_label_size
+    )
+    axes.legend(fontsize=plot_config.font_size, loc="best")
+
+    parameter_prefix = _get_file_name_parameter_prefix_from_problem(
+        simulation_config.problem_config
+    )
+    file_name = (
+        f"plot_{file_name_identifier}_{parameter_prefix}.{plot_config.file_format}"
+    )
+    _save_plot(figure, file_name, output_subdir, project_directory, plot_config)
+    plt.close()
 
 
 def _save_plot(
