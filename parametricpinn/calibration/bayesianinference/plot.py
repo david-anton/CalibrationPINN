@@ -318,7 +318,7 @@ def _plot_sampling_trace(
     max_y = (
         max_sample
         if true_parameter is None
-        or (true_parameter is not None and min_sample > true_parameter)
+        or (true_parameter is not None and max_sample > true_parameter)
         else true_parameter
     )
     range_y = max_y - min_y
