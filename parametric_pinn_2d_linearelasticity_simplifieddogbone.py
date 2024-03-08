@@ -473,7 +473,7 @@ def calibration_step() -> None:
     exact_shear_modulus = calculate_G_from_E_and_nu(
         E=exact_youngs_modulus, nu=exact_poissons_ratio
     )
-    true_parameters = np.array([exact_bulk_modulus, exact_shear_modulus])
+    true_parameters = np.array([[exact_bulk_modulus, exact_shear_modulus]])
 
     initial_bulk_modulus = 160000.0
     initial_shear_modulus = 79000.0
@@ -531,7 +531,6 @@ def calibration_step() -> None:
         full_displacements = full_raw_displacements[mask]
         # Select points for calibration
         size_full_data = len(full_coordinates)
-        print(f"Total number of measurement points: {size_full_data}")
         random_indices = torch.randperm(size_full_data)[:num_data_points]
         coordinates = full_coordinates[random_indices, :].to(device)
         displacements = full_displacements[random_indices, :].to(device)
