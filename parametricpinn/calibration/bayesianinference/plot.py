@@ -1,4 +1,5 @@
 from typing import TypeAlias, Union
+import math
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,6 +28,9 @@ class UnivariateNormalPlotterConfig:
         self.truth_color = "tab:orange"
         self.truth_linestyle = "solid"
 
+        # confidence interval
+        self.interval_num_stds = 1.959964  # quantile for 95% interval
+
         # histogram
         self.hist_bins = 128
         self.hist_range_in_std = 4
@@ -40,8 +44,9 @@ class UnivariateNormalPlotterConfig:
         self.pdf_interval_color = "tab:red"
         self.pdf_interval_linestyle = "dashed"
 
-        # confidence interval
-        self.interval_num_stds = 1.959964  # quantile for 95% interval
+        # trace
+        self.trace_color = "tab:blue"
+        self.trace_linestyle = "solid"
 
         # major ticks
         self.major_tick_label_size = 12
@@ -148,6 +153,38 @@ def plot_univariate_normal_distribution(
     project_directory: ProjectDirectory,
     config: UnivariateNormalPlotterConfig,
 ) -> None:
+    _plot_univariate_normal_distribution_histogram(
+        parameter_name=parameter_name,
+        true_parameter=true_parameter,
+        moments=moments,
+        samples=samples,
+        mcmc_algorithm=mcmc_algorithm,
+        output_subdir=output_subdir,
+        project_directory=project_directory,
+        config=config,
+    )
+    _plot_sampling_trace(
+        parameter_name=parameter_name,
+        true_parameter=true_parameter,
+        moments=moments,
+        samples=samples,
+        mcmc_algorithm=mcmc_algorithm,
+        output_subdir=output_subdir,
+        project_directory=project_directory,
+        config=config,
+    )
+
+
+def _plot_univariate_normal_distribution_histogram(
+    parameter_name: str,
+    true_parameter: TrueParameter,
+    moments: MomentsUnivariateNormal,
+    samples: NPArray,
+    mcmc_algorithm: str,
+    output_subdir: str,
+    project_directory: ProjectDirectory,
+    config: UnivariateNormalPlotterConfig,
+) -> None:
     mean = moments.mean
     standard_deviation = moments.standard_deviation
     figure, axes = plt.subplots()
@@ -208,6 +245,94 @@ def plot_univariate_normal_distribution(
     axes.tick_params(axis="both", which="minor", labelsize=config.minor_tick_label_size)
     axes.tick_params(axis="both", which="major", labelsize=config.major_tick_label_size)
     file_name = f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.png"
+    output_path = project_directory.create_output_file_path(
+        file_name=file_name, subdir_name=output_subdir
+    )
+    figure.savefig(output_path, bbox_inches="tight", dpi=config.dpi)
+    plt.close()
+
+
+def _plot_sampling_trace(
+    parameter_name: str,
+    true_parameter: TrueParameter,
+    moments: MomentsUnivariateNormal,
+    samples: NPArray,
+    mcmc_algorithm: str,
+    output_subdir: str,
+    project_directory: ProjectDirectory,
+    config: UnivariateNormalPlotterConfig,
+) -> None:
+    mean = moments.mean
+    standard_deviation = moments.standard_deviation
+    figure, axes = plt.subplots()
+    # Truth
+    if true_parameter is not None:
+        axes.axhline(
+            y=true_parameter,
+            color=config.truth_color,
+            linestyle=config.truth_linestyle,
+            label="truth",
+        )
+    # Trace plot
+    num_samples = len(samples)
+    x = np.linspace(1, num_samples, num=num_samples, dtype=int)
+    y = samples
+    axes.plot(
+        x, y, color=config.pdf_color, linestyle=config.trace_linestyle, label="trace"
+    )
+    axes.axhline(
+        y=mean,
+        color=config.pdf_mean_color,
+        linestyle=config.pdf_mean_linestyle,
+        label=r"$\mu$",
+    )
+    axes.axhline(
+        y=mean - config.interval_num_stds * standard_deviation,
+        color=config.pdf_interval_color,
+        linestyle=config.pdf_interval_linestyle,
+        label=r"$95\%$" + " interval",
+    )
+    axes.axhline(
+        y=mean + config.interval_num_stds * standard_deviation,
+        color=config.pdf_interval_color,
+        linestyle=config.pdf_interval_linestyle,
+    )
+    y_ticks = [
+        mean - (config.interval_num_stds * standard_deviation),
+        mean,
+        mean + (config.interval_num_stds * standard_deviation),
+    ]
+    y_tick_labels = [
+        str(round(tick, 2)) if tick >= 1.0 else str(round(tick, 4)) for tick in y_ticks
+    ]
+    axes.set_yticks(y_ticks)
+    axes.set_yticklabels(y_tick_labels)
+    min_sample = np.amin(samples)
+    max_sample = np.amax(samples)
+    min_y = (
+        min_sample
+        if true_parameter is None
+        or (true_parameter is not None and min_sample < true_parameter)
+        else true_parameter
+    )
+    max_y = (
+        max_sample
+        if true_parameter is None
+        or (true_parameter is not None and min_sample > true_parameter)
+        else true_parameter
+    )
+    range_y = max_y - min_y
+    axes.set_ylim(min_y - 0.1 * range_y, max_y + 0.1 * range_y)
+    x_ticks = [0, int(math.floor(num_samples / 2)), num_samples]
+    x_tick_labels = [str(tick) for tick in x_ticks]
+    axes.set_xticks(x_ticks)
+    axes.set_xticklabels(x_tick_labels)
+    axes.legend(fontsize=config.font_size, loc="best")
+    axes.set_xlabel("samples", **config.font)
+    axes.set_ylabel(parameter_name, **config.font)
+    axes.tick_params(axis="both", which="minor", labelsize=config.minor_tick_label_size)
+    axes.tick_params(axis="both", which="major", labelsize=config.major_tick_label_size)
+    file_name = f"sampling_trace_{parameter_name.lower()}_{mcmc_algorithm.lower()}.png"
     output_path = project_directory.create_output_file_path(
         file_name=file_name, subdir_name=output_subdir
     )
