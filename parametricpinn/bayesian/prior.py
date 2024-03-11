@@ -50,8 +50,8 @@ class Prior:
             create_graph=False,
         )[0]
 
-    def sample(self) -> Tensor:
-        return self.distribution.sample()
+    def sample(self, sample_shape=torch.Size()) -> Tensor:
+        return self.distribution.sample(sample_shape)
 
     def _prob(self, parameters: Tensor) -> Tensor:
         return torch.exp(self._log_prob(parameters))

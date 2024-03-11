@@ -23,7 +23,7 @@ class CustomDistribution(Protocol):
     def log_prob(self, sample: Tensor) -> Tensor:
         pass
 
-    def sample(self) -> Tensor:
+    def sample(self, sample_shape=torch.Size()) -> Tensor:
         pass
 
 
@@ -41,8 +41,8 @@ class UnivariateUniformDistributon:
         log_prob = self._distribution.log_prob(sample)
         return squeeze_if_necessary(log_prob)
 
-    def sample(self) -> Tensor:
-        return self._distribution.rsample()
+    def sample(self, sample_shape=torch.Size()) -> Tensor:
+        return self._distribution.rsample(sample_shape)
 
     def _validate_sample(self, sample: Tensor) -> None:
         shape = sample.shape
@@ -67,8 +67,8 @@ class MultivariateUniformDistribution:
         log_prob = torch.sum(self._distribution.log_prob(sample), dim=0)
         return squeeze_if_necessary(log_prob)
 
-    def sample(self) -> Tensor:
-        return self._distribution.rsample()
+    def sample(self, sample_shape=torch.Size()) -> Tensor:
+        return self._distribution.rsample(sample_shape)
 
     def _validate_limits(self, lower_limits: Tensor, upper_limits: Tensor) -> None:
         shape_lower_limits = lower_limits.size()
@@ -101,8 +101,8 @@ class UnivariateNormalDistributon:
         log_prob = self._distribution.log_prob(sample)
         return squeeze_if_necessary(log_prob)
 
-    def sample(self) -> Tensor:
-        return self._distribution.rsample()
+    def sample(self, sample_shape=torch.Size()) -> Tensor:
+        return self._distribution.rsample(sample_shape)
 
     def _validate_sample(self, sample: Tensor) -> None:
         shape = sample.shape
@@ -127,8 +127,8 @@ class MultivariateNormalDistributon:
         log_prob = self._distribution.log_prob(sample)
         return squeeze_if_necessary(log_prob)
 
-    def sample(self) -> Tensor:
-        return self._distribution.rsample()
+    def sample(self, sample_shape=torch.Size()) -> Tensor:
+        return self._distribution.rsample(sample_shape)
 
     def _validate_sample(self, sample: Tensor) -> None:
         shape = sample.shape
@@ -157,8 +157,8 @@ class IndependentMultivariateNormalDistributon:
         log_prob = torch.sum(log_probs_individual)
         return squeeze_if_necessary(log_prob)
 
-    def sample(self) -> Tensor:
-        return self._distribution.rsample()
+    def sample(self, sample_shape=torch.Size()) -> Tensor:
+        return self._distribution.rsample(sample_shape)
 
     def _validate_sample(self, sample: Tensor) -> None:
         shape = sample.shape
@@ -190,9 +190,19 @@ class MixedIndependetMultivariateDistribution:
         )
         return squeeze_if_necessary(log_prob)
 
-    def sample(self) -> Tensor:
-        samples = [distribution.sample() for distribution in self._distributions]
-        return torch.concat(samples, dim=0)
+    def sample(self, sample_shape=torch.Size()) -> Tensor:
+        if sample_shape == torch.Size():
+            samples = [
+                distribution.sample(sample_shape)
+                for distribution in self._distributions
+            ]
+            return torch.concat(samples, dim=0)
+        else:
+            samples = [
+                distribution.sample(sample_shape)
+                for distribution in self._distributions
+            ]
+            return torch.concat(samples, dim=1)
 
     def _validate_sample(self, sample: Tensor) -> None:
         if sample.dim() != 1:
