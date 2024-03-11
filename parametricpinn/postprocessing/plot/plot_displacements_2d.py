@@ -1,10 +1,10 @@
+import math
 from collections import namedtuple
 from typing import TypeAlias, Union
-import math
 
 import matplotlib.pyplot as plt
-import scipy.stats
 import numpy as np
+import scipy.stats
 import torch
 from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator, ScalarFormatter

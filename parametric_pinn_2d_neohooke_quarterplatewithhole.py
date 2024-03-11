@@ -27,13 +27,12 @@ from parametricpinn.calibration import (
     test_least_squares_calibration,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods import (
-    create_standard_ppinn_likelihood_for_noise_and_model_error_gps,
-    create_standard_ppinn_q_likelihood_for_noise_and_model_error,
-    create_standard_ppinn_q_likelihood_for_noise,
-    create_standard_ppinn_likelihood_for_noise_and_model_error,
     create_standard_ppinn_likelihood_for_noise,
+    create_standard_ppinn_likelihood_for_noise_and_model_error,
+    create_standard_ppinn_likelihood_for_noise_and_model_error_gps,
+    create_standard_ppinn_q_likelihood_for_noise,
+    create_standard_ppinn_q_likelihood_for_noise_and_model_error,
 )
-from parametricpinn.gps import ZeroMeanScaledRBFKernelGP, IndependentMultiOutputGP
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.data.parameterssampling import sample_uniform_grid
 from parametricpinn.data.trainingdata_2d import (
@@ -53,6 +52,7 @@ from parametricpinn.fem import (
     generate_validation_data,
     run_simulation,
 )
+from parametricpinn.gps import IndependentMultiOutputGP, ZeroMeanScaledRBFKernelGP
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader, PandasDataWriter
 from parametricpinn.network import FFNN

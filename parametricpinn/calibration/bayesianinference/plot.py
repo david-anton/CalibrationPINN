@@ -1,5 +1,5 @@
-from typing import TypeAlias, Union
 import math
+from typing import TypeAlias, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
