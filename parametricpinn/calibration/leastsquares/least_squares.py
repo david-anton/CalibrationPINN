@@ -57,7 +57,7 @@ class ModelClosure(nn.Module):
         return self._calculate_model_outputs()
 
     def get_parameters_as_tensor(self) -> Parameters:
-        return self._parameter_inputs.data
+        return self._parameter_inputs.data.detach()
 
     def _calculate_model_outputs(self) -> Tensor:
         model_inputs = torch.concat(
