@@ -1,6 +1,7 @@
-from typing import Protocol, TypeAlias, Union
+from typing import Protocol, TypeAlias
 
 import torch
+import torch.nn as nn
 from torch.func import jacfwd, vmap
 
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
@@ -9,6 +10,7 @@ from parametricpinn.calibration.data import (
     PreprocessedCalibrationData,
     preprocess_calibration_data,
 )
+from parametricpinn.bayesian.prior import Prior
 from parametricpinn.calibration.utility import freeze_model
 from parametricpinn.gps import GaussianProcess
 from parametricpinn.statistics.distributions import (
@@ -664,3 +666,99 @@ def create_bayesian_ppinn_likelihood_for_noise(
         data=preprocessed_data,
         device=device,
     )
+
+
+Hyperparameters: TypeAlias = Tensor
+
+
+class LogMarginalLikelihood(nn.Module):
+    def __init__(
+        self,
+        likelihood: LikelihoodStrategy,
+        initial_hyperparameters: Hyperparameters,
+        num_material_parameter_samples: int,
+        prior_material_parameters: Prior,
+        device: Device,
+    ) -> None:
+        super().__init__()
+        self._likelihood = likelihood
+        self._hyperparameters = nn.Parameter(
+            initial_hyperparameters.clone().type(torch.float64).to(device),
+            requires_grad=True,
+        )
+        self._num_material_parameter_samples = num_material_parameter_samples
+        self._material_parameter_samples = (
+            prior_material_parameters.sample(num_material_parameter_samples)
+            .detach()
+            .to(device)
+        )
+        self._log_prior_material_parameters = (
+            prior_material_parameters.log_prob(self._material_parameter_samples)
+            .detach()
+            .to(device)
+        )
+        self._device = device
+
+    def forward(self) -> Tensor:
+        return self._log_prob()
+
+    def get_hyperparameters(self) -> Hyperparameters:
+        return self._hyperparameters.data.detach()
+
+    def _log_prob(self) -> Tensor:
+        parameters = torch.concat(
+            (
+                self._material_parameter_samples,
+                self._hyperparameters.repeat((self._num_material_parameter_samples, 1)),
+            ),
+            dim=1,
+        ).to(self._device)
+        log_probs = (
+            self._likelihood.log_prob(parameters) + self._log_prior_material_parameters
+        )
+        max_log_prob = torch.max(log_probs)
+
+        return max_log_prob + torch.log(torch.sum(torch.exp(log_probs - max_log_prob)))
+
+
+def optimize_hyperparameters(
+    likelihood: LikelihoodStrategy,
+    initial_hyperparameters: Tensor,
+    prior_material_parameters: Prior,
+    num_iterations: int,
+    device: Device,
+) -> Tensor:
+    num_material_parameter_samples = 1024
+
+    log_marginal_likelihood = LogMarginalLikelihood(
+        likelihood=likelihood,
+        initial_hyperparameters=initial_hyperparameters.clone(),
+        num_material_parameter_samples=num_material_parameter_samples,
+        prior_material_parameters=prior_material_parameters,
+        device=device,
+    )
+
+    optimizer = torch.optim.LBFGS(
+        params=log_marginal_likelihood.parameters(),
+        lr=1.0,
+        max_iter=20,
+        max_eval=25,
+        tolerance_grad=1e-12,
+        tolerance_change=1e-12,
+        history_size=100,
+        line_search_fn="strong_wolfe",
+    )
+
+    def loss_func() -> Tensor:
+        return -log_marginal_likelihood()
+
+    def loss_func_closure() -> float:
+        optimizer.zero_grad()
+        loss = loss_func()
+        loss.backward()
+        return loss.item()
+
+    for _ in range(num_iterations):
+        optimizer.step(loss_func_closure)
+
+    return log_marginal_likelihood.get_hyperparameters().detach()
