@@ -843,7 +843,7 @@ def _plot_errors_histogram(
         mean,
         mean + standard_deviation,
     ]
-    order_x_ticks = math.floor(math.log10(mean))
+    order_x_ticks = math.floor(math.log10(abs(mean)))
     if order_x_ticks < 0:
         x_ticks = [round(tick, abs(order_x_ticks) + 2) for tick in x_ticks]
     else:
