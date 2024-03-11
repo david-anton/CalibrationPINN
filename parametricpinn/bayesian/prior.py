@@ -66,9 +66,17 @@ class MultipliedPriors(Prior):
         self._prior_dims = [prior.dim for prior in priors]
         self.dim = sum(self._prior_dims)
 
-    def sample(self) -> Tensor:
-        samples = [prior.distribution.sample() for prior in self._priors]
-        return torch.concat(samples, dim=0)
+    def sample(self, sample_shape=torch.Size()) -> Tensor:
+        if sample_shape == torch.Size():
+            samples = [
+                prior.distribution.sample(sample_shape) for prior in self._priors
+            ]
+            return torch.concat(samples, dim=0)
+        else:
+            samples = [
+                prior.distribution.sample(sample_shape) for prior in self._priors
+            ]
+            return torch.concat(samples, dim=1)
 
     def _log_prob(self, parameters: Tensor) -> Tensor:
         log_probs = []

@@ -93,6 +93,7 @@ class UnivariateNormalDistributon:
             covariance_matrix=torch.tensor(
                 [[standard_deviation**2]], dtype=torch.float64, device=device
             ),
+            validate_args=False,
         )
         self.dim = 1
 
@@ -117,6 +118,7 @@ class MultivariateNormalDistributon:
         self._distribution = torch.distributions.MultivariateNormal(
             loc=means.type(torch.float64).to(device),
             covariance_matrix=covariance_matrix.type(torch.float64).to(device),
+            validate_args=False,
         )
         self.means = self._distribution.mean
         self.variances = self._distribution.variance
@@ -143,6 +145,7 @@ class IndependentMultivariateNormalDistributon:
         self._distribution = torch.distributions.Normal(
             loc=means.type(torch.float64).to(device),
             scale=standard_deviations.type(torch.float64).to(device),
+            validate_args=False,
         )
         self.means = self._distribution.mean
         self.standard_deviations = self._distribution.stddev

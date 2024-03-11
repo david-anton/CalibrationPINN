@@ -94,12 +94,9 @@ class NoiseAndModelErrorLikelihoodStrategy:
         self._hyperparameters = hyperparameters
 
     def log_prob(self, parameters: Tensor) -> Tensor:
-        if self._hyperparameters is not None:
-            model_parameters = parameters
-            model_error_standard_deviations = self._hyperparameters
-        else:
-            model_parameters = parameters[: self._num_model_parameters]
-            model_error_standard_deviations = parameters[-self._dim_outputs :]
+        model_parameters, model_error_standard_deviations = (
+            self._get_model_and_hyperparameters(parameters)
+        )
         residuals = self._residual_calculator.calculate_residuals(model_parameters)
         distribution = self._initialize_likelihood_distribution(
             model_error_standard_deviations
@@ -107,19 +104,31 @@ class NoiseAndModelErrorLikelihoodStrategy:
         return distribution.log_prob(residuals)
 
     def flattened_log_probs(self, parameters: Tensor) -> Tensor:
-        model_parameters = parameters[: self._num_model_parameters]
+        model_parameters, model_error_standard_deviations = (
+            self._get_model_and_hyperparameters(parameters)
+        )
         residuals = self._residual_calculator.calculate_residuals(model_parameters)
-        model_error_standard_deviation = parameters[-self._dim_outputs :]
         distribution = self._initialize_likelihood_distribution(
-            model_error_standard_deviation
+            model_error_standard_deviations
         )
         return distribution.log_probs_individual(residuals)
 
-    def get_hyperparameters(self) -> Hyperparameters:
+    def get_hyperparameters(self) -> Hyperparameters | None:
         return self._hyperparameters
 
     def set_hyperparameters(self, hyperparameters: Hyperparameters) -> None:
         self._hyperparameters = hyperparameters
+
+    def _get_model_and_hyperparameters(
+        self, parameters: Tensor
+    ) -> tuple[Tensor, Tensor]:
+        if self._hyperparameters is not None:
+            model_parameters = parameters
+            model_error_standard_deviations = self._hyperparameters
+        else:
+            model_parameters = parameters[: self._num_model_parameters]
+            model_error_standard_deviations = parameters[-self._dim_outputs :]
+        return model_parameters, model_error_standard_deviations
 
     def _initialize_likelihood_distribution(
         self, model_error_standard_deviations: Tensor
@@ -146,9 +155,7 @@ class NoiseAndModelErrorLikelihoodStrategy:
         error_standard_deviations = self._assemble_error_standard_deviations(
             model_error_standard_deviations
         )
-        return torch.sqrt(
-            noise_standard_deviations**2 + error_standard_deviations**2
-        )
+        return torch.sqrt(noise_standard_deviations**2 + error_standard_deviations**2)
 
     def _assemble_noise_standard_deviations(self) -> Tensor:
         return self._standard_deviation_noise * torch.ones(
@@ -194,21 +201,29 @@ class NoiseAndModelErrorGPsLikelihoodStrategy:
         self._hyperparameters = hyperparameters
 
     def log_prob(self, parameters: Tensor) -> Tensor:
+        model_parameters, gp_parameters = self._get_model_and_hyperparameters(
+            parameters
+        )
+        residuals = self._residual_calculator.calculate_residuals(model_parameters)
+        distribution = self._initialize_likelihood_distribution(gp_parameters)
+        return distribution.log_prob(residuals)
+
+    def get_hyperparameters(self) -> Hyperparameters | None:
+        return self._hyperparameters
+
+    def set_hyperparameters(self, hyperparameters: Hyperparameters) -> None:
+        self._hyperparameters = hyperparameters
+
+    def _get_model_and_hyperparameters(
+        self, parameters: Tensor
+    ) -> tuple[Tensor, Tensor]:
         if self._hyperparameters is not None:
             model_parameters = parameters
             gp_parameters = self._hyperparameters
         else:
             model_parameters = parameters[: self._num_model_parameters]
             gp_parameters = parameters[self._num_model_parameters :]
-        residuals = self._residual_calculator.calculate_residuals(model_parameters)
-        distribution = self._initialize_likelihood_distribution(gp_parameters)
-        return distribution.log_prob(residuals)
-
-    def get_hyperparameters(self) -> Hyperparameters:
-        return self._hyperparameters
-
-    def set_hyperparameters(self, hyperparameters: Hyperparameters) -> None:
-        self._hyperparameters = hyperparameters
+        return model_parameters, gp_parameters
 
     def _initialize_likelihood_distribution(
         self, gp_parameters: Tensor
