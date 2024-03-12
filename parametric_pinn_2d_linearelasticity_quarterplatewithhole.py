@@ -84,12 +84,12 @@ max_youngs_modulus = 240000.0
 min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
 # Network
-layer_sizes = [4, 64, 64, 64, 64, 2]
+layer_sizes = [4, 64, 64, 64, 64, 64, 64, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
 num_samples_per_parameter = 64  # 32
-num_collocation_points = 32  # 64
+num_collocation_points = 16  # 64
 num_points_per_bc = 32  # 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
@@ -118,7 +118,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_4_64"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_6_64"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdirectory, "normalization")
 save_metadata = True
