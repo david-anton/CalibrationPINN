@@ -88,25 +88,50 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
         )
 
     def forward_kernel(self, x_1: Tensor, x_2: Tensor) -> Tensor:
+
+        def _create_zeros(dim_1: int, dim_2: int) -> Tensor:
+            return torch.zeros(
+                (dim_1, dim_2),
+                dtype=torch.float64,
+                requires_grad=True,
+                device=self._device,
+            )
+
         num_outputs = self.num_gps
         num_inputs_1 = x_1.size()[0]
         num_inputs_2 = x_2.size()[0]
-        covar_matrix = torch.zeros(
-            (num_outputs * num_inputs_1, num_outputs * num_inputs_2),
-            dtype=torch.float64,
-            device=self._device,
+
+        sub_covar_matrices = []
+        sub_covar_matrices.append(
+            torch.concat(
+                (
+                    self._gps_list[0].forward_kernel(x_1, x_2),
+                    _create_zeros(num_inputs_1, (num_outputs - 1) * num_inputs_2),
+                ),
+                dim=1,
+            )
         )
-        start_index_1 = start_index_2 = 0
-        for i in range(num_outputs - 1):
-            index_slice_1 = slice(start_index_1, start_index_1 + num_inputs_1)
-            index_slice_2 = slice(start_index_2, start_index_2 + num_inputs_2)
-            covar_matrix_i = self._gps_list[i].forward_kernel(x_1, x_2)
-            covar_matrix[index_slice_1, index_slice_2] = covar_matrix_i
-            start_index_1 += num_inputs_1
-            start_index_2 += num_inputs_2
-        covar_matrix_last = self._gps_list[-1].forward_kernel(x_1, x_2)
-        covar_matrix[start_index_1:, start_index_2:] = covar_matrix_last
-        return covar_matrix
+
+        for i in range(1, num_outputs - 1):
+            zeros_left = _create_zeros(num_inputs_1, i * num_inputs_2)
+            sub_covar_matrix = self._gps_list[i].forward_kernel(x_1, x_2)
+            zeros_right = _create_zeros(
+                num_inputs_1, (num_outputs - 1 - i) * num_inputs_2
+            )
+            sub_covar_matrices.append(
+                torch.concat((zeros_left, sub_covar_matrix, zeros_right), dim=1)
+            )
+
+        sub_covar_matrices.append(
+            torch.concat(
+                (
+                    _create_zeros(num_inputs_1, (num_outputs - 1) * num_inputs_2),
+                    self._gps_list[-1].forward_kernel(x_1, x_2),
+                ),
+                dim=1,
+            )
+        )
+        return torch.concat(sub_covar_matrices, dim=0)
 
     def set_parameters(self, parameters: Tensor) -> None:
         self._validate_hyperparameters_size(parameters)

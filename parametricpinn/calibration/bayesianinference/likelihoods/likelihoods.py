@@ -302,6 +302,39 @@ def create_standard_ppinn_likelihood_for_noise_and_model_error(
     )
 
 
+def create_optimized_standard_ppinn_likelihood_for_noise_and_model_error(
+    model: StandardAnsatz,
+    num_model_parameters: int,
+    data: CalibrationData,
+    initial_hyperparameters: Tensor,
+    prior_material_parameters: Prior,
+    num_material_parameter_samples: int,
+    num_iterations: int,
+    device: Device,
+) -> StandardPPINNLikelihood:
+    likelihood_strategy, _ = _create_noise_and_model_error_likelihood_strategy(
+        model=model,
+        num_model_parameters=num_model_parameters,
+        data=data,
+        device=device,
+    )
+    hyperparameters = optimize_hyperparameters(
+        likelihood=likelihood_strategy,
+        initial_hyperparameters=initial_hyperparameters,
+        prior_material_parameters=prior_material_parameters,
+        num_material_parameter_samples=num_material_parameter_samples,
+        num_iterations=num_iterations,
+        device=device,
+    )
+    print(f"Hyperparameters: {hyperparameters}")
+    likelihood_strategy.set_hyperparameters(hyperparameters)
+
+    return StandardPPINNLikelihood(
+        likelihood_strategy=likelihood_strategy,
+        device=device,
+    )
+
+
 def create_standard_ppinn_q_likelihood_for_noise_and_model_error(
     model: StandardAnsatz,
     num_model_parameters: int,
@@ -359,6 +392,7 @@ def create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error(
         num_iterations=num_iterations,
         device=device,
     )
+    print(f"Hyperparameters: {hyperparameters}")
     likelihood_strategy.set_hyperparameters(hyperparameters)
 
     q_likelihood_strategy = StandardPPINNQLikelihoodWrapper(
@@ -414,6 +448,41 @@ def create_standard_ppinn_likelihood_for_noise_and_model_error_gps(
         data=data,
         device=device,
     )
+    return StandardPPINNLikelihood(
+        likelihood_strategy=likelihood_strategy,
+        device=device,
+    )
+
+
+def create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps(
+    model: StandardAnsatz,
+    num_model_parameters: int,
+    model_error_gp: GaussianProcess,
+    data: CalibrationData,
+    initial_hyperparameters: Tensor,
+    prior_material_parameters: Prior,
+    num_material_parameter_samples: int,
+    num_iterations: int,
+    device: Device,
+) -> StandardPPINNLikelihood:
+    likelihood_strategy, _ = _create_noise_and_model_error_gps_likelihood_strategy(
+        model=model,
+        num_model_parameters=num_model_parameters,
+        model_error_gp=model_error_gp,
+        data=data,
+        device=device,
+    )
+    hyperparameters = optimize_hyperparameters(
+        likelihood=likelihood_strategy,
+        initial_hyperparameters=initial_hyperparameters,
+        prior_material_parameters=prior_material_parameters,
+        num_material_parameter_samples=num_material_parameter_samples,
+        num_iterations=num_iterations,
+        device=device,
+    )
+    print(f"Hyperparameters: {hyperparameters}")
+    likelihood_strategy.set_hyperparameters(hyperparameters)
+
     return StandardPPINNLikelihood(
         likelihood_strategy=likelihood_strategy,
         device=device,

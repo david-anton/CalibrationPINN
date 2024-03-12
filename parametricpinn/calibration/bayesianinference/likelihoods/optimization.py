@@ -27,11 +27,18 @@ class LogMarginalLikelihood(torch.nn.Module):
         self._material_parameter_samples = (
             prior_material_parameters.sample((num_material_parameter_samples, 1))
             .detach()
+            .requires_grad_(False)
             .to(device)
         )
         self._log_probs_prior_material_parameters = (
-            vmap(prior_material_parameters.log_prob)(self._material_parameter_samples)
+            torch.concat(
+                [
+                    torch.unsqueeze(prior_material_parameters.log_prob(sample), dim=0)
+                    for sample in self._material_parameter_samples
+                ],
+            )
             .detach()
+            .requires_grad_(False)
             .to(device)
         )
         self._device = device
@@ -50,7 +57,6 @@ class LogMarginalLikelihood(torch.nn.Module):
             ),
             dim=1,
         ).to(self._device)
-        # log_probs_likelihood = vmap(self._likelihood.log_prob)(parameters)
         log_probs_likelihood = torch.concat(
             [
                 torch.unsqueeze(self._likelihood.log_prob(parameter), dim=0)
@@ -99,6 +105,7 @@ def optimize_hyperparameters(
         optimizer.zero_grad()
         loss = loss_func()
         loss.backward()
+        print(log_marginal_likelihood._hyperparameters)
         return loss.item()
 
     for _ in range(num_iterations):
