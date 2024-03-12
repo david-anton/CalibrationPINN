@@ -88,9 +88,9 @@ layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_per_parameter = 32
-num_collocation_points = 64
-num_points_per_bc = 64
+num_samples_per_parameter = 64  # 32
+num_collocation_points = 32  # 64
+num_points_per_bc = 32  # 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
@@ -384,7 +384,7 @@ def create_ansatz() -> StandardAnsatz:
         return normalization_values
 
     normalization_values = _determine_normalization_values()
-    network = FFNN(layer_sizes=layer_sizes)
+    network = FFNN(layer_sizes=layer_sizes, activation=torch.nn.SiLU())
     return create_standard_normalized_hbc_ansatz_quarter_plate_with_hole(
         min_inputs=normalization_values[key_min_inputs],
         max_inputs=normalization_values[key_max_inputs],
