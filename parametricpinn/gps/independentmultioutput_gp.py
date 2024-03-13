@@ -6,7 +6,7 @@ import torch
 
 from parametricpinn.bayesian.prior import MultipliedPriors, Prior
 from parametricpinn.errors import UnvalidGPMultivariateNormaError
-from parametricpinn.gps.base import GaussianProcess
+from parametricpinn.gps.base import NamedParametersMultiOutputGP
 from parametricpinn.gps.utility import validate_parameters_size
 from parametricpinn.types import Device, GPMultivariateNormal, Tensor
 
@@ -70,11 +70,11 @@ class IndependentMultiOutputGPMultivariateNormal(
 class IndependentMultiOutputGP(gpytorch.models.GP):
     def __init__(
         self,
-        independent_gps: list[GaussianProcess],
+        independent_gps: list[gpytorch.models.ExactGP],
         device: Device,
     ) -> None:
         super(IndependentMultiOutputGP, self).__init__()
-        self._gps_list = independent_gps
+        self._gps_list = torch.nn.ModuleList(independent_gps)
         for gp in self._gps_list:
             gp.to(device)
         self.num_gps = len(self._gps_list)
@@ -146,6 +146,12 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
         gp_last.set_parameters(
             parameters[start_index : start_index + num_parameters].to(self._device)
         )
+
+    def get_named_parameters(self) -> NamedParametersMultiOutputGP:
+        return {
+            f"output_{count}": gp.get_named_parameters()
+            for count, gp in enumerate(self._gps_list)
+        }
 
     def get_uninformed_parameters_prior(self, device: Device, **kwargs: Any) -> Prior:
         kwargs["device"] = device

@@ -1,4 +1,4 @@
-from typing import TypeAlias
+from typing import TypeAlias, cast
 
 import torch
 from torch.func import jacfwd, vmap
@@ -30,7 +30,7 @@ from parametricpinn.statistics.distributions import (
     IndependentMultivariateNormalDistributon,
     create_independent_multivariate_normal_distribution,
 )
-from parametricpinn.types import Device, Tensor
+from parametricpinn.types import Device, Module, Tensor
 
 QLikelihoodStrategies: TypeAlias = (
     NoiseLikelihoodStrategy
@@ -461,8 +461,7 @@ def _create_noise_and_model_error_gps_likelihood_strategy_for_sampling(
 def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
     model: StandardAnsatz,
     num_model_parameters: int,
-    model_error_gp: GaussianProcess,
-    initial_model_error_gp_parameters: Tensor,
+    model_error_gp: Module,
     data: CalibrationData,
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
@@ -479,7 +478,6 @@ def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
     )
     likelihood_strategy = NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(
         model_error_gp=model_error_gp,
-        initial_model_error_gp_parameters=initial_model_error_gp_parameters,
         data=preprocessed_data,
         residual_calculator=residual_calculator,
         num_model_parameters=num_model_parameters,
@@ -531,14 +529,14 @@ def create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps(
     num_iterations: int,
     device: Device,
 ) -> StandardPPINNLikelihood:
+    model_error_gp.set_parameters(initial_model_error_gp_parameters)
     (
         likelihood_strategy,
         _,
     ) = _create_optimized_noise_and_model_error_gps_likelihood_strategy(
         model=model,
         num_model_parameters=num_model_parameters,
-        model_error_gp=model_error_gp,
-        initial_model_error_gp_parameters=initial_model_error_gp_parameters,
+        model_error_gp=cast(torch.nn.Module, model_error_gp),
         data=data,
         prior_material_parameters=prior_material_parameters,
         num_material_parameter_samples=num_material_parameter_samples,

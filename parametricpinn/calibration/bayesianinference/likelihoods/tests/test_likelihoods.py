@@ -32,7 +32,7 @@ from parametricpinn.gps import (
 )
 from parametricpinn.network import BFFNN, FFNN
 from parametricpinn.settings import set_default_dtype
-from parametricpinn.types import Device, Tensor
+from parametricpinn.types import Module, Tensor
 
 set_default_dtype(torch.float64)
 
@@ -556,14 +556,14 @@ def _create_noise_and_model_error_gps_likelihood_strategy_for_sampling(
 
 def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
     residual_calculator: StandardResidualCalculator,
-    model_error_gp: GaussianProcess,
+    model_error_gp: Module,
     initial_gp_parameters: Tensor,
     data: PreprocessedCalibrationData,
     num_model_parameters: int,
 ) -> tuple[NoiseAndModelErrorGPsOptimizeLikelihoodStrategy, Tensor]:
+    model_error_gp.set_parameters(initial_gp_parameters)
     likelihood_strategy = NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(
         model_error_gp=model_error_gp,
-        initial_model_error_gp_parameters=initial_gp_parameters,
         data=data,
         residual_calculator=residual_calculator,
         num_model_parameters=num_model_parameters,

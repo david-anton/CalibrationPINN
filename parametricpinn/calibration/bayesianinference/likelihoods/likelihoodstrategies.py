@@ -1,4 +1,4 @@
-from typing import Optional, Protocol, TypeAlias
+from typing import Protocol
 
 import torch
 
@@ -13,10 +13,13 @@ from parametricpinn.statistics.distributions import (
     create_independent_multivariate_normal_distribution,
     create_multivariate_normal_distribution,
 )
-from parametricpinn.types import Device, Parameter, Tensor
+from parametricpinn.types import Device, Module, Parameter, Tensor
 
 
 class LikelihoodStrategy(Protocol):
+    def forward(self, parameters: Tensor) -> Tensor:
+        pass
+
     def log_prob(self, parameters: Tensor) -> Tensor:
         pass
 
@@ -311,8 +314,7 @@ class NoiseAndModelErrorGPsSamplingLikelihoodStrategy(torch.nn.Module):
 class NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(torch.nn.Module):
     def __init__(
         self,
-        model_error_gp: GaussianProcess,
-        initial_model_error_gp_parameters: Tensor,
+        model_error_gp: Module,
         data: PreprocessedCalibrationData,
         residual_calculator: StandardResidualCalculator,
         num_model_parameters: int,
@@ -320,7 +322,6 @@ class NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(torch.nn.Module):
     ) -> None:
         super().__init__()
         self._model_error_gp = model_error_gp.to(device)
-        self._model_error_gp.set_parameters(initial_model_error_gp_parameters)
         self._distribution = NoiseAndModelErrorGPsLikelihoodDistribution(data, device)
         self._data = data
         self._data.inputs.detach().to(device)

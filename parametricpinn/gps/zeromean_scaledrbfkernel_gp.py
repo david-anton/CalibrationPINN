@@ -9,6 +9,7 @@ from parametricpinn.bayesian.prior import (
     multiply_priors,
 )
 from parametricpinn.gps.utility import validate_parameters_size
+from parametricpinn.gps.base import NamedParameters
 from parametricpinn.types import Device, Tensor
 
 GPMultivariateNormal: TypeAlias = gpytorch.distributions.MultivariateNormal
@@ -47,10 +48,18 @@ class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
 
     def set_parameters(self, parameters: Tensor) -> None:
         validate_parameters_size(parameters, torch.Size([self.num_hyperparameters]))
-        if parameters[0] >= self._lower_limit_output_scale:
-            self.kernel.outputscale = parameters[0].to(self._device)
-        if parameters[1] >= self._lower_limit_length_scale:
-            self.kernel.base_kernel.lengthscale = parameters[1].to(self._device)
+        output_scale = parameters[0]
+        length_scale = parameters[1]
+        if output_scale >= self._lower_limit_output_scale:
+            self.kernel.outputscale = output_scale.to(self._device)
+        if length_scale >= self._lower_limit_length_scale:
+            self.kernel.base_kernel.lengthscale = length_scale.to(self._device)
+
+    def get_named_parameters(self) -> NamedParameters:
+        return {
+            "output scale": self.kernel.outputscale,
+            "length scale": self.kernel.base_kernel.lengthscale,
+        }
 
     def get_uninformed_parameters_prior(
         self,

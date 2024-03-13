@@ -1,16 +1,24 @@
+from typing import TypeAlias
+
 import torch
 
 from parametricpinn.bayesian.prior import Prior
 from parametricpinn.calibration.bayesianinference.likelihoods.likelihoodstrategies import (
-    LikelihoodStrategy,
+    NoiseAndModelErrorGPsOptimizeLikelihoodStrategy,
+    NoiseAndModelErrorOptimizeLikelihoodStrategy,
 )
 from parametricpinn.types import Device, Tensor
+
+OptimizeLikelihoodStrategies: TypeAlias = (
+    NoiseAndModelErrorOptimizeLikelihoodStrategy
+    | NoiseAndModelErrorGPsOptimizeLikelihoodStrategy
+)
 
 
 class LogMarginalLikelihood(torch.nn.Module):
     def __init__(
         self,
-        likelihood: LikelihoodStrategy,
+        likelihood: OptimizeLikelihoodStrategies,
         num_material_parameter_samples: int,
         prior_material_parameters: Prior,
         device: Device,
@@ -55,12 +63,13 @@ class LogMarginalLikelihood(torch.nn.Module):
 
 
 def optimize_hyperparameters(
-    likelihood: LikelihoodStrategy,
+    likelihood: OptimizeLikelihoodStrategies,
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
     num_iterations: int,
     device: Device,
 ) -> None:
+    print("Optimization of likelihood parameters starts ...")
     log_marginal_likelihood = LogMarginalLikelihood(
         likelihood=likelihood,
         num_material_parameter_samples=num_material_parameter_samples,
@@ -89,6 +98,4 @@ def optimize_hyperparameters(
         return loss.item()
 
     for _ in range(num_iterations):
-        for name, param in log_marginal_likelihood.state_dict().items():
-            print(name, param)
         optimizer.step(loss_func_closure)
