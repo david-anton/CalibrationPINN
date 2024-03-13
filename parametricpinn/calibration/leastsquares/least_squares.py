@@ -9,8 +9,8 @@ from parametricpinn.calibration.config import CalibrationConfig
 from parametricpinn.calibration.data import (
     CalibrationData,
     Parameters,
-    PreprocessedCalibrationData,
-    preprocess_calibration_data,
+    ConcatenatedPreprocessedCalibrationData,
+    concatenate_and_preprocess_calibration_data,
 )
 from parametricpinn.calibration.utility import freeze_model
 from parametricpinn.types import Device, NPArray, Tensor
@@ -40,7 +40,7 @@ class ModelClosure(nn.Module):
         self,
         ansatz: StandardAnsatz,
         initial_parameters: Parameters,
-        calibration_data: PreprocessedCalibrationData,
+        calibration_data: ConcatenatedPreprocessedCalibrationData,
         device: Device,
     ) -> None:
         super().__init__()
@@ -79,7 +79,7 @@ def least_squares(
     device: Device,
 ) -> LeastSquaresOutput:
     initial_parameters = initial_parameters.clone()
-    preprocessed_data = preprocess_calibration_data(calibration_data)
+    preprocessed_data = concatenate_and_preprocess_calibration_data(calibration_data)
     model_closure = ModelClosure(ansatz, initial_parameters, preprocessed_data, device)
     flattened_outputs = preprocessed_data.outputs.ravel().detach().to(device)
     residual_weights = residual_weights.to(device)

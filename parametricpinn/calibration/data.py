@@ -196,14 +196,14 @@ class PreprocessedCalibrationData(CalibrationData):
 
 def preprocess_calibration_data(data: CalibrationData) -> PreprocessedCalibrationData:
     _validate_calibration_data(data)
-    outputs_list = data.outputs
-    num_data_points_per_set = tuple(len(outputs) for outputs in outputs_list)
+    outputs_sets = data.outputs
+    num_data_points_per_set = tuple(len(outputs) for outputs in outputs_sets)
     num_total_data_points = sum(num_data_points_per_set)
 
-    if outputs_list[0].size() == torch.Size([num_data_points_per_set[0]]):
+    if outputs_sets[0].size() == torch.Size([num_data_points_per_set[0]]):
         dim_outputs = 1
     else:
-        dim_outputs = outputs_list[0].size()[1]
+        dim_outputs = outputs_sets[0].size()[1]
 
     return PreprocessedCalibrationData(
         num_data_sets=data.num_data_sets,
@@ -229,3 +229,41 @@ def _validate_calibration_data(calibration_data: CalibrationData) -> None:
         raise UnvalidCalibrationDataError(
             "Size of input and output data points does not match."
         )
+
+
+@dataclass
+class ConcatenatedPreprocessedCalibrationData:
+    inputs: Tensor
+    outputs: Tensor
+    num_data_points: int
+    dim_outputs: int
+    std_noise: float
+
+
+def concatenate_and_preprocess_calibration_data(
+    data: CalibrationData,
+) -> ConcatenatedPreprocessedCalibrationData:
+    _validate_calibration_data(data)
+    num_data_sets = data.num_data_sets
+    inputs_sets = data.inputs
+    outputs_sets = data.outputs
+    if num_data_sets == 1:
+        concatenated_inputs = inputs_sets[0]
+        concatenated_outputs = outputs_sets[0]
+    else:
+        concatenated_inputs = torch.concat(inputs_sets, dim=0)
+        concatenated_outputs = torch.concat(outputs_sets, dim=0)
+    num_total_data_points = len(concatenated_outputs)
+
+    if concatenated_outputs.size() == torch.Size([num_total_data_points]):
+        dim_outputs = 1
+    else:
+        dim_outputs = concatenated_outputs.size()[1]
+
+    return ConcatenatedPreprocessedCalibrationData(
+        inputs=concatenated_inputs,
+        outputs=concatenated_outputs,
+        num_data_points=num_total_data_points,
+        dim_outputs=dim_outputs,
+        std_noise=data.std_noise,
+    )
