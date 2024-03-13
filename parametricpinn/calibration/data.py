@@ -188,7 +188,11 @@ class CalibrationDataGenerator1D:
 
 
 @dataclass
-class PreprocessedCalibrationData(CalibrationData):
+class PreprocessedCalibrationData:
+    num_data_sets: int
+    inputs: tuple[Tensor, ...]
+    outputs: tuple[Tensor, ...]
+    std_noise: float
     num_data_points_per_set: tuple[int, ...]
     num_total_data_points: int
     dim_outputs: int
@@ -216,23 +220,8 @@ def preprocess_calibration_data(data: CalibrationData) -> PreprocessedCalibratio
     )
 
 
-def _validate_calibration_data(calibration_data: CalibrationData) -> None:
-    inputs_list = calibration_data.inputs
-    outputs_list = calibration_data.outputs
-    if not len(inputs_list) == len(outputs_list):
-        raise UnvalidCalibrationDataError(
-            "Size of input and output data sets does not match."
-        )
-    num_inputs = [input.size() for input in inputs_list]
-    num_outputs = [output.size() for output in outputs_list]
-    if not num_inputs == num_outputs:
-        raise UnvalidCalibrationDataError(
-            "Size of input and output data points does not match."
-        )
-
-
 @dataclass
-class ConcatenatedPreprocessedCalibrationData:
+class ConcatenatedCalibrationData:
     inputs: Tensor
     outputs: Tensor
     num_data_points: int
@@ -240,9 +229,9 @@ class ConcatenatedPreprocessedCalibrationData:
     std_noise: float
 
 
-def concatenate_and_preprocess_calibration_data(
+def concatenate_calibration_data(
     data: CalibrationData,
-) -> ConcatenatedPreprocessedCalibrationData:
+) -> ConcatenatedCalibrationData:
     _validate_calibration_data(data)
     num_data_sets = data.num_data_sets
     inputs_sets = data.inputs
@@ -260,10 +249,25 @@ def concatenate_and_preprocess_calibration_data(
     else:
         dim_outputs = concatenated_outputs.size()[1]
 
-    return ConcatenatedPreprocessedCalibrationData(
+    return ConcatenatedCalibrationData(
         inputs=concatenated_inputs,
         outputs=concatenated_outputs,
         num_data_points=num_total_data_points,
         dim_outputs=dim_outputs,
         std_noise=data.std_noise,
     )
+
+
+def _validate_calibration_data(calibration_data: CalibrationData) -> None:
+    inputs_list = calibration_data.inputs
+    outputs_list = calibration_data.outputs
+    if not len(inputs_list) == len(outputs_list):
+        raise UnvalidCalibrationDataError(
+            "Size of input and output data sets does not match."
+        )
+    num_inputs = [input.size() for input in inputs_list]
+    num_outputs = [output.size() for output in outputs_list]
+    if not num_inputs == num_outputs:
+        raise UnvalidCalibrationDataError(
+            "Size of input and output data points does not match."
+        )

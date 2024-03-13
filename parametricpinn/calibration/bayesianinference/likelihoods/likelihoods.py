@@ -22,6 +22,8 @@ from parametricpinn.calibration.bayesianinference.likelihoods.residualcalculator
 from parametricpinn.calibration.data import (
     CalibrationData,
     PreprocessedCalibrationData,
+    ConcatenatedCalibrationData,
+    concatenate_calibration_data,
     preprocess_calibration_data,
 )
 from parametricpinn.calibration.utility import freeze_model
@@ -36,6 +38,8 @@ QLikelihoodStrategies: TypeAlias = (
     NoiseLikelihoodStrategy
     | NoiseAndModelErrorSamplingLikelihoodStrategy
     | NoiseAndModelErrorOptimizeLikelihoodStrategy
+    | NoiseAndModelErrorGPsSamplingLikelihoodStrategy
+    | NoiseAndModelErrorGPsOptimizeLikelihoodStrategy
 )
 
 
@@ -86,7 +90,7 @@ class StandardPPINNQLikelihoodWrapper:
         return (-1 / 2) * torch.log(M) - Q
 
     def _calculate_scores(self, parameters: Tensor) -> Tensor:
-        return jacfwd(self._likelihood_strategy.flattened_log_probs)(parameters)
+        return jacfwd(self._likelihood_strategy.log_probs_individual)(parameters)
 
     # def _estimate_robust_covariance_matrix(self, scores: Tensor) -> Tensor:
     #     num_scores = len(scores)
@@ -172,7 +176,7 @@ class StandardPPINNQLikelihoodWrapper:
 class StandardPPINNLikelihood:
     def __init__(
         self,
-        likelihood_strategy: LikelihoodStrategy,
+        likelihood_strategy: LikelihoodStrategy | StandardPPINNQLikelihoodWrapper,
         device: Device,
     ) -> None:
         self._likelihood_strategy = likelihood_strategy
@@ -214,7 +218,6 @@ def _create_noise_likelihood_strategy(
     preprocessed_data = preprocess_calibration_data(data)
     residual_calculator = StandardResidualCalculator(
         model=model,
-        data=preprocessed_data,
         device=device,
     )
     likelihood_strategy = NoiseLikelihoodStrategy(
@@ -274,7 +277,6 @@ def _create_noise_and_model_error_likelihood_strategy_for_sampling(
     preprocessed_data = preprocess_calibration_data(data)
     residual_calculator = StandardResidualCalculator(
         model=model,
-        data=preprocessed_data,
         device=device,
     )
     likelihood_strategy = NoiseAndModelErrorSamplingLikelihoodStrategy(
@@ -299,7 +301,6 @@ def _create_optimized_noise_and_model_error_likelihood_strategy(
     preprocessed_data = preprocess_calibration_data(data)
     residual_calculator = StandardResidualCalculator(
         model=model,
-        data=preprocessed_data,
         device=device,
     )
     likelihood_strategy = NoiseAndModelErrorOptimizeLikelihoodStrategy(
@@ -445,7 +446,6 @@ def _create_noise_and_model_error_gps_likelihood_strategy_for_sampling(
     preprocessed_data = preprocess_calibration_data(data)
     residual_calculator = StandardResidualCalculator(
         model=model,
-        data=preprocessed_data,
         device=device,
     )
     likelihood_strategy = NoiseAndModelErrorGPsSamplingLikelihoodStrategy(
@@ -473,7 +473,6 @@ def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
     preprocessed_data = preprocess_calibration_data(data)
     residual_calculator = StandardResidualCalculator(
         model=model,
-        data=preprocessed_data,
         device=device,
     )
     likelihood_strategy = NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(
@@ -557,7 +556,7 @@ class BayesianPPINNLikelihood:
         self,
         model: BayesianAnsatz,
         model_parameter_samples: Tensor,
-        data: PreprocessedCalibrationData,
+        data: ConcatenatedCalibrationData,
         device: Device,
     ):
         self._model = model.to(device)
@@ -651,10 +650,10 @@ def create_bayesian_ppinn_likelihood_for_noise(
     data: CalibrationData,
     device: Device,
 ) -> BayesianPPINNLikelihood:
-    preprocessed_data = preprocess_calibration_data(data)
+    concatenated_data = concatenate_calibration_data(data)
     return BayesianPPINNLikelihood(
         model=model,
         model_parameter_samples=model_parameter_samples,
-        data=preprocessed_data,
+        data=concatenated_data,
         device=device,
     )
