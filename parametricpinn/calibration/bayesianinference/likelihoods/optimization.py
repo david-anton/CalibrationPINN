@@ -1,5 +1,4 @@
 import torch
-from torch.func import vmap
 
 from parametricpinn.bayesian.prior import Prior
 from parametricpinn.calibration.bayesianinference.likelihoods.likelihoodstrategies import (
@@ -12,18 +11,12 @@ class LogMarginalLikelihood(torch.nn.Module):
     def __init__(
         self,
         likelihood: LikelihoodStrategy,
-        initial_hyperparameters: Tensor,
         num_material_parameter_samples: int,
         prior_material_parameters: Prior,
         device: Device,
     ) -> None:
         super().__init__()
         self._likelihood = likelihood
-        self._hyperparameters = torch.nn.Parameter(
-            initial_hyperparameters.type(torch.float64).to(device),
-            requires_grad=True,
-        )
-        self._num_material_parameter_samples = num_material_parameter_samples
         self._material_parameter_samples = (
             prior_material_parameters.sample((num_material_parameter_samples, 1))
             .detach()
@@ -46,21 +39,11 @@ class LogMarginalLikelihood(torch.nn.Module):
     def forward(self) -> Tensor:
         return self._log_prob()
 
-    def get_hyperparameters(self) -> Tensor:
-        return self._hyperparameters.data.detach()
-
     def _log_prob(self) -> Tensor:
-        parameters = torch.concat(
-            (
-                self._material_parameter_samples,
-                self._hyperparameters.repeat((self._num_material_parameter_samples, 1)),
-            ),
-            dim=1,
-        ).to(self._device)
         log_probs_likelihood = torch.concat(
             [
-                torch.unsqueeze(self._likelihood.log_prob(parameter), dim=0)
-                for parameter in parameters
+                torch.unsqueeze(self._likelihood.log_prob(material_parameter), dim=0)
+                for material_parameter in self._material_parameter_samples
             ]
         )
         log_probs = log_probs_likelihood + self._log_probs_prior_material_parameters
@@ -73,15 +56,13 @@ class LogMarginalLikelihood(torch.nn.Module):
 
 def optimize_hyperparameters(
     likelihood: LikelihoodStrategy,
-    initial_hyperparameters: Tensor,
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
     num_iterations: int,
     device: Device,
-) -> Tensor:
+) -> None:
     log_marginal_likelihood = LogMarginalLikelihood(
         likelihood=likelihood,
-        initial_hyperparameters=initial_hyperparameters.clone(),
         num_material_parameter_samples=num_material_parameter_samples,
         prior_material_parameters=prior_material_parameters,
         device=device,
@@ -105,11 +86,9 @@ def optimize_hyperparameters(
         optimizer.zero_grad()
         loss = loss_func()
         loss.backward()
-        print(log_marginal_likelihood._hyperparameters)
         return loss.item()
 
     for _ in range(num_iterations):
-        print(f"Hyperparameters: {log_marginal_likelihood.get_hyperparameters()}")
+        for name, param in log_marginal_likelihood.state_dict().items():
+            print(name, param)
         optimizer.step(loss_func_closure)
-
-    return log_marginal_likelihood.get_hyperparameters().detach()

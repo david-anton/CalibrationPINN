@@ -7,8 +7,10 @@ from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
 from parametricpinn.bayesian.prior import Prior
 from parametricpinn.calibration.bayesianinference.likelihoods.likelihoodstrategies import (
     LikelihoodStrategy,
-    NoiseAndModelErrorGPsLikelihoodStrategy,
-    NoiseAndModelErrorLikelihoodStrategy,
+    NoiseAndModelErrorGPsOptimizeLikelihoodStrategy,
+    NoiseAndModelErrorGPsSamplingLikelihoodStrategy,
+    NoiseAndModelErrorOptimizeLikelihoodStrategy,
+    NoiseAndModelErrorSamplingLikelihoodStrategy,
     NoiseLikelihoodStrategy,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods.optimization import (
@@ -22,6 +24,7 @@ from parametricpinn.calibration.data import (
     PreprocessedCalibrationData,
     preprocess_calibration_data,
 )
+from parametricpinn.calibration.utility import freeze_model
 from parametricpinn.gps import GaussianProcess
 from parametricpinn.statistics.distributions import (
     IndependentMultivariateNormalDistributon,
@@ -30,7 +33,9 @@ from parametricpinn.statistics.distributions import (
 from parametricpinn.types import Device, Tensor
 
 QLikelihoodStrategies: TypeAlias = (
-    NoiseLikelihoodStrategy | NoiseAndModelErrorLikelihoodStrategy
+    NoiseLikelihoodStrategy
+    | NoiseAndModelErrorSamplingLikelihoodStrategy
+    | NoiseAndModelErrorOptimizeLikelihoodStrategy
 )
 
 
@@ -40,41 +45,37 @@ class StandardPPINNQLikelihoodWrapper:
         likelihood_strategy: QLikelihoodStrategies,
         data: PreprocessedCalibrationData,
         num_model_parameters: int,
-        make_robust: bool,
         device: Device,
     ) -> None:
         self._likelihood_strategy = likelihood_strategy
         self._standard_deviation_noise = data.std_noise
         self._num_model_parameters = num_model_parameters
-        self._make_robust = make_robust
         self._device = device
 
     def log_prob(self, parameters: Tensor) -> Tensor:
         return self._calibrated_log_likelihood(parameters)
 
     def _calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
-        if self._make_robust:
-            return self._robust_calibrated_log_likelihood(parameters)
         return self._default_calibrated_log_likelihood(parameters)
 
-    def _robust_calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
-        scores = self._calculate_scores(parameters)
-        W = self._estimate_robust_covariance_matrix(scores)
-        Q = self._calculate_q(scores, W)
-        M = torch.det(W)
+    # def _robust_calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
+    #     scores = self._calculate_scores(parameters)
+    #     W = self._estimate_robust_covariance_matrix(scores)
+    #     Q = self._calculate_q(scores, W)
+    #     M = torch.det(W)
 
-        return (-1 / 2) * torch.log(M) - Q
+    #     return (-1 / 2) * torch.log(M) - Q
 
-        # gamma = 0.1
-        # d_0 = stats.chi2.ppf(0.99, self._num_model_parameters)
-        # k = (2 * d_0 ** (2 - gamma)) / gamma
-        # c = d_0**2 - k * d_0**gamma
+    #     # gamma = 0.1
+    #     # d_0 = stats.chi2.ppf(0.99, self._num_model_parameters)
+    #     # k = (2 * d_0 ** (2 - gamma)) / gamma
+    #     # c = d_0**2 - k * d_0**gamma
 
-        # def g(x: Tensor) -> Tensor:
-        #     abs_x = torch.absolute(x)
-        #     return torch.where(abs_x <= d_0, x**2, k * abs_x**gamma + c)
+    #     # def g(x: Tensor) -> Tensor:
+    #     #     abs_x = torch.absolute(x)
+    #     #     return torch.where(abs_x <= d_0, x**2, k * abs_x**gamma + c)
 
-        # return (-1 / 2) * torch.log(M) - (1 / 2) * g(torch.sqrt(2 * Q))
+    #     # return (-1 / 2) * torch.log(M) - (1 / 2) * g(torch.sqrt(2 * Q))
 
     def _default_calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
         scores = self._calculate_scores(parameters)
@@ -87,64 +88,64 @@ class StandardPPINNQLikelihoodWrapper:
     def _calculate_scores(self, parameters: Tensor) -> Tensor:
         return jacfwd(self._likelihood_strategy.flattened_log_probs)(parameters)
 
-    def _estimate_robust_covariance_matrix(self, scores: Tensor) -> Tensor:
-        num_scores = len(scores)
-        mean_score = torch.mean(scores, dim=0)
+    # def _estimate_robust_covariance_matrix(self, scores: Tensor) -> Tensor:
+    #     num_scores = len(scores)
+    #     mean_score = torch.mean(scores, dim=0)
 
-        ### 1
-        S = scores - mean_score
-        D_bar = torch.diag(torch.sqrt(torch.mean(S**2, dim=0)))
-        _, R_bar = torch.linalg.qr(
-            (S @ torch.inverse(D_bar))
-            / torch.sqrt(torch.tensor(num_scores - 1, device=self._device))
-        )
-        R_bar_T = torch.transpose(R_bar, 0, 1)
-        covar_bar_inv = torch.inverse(D_bar @ R_bar_T @ R_bar @ D_bar)
+    #     ### 1
+    #     S = scores - mean_score
+    #     D_bar = torch.diag(torch.sqrt(torch.mean(S**2, dim=0)))
+    #     _, R_bar = torch.linalg.qr(
+    #         (S @ torch.inverse(D_bar))
+    #         / torch.sqrt(torch.tensor(num_scores - 1, device=self._device))
+    #     )
+    #     R_bar_T = torch.transpose(R_bar, 0, 1)
+    #     covar_bar_inv = torch.inverse(D_bar @ R_bar_T @ R_bar @ D_bar)
 
-        ### 2
-        def vmap_calculate_mahalanobis_distance(score: Tensor) -> Tensor:
-            deviation = score - mean_score
-            return deviation @ covar_bar_inv @ deviation
+    #     ### 2
+    #     def vmap_calculate_mahalanobis_distance(score: Tensor) -> Tensor:
+    #         deviation = score - mean_score
+    #         return deviation @ covar_bar_inv @ deviation
 
-        m = vmap(vmap_calculate_mahalanobis_distance)(scores)
+    #     m = vmap(vmap_calculate_mahalanobis_distance)(scores)
 
-        ### 3
-        num_statistics = torch.tensor(self._num_model_parameters, device=self._device)
-        m_0 = torch.sqrt(num_statistics) + torch.sqrt(
-            torch.tensor(2, device=self._device)
-        )
+    #     ### 3
+    #     num_statistics = torch.tensor(self._num_model_parameters, device=self._device)
+    #     m_0 = torch.sqrt(num_statistics) + torch.sqrt(
+    #         torch.tensor(2, device=self._device)
+    #     )
 
-        weights = torch.where(
-            m > m_0,
-            (m_0 / m) * torch.exp(-((m - m_0) ** 2) / 2),
-            torch.tensor(1.0, device=self._device),
-        )
+    #     weights = torch.where(
+    #         m > m_0,
+    #         (m_0 / m) * torch.exp(-((m - m_0) ** 2) / 2),
+    #         torch.tensor(1.0, device=self._device),
+    #     )
 
-        ### 4
-        redefined_mean_score = (weights @ scores) / torch.sum(weights)
-        redefined_S = scores - redefined_mean_score
+    #     ### 4
+    #     redefined_mean_score = (weights @ scores) / torch.sum(weights)
+    #     redefined_S = scores - redefined_mean_score
 
-        ### 5
-        D = torch.diag(torch.sqrt(torch.mean(redefined_S**2, dim=0)))
-        W = torch.diag(weights)
+    #     ### 5
+    #     D = torch.diag(torch.sqrt(torch.mean(redefined_S**2, dim=0)))
+    #     W = torch.diag(weights)
 
-        # It is not clear whether the -1 in the square root is inside or outside the sum
-        _, R = torch.linalg.qr(
-            (
-                W
-                @ redefined_S
-                @ torch.inverse(D)
-                / torch.sqrt(
-                    (torch.sum(weights**2) - torch.tensor(1.0, device=self._device))
-                )
-            )
-        )
+    #     # It is not clear whether the -1 in the square root is inside or outside the sum
+    #     _, R = torch.linalg.qr(
+    #         (
+    #             W
+    #             @ redefined_S
+    #             @ torch.inverse(D)
+    #             / torch.sqrt(
+    #                 (torch.sum(weights**2) - torch.tensor(1.0, device=self._device))
+    #             )
+    #         )
+    #     )
 
-        ### 6
-        R_T = torch.transpose(R, 0, 1)
-        covariance = D @ R_T @ R @ D
+    #     ### 6
+    #     R_T = torch.transpose(R, 0, 1)
+    #     covariance = D @ R_T @ R @ D
 
-        return covariance
+    #     return covariance
 
     def _estimate_default_covariance_matrix(self, scores: Tensor) -> Tensor:
         mean_score = torch.mean(scores, dim=0)
@@ -244,7 +245,6 @@ def create_standard_ppinn_q_likelihood_for_noise(
     model: StandardAnsatz,
     num_model_parameters: int,
     data: CalibrationData,
-    make_robust: bool,
     device: Device,
 ) -> StandardPPINNLikelihood:
     likelihood_strategy, preprocessed_data = _create_noise_likelihood_strategy(
@@ -254,7 +254,6 @@ def create_standard_ppinn_q_likelihood_for_noise(
         likelihood_strategy=likelihood_strategy,
         data=preprocessed_data,
         num_model_parameters=num_model_parameters,
-        make_robust=make_robust,
         device=device,
     )
     return StandardPPINNLikelihood(
@@ -266,19 +265,19 @@ def create_standard_ppinn_q_likelihood_for_noise(
 ### Noise and model error
 
 
-def _create_noise_and_model_error_likelihood_strategy(
+def _create_noise_and_model_error_likelihood_strategy_for_sampling(
     model: StandardAnsatz,
     num_model_parameters: int,
     data: CalibrationData,
     device: Device,
-) -> tuple[NoiseAndModelErrorLikelihoodStrategy, PreprocessedCalibrationData]:
+) -> tuple[NoiseAndModelErrorSamplingLikelihoodStrategy, PreprocessedCalibrationData]:
     preprocessed_data = preprocess_calibration_data(data)
     residual_calculator = StandardResidualCalculator(
         model=model,
         data=preprocessed_data,
         device=device,
     )
-    likelihood_strategy = NoiseAndModelErrorLikelihoodStrategy(
+    likelihood_strategy = NoiseAndModelErrorSamplingLikelihoodStrategy(
         residual_calculator=residual_calculator,
         data=preprocessed_data,
         num_model_parameters=num_model_parameters,
@@ -287,14 +286,55 @@ def _create_noise_and_model_error_likelihood_strategy(
     return likelihood_strategy, preprocessed_data
 
 
-def create_standard_ppinn_likelihood_for_noise_and_model_error(
+def _create_optimized_noise_and_model_error_likelihood_strategy(
+    model: StandardAnsatz,
+    num_model_parameters: int,
+    initial_model_error_standard_deviations: Tensor,
+    data: CalibrationData,
+    prior_material_parameters: Prior,
+    num_material_parameter_samples: int,
+    num_iterations: int,
+    device: Device,
+) -> tuple[NoiseAndModelErrorOptimizeLikelihoodStrategy, PreprocessedCalibrationData]:
+    preprocessed_data = preprocess_calibration_data(data)
+    residual_calculator = StandardResidualCalculator(
+        model=model,
+        data=preprocessed_data,
+        device=device,
+    )
+    likelihood_strategy = NoiseAndModelErrorOptimizeLikelihoodStrategy(
+        initial_model_error_standard_deviations=initial_model_error_standard_deviations,
+        residual_calculator=residual_calculator,
+        data=preprocessed_data,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
+    likelihood_strategy.train()
+    optimize_hyperparameters(
+        likelihood=likelihood_strategy,
+        prior_material_parameters=prior_material_parameters,
+        num_material_parameter_samples=num_material_parameter_samples,
+        num_iterations=num_iterations,
+        device=device,
+    )
+    freeze_model(likelihood_strategy)
+    return likelihood_strategy, preprocessed_data
+
+
+def create_standard_ppinn_likelihood_for_noise_and_model_error_sampling(
     model: StandardAnsatz,
     num_model_parameters: int,
     data: CalibrationData,
     device: Device,
 ) -> StandardPPINNLikelihood:
-    likelihood_strategy, _ = _create_noise_and_model_error_likelihood_strategy(
-        model=model, num_model_parameters=num_model_parameters, data=data, device=device
+    (
+        likelihood_strategy,
+        _,
+    ) = _create_noise_and_model_error_likelihood_strategy_for_sampling(
+        model=model,
+        num_model_parameters=num_model_parameters,
+        data=data,
+        device=device,
     )
     return StandardPPINNLikelihood(
         likelihood_strategy=likelihood_strategy,
@@ -305,57 +345,48 @@ def create_standard_ppinn_likelihood_for_noise_and_model_error(
 def create_optimized_standard_ppinn_likelihood_for_noise_and_model_error(
     model: StandardAnsatz,
     num_model_parameters: int,
+    initial_model_error_standard_deviations: Tensor,
     data: CalibrationData,
-    initial_hyperparameters: Tensor,
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
     num_iterations: int,
     device: Device,
 ) -> StandardPPINNLikelihood:
-    likelihood_strategy, _ = _create_noise_and_model_error_likelihood_strategy(
+    (
+        likelihood_strategy,
+        _,
+    ) = _create_optimized_noise_and_model_error_likelihood_strategy(
         model=model,
         num_model_parameters=num_model_parameters,
+        initial_model_error_standard_deviations=initial_model_error_standard_deviations,
         data=data,
-        device=device,
-    )
-    hyperparameters = optimize_hyperparameters(
-        likelihood=likelihood_strategy,
-        initial_hyperparameters=initial_hyperparameters,
         prior_material_parameters=prior_material_parameters,
         num_material_parameter_samples=num_material_parameter_samples,
         num_iterations=num_iterations,
         device=device,
     )
-    print(f"Hyperparameters: {hyperparameters}")
-    likelihood_strategy.set_hyperparameters(hyperparameters)
-
     return StandardPPINNLikelihood(
         likelihood_strategy=likelihood_strategy,
         device=device,
     )
 
 
-def create_standard_ppinn_q_likelihood_for_noise_and_model_error(
+def create_standard_ppinn_q_likelihood_for_noise_and_model_error_sampling(
     model: StandardAnsatz,
     num_model_parameters: int,
     data: CalibrationData,
-    make_robust: bool,
     device: Device,
 ) -> StandardPPINNLikelihood:
     (
         likelihood_strategy,
         preprocessed_data,
-    ) = _create_noise_and_model_error_likelihood_strategy(
-        model=model,
-        num_model_parameters=num_model_parameters,
-        data=data,
-        device=device,
+    ) = _create_noise_and_model_error_likelihood_strategy_for_sampling(
+        model=model, num_model_parameters=num_model_parameters, data=data, device=device
     )
     q_likelihood_strategy = StandardPPINNQLikelihoodWrapper(
         likelihood_strategy=likelihood_strategy,
         data=preprocessed_data,
         num_model_parameters=num_model_parameters,
-        make_robust=make_robust,
         device=device,
     )
     return StandardPPINNLikelihood(
@@ -367,9 +398,8 @@ def create_standard_ppinn_q_likelihood_for_noise_and_model_error(
 def create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error(
     model: StandardAnsatz,
     num_model_parameters: int,
+    initial_model_error_standard_deviations: Tensor,
     data: CalibrationData,
-    make_robust: bool,
-    initial_hyperparameters: Tensor,
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
     num_iterations: int,
@@ -378,28 +408,20 @@ def create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error(
     (
         likelihood_strategy,
         preprocessed_data,
-    ) = _create_noise_and_model_error_likelihood_strategy(
+    ) = _create_optimized_noise_and_model_error_likelihood_strategy(
         model=model,
         num_model_parameters=num_model_parameters,
+        initial_model_error_standard_deviations=initial_model_error_standard_deviations,
         data=data,
-        device=device,
-    )
-    hyperparameters = optimize_hyperparameters(
-        likelihood=likelihood_strategy,
-        initial_hyperparameters=initial_hyperparameters,
         prior_material_parameters=prior_material_parameters,
         num_material_parameter_samples=num_material_parameter_samples,
         num_iterations=num_iterations,
         device=device,
     )
-    print(f"Hyperparameters: {hyperparameters}")
-    likelihood_strategy.set_hyperparameters(hyperparameters)
-
     q_likelihood_strategy = StandardPPINNQLikelihoodWrapper(
         likelihood_strategy=likelihood_strategy,
         data=preprocessed_data,
         num_model_parameters=num_model_parameters,
-        make_robust=make_robust,
         device=device,
     )
     return StandardPPINNLikelihood(
@@ -411,20 +433,22 @@ def create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error(
 ### Noise and model error GPs
 
 
-def _create_noise_and_model_error_gps_likelihood_strategy(
+def _create_noise_and_model_error_gps_likelihood_strategy_for_sampling(
     model: StandardAnsatz,
     num_model_parameters: int,
     model_error_gp: GaussianProcess,
     data: CalibrationData,
     device: Device,
-) -> tuple[NoiseAndModelErrorGPsLikelihoodStrategy, PreprocessedCalibrationData]:
+) -> tuple[
+    NoiseAndModelErrorGPsSamplingLikelihoodStrategy, PreprocessedCalibrationData
+]:
     preprocessed_data = preprocess_calibration_data(data)
     residual_calculator = StandardResidualCalculator(
         model=model,
         data=preprocessed_data,
         device=device,
     )
-    likelihood_strategy = NoiseAndModelErrorGPsLikelihoodStrategy(
+    likelihood_strategy = NoiseAndModelErrorGPsSamplingLikelihoodStrategy(
         residual_calculator=residual_calculator,
         data=preprocessed_data,
         num_model_parameters=num_model_parameters,
@@ -434,14 +458,56 @@ def _create_noise_and_model_error_gps_likelihood_strategy(
     return likelihood_strategy, preprocessed_data
 
 
-def create_standard_ppinn_likelihood_for_noise_and_model_error_gps(
+def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
+    model: StandardAnsatz,
+    num_model_parameters: int,
+    model_error_gp: GaussianProcess,
+    initial_model_error_gp_parameters: Tensor,
+    data: CalibrationData,
+    prior_material_parameters: Prior,
+    num_material_parameter_samples: int,
+    num_iterations: int,
+    device: Device,
+) -> tuple[
+    NoiseAndModelErrorGPsOptimizeLikelihoodStrategy, PreprocessedCalibrationData
+]:
+    preprocessed_data = preprocess_calibration_data(data)
+    residual_calculator = StandardResidualCalculator(
+        model=model,
+        data=preprocessed_data,
+        device=device,
+    )
+    likelihood_strategy = NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(
+        model_error_gp=model_error_gp,
+        initial_model_error_gp_parameters=initial_model_error_gp_parameters,
+        data=preprocessed_data,
+        residual_calculator=residual_calculator,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
+    likelihood_strategy.train()
+    optimize_hyperparameters(
+        likelihood=likelihood_strategy,
+        prior_material_parameters=prior_material_parameters,
+        num_material_parameter_samples=num_material_parameter_samples,
+        num_iterations=num_iterations,
+        device=device,
+    )
+    freeze_model(likelihood_strategy)
+    return likelihood_strategy, preprocessed_data
+
+
+def create_standard_ppinn_likelihood_for_noise_and_model_error_gps_sampling(
     model: StandardAnsatz,
     num_model_parameters: int,
     model_error_gp: GaussianProcess,
     data: CalibrationData,
     device: Device,
 ) -> StandardPPINNLikelihood:
-    likelihood_strategy, _ = _create_noise_and_model_error_gps_likelihood_strategy(
+    (
+        likelihood_strategy,
+        _,
+    ) = _create_noise_and_model_error_gps_likelihood_strategy_for_sampling(
         model=model,
         num_model_parameters=num_model_parameters,
         model_error_gp=model_error_gp,
@@ -458,31 +524,27 @@ def create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps(
     model: StandardAnsatz,
     num_model_parameters: int,
     model_error_gp: GaussianProcess,
+    initial_model_error_gp_parameters: Tensor,
     data: CalibrationData,
-    initial_hyperparameters: Tensor,
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
     num_iterations: int,
     device: Device,
 ) -> StandardPPINNLikelihood:
-    likelihood_strategy, _ = _create_noise_and_model_error_gps_likelihood_strategy(
+    (
+        likelihood_strategy,
+        _,
+    ) = _create_optimized_noise_and_model_error_gps_likelihood_strategy(
         model=model,
         num_model_parameters=num_model_parameters,
         model_error_gp=model_error_gp,
+        initial_model_error_gp_parameters=initial_model_error_gp_parameters,
         data=data,
-        device=device,
-    )
-    hyperparameters = optimize_hyperparameters(
-        likelihood=likelihood_strategy,
-        initial_hyperparameters=initial_hyperparameters,
         prior_material_parameters=prior_material_parameters,
         num_material_parameter_samples=num_material_parameter_samples,
         num_iterations=num_iterations,
         device=device,
     )
-    print(f"Hyperparameters: {hyperparameters}")
-    likelihood_strategy.set_hyperparameters(hyperparameters)
-
     return StandardPPINNLikelihood(
         likelihood_strategy=likelihood_strategy,
         device=device,

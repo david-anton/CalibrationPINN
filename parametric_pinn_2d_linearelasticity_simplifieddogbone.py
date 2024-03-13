@@ -754,7 +754,6 @@ def calibration_step() -> None:
             model=model,
             num_model_parameters=num_material_parameters,
             data=calibration_data,
-            make_robust=False,
             device=device,
         )
     else:

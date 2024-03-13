@@ -88,7 +88,6 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
         )
 
     def forward_kernel(self, x_1: Tensor, x_2: Tensor) -> Tensor:
-
         def _create_zeros(dim_1: int, dim_2: int) -> Tensor:
             return torch.zeros(
                 (dim_1, dim_2),
