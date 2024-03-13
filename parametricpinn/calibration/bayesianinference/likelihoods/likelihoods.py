@@ -21,8 +21,8 @@ from parametricpinn.calibration.bayesianinference.likelihoods.residualcalculator
 )
 from parametricpinn.calibration.data import (
     CalibrationData,
-    PreprocessedCalibrationData,
     ConcatenatedCalibrationData,
+    PreprocessedCalibrationData,
     concatenate_calibration_data,
     preprocess_calibration_data,
 )

@@ -8,8 +8,8 @@ from parametricpinn.ansatz import StandardAnsatz
 from parametricpinn.calibration.config import CalibrationConfig
 from parametricpinn.calibration.data import (
     CalibrationData,
-    Parameters,
     ConcatenatedCalibrationData,
+    Parameters,
     concatenate_calibration_data,
 )
 from parametricpinn.calibration.utility import freeze_model

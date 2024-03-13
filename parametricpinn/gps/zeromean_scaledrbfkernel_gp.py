@@ -8,8 +8,8 @@ from parametricpinn.bayesian.prior import (
     create_univariate_uniform_distributed_prior,
     multiply_priors,
 )
-from parametricpinn.gps.utility import validate_parameters_size
 from parametricpinn.gps.base import NamedParameters
+from parametricpinn.gps.utility import validate_parameters_size
 from parametricpinn.types import Device, Tensor
 
 GPMultivariateNormal: TypeAlias = gpytorch.distributions.MultivariateNormal
