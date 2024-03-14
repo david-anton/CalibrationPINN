@@ -74,7 +74,7 @@ class DisplacementsPlotterConfig2D:
         self.interpolation_method = "nearest"
         # error histogram
         self.hist_bins = 128
-        self.hist_range_in_std = 4
+        self.hist_range_in_std = 3
         self.hist_color = "tab:cyan"
         # error pdf
         self.error_pdf_color = "tab:blue"
