@@ -55,9 +55,8 @@ class NoiseLikelihoodDistribution:
         )
 
     def _assemble_standard_deviations(self, num_flattened_outputs: int) -> Tensor:
-        return torch.full(
+        return self._noise_standard_deviation * torch.ones(
             (num_flattened_outputs,),
-            self._noise_standard_deviation,
             dtype=torch.float64,
             device=self._device,
         )
@@ -565,16 +564,39 @@ class NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(torch.nn.Module):
                 model_parameters,
                 model_error_gp,
                 self._inputs_sets[data_set_index],
-                data_set_index,
+                self._outputs_sets[data_set_index],
+                self._num_data_points_per_set[data_set_index],
             )
         else:
+            # vmap_func = (
+            #     lambda input_set, output_set: self._calculate_one_log_prob_for_data_set(
+            #         model_parameters, model_error_gp, input_set, output_set
+            #     )
+            # )
+            # return vmap(vmap_func)(
+            #     torch.concat(
+            #         [
+            #             torch.unsqueeze(input_set, dim=0)
+            #             for input_set in self._inputs_sets
+            #         ],
+            #         dim=0,
+            #     ),
+            #     torch.concat(
+            #         [
+            #             torch.unsqueeze(output_set, dim=0)
+            #             for output_set in self._outputs_sets
+            #         ],
+            #         dim=0,
+            #     ),
+            # )
             return torch.concat(
                 [
                     self._calculate_one_log_prob_for_data_set(
                         model_parameters,
                         model_error_gp,
                         self._inputs_sets[data_set_index],
-                        data_set_index,
+                        self._outputs_sets[data_set_index],
+                        self._num_data_points_per_set[data_set_index],
                     )
                     for data_set_index in range(self._num_data_sets)
                 ]
@@ -585,11 +607,9 @@ class NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(torch.nn.Module):
         model_parameters: Tensor,
         model_error_gp: GaussianProcess,
         inputs: Tensor,
-        data_set_index: int,
+        outputs: Tensor,
+        num_data_points: int,
     ) -> Tensor:
-        inputs = self._inputs_sets[data_set_index]
-        outputs = self._outputs_sets[data_set_index]
-        num_data_points = self._num_data_points_per_set[data_set_index]
         num_flattened_outputs = num_data_points * self._dim_outputs
         distribution = self._distribution.initialize(
             model_error_gp, inputs, num_flattened_outputs
