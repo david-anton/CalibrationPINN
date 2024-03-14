@@ -24,8 +24,8 @@ from parametricpinn.calibration.bayesianinference.likelihoods.likelihoods import
     StandardResidualCalculator,
 )
 from parametricpinn.calibration.data import (
-    PreprocessedCalibrationData,
     ConcatenatedCalibrationData,
+    PreprocessedCalibrationData,
 )
 from parametricpinn.errors import TestConfigurationError
 from parametricpinn.gps import (
