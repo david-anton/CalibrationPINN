@@ -19,7 +19,7 @@ LeastSquaresOutput: TypeAlias = tuple[NPArray, list[float]]
 LeastSquaresFunc: TypeAlias = Callable[
     [
         StandardAnsatz,
-        CalibrationData,
+        CalibrationData | ConcatenatedCalibrationData,
         Parameters,
         int,
         Device,
@@ -31,7 +31,7 @@ LeastSquaresFunc: TypeAlias = Callable[
 @dataclass
 class LeastSquaresConfig(CalibrationConfig):
     ansatz: StandardAnsatz
-    calibration_data: CalibrationData
+    calibration_data: CalibrationData | ConcatenatedCalibrationData
     resdiual_weights: Tensor
 
 
@@ -72,16 +72,17 @@ class ModelClosure(nn.Module):
 
 def least_squares(
     ansatz: StandardAnsatz,
-    calibration_data: CalibrationData,
+    calibration_data: CalibrationData | ConcatenatedCalibrationData,
     initial_parameters: Parameters,
     num_iterations: int,
     residual_weights: Tensor,
     device: Device,
 ) -> LeastSquaresOutput:
+    if isinstance(calibration_data, CalibrationData):
+        calibration_data = concatenate_calibration_data(calibration_data)
     initial_parameters = initial_parameters.clone()
-    preprocessed_data = concatenate_calibration_data(calibration_data)
-    model_closure = ModelClosure(ansatz, initial_parameters, preprocessed_data, device)
-    flattened_outputs = preprocessed_data.outputs.ravel().detach().to(device)
+    model_closure = ModelClosure(ansatz, initial_parameters, calibration_data, device)
+    flattened_outputs = calibration_data.outputs.ravel().detach().to(device)
     residual_weights = residual_weights.to(device)
 
     optimizer = torch.optim.LBFGS(

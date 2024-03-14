@@ -24,6 +24,7 @@ from parametricpinn.calibration.bayesianinference.likelihoods import (
     create_standard_ppinn_likelihood_for_noise,
     create_standard_ppinn_q_likelihood_for_noise,
 )
+from parametricpinn.calibration.data import concatenate_calibration_data
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.data.parameterssampling import sample_random, sample_uniform_grid
 from parametricpinn.data.trainingdata_1d import (
@@ -72,9 +73,9 @@ number_training_epochs = 500
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-num_samples_valid = 1000
+num_samples_valid = 100
 valid_interval = 1
-num_points_valid = 512
+num_points_valid = 256
 batch_size_valid = num_samples_valid
 # Calibration
 consider_model_error = True
@@ -217,9 +218,10 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
+    num_test_cases = num_samples_valid
+    num_data_sets = 1
     num_data_points = 128
     std_noise = 5 * 1e-4
-    num_test_cases = num_samples_valid
 
     initial_youngs_modulus = 210000.0
     prior = create_univariate_uniform_distributed_prior(
@@ -241,14 +243,15 @@ def calibration_step() -> None:
             traction=traction,
             volume_force=volume_force,
             length=length,
+            num_cases=num_test_cases,
+            num_data_sets=num_data_sets,
             num_data_points=num_data_points,
             std_noise=std_noise,
-            num_cases=num_test_cases,
             solution_func=calculate_linear_elastic_displacements_solution,
             device=device,
         )
-        calibration_data_sets = calibration_data_generator.generate_data()
-        return calibration_data_sets, true_parameters.detach().cpu().numpy()
+        calibration_data = calibration_data_generator.generate_data()
+        return calibration_data, true_parameters.detach().cpu().numpy()
 
     name_model_parameters_file = "model_parameters"
     model = load_model(
@@ -293,13 +296,16 @@ def calibration_step() -> None:
     ) -> tuple[LeastSquaresConfig, ...]:
         configs = []
         for data in calibration_data:
-            mean_displacements = torch.mean(torch.absolute(data.outputs), dim=0)
+            concatenated_data = concatenate_calibration_data(data)
+            mean_displacements = torch.mean(
+                torch.absolute(concatenated_data.outputs), dim=0
+            )
             residual_weights = (
                 (1 / mean_displacements).to(device).repeat((num_data_points, 1)).ravel()
             )
             config = LeastSquaresConfig(
                 ansatz=model,
-                calibration_data=data,
+                calibration_data=concatenated_data,
                 initial_parameters=initial_parameters,
                 num_iterations=100,
                 resdiual_weights=residual_weights,
