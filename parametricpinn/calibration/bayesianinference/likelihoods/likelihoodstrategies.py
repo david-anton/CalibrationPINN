@@ -28,6 +28,41 @@ class LikelihoodStrategy(Protocol):
 
 
 ### Noise
+class NoiseLikelihoodDistribution:
+    def __init__(
+        self,
+        data: PreprocessedCalibrationData,
+        device: Device,
+    ) -> None:
+        self._noise_standard_deviation = torch.tensor(data.std_noise, device=device)
+        self._device = device
+
+    def initialize(
+        self,
+        num_flattened_outputs: int,
+    ) -> IndependentMultivariateNormalDistributon:
+        means = self._assemble_means(num_flattened_outputs)
+        standard_deviations = self._assemble_standard_deviations(num_flattened_outputs)
+        return create_independent_multivariate_normal_distribution(
+            means=means,
+            standard_deviations=standard_deviations,
+            device=self._device,
+        )
+
+    def _assemble_means(self, num_flattened_outputs: int) -> Tensor:
+        return torch.zeros(
+            (num_flattened_outputs,), dtype=torch.float64, device=self._device
+        )
+
+    def _assemble_standard_deviations(self, num_flattened_outputs: int) -> Tensor:
+        return torch.full(
+            (num_flattened_outputs,),
+            self._noise_standard_deviation,
+            dtype=torch.float64,
+            device=self._device,
+        )
+
+
 class NoiseLikelihoodStrategy(torch.nn.Module):
     def __init__(
         self,
@@ -37,6 +72,7 @@ class NoiseLikelihoodStrategy(torch.nn.Module):
         device: Device,
     ) -> None:
         super().__init__()
+        self._distribution = NoiseLikelihoodDistribution(data, device)
         self._residual_calculator = residual_calculator
         self._inputs_sets = tuple(inputs.detach().to(device) for inputs in data.inputs)
         self._outputs_sets = tuple(
@@ -61,14 +97,22 @@ class NoiseLikelihoodStrategy(torch.nn.Module):
         return self._calculate_log_probs_for_data_sets(model_parameters)
 
     def _calculate_log_probs_for_data_sets(self, model_parameters: Tensor) -> Tensor:
-        return torch.concat(
-            [
+        if self._num_data_sets == 1:
+            data_set_index = 0
+            return torch.tensor(
                 self._calculate_one_log_prob_for_data_set(
                     model_parameters, data_set_index
                 )
-                for data_set_index in range(self._num_data_sets)
-            ]
-        )
+            )
+        else:
+            return torch.concat(
+                [
+                    self._calculate_one_log_prob_for_data_set(
+                        model_parameters, data_set_index
+                    )
+                    for data_set_index in range(self._num_data_sets)
+                ]
+            )
 
     def _calculate_one_log_prob_for_data_set(
         self, model_parameters: Tensor, data_set_index: int
@@ -77,39 +121,11 @@ class NoiseLikelihoodStrategy(torch.nn.Module):
         outputs = self._outputs_sets[data_set_index]
         num_data_points = self._num_data_points_per_set[data_set_index]
         num_flattened_outputs = num_data_points * self._dim_outputs
-        distribution = self._initialize_likelihood_distribution(num_flattened_outputs)
+        distribution = self._distribution.initialize(num_flattened_outputs)
         residuals = self._residual_calculator.calculate_residuals(
             model_parameters, inputs, outputs
         )
-        return distribution.log_prob(residuals)
-
-    def _initialize_likelihood_distribution(
-        self, num_flattened_outputs: int
-    ) -> IndependentMultivariateNormalDistributon:
-        means = self._assemble_residual_means(num_flattened_outputs)
-        standard_deviations = self._assemble_residual_standard_deviations(
-            num_flattened_outputs
-        )
-        return create_independent_multivariate_normal_distribution(
-            means=means,
-            standard_deviations=standard_deviations,
-            device=self._device,
-        )
-
-    def _assemble_residual_means(self, num_flattened_outputs: int) -> Tensor:
-        return torch.zeros(
-            (num_flattened_outputs,), dtype=torch.float64, device=self._device
-        )
-
-    def _assemble_residual_standard_deviations(
-        self, num_flattened_outputs: int
-    ) -> Tensor:
-        return torch.full(
-            (num_flattened_outputs,),
-            self._standard_deviation_noise,
-            dtype=torch.float64,
-            device=self._device,
-        )
+        return torch.unsqueeze(distribution.log_prob(residuals), dim=0)
 
 
 ### Noise and model error
@@ -125,11 +141,14 @@ class NoiseAndModelErrorLikelihoodDistribution:
     def initialize(
         self,
         model_error_standard_deviation_parameters: Tensor | Parameter,
+        num_data_points: int,
         num_flattened_outputs: int,
     ) -> IndependentMultivariateNormalDistributon:
         means = self._assemble_means(num_flattened_outputs)
         standard_deviations = self._assemble_standard_deviations(
-            model_error_standard_deviation_parameters, num_flattened_outputs
+            model_error_standard_deviation_parameters,
+            num_data_points,
+            num_flattened_outputs,
         )
         return create_independent_multivariate_normal_distribution(
             means=means,
@@ -145,13 +164,14 @@ class NoiseAndModelErrorLikelihoodDistribution:
     def _assemble_standard_deviations(
         self,
         model_error_standard_deviation_parameters: Tensor | Parameter,
+        num_data_points: int,
         num_flattened_outputs: int,
     ) -> Tensor:
         noise_standard_deviations = self._assemble_noise_standard_deviations(
             num_flattened_outputs
         )
         model_error_standard_deviations = self._assemble_error_standard_deviations(
-            model_error_standard_deviation_parameters, num_flattened_outputs
+            model_error_standard_deviation_parameters, num_data_points
         )
         return torch.sqrt(
             noise_standard_deviations**2 + model_error_standard_deviations**2
@@ -167,10 +187,10 @@ class NoiseAndModelErrorLikelihoodDistribution:
     def _assemble_error_standard_deviations(
         self,
         model_error_standard_deviation_parameters: Tensor | Parameter,
-        num_flattened_outputs: int,
+        num_data_points: int,
     ) -> Tensor:
         normalized_standard_deviation = torch.ones(
-            (num_flattened_outputs,),
+            (num_data_points,),
             dtype=torch.float64,
             device=self._device,
         )
@@ -232,16 +252,24 @@ class NoiseAndModelErrorSamplingLikelihoodStrategy(torch.nn.Module):
         model_parameters: Tensor,
         model_error_standard_deviation_parameters: Tensor,
     ) -> Tensor:
-        return torch.concat(
-            [
-                self._calculate_one_log_prob_for_data_set(
-                    model_parameters,
-                    model_error_standard_deviation_parameters,
-                    data_set_index,
-                )
-                for data_set_index in range(self._num_data_sets)
-            ]
-        )
+        if self._num_data_sets == 1:
+            data_set_index = 0
+            return self._calculate_one_log_prob_for_data_set(
+                model_parameters,
+                model_error_standard_deviation_parameters,
+                data_set_index,
+            )
+        else:
+            return torch.concat(
+                [
+                    self._calculate_one_log_prob_for_data_set(
+                        model_parameters,
+                        model_error_standard_deviation_parameters,
+                        data_set_index,
+                    )
+                    for data_set_index in range(self._num_data_sets)
+                ]
+            )
 
     def _calculate_one_log_prob_for_data_set(
         self,
@@ -254,12 +282,14 @@ class NoiseAndModelErrorSamplingLikelihoodStrategy(torch.nn.Module):
         num_data_points = self._num_data_points_per_set[data_set_index]
         num_flattened_outputs = num_data_points * self._dim_outputs
         distribution = self._distribution.initialize(
-            model_error_standard_deviation_parameters, num_flattened_outputs
+            model_error_standard_deviation_parameters,
+            num_data_points,
+            num_flattened_outputs,
         )
         residuals = self._residual_calculator.calculate_residuals(
             model_parameters, inputs, outputs
         )
-        return distribution.log_prob(residuals)
+        return torch.unsqueeze(distribution.log_prob(residuals), dim=0)
 
 
 class NoiseAndModelErrorOptimizeLikelihoodStrategy(torch.nn.Module):
@@ -306,16 +336,24 @@ class NoiseAndModelErrorOptimizeLikelihoodStrategy(torch.nn.Module):
         model_parameters: Tensor,
         model_error_standard_deviation_parameters: Tensor,
     ) -> Tensor:
-        return torch.concat(
-            [
-                self._calculate_one_log_prob_for_data_set(
-                    model_parameters,
-                    model_error_standard_deviation_parameters,
-                    data_set_index,
-                )
-                for data_set_index in range(self._num_data_sets)
-            ]
-        )
+        if self._num_data_sets == 1:
+            data_set_index = 0
+            return self._calculate_one_log_prob_for_data_set(
+                model_parameters,
+                model_error_standard_deviation_parameters,
+                data_set_index,
+            )
+        else:
+            return torch.concat(
+                [
+                    self._calculate_one_log_prob_for_data_set(
+                        model_parameters,
+                        model_error_standard_deviation_parameters,
+                        data_set_index,
+                    )
+                    for data_set_index in range(self._num_data_sets)
+                ]
+            )
 
     def _calculate_one_log_prob_for_data_set(
         self,
@@ -328,12 +366,14 @@ class NoiseAndModelErrorOptimizeLikelihoodStrategy(torch.nn.Module):
         num_data_points = self._num_data_points_per_set[data_set_index]
         num_flattened_outputs = num_data_points * self._dim_outputs
         distribution = self._distribution.initialize(
-            model_error_standard_deviation_parameters, num_flattened_outputs
+            model_error_standard_deviation_parameters,
+            num_data_points,
+            num_flattened_outputs,
         )
         residuals = self._residual_calculator.calculate_residuals(
             model_parameters, inputs, outputs
         )
-        return distribution.log_prob(residuals)
+        return torch.unsqueeze(distribution.log_prob(residuals), dim=0)
 
 
 ### Noise and model error GPs
@@ -436,17 +476,26 @@ class NoiseAndModelErrorGPsSamplingLikelihoodStrategy(torch.nn.Module):
         model_parameters: Tensor,
         model_error_gp: GaussianProcess,
     ) -> Tensor:
-        return torch.concat(
-            [
-                self._calculate_one_log_prob_for_data_set(
-                    model_parameters,
-                    model_error_gp,
-                    self._inputs_sets[data_set_index],
-                    data_set_index,
-                )
-                for data_set_index in range(self._num_data_sets)
-            ]
-        )
+        if self._num_data_sets == 1:
+            data_set_index = 0
+            return self._calculate_one_log_prob_for_data_set(
+                model_parameters,
+                model_error_gp,
+                self._inputs_sets[data_set_index],
+                data_set_index,
+            )
+        else:
+            return torch.concat(
+                [
+                    self._calculate_one_log_prob_for_data_set(
+                        model_parameters,
+                        model_error_gp,
+                        self._inputs_sets[data_set_index],
+                        data_set_index,
+                    )
+                    for data_set_index in range(self._num_data_sets)
+                ]
+            )
 
     def _calculate_one_log_prob_for_data_set(
         self,
@@ -465,7 +514,7 @@ class NoiseAndModelErrorGPsSamplingLikelihoodStrategy(torch.nn.Module):
         residuals = self._residual_calculator.calculate_residuals(
             model_parameters, inputs, outputs
         )
-        return distribution.log_prob(residuals)
+        return torch.unsqueeze(distribution.log_prob(residuals), dim=0)
 
 
 class NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(torch.nn.Module):
@@ -510,17 +559,26 @@ class NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(torch.nn.Module):
         model_parameters: Tensor,
         model_error_gp: GaussianProcess,
     ) -> Tensor:
-        return torch.concat(
-            [
-                self._calculate_one_log_prob_for_data_set(
-                    model_parameters,
-                    model_error_gp,
-                    self._inputs_sets[data_set_index],
-                    data_set_index,
-                )
-                for data_set_index in range(self._num_data_sets)
-            ]
-        )
+        if self._num_data_sets == 1:
+            data_set_index = 0
+            return self._calculate_one_log_prob_for_data_set(
+                model_parameters,
+                model_error_gp,
+                self._inputs_sets[data_set_index],
+                data_set_index,
+            )
+        else:
+            return torch.concat(
+                [
+                    self._calculate_one_log_prob_for_data_set(
+                        model_parameters,
+                        model_error_gp,
+                        self._inputs_sets[data_set_index],
+                        data_set_index,
+                    )
+                    for data_set_index in range(self._num_data_sets)
+                ]
+            )
 
     def _calculate_one_log_prob_for_data_set(
         self,
@@ -539,7 +597,7 @@ class NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(torch.nn.Module):
         residuals = self._residual_calculator.calculate_residuals(
             model_parameters, inputs, outputs
         )
-        return distribution.log_prob(residuals)
+        return torch.unsqueeze(distribution.log_prob(residuals), dim=0)
 
 
 def sum_individual_log_probs(log_probs: Tensor, num_data_sets: int) -> Tensor:

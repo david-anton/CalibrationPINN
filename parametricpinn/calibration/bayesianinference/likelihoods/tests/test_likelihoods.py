@@ -23,13 +23,17 @@ from parametricpinn.calibration.bayesianinference.likelihoods.likelihoods import
     StandardPPINNLikelihood,
     StandardResidualCalculator,
 )
-from parametricpinn.calibration.data import PreprocessedCalibrationData
+from parametricpinn.calibration.data import (
+    PreprocessedCalibrationData,
+    ConcatenatedCalibrationData,
+)
 from parametricpinn.errors import TestConfigurationError
 from parametricpinn.gps import (
     GaussianProcess,
     IndependentMultiOutputGP,
     ZeroMeanScaledRBFKernelGP,
 )
+from parametricpinn.gps.base import GPMultivariateNormal
 from parametricpinn.network import BFFNN, FFNN
 from parametricpinn.settings import set_default_dtype
 from parametricpinn.types import Module, Tensor
@@ -86,66 +90,35 @@ def _create_fake_standard_ansatz_multiple_dimension() -> StandardAnsatz:
 
 
 # Likelihood for noise
-# The standard deviation of the noise is selected so that the variance is 0.5.
-# For a variance 0f 0.5, the exponent of the exponential function in the normal distribution
+# 1) The inputs and parameters are selected such that the sum of them minus the true output is 1.
+# 2) The standard deviation of the noise is selected such that the variance is 0.5.
+# From 1 and 2 follows that the exponent of the exponential function in the normal distribution
 # is -1 times the number of flattened outputs.
 
 
-def test_standard_calibration_likelihood_for_noise_single_data_single_dimension():
+def test_standard_calibration_likelihood_for_noise_single_data_set_single_dimension():
     model = _create_fake_standard_ansatz_single_dimension()
-    inputs = torch.tensor([[1.0]])
-    parameters = torch.tensor([1.0])
+    num_data_sets = 1
+    data_points_per_set = 2
+    inputs = (torch.tensor([[1.0], [1.0]]),)
     num_model_parameters = 1
-    outputs = torch.tensor([[1.0]])
+    parameters = torch.tensor([1.0])
+    outputs = (torch.tensor([[1.0], [1.0]]),)
     std_noise = 1 / math.sqrt(2)
-    variance_error = std_noise**2
+    dim_outputs = 1
+    num_total_data_points = num_data_sets * data_points_per_set
+    num_flattened_outputs = dim_outputs * num_total_data_points
+    covariance_matrix = torch.diag(torch.full((num_flattened_outputs,), std_noise**2))
     data = PreprocessedCalibrationData(
+        num_data_sets=num_data_sets,
         inputs=inputs,
         outputs=outputs,
         std_noise=std_noise,
-        num_data_points=1,
-        dim_outputs=1,
+        num_data_points_per_set=(data_points_per_set,),
+        num_total_data_points=num_total_data_points,
+        dim_outputs=dim_outputs,
     )
-    residual_calculator = StandardResidualCalculator(
-        model=model, data=data, device=device
-    )
-    likelihood_strategy = NoiseLikelihoodStrategy(
-        residual_calculator=residual_calculator,
-        data=data,
-        num_model_parameters=num_model_parameters,
-        device=device,
-    )
-    sut = StandardPPINNLikelihood(
-        likelihood_strategy=likelihood_strategy,
-        device=device,
-    )
-
-    actual = sut.prob(parameters)
-
-    expected = (1 / torch.sqrt(2 * torch.tensor(math.pi) * variance_error)) * torch.pow(
-        torch.tensor(math.e), -1
-    ).type(torch.float64)
-    torch.testing.assert_close(actual, expected)
-
-
-def test_standard_calibration_likelihood_for_noise_multiple_data_single_dimension():
-    model = _create_fake_standard_ansatz_single_dimension()
-    inputs = torch.tensor([[1.0], [1.0]])
-    parameters = torch.tensor([1.0])
-    num_model_parameters = 1
-    outputs = torch.tensor([[1.0], [1.0]])
-    std_noise = 1 / math.sqrt(2)
-    covariance_error = torch.diag(torch.full((2,), std_noise**2))
-    data = PreprocessedCalibrationData(
-        inputs=inputs,
-        outputs=outputs,
-        std_noise=std_noise,
-        num_data_points=2,
-        dim_outputs=1,
-    )
-    residual_calculator = StandardResidualCalculator(
-        model=model, data=data, device=device
-    )
+    residual_calculator = StandardResidualCalculator(model=model, device=device)
     likelihood_strategy = NoiseLikelihoodStrategy(
         residual_calculator=residual_calculator,
         data=data,
@@ -161,97 +134,175 @@ def test_standard_calibration_likelihood_for_noise_multiple_data_single_dimensio
 
     expected = (
         1
-        / (2 * torch.tensor(math.pi) * torch.sqrt(torch.det(covariance_error)))
-        * torch.pow(torch.tensor(math.e), -2)
-    ).type(torch.float64)
-    torch.testing.assert_close(actual, expected)
-
-
-def test_standard_calibration_likelihood_for_noise_single_data_multiple_dimension():
-    model = _create_fake_standard_ansatz_multiple_dimension()
-    inputs = torch.tensor([[0.5, 0.5]])
-    parameters = torch.tensor([1.0])
-    num_model_parameters = 1
-    outputs = torch.tensor([[1.0, 1.0]])
-    std_noise = 1 / math.sqrt(2)
-    covariance_error = torch.diag(torch.full((2,), std_noise**2))
-    data = PreprocessedCalibrationData(
-        inputs=inputs,
-        outputs=outputs,
-        std_noise=std_noise,
-        num_data_points=1,
-        dim_outputs=2,
-    )
-    residual_calculator = StandardResidualCalculator(
-        model=model, data=data, device=device
-    )
-    likelihood_strategy = NoiseLikelihoodStrategy(
-        residual_calculator=residual_calculator,
-        data=data,
-        num_model_parameters=num_model_parameters,
-        device=device,
-    )
-    sut = StandardPPINNLikelihood(
-        likelihood_strategy=likelihood_strategy,
-        device=device,
-    )
-
-    actual = sut.prob(parameters)
-
-    expected = (
-        1
-        / (2 * torch.tensor(math.pi) * torch.sqrt(torch.det(covariance_error)))
-        * torch.pow(torch.tensor(math.e), -2)
-    ).type(torch.float64)
-    torch.testing.assert_close(actual, expected)
-
-
-def test_standard_calibration_likelihood_for_noise_multiple_data_multiple_dimension():
-    model = _create_fake_standard_ansatz_multiple_dimension()
-    inputs = torch.tensor([[0.5, 0.5], [0.5, 0.5]])
-    parameters = torch.tensor([1.0])
-    num_model_parameters = 1
-    outputs = torch.tensor([[1.0, 1.0], [1.0, 1.0]])
-    std_noise = 1 / math.sqrt(2)
-    covariance_error = torch.diag(torch.full((4,), std_noise**2))
-    data = PreprocessedCalibrationData(
-        inputs=inputs,
-        outputs=outputs,
-        std_noise=std_noise,
-        num_data_points=2,
-        dim_outputs=2,
-    )
-    residual_calculator = StandardResidualCalculator(
-        model=model, data=data, device=device
-    )
-    likelihood_strategy = NoiseLikelihoodStrategy(
-        residual_calculator=residual_calculator,
-        data=data,
-        num_model_parameters=num_model_parameters,
-        device=device,
-    )
-    sut = StandardPPINNLikelihood(
-        likelihood_strategy=likelihood_strategy,
-        device=device,
-    )
-
-    actual = sut.prob(parameters)
-
-    expected = (
-        1
-        / (
-            torch.pow((2 * torch.tensor(math.pi)), 2)
-            * torch.sqrt(torch.det(covariance_error))
+        / torch.sqrt(
+            (
+                torch.tensor(2 * math.pi) ** num_flattened_outputs
+                * torch.det(covariance_matrix)
+            )
         )
-        * torch.pow(torch.tensor(math.e), -4)
+        * torch.exp(torch.tensor(-num_flattened_outputs))
+    ).type(torch.float64)
+    torch.testing.assert_close(actual, expected)
+
+
+def test_standard_calibration_likelihood_for_noise_multiple_data_sets_single_dimension():
+    model = _create_fake_standard_ansatz_single_dimension()
+    num_data_sets = 2
+    data_points_per_set = 2
+    inputs = (torch.tensor([[1.0], [1.0]]), torch.tensor([[1.0], [1.0]]))
+    num_model_parameters = 1
+    parameters = torch.tensor([1.0])
+    outputs = (torch.tensor([[1.0], [1.0]]), torch.tensor([[1.0], [1.0]]))
+    std_noise = 1 / math.sqrt(2)
+    dim_oututs = 1
+    num_total_data_points = num_data_sets * data_points_per_set
+    num_flattened_outputs = dim_oututs * num_total_data_points
+    covariance_matrix = torch.diag(torch.full((num_flattened_outputs,), std_noise**2))
+    data = PreprocessedCalibrationData(
+        num_data_sets=num_data_sets,
+        inputs=inputs,
+        outputs=outputs,
+        std_noise=std_noise,
+        num_data_points_per_set=(data_points_per_set, data_points_per_set),
+        num_total_data_points=num_total_data_points,
+        dim_outputs=1,
+    )
+    residual_calculator = StandardResidualCalculator(model=model, device=device)
+    likelihood_strategy = NoiseLikelihoodStrategy(
+        residual_calculator=residual_calculator,
+        data=data,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
+    sut = StandardPPINNLikelihood(
+        likelihood_strategy=likelihood_strategy,
+        device=device,
+    )
+
+    actual = sut.prob(parameters)
+
+    expected = (
+        1
+        / torch.sqrt(
+            (
+                torch.tensor(2 * math.pi) ** num_flattened_outputs
+                * torch.det(covariance_matrix)
+            )
+        )
+        * torch.exp(torch.tensor(-num_flattened_outputs))
+    ).type(torch.float64)
+    torch.testing.assert_close(actual, expected)
+
+
+def test_standard_calibration_likelihood_for_noise_single_data_set_multiple_dimension():
+    model = _create_fake_standard_ansatz_multiple_dimension()
+    num_data_sets = 1
+    data_points_per_set = 2
+    inputs = (torch.tensor([[0.5, 0.5], [0.5, 0.5]]),)
+    num_model_parameters = 1
+    parameters = torch.tensor([1.0])
+    outputs = (torch.tensor([[1.0, 1.0], [1.0, 1.0]]),)
+    std_noise = 1 / math.sqrt(2)
+    dim_outputs = 2
+    num_total_data_points = num_data_sets * data_points_per_set
+    num_flattened_outputs = dim_outputs * num_total_data_points
+    covariance_matrix = torch.diag(torch.full((num_flattened_outputs,), std_noise**2))
+    data = PreprocessedCalibrationData(
+        num_data_sets=num_data_sets,
+        inputs=inputs,
+        outputs=outputs,
+        std_noise=std_noise,
+        num_data_points_per_set=(data_points_per_set,),
+        num_total_data_points=num_total_data_points,
+        dim_outputs=dim_outputs,
+    )
+    residual_calculator = StandardResidualCalculator(model=model, device=device)
+    likelihood_strategy = NoiseLikelihoodStrategy(
+        residual_calculator=residual_calculator,
+        data=data,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
+    sut = StandardPPINNLikelihood(
+        likelihood_strategy=likelihood_strategy,
+        device=device,
+    )
+
+    actual = sut.prob(parameters)
+
+    expected = (
+        1
+        / torch.sqrt(
+            (
+                torch.tensor(2 * math.pi) ** num_flattened_outputs
+                * torch.det(covariance_matrix)
+            )
+        )
+        * torch.exp(torch.tensor(-num_flattened_outputs))
+    ).type(torch.float64)
+    torch.testing.assert_close(actual, expected)
+
+
+def test_standard_calibration_likelihood_for_noise_multiple_data_sets_multiple_dimension():
+    model = _create_fake_standard_ansatz_multiple_dimension()
+    num_data_sets = 2
+    data_points_per_set = 2
+    inputs = (
+        torch.tensor([[0.5, 0.5], [0.5, 0.5]]),
+        torch.tensor([[0.5, 0.5], [0.5, 0.5]]),
+    )
+    num_model_parameters = 1
+    parameters = torch.tensor([1.0])
+    outputs = (
+        torch.tensor([[1.0, 1.0], [1.0, 1.0]]),
+        torch.tensor([[1.0, 1.0], [1.0, 1.0]]),
+    )
+    std_noise = 1 / math.sqrt(2)
+    dim_outputs = 2
+    num_total_data_points = num_data_sets * data_points_per_set
+    num_flattened_outputs = dim_outputs * num_total_data_points
+    covariance_matrix = torch.diag(torch.full((num_flattened_outputs,), std_noise**2))
+    data = PreprocessedCalibrationData(
+        num_data_sets=num_data_sets,
+        inputs=inputs,
+        outputs=outputs,
+        std_noise=std_noise,
+        num_data_points_per_set=(data_points_per_set, data_points_per_set),
+        num_total_data_points=num_total_data_points,
+        dim_outputs=dim_outputs,
+    )
+    residual_calculator = StandardResidualCalculator(model=model, device=device)
+    likelihood_strategy = NoiseLikelihoodStrategy(
+        residual_calculator=residual_calculator,
+        data=data,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
+    sut = StandardPPINNLikelihood(
+        likelihood_strategy=likelihood_strategy,
+        device=device,
+    )
+
+    actual = sut.prob(parameters)
+
+    expected = (
+        1
+        / torch.sqrt(
+            (
+                torch.tensor(2 * math.pi) ** num_flattened_outputs
+                * torch.det(covariance_matrix)
+            )
+        )
+        * torch.exp(torch.tensor(-num_flattened_outputs))
     ).type(torch.float64)
     torch.testing.assert_close(actual, expected)
 
 
 # Likelihood for noise and model error
-# The variance of the noise and the model error is selected to be 0.25 so that the total variance is 0.5.
-# For a variance of 0.5, the exponent of the exponential function in the normal distribution is
-# # is -1 times the number of flattened outputs.
+# 1) The inputs and parameters are selected such that the sum of them minus the true output is 1.
+# 2) The standard deviations of the noise and the model error are selected such that the variance is 0.5.
+# From 1 and 2 follows that the exponent of the exponential function in the normal distribution
+# is -1 times the number of flattened outputs.
 
 
 NoiseAndModelErrorLikelihoodFactoryFunc: TypeAlias = Callable[
@@ -306,29 +357,36 @@ def _create_optimized_noise_and_model_error_likelihood_strategy(
         _create_optimized_noise_and_model_error_likelihood_strategy,
     ],
 )
-def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_single_dimension(
+def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_set_single_dimension(
     likelihood_factory_func: NoiseAndModelErrorLikelihoodFactoryFunc,
 ):
     model = _create_fake_standard_ansatz_single_dimension()
-    inputs = torch.tensor([[1.0]])
-    outputs = torch.tensor([[1.0]])
+    num_data_sets = 1
+    data_points_per_set = 2
+    inputs = (torch.tensor([[1.0], [1.0]]),)
+    num_model_parameters = 1
+    parameters = torch.tensor([1.0])
+    outputs = (torch.tensor([[1.0], [1.0]]),)
+    dim_outputs = 1
+    num_total_data_points = num_data_sets * data_points_per_set
+    num_flattened_outputs = dim_outputs * num_total_data_points
     std_noise = 1 / math.sqrt(4)
     variance_noise = std_noise**2
     std_model_error = 1 / math.sqrt(4)
     variance_model_error = std_model_error**2
     total_variance = variance_noise + variance_model_error
+    covariance_matrix = torch.diag(torch.full((num_flattened_outputs,), total_variance))
     initial_model_error_standard_deviations = torch.tensor([std_model_error])
-    num_model_parameters = 1
     data = PreprocessedCalibrationData(
+        num_data_sets=num_data_sets,
         inputs=inputs,
         outputs=outputs,
         std_noise=std_noise,
-        num_data_points=1,
-        dim_outputs=1,
+        num_data_points_per_set=(data_points_per_set,),
+        num_total_data_points=num_total_data_points,
+        dim_outputs=dim_outputs,
     )
-    residual_calculator = StandardResidualCalculator(
-        model=model, data=data, device=device
-    )
+    residual_calculator = StandardResidualCalculator(model=model, device=device)
     likelihood_strategy, parameters = likelihood_factory_func(
         residual_calculator,
         initial_model_error_standard_deviations,
@@ -342,8 +400,15 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_s
 
     actual = sut.prob(parameters)
 
-    expected = (1 / torch.sqrt(2 * torch.tensor(math.pi) * total_variance)) * torch.pow(
-        torch.tensor(math.e), -1
+    expected = (
+        1
+        / torch.sqrt(
+            (
+                torch.tensor(2 * math.pi) ** num_flattened_outputs
+                * torch.det(covariance_matrix)
+            )
+        )
+        * torch.exp(torch.tensor(-num_flattened_outputs))
     ).type(torch.float64)
     torch.testing.assert_close(actual, expected)
 
@@ -355,31 +420,36 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_s
         _create_optimized_noise_and_model_error_likelihood_strategy,
     ],
 )
-def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data_single_dimension(
+def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data_sets_single_dimension(
     likelihood_factory_func: NoiseAndModelErrorLikelihoodFactoryFunc,
 ):
     model = _create_fake_standard_ansatz_single_dimension()
-    inputs = torch.tensor([[1.0], [1.0]])
-    outputs = torch.tensor([[1.0], [1.0]])
+    num_data_sets = 2
+    data_points_per_set = 2
+    inputs = (torch.tensor([[1.0], [1.0]]), torch.tensor([[1.0], [1.0]]))
+    num_model_parameters = 1
+    parameters = torch.tensor([1.0])
+    outputs = (torch.tensor([[1.0], [1.0]]), torch.tensor([[1.0], [1.0]]))
+    dim_outputs = 1
+    num_total_data_points = num_data_sets * data_points_per_set
+    num_flattened_outputs = dim_outputs * num_total_data_points
     std_noise = 1 / math.sqrt(4)
     variance_noise = std_noise**2
     std_model_error = 1 / math.sqrt(4)
     variance_model_error = std_model_error**2
-    total_covar_matrix = torch.diag(
-        torch.full((2,), variance_noise + variance_model_error)
-    )
+    total_variance = variance_noise + variance_model_error
+    covariance_matrix = torch.diag(torch.full((num_flattened_outputs,), total_variance))
     initial_model_error_standard_deviations = torch.tensor([std_model_error])
-    num_model_parameters = 1
     data = PreprocessedCalibrationData(
+        num_data_sets=num_data_sets,
         inputs=inputs,
         outputs=outputs,
         std_noise=std_noise,
-        num_data_points=2,
-        dim_outputs=1,
+        num_data_points_per_set=(data_points_per_set, data_points_per_set),
+        num_total_data_points=num_total_data_points,
+        dim_outputs=dim_outputs,
     )
-    residual_calculator = StandardResidualCalculator(
-        model=model, data=data, device=device
-    )
+    residual_calculator = StandardResidualCalculator(model=model, device=device)
     likelihood_strategy, parameters = likelihood_factory_func(
         residual_calculator,
         initial_model_error_standard_deviations,
@@ -395,129 +465,158 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data
 
     expected = (
         1
-        / (2 * torch.tensor(math.pi) * torch.sqrt(torch.det(total_covar_matrix)))
-        * torch.pow(torch.tensor(math.e), -2)
-    ).type(torch.float64)
-    torch.testing.assert_close(actual, expected)
-
-
-@pytest.mark.parametrize(
-    ("likelihood_factory_func"),
-    [
-        _create_noise_and_model_error_likelihood_strategy_for_sampling,
-        _create_optimized_noise_and_model_error_likelihood_strategy,
-    ],
-)
-def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_multiple_dimension(
-    likelihood_factory_func: NoiseAndModelErrorLikelihoodFactoryFunc,
-):
-    model = _create_fake_standard_ansatz_multiple_dimension()
-    inputs = torch.tensor([[0.5, 0.5]])
-    outputs = torch.tensor([[1.0, 1.0]])
-    std_noise = 1 / math.sqrt(4)
-    variance_noise = std_noise**2
-    std_model_error = 1 / math.sqrt(4)
-    variance_model_error = std_model_error**2
-    total_covar_matrix = torch.diag(
-        torch.full((2,), variance_noise + variance_model_error)
-    )
-    initial_model_error_standard_deviations = torch.tensor(
-        [std_model_error, std_model_error]
-    )
-    num_model_parameters = 1
-    data = PreprocessedCalibrationData(
-        inputs=inputs,
-        outputs=outputs,
-        std_noise=std_noise,
-        num_data_points=1,
-        dim_outputs=2,
-    )
-    residual_calculator = StandardResidualCalculator(
-        model=model, data=data, device=device
-    )
-    likelihood_strategy, parameters = likelihood_factory_func(
-        residual_calculator,
-        initial_model_error_standard_deviations,
-        data,
-        num_model_parameters,
-    )
-    sut = StandardPPINNLikelihood(
-        likelihood_strategy=likelihood_strategy,
-        device=device,
-    )
-
-    actual = sut.prob(parameters)
-
-    expected = (
-        1
-        / (2 * torch.tensor(math.pi) * torch.sqrt(torch.det(total_covar_matrix)))
-        * torch.pow(torch.tensor(math.e), -2)
-    ).type(torch.float64)
-    torch.testing.assert_close(actual, expected)
-
-
-@pytest.mark.parametrize(
-    ("likelihood_factory_func"),
-    [
-        _create_noise_and_model_error_likelihood_strategy_for_sampling,
-        _create_optimized_noise_and_model_error_likelihood_strategy,
-    ],
-)
-def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data_multiple_dimension(
-    likelihood_factory_func: NoiseAndModelErrorLikelihoodFactoryFunc,
-):
-    model = _create_fake_standard_ansatz_multiple_dimension()
-    inputs = torch.tensor([[0.5, 0.5], [0.5, 0.5]])
-    outputs = torch.tensor([[1.0, 1.0], [1.0, 1.0]])
-    std_noise = 1 / math.sqrt(4)
-    variance_noise = std_noise**2
-    std_model_error = 1 / math.sqrt(4)
-    variance_model_error = std_model_error**2
-    total_covar_matrix = torch.diag(
-        torch.full((4,), variance_noise + variance_model_error)
-    )
-    initial_model_error_standard_deviations = torch.tensor(
-        [std_model_error, std_model_error]
-    )
-    num_model_parameters = 1
-    data = PreprocessedCalibrationData(
-        inputs=inputs,
-        outputs=outputs,
-        std_noise=std_noise,
-        num_data_points=2,
-        dim_outputs=2,
-    )
-    residual_calculator = StandardResidualCalculator(
-        model=model, data=data, device=device
-    )
-    likelihood_strategy, parameters = likelihood_factory_func(
-        residual_calculator,
-        initial_model_error_standard_deviations,
-        data,
-        num_model_parameters,
-    )
-    sut = StandardPPINNLikelihood(
-        likelihood_strategy=likelihood_strategy,
-        device=device,
-    )
-
-    actual = sut.prob(parameters)
-
-    expected = (
-        1
-        / (
-            torch.pow((2 * torch.tensor(math.pi)), 2)
-            * torch.sqrt(torch.det(total_covar_matrix))
+        / torch.sqrt(
+            (
+                torch.tensor(2 * math.pi) ** num_flattened_outputs
+                * torch.det(covariance_matrix)
+            )
         )
-        * torch.pow(torch.tensor(math.e), -4)
+        * torch.exp(torch.tensor(-num_flattened_outputs))
+    ).type(torch.float64)
+    torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize(
+    ("likelihood_factory_func"),
+    [
+        _create_noise_and_model_error_likelihood_strategy_for_sampling,
+        _create_optimized_noise_and_model_error_likelihood_strategy,
+    ],
+)
+def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_set_multiple_dimension(
+    likelihood_factory_func: NoiseAndModelErrorLikelihoodFactoryFunc,
+):
+    model = _create_fake_standard_ansatz_multiple_dimension()
+    num_data_sets = 1
+    data_points_per_set = 2
+    inputs = (torch.tensor([[0.5, 0.5], [0.5, 0.5]]),)
+    num_model_parameters = 1
+    parameters = torch.tensor([1.0])
+    outputs = (torch.tensor([[1.0, 1.0], [1.0, 1.0]]),)
+    dim_outputs = 2
+    num_total_data_points = num_data_sets * data_points_per_set
+    num_flattened_outputs = dim_outputs * num_total_data_points
+    std_noise = 1 / math.sqrt(4)
+    variance_noise = std_noise**2
+    std_model_error = 1 / math.sqrt(4)
+    variance_model_error = std_model_error**2
+    total_variance = variance_noise + variance_model_error
+    covariance_matrix = torch.diag(torch.full((num_flattened_outputs,), total_variance))
+    initial_model_error_standard_deviations = torch.tensor(
+        [std_model_error, std_model_error]
+    )
+    data = PreprocessedCalibrationData(
+        num_data_sets=num_data_sets,
+        inputs=inputs,
+        outputs=outputs,
+        std_noise=std_noise,
+        num_data_points_per_set=(data_points_per_set,),
+        num_total_data_points=num_total_data_points,
+        dim_outputs=dim_outputs,
+    )
+    residual_calculator = StandardResidualCalculator(model=model, device=device)
+    likelihood_strategy, parameters = likelihood_factory_func(
+        residual_calculator,
+        initial_model_error_standard_deviations,
+        data,
+        num_model_parameters,
+    )
+    sut = StandardPPINNLikelihood(
+        likelihood_strategy=likelihood_strategy,
+        device=device,
+    )
+
+    actual = sut.prob(parameters)
+
+    expected = (
+        1
+        / torch.sqrt(
+            (
+                torch.tensor(2 * math.pi) ** num_flattened_outputs
+                * torch.det(covariance_matrix)
+            )
+        )
+        * torch.exp(torch.tensor(-num_flattened_outputs))
+    ).type(torch.float64)
+    torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize(
+    ("likelihood_factory_func"),
+    [
+        _create_noise_and_model_error_likelihood_strategy_for_sampling,
+        _create_optimized_noise_and_model_error_likelihood_strategy,
+    ],
+)
+def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data_sets_multiple_dimension(
+    likelihood_factory_func: NoiseAndModelErrorLikelihoodFactoryFunc,
+):
+    model = _create_fake_standard_ansatz_multiple_dimension()
+    num_data_sets = 2
+    data_points_per_set = 2
+    inputs = (
+        torch.tensor([[0.5, 0.5], [0.5, 0.5]]),
+        torch.tensor([[0.5, 0.5], [0.5, 0.5]]),
+    )
+    num_model_parameters = 1
+    parameters = torch.tensor([1.0])
+    outputs = (
+        torch.tensor([[1.0, 1.0], [1.0, 1.0]]),
+        torch.tensor([[1.0, 1.0], [1.0, 1.0]]),
+    )
+    dim_outputs = 2
+    num_total_data_points = num_data_sets * data_points_per_set
+    num_flattened_outputs = dim_outputs * num_total_data_points
+    std_noise = 1 / math.sqrt(4)
+    variance_noise = std_noise**2
+    std_model_error = 1 / math.sqrt(4)
+    variance_model_error = std_model_error**2
+    total_variance = variance_noise + variance_model_error
+    covariance_matrix = torch.diag(torch.full((num_flattened_outputs,), total_variance))
+    initial_model_error_standard_deviations = torch.tensor(
+        [std_model_error, std_model_error]
+    )
+    data = PreprocessedCalibrationData(
+        num_data_sets=num_data_sets,
+        inputs=inputs,
+        outputs=outputs,
+        std_noise=std_noise,
+        num_data_points_per_set=(data_points_per_set, data_points_per_set),
+        num_total_data_points=num_total_data_points,
+        dim_outputs=dim_outputs,
+    )
+    residual_calculator = StandardResidualCalculator(model=model, device=device)
+    likelihood_strategy, parameters = likelihood_factory_func(
+        residual_calculator,
+        initial_model_error_standard_deviations,
+        data,
+        num_model_parameters,
+    )
+    sut = StandardPPINNLikelihood(
+        likelihood_strategy=likelihood_strategy,
+        device=device,
+    )
+
+    actual = sut.prob(parameters)
+
+    expected = (
+        1
+        / torch.sqrt(
+            (
+                torch.tensor(2 * math.pi) ** num_flattened_outputs
+                * torch.det(covariance_matrix)
+            )
+        )
+        * torch.exp(torch.tensor(-num_flattened_outputs))
     ).type(torch.float64)
     torch.testing.assert_close(actual, expected)
 
 
 # Likelihood for noise and model error GPs
-# The variance of the noise and the model error is selected to be 0.25 so that the total variance is 0.5.
-# For a variance of 0.5, the exponent of the exponential function in the normal distribution is
-# # is -1 times the number of flattened outputs.
+# 1) The inputs and parameters are selected such that the sum of them minus the true output is 1.
+# 2) The standard deviations of the noise and the model error are selected such that the variance is 0.5.
+# From 1 and 2 follows that the exponent of the exponential function in the normal distribution
+# is -1 times the number of flattened outputs.
 
 
 NoiseAndModelErrorGPsLikelihoodFactoryFunc: TypeAlias = Callable[
@@ -611,8 +710,8 @@ class FakeZeroMeanScaledRBFKernelGP(ZeroMeanScaledRBFKernelGP):
         self.num_gps = 1
         self.num_hyperparameters = 2
 
-    def forward(self) -> None:
-        pass
+    def forward(self, x: Tensor) -> GPMultivariateNormal:
+        return torch.tensor(0.0)
 
     def forward_kernel(self, x_1: Tensor, x_2: Tensor) -> Tensor:
         if x_1.size() != x_2.size():
@@ -636,27 +735,35 @@ class FakeZeroMeanScaledRBFKernelGP(ZeroMeanScaledRBFKernelGP):
         _create_optimized_noise_and_model_error_gps_likelihood_strategy,
     ],
 )
-def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_data_single_dimension(
+def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_data_set_single_dimension(
     likelihood_factory_func: NoiseAndModelErrorGPsLikelihoodFactoryFunc,
 ):
     model = _create_fake_standard_ansatz_single_dimension()
-    inputs = torch.tensor([[1.0]])
+    num_data_sets = 1
+    data_points_per_set = 2
+    inputs = (torch.tensor([[1.0], [1.0]]),)
     num_model_parameters = 1
-    outputs = torch.tensor([[1.0]])
+    parameters = torch.tensor([1.0])
+    outputs = (torch.tensor([[1.0], [1.0]]),)
+    dim_outputs = 1
+    num_total_data_points = num_data_sets * data_points_per_set
+    num_flattened_outputs = dim_outputs * num_total_data_points
     std_noise = 1 / math.sqrt(4)
     variance_noise = std_noise**2
-    variance_model_error = 0.25
+    std_model_error = 1 / math.sqrt(4)
+    variance_model_error = std_model_error**2
     total_variance = variance_noise + variance_model_error
+    covariance_matrix = torch.diag(torch.full((num_flattened_outputs,), total_variance))
     data = PreprocessedCalibrationData(
+        num_data_sets=num_data_sets,
         inputs=inputs,
         outputs=outputs,
         std_noise=std_noise,
-        num_data_points=1,
-        dim_outputs=1,
+        num_data_points_per_set=(data_points_per_set,),
+        num_total_data_points=num_total_data_points,
+        dim_outputs=dim_outputs,
     )
-    residual_calculator = StandardResidualCalculator(
-        model=model, data=data, device=device
-    )
+    residual_calculator = StandardResidualCalculator(model=model, device=device)
     initial_gp_parameters = torch.tensor([0.0, 0.0])
     model_error_gp = FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error)
     likelihood_strategy, parameters = likelihood_factory_func(
@@ -673,8 +780,15 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_da
 
     actual = sut.prob(parameters)
 
-    expected = (1 / torch.sqrt(2 * torch.tensor(math.pi) * total_variance)) * torch.pow(
-        torch.tensor(math.e), -1
+    expected = (
+        1
+        / torch.sqrt(
+            (
+                torch.tensor(2 * math.pi) ** num_flattened_outputs
+                * torch.det(covariance_matrix)
+            )
+        )
+        * torch.exp(torch.tensor(-num_flattened_outputs))
     ).type(torch.float64)
     torch.testing.assert_close(actual, expected)
 
@@ -686,29 +800,35 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_da
         _create_optimized_noise_and_model_error_gps_likelihood_strategy,
     ],
 )
-def test_standard_calibration_likelihood_for_noise_and_model_error_gps_multiple_data_single_dimension(
+def test_standard_calibration_likelihood_for_noise_and_model_error_gps_multiple_data_sets_single_dimension(
     likelihood_factory_func: NoiseAndModelErrorGPsLikelihoodFactoryFunc,
 ):
     model = _create_fake_standard_ansatz_single_dimension()
-    inputs = torch.tensor([[1.0], [1.0]])
+    num_data_sets = 2
+    data_points_per_set = 2
+    inputs = (torch.tensor([[1.0], [1.0]]), torch.tensor([[1.0], [1.0]]))
     num_model_parameters = 1
-    outputs = torch.tensor([[1.0], [1.0]])
+    parameters = torch.tensor([1.0])
+    outputs = (torch.tensor([[1.0], [1.0]]), torch.tensor([[1.0], [1.0]]))
+    dim_outputs = 1
+    num_total_data_points = num_data_sets * data_points_per_set
+    num_flattened_outputs = dim_outputs * num_total_data_points
     std_noise = 1 / math.sqrt(4)
     variance_noise = std_noise**2
-    variance_model_error = 0.25
-    total_covar_matrix = torch.diag(
-        torch.full((2,), variance_noise + variance_model_error)
-    )
+    std_model_error = 1 / math.sqrt(4)
+    variance_model_error = std_model_error**2
+    total_variance = variance_noise + variance_model_error
+    covariance_matrix = torch.diag(torch.full((num_flattened_outputs,), total_variance))
     data = PreprocessedCalibrationData(
+        num_data_sets=num_data_sets,
         inputs=inputs,
         outputs=outputs,
         std_noise=std_noise,
-        num_data_points=2,
-        dim_outputs=1,
+        num_data_points_per_set=(data_points_per_set, data_points_per_set),
+        num_total_data_points=num_total_data_points,
+        dim_outputs=dim_outputs,
     )
-    residual_calculator = StandardResidualCalculator(
-        model=model, data=data, device=device
-    )
+    residual_calculator = StandardResidualCalculator(model=model, device=device)
     initial_gp_parameters = torch.tensor([0.0, 0.0])
     model_error_gp = FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error)
     likelihood_strategy, parameters = likelihood_factory_func(
@@ -727,140 +847,172 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_gps_multiple_
 
     expected = (
         1
-        / (2 * torch.tensor(math.pi) * torch.sqrt(torch.det(total_covar_matrix)))
-        * torch.pow(torch.tensor(math.e), -2)
-    ).type(torch.float64)
-    torch.testing.assert_close(actual, expected)
-
-
-@pytest.mark.parametrize(
-    ("likelihood_factory_func"),
-    [
-        _create_noise_and_model_error_gps_likelihood_strategy_for_sampling,
-        _create_optimized_noise_and_model_error_gps_likelihood_strategy,
-    ],
-)
-def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_data_multiple_dimension(
-    likelihood_factory_func: NoiseAndModelErrorGPsLikelihoodFactoryFunc,
-):
-    model = _create_fake_standard_ansatz_multiple_dimension()
-    inputs = torch.tensor([[0.5, 0.5]])
-    num_model_parameters = 1
-    outputs = torch.tensor([[1.0, 1.0]])
-    std_noise = 1 / math.sqrt(4)
-    variance_noise = std_noise**2
-    variance_model_error = 0.25
-    total_covar_matrix = torch.diag(
-        torch.full((2,), variance_noise + variance_model_error)
-    )
-    data = PreprocessedCalibrationData(
-        inputs=inputs,
-        outputs=outputs,
-        std_noise=std_noise,
-        num_data_points=1,
-        dim_outputs=2,
-    )
-    residual_calculator = StandardResidualCalculator(
-        model=model, data=data, device=device
-    )
-    initial_gp_parameters = torch.tensor([0.0, 0.0, 0.0, 0.0])
-    model_error_gp = IndependentMultiOutputGP(
-        [
-            FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error),
-            FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error),
-        ],
-        device=device,
-    )
-    likelihood_strategy, parameters = likelihood_factory_func(
-        residual_calculator,
-        model_error_gp,
-        initial_gp_parameters,
-        data,
-        num_model_parameters,
-    )
-
-    sut = StandardPPINNLikelihood(
-        likelihood_strategy=likelihood_strategy,
-        device=device,
-    )
-
-    actual = sut.prob(parameters)
-
-    expected = (
-        1
-        / (2 * torch.tensor(math.pi) * torch.sqrt(torch.det(total_covar_matrix)))
-        * torch.pow(torch.tensor(math.e), -2)
-    ).type(torch.float64)
-    torch.testing.assert_close(actual, expected)
-
-
-@pytest.mark.parametrize(
-    ("likelihood_factory_func"),
-    [
-        _create_noise_and_model_error_gps_likelihood_strategy_for_sampling,
-        _create_optimized_noise_and_model_error_gps_likelihood_strategy,
-    ],
-)
-def test_standard_calibration_likelihood_for_noise_and_model_error_gps_multiple_data_multiple_dimension(
-    likelihood_factory_func: NoiseAndModelErrorGPsLikelihoodFactoryFunc,
-):
-    model = _create_fake_standard_ansatz_multiple_dimension()
-    inputs = torch.tensor([[0.5, 0.5], [0.5, 0.5]])
-    num_model_parameters = 1
-    outputs = torch.tensor([[1.0, 1.0], [1.0, 1.0]])
-    std_noise = 1 / math.sqrt(4)
-    variance_noise = std_noise**2
-    variance_model_error = 0.25
-    total_covar_matrix = torch.diag(
-        torch.full((4,), variance_noise + variance_model_error)
-    )
-    data = PreprocessedCalibrationData(
-        inputs=inputs,
-        outputs=outputs,
-        std_noise=std_noise,
-        num_data_points=2,
-        dim_outputs=2,
-    )
-    residual_calculator = StandardResidualCalculator(
-        model=model, data=data, device=device
-    )
-    initial_gp_parameters = torch.tensor([0.0, 0.0, 0.0, 0.0])
-    model_error_gp = IndependentMultiOutputGP(
-        [
-            FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error),
-            FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error),
-        ],
-        device=device,
-    )
-    likelihood_strategy, parameters = likelihood_factory_func(
-        residual_calculator,
-        model_error_gp,
-        initial_gp_parameters,
-        data,
-        num_model_parameters,
-    )
-    sut = StandardPPINNLikelihood(
-        likelihood_strategy=likelihood_strategy,
-        device=device,
-    )
-
-    actual = sut.prob(parameters)
-
-    expected = (
-        1
-        / (
-            torch.pow((2 * torch.tensor(math.pi)), 2)
-            * torch.sqrt(torch.det(total_covar_matrix))
+        / torch.sqrt(
+            (
+                torch.tensor(2 * math.pi) ** num_flattened_outputs
+                * torch.det(covariance_matrix)
+            )
         )
-        * torch.pow(torch.tensor(math.e), -4)
+        * torch.exp(torch.tensor(-num_flattened_outputs))
     ).type(torch.float64)
     torch.testing.assert_close(actual, expected)
 
 
-### Bayesian PPINNs
-# The variance of the noise and the predicted output (by the BFFNN) is selected to be 0.25
-# so that the total variance is 0.5. For a variance of 0.5, the exponent of the exponential function
-# in the normal distribution is is -1 times the number of flattened outputs.
+@pytest.mark.parametrize(
+    ("likelihood_factory_func"),
+    [
+        _create_noise_and_model_error_gps_likelihood_strategy_for_sampling,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy,
+    ],
+)
+def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_data_set_multiple_dimension(
+    likelihood_factory_func: NoiseAndModelErrorGPsLikelihoodFactoryFunc,
+):
+    model = _create_fake_standard_ansatz_multiple_dimension()
+    num_data_sets = 1
+    data_points_per_set = 2
+    inputs = (torch.tensor([[0.5, 0.5], [0.5, 0.5]]),)
+    num_model_parameters = 1
+    parameters = torch.tensor([1.0])
+    outputs = (torch.tensor([[1.0, 1.0], [1.0, 1.0]]),)
+    dim_outputs = 2
+    num_total_data_points = num_data_sets * data_points_per_set
+    num_flattened_outputs = dim_outputs * num_total_data_points
+    std_noise = 1 / math.sqrt(4)
+    variance_noise = std_noise**2
+    std_model_error = 1 / math.sqrt(4)
+    variance_model_error = std_model_error**2
+    total_variance = variance_noise + variance_model_error
+    covariance_matrix = torch.diag(torch.full((num_flattened_outputs,), total_variance))
+    data = PreprocessedCalibrationData(
+        num_data_sets=num_data_sets,
+        inputs=inputs,
+        outputs=outputs,
+        std_noise=std_noise,
+        num_data_points_per_set=(data_points_per_set,),
+        num_total_data_points=num_total_data_points,
+        dim_outputs=dim_outputs,
+    )
+    residual_calculator = StandardResidualCalculator(model=model, device=device)
+    initial_gp_parameters = torch.tensor([0.0, 0.0, 0.0, 0.0])
+    model_error_gp = IndependentMultiOutputGP(
+        [
+            FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error),
+            FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error),
+        ],
+        device=device,
+    )
+    likelihood_strategy, parameters = likelihood_factory_func(
+        residual_calculator,
+        model_error_gp,
+        initial_gp_parameters,
+        data,
+        num_model_parameters,
+    )
+
+    sut = StandardPPINNLikelihood(
+        likelihood_strategy=likelihood_strategy,
+        device=device,
+    )
+
+    actual = sut.prob(parameters)
+
+    expected = (
+        1
+        / torch.sqrt(
+            (
+                torch.tensor(2 * math.pi) ** num_flattened_outputs
+                * torch.det(covariance_matrix)
+            )
+        )
+        * torch.exp(torch.tensor(-num_flattened_outputs))
+    ).type(torch.float64)
+    torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize(
+    ("likelihood_factory_func"),
+    [
+        _create_noise_and_model_error_gps_likelihood_strategy_for_sampling,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy,
+    ],
+)
+def test_standard_calibration_likelihood_for_noise_and_model_error_gps_multiple_data_sets_multiple_dimension(
+    likelihood_factory_func: NoiseAndModelErrorGPsLikelihoodFactoryFunc,
+):
+    model = _create_fake_standard_ansatz_multiple_dimension()
+    num_data_sets = 2
+    data_points_per_set = 2
+    inputs = (
+        torch.tensor([[0.5, 0.5], [0.5, 0.5]]),
+        torch.tensor([[0.5, 0.5], [0.5, 0.5]]),
+    )
+    num_model_parameters = 1
+    parameters = torch.tensor([1.0])
+    outputs = (
+        torch.tensor([[1.0, 1.0], [1.0, 1.0]]),
+        torch.tensor([[1.0, 1.0], [1.0, 1.0]]),
+    )
+    dim_outputs = 2
+    num_total_data_points = num_data_sets * data_points_per_set
+    num_flattened_outputs = dim_outputs * num_total_data_points
+    std_noise = 1 / math.sqrt(4)
+    variance_noise = std_noise**2
+    std_model_error = 1 / math.sqrt(4)
+    variance_model_error = std_model_error**2
+    total_variance = variance_noise + variance_model_error
+    covariance_matrix = torch.diag(torch.full((num_flattened_outputs,), total_variance))
+    data = PreprocessedCalibrationData(
+        num_data_sets=num_data_sets,
+        inputs=inputs,
+        outputs=outputs,
+        std_noise=std_noise,
+        num_data_points_per_set=(data_points_per_set, data_points_per_set),
+        num_total_data_points=num_total_data_points,
+        dim_outputs=dim_outputs,
+    )
+    residual_calculator = StandardResidualCalculator(model=model, device=device)
+    initial_gp_parameters = torch.tensor([0.0, 0.0, 0.0, 0.0])
+    model_error_gp = IndependentMultiOutputGP(
+        [
+            FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error),
+            FakeZeroMeanScaledRBFKernelGP(variance_error=variance_model_error),
+        ],
+        device=device,
+    )
+    likelihood_strategy, parameters = likelihood_factory_func(
+        residual_calculator,
+        model_error_gp,
+        initial_gp_parameters,
+        data,
+        num_model_parameters,
+    )
+    sut = StandardPPINNLikelihood(
+        likelihood_strategy=likelihood_strategy,
+        device=device,
+    )
+
+    actual = sut.prob(parameters)
+
+    expected = (
+        1
+        / torch.sqrt(
+            (
+                torch.tensor(2 * math.pi) ** num_flattened_outputs
+                * torch.det(covariance_matrix)
+            )
+        )
+        * torch.exp(torch.tensor(-num_flattened_outputs))
+    ).type(torch.float64)
+    torch.testing.assert_close(actual, expected)
+
+
+# Likelihood for Bayesian PPINNs
+# 1) The inputs and parameters are selected such that the sum of them minus the true output is 1.
+# 2) The standard deviations of the noise and the error of the predicted output (predicted by the Baxesian PPINN)
+# are selected such that the variance is 0.5.
+# From 1 and 2 follows that the exponent of the exponential function in the normal distribution
+# is -1 times the number of flattened outputs.
 
 
 class FakeBayesianAnsatz_SingleDimension(BayesianAnsatz):
@@ -874,7 +1026,7 @@ class FakeBayesianAnsatz_SingleDimension(BayesianAnsatz):
         self._variance_output = variance_output
 
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        return torch.tensor(0.0)
 
     def predict_normal_distribution(
         self, input: Tensor, parameter_samples: Tensor
@@ -895,7 +1047,7 @@ class FakeBayesianAnsatz_MultipleDimension(BayesianAnsatz):
         self._variance_output = variance_output
 
     def forward(self, input: Tensor) -> Tensor:
-        pass
+        return torch.tensor(0.0)
 
     def predict_normal_distribution(
         self, input: Tensor, parameter_samples: Tensor
@@ -932,22 +1084,27 @@ def _create_fake_bayesian_ansatz_multiple_dimension(
 
 
 def test_bayesian_calibration_likelihood_for_noise_single_data_single_dimension():
-    variance_bpinn = 0.25
+    std_bppinn = 1 / math.sqrt(4)
+    variance_bppinn = std_bppinn**2
     model = _create_fake_bayesian_ansatz_single_dimension(
-        variance_output=variance_bpinn
+        variance_output=variance_bppinn
     )
+    num_data_points = 1
     inputs = torch.tensor([[1.0]])
     parameters = torch.tensor([1.0])
     outputs = torch.tensor([[1.0]])
+    dim_outputs = 1
+    num_flattened_outputs = dim_outputs * num_data_points
     std_noise = 1 / math.sqrt(4)
     variance_noise = std_noise**2
-    total_variance = variance_noise + variance_bpinn
-    data = PreprocessedCalibrationData(
+    total_variance = variance_noise + variance_bppinn
+    covariance_matrix = torch.diag(torch.full((num_flattened_outputs,), total_variance))
+    data = ConcatenatedCalibrationData(
         inputs=inputs,
         outputs=outputs,
+        num_data_points=num_data_points,
+        dim_outputs=dim_outputs,
         std_noise=std_noise,
-        num_data_points=1,
-        dim_outputs=1,
     )
     sut = BayesianPPINNLikelihood(
         model=model, model_parameter_samples=torch.tensor([]), data=data, device=device
@@ -955,29 +1112,41 @@ def test_bayesian_calibration_likelihood_for_noise_single_data_single_dimension(
 
     actual = sut.prob(parameters)
 
-    expected = (1 / torch.sqrt(2 * torch.tensor(math.pi) * total_variance)) * torch.pow(
-        torch.tensor(math.e), -1
+    expected = (
+        1
+        / torch.sqrt(
+            (
+                torch.tensor(2 * math.pi) ** num_flattened_outputs
+                * torch.det(covariance_matrix)
+            )
+        )
+        * torch.exp(torch.tensor(-num_flattened_outputs))
     ).type(torch.float64)
     torch.testing.assert_close(actual, expected)
 
 
 def test_bayesian_calibration_likelihood_for_noise_multiple_data_single_dimension():
-    variance_bpinn = 0.25
+    std_bppinn = 1 / math.sqrt(4)
+    variance_bppinn = std_bppinn**2
     model = _create_fake_bayesian_ansatz_single_dimension(
-        variance_output=variance_bpinn
+        variance_output=variance_bppinn
     )
+    num_data_points = 2
     inputs = torch.tensor([[1.0], [1.0]])
     parameters = torch.tensor([1.0])
     outputs = torch.tensor([[1.0], [1.0]])
+    dim_outputs = 1
+    num_flattened_outputs = dim_outputs * num_data_points
     std_noise = 1 / math.sqrt(4)
     variance_noise = std_noise**2
-    total_covar_matrix = torch.diag(torch.full((2,), variance_noise + variance_bpinn))
-    data = PreprocessedCalibrationData(
+    total_variance = variance_noise + variance_bppinn
+    covariance_matrix = torch.diag(torch.full((num_flattened_outputs,), total_variance))
+    data = ConcatenatedCalibrationData(
         inputs=inputs,
         outputs=outputs,
+        num_data_points=num_data_points,
+        dim_outputs=dim_outputs,
         std_noise=std_noise,
-        num_data_points=2,
-        dim_outputs=1,
     )
     sut = BayesianPPINNLikelihood(
         model=model, model_parameter_samples=torch.tensor([]), data=data, device=device
@@ -987,29 +1156,39 @@ def test_bayesian_calibration_likelihood_for_noise_multiple_data_single_dimensio
 
     expected = (
         1
-        / (2 * torch.tensor(math.pi) * torch.sqrt(torch.det(total_covar_matrix)))
-        * torch.pow(torch.tensor(math.e), -2)
+        / torch.sqrt(
+            (
+                torch.tensor(2 * math.pi) ** num_flattened_outputs
+                * torch.det(covariance_matrix)
+            )
+        )
+        * torch.exp(torch.tensor(-num_flattened_outputs))
     ).type(torch.float64)
     torch.testing.assert_close(actual, expected)
 
 
 def test_bayesian_calibration_likelihood_for_noise_single_data_multiple_dimension():
-    variance_bpinn = 0.25
+    std_bppinn = 1 / math.sqrt(4)
+    variance_bppinn = std_bppinn**2
     model = _create_fake_bayesian_ansatz_multiple_dimension(
-        variance_output=variance_bpinn
+        variance_output=variance_bppinn
     )
+    num_data_points = 1
     inputs = torch.tensor([[0.5, 0.5]])
     parameters = torch.tensor([1.0])
     outputs = torch.tensor([[1.0, 1.0]])
+    dim_outputs = 2
+    num_flattened_outputs = dim_outputs * num_data_points
     std_noise = 1 / math.sqrt(4)
     variance_noise = std_noise**2
-    total_covar_matrix = torch.diag(torch.full((2,), variance_noise + variance_bpinn))
-    data = PreprocessedCalibrationData(
+    total_variance = variance_noise + variance_bppinn
+    covariance_matrix = torch.diag(torch.full((num_flattened_outputs,), total_variance))
+    data = ConcatenatedCalibrationData(
         inputs=inputs,
         outputs=outputs,
+        num_data_points=num_data_points,
+        dim_outputs=dim_outputs,
         std_noise=std_noise,
-        num_data_points=1,
-        dim_outputs=2,
     )
     sut = BayesianPPINNLikelihood(
         model=model, model_parameter_samples=torch.tensor([]), data=data, device=device
@@ -1019,29 +1198,39 @@ def test_bayesian_calibration_likelihood_for_noise_single_data_multiple_dimensio
 
     expected = (
         1
-        / (2 * torch.tensor(math.pi) * torch.sqrt(torch.det(total_covar_matrix)))
-        * torch.pow(torch.tensor(math.e), -2)
+        / torch.sqrt(
+            (
+                torch.tensor(2 * math.pi) ** num_flattened_outputs
+                * torch.det(covariance_matrix)
+            )
+        )
+        * torch.exp(torch.tensor(-num_flattened_outputs))
     ).type(torch.float64)
     torch.testing.assert_close(actual, expected)
 
 
 def test_bayesian_calibration_likelihood_for_noise_multiple_data_multiple_dimension():
-    variance_bpinn = 0.25
+    std_bppinn = 1 / math.sqrt(4)
+    variance_bppinn = std_bppinn**2
     model = _create_fake_bayesian_ansatz_multiple_dimension(
-        variance_output=variance_bpinn
+        variance_output=variance_bppinn
     )
+    num_data_points = 2
     inputs = torch.tensor([[0.5, 0.5], [0.5, 0.5]])
     parameters = torch.tensor([1.0])
     outputs = torch.tensor([[1.0, 1.0], [1.0, 1.0]])
+    dim_outputs = 2
+    num_flattened_outputs = dim_outputs * num_data_points
     std_noise = 1 / math.sqrt(4)
     variance_noise = std_noise**2
-    total_covar_matrix = torch.diag(torch.full((4,), variance_noise + variance_bpinn))
-    data = PreprocessedCalibrationData(
+    total_variance = variance_noise + variance_bppinn
+    covariance_matrix = torch.diag(torch.full((num_flattened_outputs,), total_variance))
+    data = ConcatenatedCalibrationData(
         inputs=inputs,
         outputs=outputs,
+        num_data_points=num_data_points,
+        dim_outputs=dim_outputs,
         std_noise=std_noise,
-        num_data_points=2,
-        dim_outputs=2,
     )
     sut = BayesianPPINNLikelihood(
         model=model, model_parameter_samples=torch.tensor([]), data=data, device=device
@@ -1051,10 +1240,12 @@ def test_bayesian_calibration_likelihood_for_noise_multiple_data_multiple_dimens
 
     expected = (
         1
-        / (
-            torch.pow((2 * torch.tensor(math.pi)), 2)
-            * torch.sqrt(torch.det(total_covar_matrix))
+        / torch.sqrt(
+            (
+                torch.tensor(2 * math.pi) ** num_flattened_outputs
+                * torch.det(covariance_matrix)
+            )
         )
-        * torch.pow(torch.tensor(math.e), -4)
+        * torch.exp(torch.tensor(-num_flattened_outputs))
     ).type(torch.float64)
     torch.testing.assert_close(actual, expected)
