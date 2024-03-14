@@ -548,6 +548,72 @@ def create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps(
     )
 
 
+def create_standard_ppinn_q_likelihood_for_noise_and_model_error_gps_sampling(
+    model: StandardAnsatz,
+    num_model_parameters: int,
+    model_error_gp: GaussianProcess,
+    data: CalibrationData,
+    device: Device,
+) -> StandardPPINNLikelihood:
+    (
+        likelihood_strategy,
+        preprocessed_data,
+    ) = _create_noise_and_model_error_gps_likelihood_strategy_for_sampling(
+        model=model,
+        num_model_parameters=num_model_parameters,
+        model_error_gp=model_error_gp,
+        data=data,
+        device=device,
+    )
+    q_likelihood_strategy = StandardPPINNQLikelihoodWrapper(
+        likelihood_strategy=likelihood_strategy,
+        data=preprocessed_data,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
+    return StandardPPINNLikelihood(
+        likelihood_strategy=q_likelihood_strategy,
+        device=device,
+    )
+
+
+def create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps(
+    model: StandardAnsatz,
+    num_model_parameters: int,
+    model_error_gp: GaussianProcess,
+    initial_model_error_gp_parameters: Tensor,
+    data: CalibrationData,
+    prior_material_parameters: Prior,
+    num_material_parameter_samples: int,
+    num_iterations: int,
+    device: Device,
+) -> StandardPPINNLikelihood:
+    model_error_gp.set_parameters(initial_model_error_gp_parameters)
+    (
+        likelihood_strategy,
+        preprocessed_data,
+    ) = _create_optimized_noise_and_model_error_gps_likelihood_strategy(
+        model=model,
+        num_model_parameters=num_model_parameters,
+        model_error_gp=cast(torch.nn.Module, model_error_gp),
+        data=data,
+        prior_material_parameters=prior_material_parameters,
+        num_material_parameter_samples=num_material_parameter_samples,
+        num_iterations=num_iterations,
+        device=device,
+    )
+    q_likelihood_strategy = StandardPPINNQLikelihoodWrapper(
+        likelihood_strategy=likelihood_strategy,
+        data=preprocessed_data,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
+    return StandardPPINNLikelihood(
+        likelihood_strategy=q_likelihood_strategy,
+        device=device,
+    )
+
+
 ##### Bayesian PPINN likelihoods
 
 
