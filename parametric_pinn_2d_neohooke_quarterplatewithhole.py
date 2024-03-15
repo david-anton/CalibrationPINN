@@ -105,7 +105,7 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_q_likelihood = False
+use_q_likelihood = True # False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -113,7 +113,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = "20240311"
-output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_samples_{num_samples_per_parameter}_col_{int(num_collocation_points)}_bc_{int(number_points_per_bc)}_neurons_6_128"
+output_subdirectory = "20240311_parametric_pinn_neohooke_quarterplatewithhole_K_4000_8000_G_500_1500_samples_32_col_64_bc_64_neurons_6_128"  # f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_samples_{num_samples_per_parameter}_col_{int(num_collocation_points)}_bc_{int(number_points_per_bc)}_neurons_6_128"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdirectory, "normalization")
 save_metadata = True
@@ -431,8 +431,8 @@ def training_step() -> None:
 def calibration_step() -> None:
     print("Start calibration ...")
     num_test_cases = num_samples_valid
-    num_data_sets = 16
-    num_data_points = 256
+    num_data_sets = 32  # 16
+    num_data_points = 128  # 256
     std_noise = 5 * 1e-4
 
     initial_bulk_modulus = 6000.0
