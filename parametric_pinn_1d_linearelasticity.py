@@ -73,7 +73,7 @@ number_training_epochs = 500
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 # Validation
-num_samples_valid = 100
+num_samples_valid = 1000
 valid_interval = 1
 num_points_valid = 256
 batch_size_valid = num_samples_valid
