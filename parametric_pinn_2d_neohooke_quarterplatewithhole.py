@@ -432,7 +432,7 @@ def calibration_step() -> None:
     print("Start calibration ...")
     num_test_cases = num_samples_valid
     num_data_sets = 16
-    num_data_points = 128
+    num_data_points = 256
     std_noise = 5 * 1e-4
 
     initial_bulk_modulus = 6000.0
@@ -484,8 +484,8 @@ def calibration_step() -> None:
         device=device,
     ).to(device)
 
-    initial_gp_output_scale = 0.01
-    initial_gp_length_scale = 0.01
+    initial_gp_output_scale = 0.1
+    initial_gp_length_scale = 0.1
     initial_model_error_parameters = torch.tensor(
         [
             initial_gp_output_scale,

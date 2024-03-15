@@ -801,8 +801,8 @@ def calibration_step() -> None:
         device=device,
     ).to(device)
 
-    initial_gp_output_scale = 0.01
-    initial_gp_length_scale = 0.01
+    initial_gp_output_scale = 0.1
+    initial_gp_length_scale = 0.1
     initial_model_error_parameters = torch.tensor(
         [
             initial_gp_output_scale,
