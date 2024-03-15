@@ -319,6 +319,7 @@ def _create_optimized_noise_and_model_error_likelihood_strategy(
         device=device,
     )
     freeze_model(likelihood_strategy)
+    print(likelihood_strategy._model_error_standard_deviation_parameters)
     return likelihood_strategy, preprocessed_data
 
 
@@ -491,6 +492,7 @@ def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
         device=device,
     )
     freeze_model(likelihood_strategy)
+    print(model_error_gp.get_named_parameters())
     return likelihood_strategy, preprocessed_data
 
 

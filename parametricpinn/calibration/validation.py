@@ -14,7 +14,6 @@ from parametricpinn.calibration.bayesianinference.plot import (
 )
 from parametricpinn.calibration.leastsquares import (
     LeastSquaresConfig,
-    LeastSquaresOutput,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import PandasDataWriter
