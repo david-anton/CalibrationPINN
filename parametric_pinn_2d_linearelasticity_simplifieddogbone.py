@@ -1,6 +1,7 @@
 import os
 from datetime import date
 from time import perf_counter
+import math
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,9 +29,10 @@ from parametricpinn.calibration import (
     test_coverage,
     test_least_squares_calibration,
 )
+from parametricpinn.gps import IndependentMultiOutputGP, ZeroMeanScaledRBFKernelGP
 from parametricpinn.calibration.bayesianinference.likelihoods import (
-    create_standard_ppinn_likelihood_for_noise,
-    create_standard_ppinn_q_likelihood_for_noise,
+    create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps,
+    create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps,
 )
 from parametricpinn.calibration.data import concatenate_calibration_data
 from parametricpinn.calibration.utility import load_model
@@ -74,7 +76,7 @@ from parametricpinn.training.training_standard_linearelasticity_simplifieddogbon
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -117,14 +119,14 @@ input_subdir_calibration = os.path.join(
     "Paper_PINNs", "20240123_experimental_dic_data_dogbone"
 )
 input_file_name_calibration = "displacements_dic.csv"
-consider_model_error = True
+use_q_likelihood = False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = "20240311"
 output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_6_128"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdirectory, "normalization")
@@ -463,8 +465,8 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    num_data_sets = 1
-    num_data_points = 5240
+    num_data_sets = 16
+    num_data_points = int(math.floor(5240 / num_data_sets))
     std_noise = 5 * 1e-4
 
     exact_youngs_modulus = 192800.0
@@ -493,252 +495,292 @@ def calibration_step() -> None:
         [initial_bulk_modulus, initial_shear_modulus], device=device
     )
 
-    if consider_model_error:
+    if use_q_likelihood:
         output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration", "with_model_error"
+            output_subdirectory, "calibration", "with_model_error_gps_and_q_likelihood"
         )
     else:
         output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration", "without_model_error"
+            output_subdirectory, "calibration", "with_model_error_gps"
         )
 
     def generate_calibration_data() -> CalibrationData:
-        csv_reader = CSVDataReader(project_directory)
-        data = csv_reader.read(
-            file_name=input_file_name_calibration, subdir_name=input_subdir_calibration
-        )
-        slice_coordinates = slice(0, 2)
-        slice_displacements = slice(2, 4)
-        full_raw_coordinates = torch.from_numpy(data[:, slice_coordinates]).type(
-            torch.float64
-        )
-        full_raw_displacements = torch.from_numpy(data[:, slice_displacements]).type(
-            torch.float64
-        )
-        # Transform coordinates to the coordinates system used for PINN training
-        coordinate_shift_x = geometry_config.left_half_measurement_length
-        coordinate_shift_y = geometry_config.half_measurement_height
-        full_raw_coordinates = full_raw_coordinates - torch.tensor(
-            [coordinate_shift_x, coordinate_shift_y], dtype=torch.float64
-        )
-        # Filter measurement points within the measurement area
-        full_raw_coordinates_x = full_raw_coordinates[:, 0]
-        full_raw_coordinates_y = full_raw_coordinates[:, 1]
-        left_half_measurement_length = geometry_config.left_half_measurement_length
-        right_half_measurement_length = geometry_config.right_half_measurement_length
-        half_measurement_height = geometry_config.half_measurement_height
-        mask_condition_x = torch.logical_and(
-            full_raw_coordinates_x >= -left_half_measurement_length,
-            full_raw_coordinates_x <= right_half_measurement_length,
-        )
 
-        mask_condition_y = torch.logical_and(
-            full_raw_coordinates_y >= -half_measurement_height,
-            full_raw_coordinates_y <= half_measurement_height,
+        def _read_raw_data() -> tuple[Tensor, Tensor]:
+            csv_reader = CSVDataReader(project_directory)
+            data = csv_reader.read(
+                file_name=input_file_name_calibration,
+                subdir_name=input_subdir_calibration,
+            )
+            slice_coordinates = slice(0, 2)
+            slice_displacements = slice(2, 4)
+            full_raw_coordinates = torch.from_numpy(data[:, slice_coordinates]).type(
+                torch.float64
+            )
+            full_raw_displacements = torch.from_numpy(
+                data[:, slice_displacements]
+            ).type(torch.float64)
+            return full_raw_coordinates, full_raw_displacements
+
+        def _transform_coordinates(full_raw_coordinates: Tensor) -> Tensor:
+            coordinate_shift_x = geometry_config.left_half_measurement_length
+            coordinate_shift_y = geometry_config.half_measurement_height
+            return full_raw_coordinates - torch.tensor(
+                [coordinate_shift_x, coordinate_shift_y], dtype=torch.float64
+            )
+
+        def _filter_data_points_within_measurement_area(
+            full_raw_coordinates: Tensor, full_raw_displacements: Tensor
+        ) -> tuple[Tensor, Tensor]:
+            full_raw_coordinates_x = full_raw_coordinates[:, 0]
+            full_raw_coordinates_y = full_raw_coordinates[:, 1]
+            left_half_measurement_length = geometry_config.left_half_measurement_length
+            right_half_measurement_length = (
+                geometry_config.right_half_measurement_length
+            )
+            half_measurement_height = geometry_config.half_measurement_height
+            mask_condition_x = torch.logical_and(
+                full_raw_coordinates_x >= -left_half_measurement_length,
+                full_raw_coordinates_x <= right_half_measurement_length,
+            )
+
+            mask_condition_y = torch.logical_and(
+                full_raw_coordinates_y >= -half_measurement_height,
+                full_raw_coordinates_y <= half_measurement_height,
+            )
+            mask_condition = torch.logical_and(mask_condition_x, mask_condition_y)
+            mask = torch.where(mask_condition, True, False)
+            full_coordinates = full_raw_coordinates[mask]
+            full_displacements = full_raw_displacements[mask]
+            return full_coordinates, full_displacements
+
+        def _visualize_data(coordinates: Tensor, displacements: Tensor) -> None:
+            class PlotterConfigData:
+                def __init__(self) -> None:
+                    # label size
+                    self.label_size = 16
+                    # font size in legend
+                    self.font_size = 16
+                    self.font = {"size": self.label_size}
+                    # title pad
+                    self.title_pad = 10
+                    # labels
+                    self.x_label = "x [mm]"
+                    self.y_label = "y [mm]"
+                    # major ticks
+                    self.major_tick_label_size = 16
+                    self.major_ticks_size = self.font_size
+                    self.major_ticks_width = 2
+                    # minor ticks
+                    self.minor_tick_label_size = 14
+                    self.minor_ticks_size = 12
+                    self.minor_ticks_width = 1
+                    # scientific notation
+                    self.scientific_notation_size = self.font_size
+                    # color map
+                    self.color_map = "jet"
+                    # legend
+                    self.ticks_max_number_of_intervals = 255
+                    self.num_cbar_ticks = 7
+                    # resolution of results
+                    self.num_points_per_edge = 128
+                    # grid interpolation
+                    self.interpolation_method = "nearest"
+                    # save options
+                    self.dpi = 300
+                    self.file_format = "pdf"
+
+            plot_config = PlotterConfigData()
+
+            coordinates_np = coordinates.detach().cpu().numpy()
+            displacements_np = displacements.detach().cpu().numpy()
+
+            def plot_one_displacements(
+                coordinates: NPArray,
+                displacements: NPArray,
+                dimension: str,
+                plot_config: PlotterConfigData,
+            ) -> None:
+                coordinates_x = coordinates[:, 0]
+                coordinates_y = coordinates[:, 1]
+                min_coordinates_x = np.nanmin(coordinates_x)
+                max_coordinates_x = np.nanmax(coordinates_x)
+                min_coordinates_y = np.nanmin(coordinates_y)
+                max_coordinates_y = np.nanmax(coordinates_y)
+                min_displacement = np.nanmin(displacements)
+                max_displacement = np.nanmax(displacements)
+
+                # grid data
+                num_points_per_grid_dim = 128
+                grid_coordinates_x = np.linspace(
+                    min_coordinates_x,
+                    max_coordinates_x,
+                    num=num_points_per_grid_dim,
+                )
+                grid_coordinates_y = np.linspace(
+                    min_coordinates_y,
+                    max_coordinates_y,
+                    num=num_points_per_grid_dim,
+                )
+                coordinates_grid_x, coordinates_grid_y = np.meshgrid(
+                    grid_coordinates_x, grid_coordinates_y
+                )
+
+                # interpolation
+                displacements_grid = griddata(
+                    coordinates,
+                    displacements,
+                    (coordinates_grid_x, coordinates_grid_y),
+                    method=plot_config.interpolation_method,
+                )
+
+                figure, axes = plt.subplots()
+
+                # figure size
+                fig_height = 4
+                box_length = 80
+                box_height = 20
+                figure.set_figheight(fig_height)
+                figure.set_figwidth((box_length / box_height) * fig_height + 1)
+
+                # title and labels
+                title = f"Displacements {dimension}"
+                axes.set_title(title, pad=plot_config.title_pad, **plot_config.font)
+                axes.set_xlabel(plot_config.x_label, **plot_config.font)
+                axes.set_ylabel(plot_config.y_label, **plot_config.font)
+                axes.tick_params(
+                    axis="both",
+                    which="minor",
+                    labelsize=plot_config.minor_tick_label_size,
+                )
+                axes.tick_params(
+                    axis="both",
+                    which="major",
+                    labelsize=plot_config.major_tick_label_size,
+                )
+
+                # ticks
+                num_coordinate_ticks = 3
+                x_ticks = np.linspace(
+                    min_coordinates_x,
+                    max_coordinates_x,
+                    num=num_coordinate_ticks,
+                    endpoint=True,
+                )
+                y_ticks = np.linspace(
+                    min_coordinates_y,
+                    max_coordinates_y,
+                    num=num_coordinate_ticks,
+                    endpoint=True,
+                )
+                axes.set_xlim(min_coordinates_x, max_coordinates_x)
+                axes.set_ylim(min_coordinates_y, max_coordinates_y)
+                axes.set_xticks(x_ticks)
+                axes.set_xticklabels(map(str, x_ticks.round(decimals=2)))
+                axes.set_yticks(y_ticks)
+                axes.set_yticklabels(map(str, y_ticks.round(decimals=2)))
+                axes.tick_params(axis="both", which="major", pad=15)
+
+                # normalizer
+                tick_values = MaxNLocator(
+                    nbins=plot_config.ticks_max_number_of_intervals
+                ).tick_values(min_displacement, max_displacement)
+                normalizer = BoundaryNorm(
+                    tick_values,
+                    ncolors=plt.get_cmap(plot_config.color_map).N,
+                    clip=True,
+                )
+
+                # plot
+                plot = axes.pcolormesh(
+                    coordinates_grid_x,
+                    coordinates_grid_y,
+                    displacements_grid,
+                    cmap=plt.get_cmap(plot_config.color_map),
+                    norm=normalizer,
+                )
+
+                # color bar
+                color_bar_ticks = (
+                    np.linspace(
+                        min_displacement,
+                        max_displacement,
+                        num=plot_config.num_cbar_ticks,
+                        endpoint=True,
+                    )
+                    .round(decimals=4)
+                    .tolist()
+                )
+                cbar = figure.colorbar(mappable=plot, ax=axes, ticks=color_bar_ticks)
+                cbar.ax.set_yticklabels(map(str, color_bar_ticks))
+                cbar.ax.minorticks_off()
+
+                # hole
+                origin_x = geometry_config.origin_x
+                origin_y = geometry_config.origin_y
+                radius_hole = geometry_config.plate_hole_radius
+                plate_hole = plt.Circle(
+                    (origin_x, origin_y),
+                    radius=radius_hole,
+                    color="white",
+                )
+                axes.add_patch(plate_hole)
+
+                # save
+                file_name = f"measurement_data_dispalcements_{dimension}.{plot_config.file_format}"
+                save_path = project_directory.create_output_file_path(
+                    file_name, output_subdir_calibration
+                )
+                dpi = 300
+                figure.savefig(
+                    save_path,
+                    format=plot_config.file_format,
+                    bbox_inches="tight",
+                    dpi=dpi,
+                )
+
+            displacements_np_x = displacements_np[:, 0]
+            displacements_np_y = displacements_np[:, 1]
+
+            plot_one_displacements(coordinates_np, displacements_np_x, "x", plot_config)
+            plot_one_displacements(coordinates_np, displacements_np_y, "y", plot_config)
+
+        def _create_data_sets(
+            full_coordinates: Tensor, full_displacements: Tensor
+        ) -> tuple[tuple[Tensor, ...], tuple[Tensor, ...]]:
+            size_full_data = len(full_coordinates)
+            num_total_data_points = num_data_sets * num_data_points
+            random_indices = torch.randperm(size_full_data)[:num_total_data_points]
+            random_set_indices = torch.split(random_indices, num_data_points)
+
+            coordinates_sets = tuple(
+                full_coordinates[set_indices, :].to(device)
+                for set_indices in random_set_indices
+            )
+            displacements_sets = tuple(
+                full_displacements[set_indices, :].to(device)
+                for set_indices in random_set_indices
+            )
+            return coordinates_sets, displacements_sets
+
+        full_raw_coordinates, full_raw_displacements = _read_raw_data()
+        full_raw_coordinates = _transform_coordinates(full_raw_coordinates)
+        full_coordinates, full_displacements = (
+            _filter_data_points_within_measurement_area(
+                full_raw_coordinates, full_raw_displacements
+            )
         )
-        mask_condition = torch.logical_and(mask_condition_x, mask_condition_y)
-        mask = torch.where(mask_condition, True, False)
-        full_coordinates = full_raw_coordinates[mask]
-        full_displacements = full_raw_displacements[mask]
-        # Select points for calibration
-        size_full_data = len(full_coordinates)
-        random_indices = torch.randperm(size_full_data)[:num_data_points]
-        coordinates = full_coordinates[random_indices, :].to(device)
-        displacements = full_displacements[random_indices, :].to(device)
+        _visualize_data(full_coordinates, full_displacements)
+        coordinates_sets, displacements_sets = _create_data_sets(
+            full_coordinates, full_displacements
+        )
 
         return CalibrationData(
             num_data_sets=num_data_sets,
-            inputs=(coordinates,),
-            outputs=(displacements,),
+            inputs=coordinates_sets,
+            outputs=displacements_sets,
             std_noise=std_noise,
         )
-
-    def visualize_data(calibration_data: CalibrationData) -> None:
-        class PlotterConfigData:
-            def __init__(self) -> None:
-                # label size
-                self.label_size = 16
-                # font size in legend
-                self.font_size = 16
-                self.font = {"size": self.label_size}
-                # title pad
-                self.title_pad = 10
-                # labels
-                self.x_label = "x [mm]"
-                self.y_label = "y [mm]"
-                # major ticks
-                self.major_tick_label_size = 16
-                self.major_ticks_size = self.font_size
-                self.major_ticks_width = 2
-                # minor ticks
-                self.minor_tick_label_size = 14
-                self.minor_ticks_size = 12
-                self.minor_ticks_width = 1
-                # scientific notation
-                self.scientific_notation_size = self.font_size
-                # color map
-                self.color_map = "jet"
-                # legend
-                self.ticks_max_number_of_intervals = 255
-                self.num_cbar_ticks = 7
-                # resolution of results
-                self.num_points_per_edge = 128
-                # grid interpolation
-                self.interpolation_method = "nearest"
-                # save options
-                self.dpi = 300
-                self.file_format = "pdf"
-
-        plot_config = PlotterConfigData()
-
-        coordinates_np = calibration_data.inputs.detach().cpu().numpy()
-        displacements_np = calibration_data.outputs.detach().cpu().numpy()
-
-        def plot_one_displacements(
-            coordinates: NPArray,
-            displacements: NPArray,
-            dimension: str,
-            plot_config: PlotterConfigData,
-        ) -> None:
-            coordinates_x = coordinates[:, 0]
-            coordinates_y = coordinates[:, 1]
-            min_coordinates_x = np.nanmin(coordinates_x)
-            max_coordinates_x = np.nanmax(coordinates_x)
-            min_coordinates_y = np.nanmin(coordinates_y)
-            max_coordinates_y = np.nanmax(coordinates_y)
-            min_displacement = np.nanmin(displacements)
-            max_displacement = np.nanmax(displacements)
-
-            # grid data
-            num_points_per_grid_dim = 128
-            grid_coordinates_x = np.linspace(
-                min_coordinates_x,
-                max_coordinates_x,
-                num=num_points_per_grid_dim,
-            )
-            grid_coordinates_y = np.linspace(
-                min_coordinates_y,
-                max_coordinates_y,
-                num=num_points_per_grid_dim,
-            )
-            coordinates_grid_x, coordinates_grid_y = np.meshgrid(
-                grid_coordinates_x, grid_coordinates_y
-            )
-
-            # interpolation
-            displacements_grid = griddata(
-                coordinates,
-                displacements,
-                (coordinates_grid_x, coordinates_grid_y),
-                method=plot_config.interpolation_method,
-            )
-
-            figure, axes = plt.subplots()
-
-            # figure size
-            fig_height = 4
-            box_length = 80
-            box_height = 20
-            figure.set_figheight(fig_height)
-            figure.set_figwidth((box_length / box_height) * fig_height + 1)
-
-            # title and labels
-            title = f"Displacements {dimension}"
-            axes.set_title(title, pad=plot_config.title_pad, **plot_config.font)
-            axes.set_xlabel(plot_config.x_label, **plot_config.font)
-            axes.set_ylabel(plot_config.y_label, **plot_config.font)
-            axes.tick_params(
-                axis="both", which="minor", labelsize=plot_config.minor_tick_label_size
-            )
-            axes.tick_params(
-                axis="both", which="major", labelsize=plot_config.major_tick_label_size
-            )
-
-            # ticks
-            num_coordinate_ticks = 3
-            x_ticks = np.linspace(
-                min_coordinates_x,
-                max_coordinates_x,
-                num=num_coordinate_ticks,
-                endpoint=True,
-            )
-            y_ticks = np.linspace(
-                min_coordinates_y,
-                max_coordinates_y,
-                num=num_coordinate_ticks,
-                endpoint=True,
-            )
-            axes.set_xlim(min_coordinates_x, max_coordinates_x)
-            axes.set_ylim(min_coordinates_y, max_coordinates_y)
-            axes.set_xticks(x_ticks)
-            axes.set_xticklabels(map(str, x_ticks.round(decimals=2)))
-            axes.set_yticks(y_ticks)
-            axes.set_yticklabels(map(str, y_ticks.round(decimals=2)))
-            axes.tick_params(axis="both", which="major", pad=15)
-
-            # normalizer
-            tick_values = MaxNLocator(
-                nbins=plot_config.ticks_max_number_of_intervals
-            ).tick_values(min_displacement, max_displacement)
-            normalizer = BoundaryNorm(
-                tick_values, ncolors=plt.get_cmap(plot_config.color_map).N, clip=True
-            )
-
-            # plot
-            plot = axes.pcolormesh(
-                coordinates_grid_x,
-                coordinates_grid_y,
-                displacements_grid,
-                cmap=plt.get_cmap(plot_config.color_map),
-                norm=normalizer,
-            )
-
-            # color bar
-            color_bar_ticks = (
-                np.linspace(
-                    min_displacement,
-                    max_displacement,
-                    num=plot_config.num_cbar_ticks,
-                    endpoint=True,
-                )
-                .round(decimals=4)
-                .tolist()
-            )
-            cbar = figure.colorbar(mappable=plot, ax=axes, ticks=color_bar_ticks)
-            cbar.ax.set_yticklabels(map(str, color_bar_ticks))
-            cbar.ax.minorticks_off()
-
-            # hole
-            origin_x = geometry_config.origin_x
-            origin_y = geometry_config.origin_y
-            radius_hole = geometry_config.plate_hole_radius
-            plate_hole = plt.Circle(
-                (origin_x, origin_y),
-                radius=radius_hole,
-                color="white",
-            )
-            axes.add_patch(plate_hole)
-
-            # save
-            file_name = (
-                f"measurement_data_dispalcements_{dimension}.{plot_config.file_format}"
-            )
-            save_path = project_directory.create_output_file_path(
-                file_name, output_subdir_calibration
-            )
-            dpi = 300
-            figure.savefig(
-                save_path,
-                format=plot_config.file_format,
-                bbox_inches="tight",
-                dpi=dpi,
-            )
-
-        displacements_np_x = displacements_np[:, 0]
-        displacements_np_y = displacements_np[:, 1]
-
-        plot_one_displacements(coordinates_np, displacements_np_x, "x", plot_config)
-        plot_one_displacements(coordinates_np, displacements_np_y, "y", plot_config)
 
     name_model_parameters_file = "model_parameters"
     model = load_model(
@@ -750,20 +792,53 @@ def calibration_step() -> None:
     )
 
     calibration_data = generate_calibration_data()
-    visualize_data(calibration_data)
 
-    if consider_model_error:
-        likelihood = create_standard_ppinn_q_likelihood_for_noise(
+    model_error_gp = IndependentMultiOutputGP(
+        independent_gps=[
+            ZeroMeanScaledRBFKernelGP(device),
+            ZeroMeanScaledRBFKernelGP(device),
+        ],
+        device=device,
+    ).to(device)
+
+    initial_gp_output_scale = 0.01
+    initial_gp_length_scale = 0.01
+    initial_model_error_parameters = torch.tensor(
+        [
+            initial_gp_output_scale,
+            initial_gp_length_scale,
+            initial_gp_output_scale,
+            initial_gp_length_scale,
+        ],
+        dtype=torch.float64,
+        device=device,
+    )
+
+    model_error_optimization_num_material_parameter_samples = 128
+    model_error_optimization_num_iterations = 16
+
+    if use_q_likelihood:
+        likelihood = create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps(
             model=model,
             num_model_parameters=num_material_parameters,
+            model_error_gp=model_error_gp,
+            initial_model_error_gp_parameters=initial_model_error_parameters,
             data=calibration_data,
+            prior_material_parameters=prior,
+            num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
+            num_iterations=model_error_optimization_num_iterations,
             device=device,
         )
     else:
-        likelihood = create_standard_ppinn_likelihood_for_noise(
+        likelihood = create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps(
             model=model,
             num_model_parameters=num_material_parameters,
+            model_error_gp=model_error_gp,
+            initial_model_error_gp_parameters=initial_model_error_parameters,
             data=calibration_data,
+            prior_material_parameters=prior,
+            num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
+            num_iterations=model_error_optimization_num_iterations,
             device=device,
         )
 
