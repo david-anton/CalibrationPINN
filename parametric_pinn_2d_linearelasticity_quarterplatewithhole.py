@@ -15,6 +15,7 @@ from parametricpinn.bayesian.prior import (
     create_univariate_uniform_distributed_prior,
     multiply_priors,
 )
+from parametricpinn.gps import IndependentMultiOutputGP, ZeroMeanScaledRBFKernelGP
 from parametricpinn.calibration import (
     CalibrationData,
     CalibrationDataLoader2D,
@@ -26,8 +27,8 @@ from parametricpinn.calibration import (
     test_least_squares_calibration,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods import (
-    create_standard_ppinn_likelihood_for_noise,
-    create_standard_ppinn_q_likelihood_for_noise,
+    create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps,
+    create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps,
 )
 from parametricpinn.calibration.data import concatenate_calibration_data
 from parametricpinn.calibration.utility import load_model
@@ -70,7 +71,7 @@ from parametricpinn.training.training_standard_linearelasticity_quarterplatewith
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -85,16 +86,16 @@ max_youngs_modulus = 240000.0
 min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
 # Network
-layer_sizes = [4, 64, 64, 64, 64, 64, 64, 2]
+layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_per_parameter = 64  # 32
-num_collocation_points = 32  # 64
-num_points_per_bc = 32  # 64
+num_samples_per_parameter = 32
+num_collocation_points = 64
+num_points_per_bc = 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
-training_batch_size = int(num_samples_per_parameter**2 / 4)
+training_batch_size = num_samples_per_parameter**2
 number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
@@ -111,14 +112,14 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-consider_model_error = True
+use_q_likelihood = False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = "20240311"
 output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_6_64"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdirectory, "normalization")
@@ -458,7 +459,7 @@ def training_step() -> None:
 def calibration_step() -> None:
     print("Start calibration ...")
     num_test_cases = num_samples_valid
-    num_data_sets = 1
+    num_data_sets = 16
     num_data_points = 128
     std_noise = 5 * 1e-4
 
@@ -502,31 +503,67 @@ def calibration_step() -> None:
 
     calibration_data, true_parameters = generate_calibration_data()
 
-    if consider_model_error:
+    model_error_gp = IndependentMultiOutputGP(
+        independent_gps=[
+            ZeroMeanScaledRBFKernelGP(device),
+            ZeroMeanScaledRBFKernelGP(device),
+        ],
+        device=device,
+    ).to(device)
+
+    initial_gp_output_scale = 0.01
+    initial_gp_length_scale = 0.01
+    initial_model_error_parameters = torch.tensor(
+        [
+            initial_gp_output_scale,
+            initial_gp_length_scale,
+            initial_gp_output_scale,
+            initial_gp_length_scale,
+        ],
+        dtype=torch.float64,
+        device=device,
+    )
+
+    model_error_optimization_num_material_parameter_samples = 128
+    model_error_optimization_num_iterations = 16
+
+    if use_q_likelihood:
         likelihoods = tuple(
-            create_standard_ppinn_q_likelihood_for_noise(
+            create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps(
                 model=model,
                 num_model_parameters=num_material_parameters,
+                model_error_gp=model_error_gp,
+                initial_model_error_gp_parameters=initial_model_error_parameters,
                 data=data,
+                prior_material_parameters=prior,
+                num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
+                num_iterations=model_error_optimization_num_iterations,
                 device=device,
             )
             for data in calibration_data
         )
+
         output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration", "with_model_error"
+            output_subdirectory, "calibration", "with_model_error_gps_and_q_likelihood"
         )
     else:
         likelihoods = tuple(
-            create_standard_ppinn_likelihood_for_noise(
+            create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps(
                 model=model,
                 num_model_parameters=num_material_parameters,
+                model_error_gp=model_error_gp,
+                initial_model_error_gp_parameters=initial_model_error_parameters,
                 data=data,
+                prior_material_parameters=prior,
+                num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
+                num_iterations=model_error_optimization_num_iterations,
                 device=device,
             )
             for data in calibration_data
         )
+
         output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration", "without_model_error"
+            output_subdirectory, "calibration", "with_model_error_gps"
         )
 
     def set_up_least_squares_configs(

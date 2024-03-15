@@ -100,12 +100,12 @@ fem_element_size = 0.2
 # Validation
 regenerate_valid_data = False
 input_subdir_valid = f"20240305_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
-num_samples_valid = 32
+num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-consider_model_error = False  # True
+use_q_likelihood = False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -437,6 +437,7 @@ def calibration_step() -> None:
 
     initial_bulk_modulus = 6000.0
     initial_shear_modulus = 1000.0
+
     prior_bulk_modulus = create_univariate_uniform_distributed_prior(
         lower_limit=min_bulk_modulus, upper_limit=max_bulk_modulus, device=device
     )
@@ -444,9 +445,7 @@ def calibration_step() -> None:
         lower_limit=min_shear_modulus, upper_limit=max_shear_modulus, device=device
     )
 
-    prior_material_parameters = multiply_priors(
-        [prior_bulk_modulus, prior_shear_modulus]
-    )
+    prior = multiply_priors([prior_bulk_modulus, prior_shear_modulus])
     parameter_names = ("bulk modulus", "shear modulus")
     initial_parameters = torch.tensor(
         [initial_bulk_modulus, initial_shear_modulus],
@@ -485,8 +484,8 @@ def calibration_step() -> None:
         device=device,
     ).to(device)
 
-    initial_gp_output_scale = 0.1
-    initial_gp_length_scale = 0.1
+    initial_gp_output_scale = 0.01
+    initial_gp_length_scale = 0.01
     initial_model_error_parameters = torch.tensor(
         [
             initial_gp_output_scale,
@@ -499,9 +498,9 @@ def calibration_step() -> None:
     )
 
     model_error_optimization_num_material_parameter_samples = 128
-    model_error_optimization_num_iterations = 32
+    model_error_optimization_num_iterations = 16
 
-    if consider_model_error:
+    if use_q_likelihood:
         likelihoods = tuple(
             create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps(
                 model=model,
@@ -509,17 +508,16 @@ def calibration_step() -> None:
                 model_error_gp=model_error_gp,
                 initial_model_error_gp_parameters=initial_model_error_parameters,
                 data=data,
-                prior_material_parameters=prior_material_parameters,
+                prior_material_parameters=prior,
                 num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
                 num_iterations=model_error_optimization_num_iterations,
                 device=device,
             )
             for data in calibration_data
         )
-        print(model_error_gp.get_named_parameters())
 
         output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration", "with_model_error"
+            output_subdirectory, "calibration", "with_model_error_gps_and_q_likelihood"
         )
     else:
         likelihoods = tuple(
@@ -529,17 +527,16 @@ def calibration_step() -> None:
                 model_error_gp=model_error_gp,
                 initial_model_error_gp_parameters=initial_model_error_parameters,
                 data=data,
-                prior_material_parameters=prior_material_parameters,
+                prior_material_parameters=prior,
                 num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
                 num_iterations=model_error_optimization_num_iterations,
                 device=device,
             )
             for data in calibration_data
         )
-        print(model_error_gp.get_named_parameters())
 
         output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration", "without_model_error"
+            output_subdirectory, "calibration", "with_model_gps_error"
         )
 
     def set_up_least_squares_configs(
@@ -572,8 +569,8 @@ def calibration_step() -> None:
     ) -> tuple[MetropolisHastingsConfig, ...]:
         configs = []
         for likelihood in likelihoods:
-            std_proposal_density_bulk_modulus = 5.0
-            std_proposal_density_shear_modulus = 1.0
+            std_proposal_density_bulk_modulus = 10.0
+            std_proposal_density_shear_modulus = 2.0
             covar_proposal_density = torch.diag(
                 torch.tensor(
                     [
@@ -587,7 +584,7 @@ def calibration_step() -> None:
             )
             config = MetropolisHastingsConfig(
                 likelihood=likelihood,
-                prior=prior_material_parameters,
+                prior=prior,
                 initial_parameters=initial_parameters,
                 num_iterations=int(1e4),
                 num_burn_in_iterations=int(2e4),
@@ -603,7 +600,7 @@ def calibration_step() -> None:
         for likelihood in likelihoods:
             config = HamiltonianConfig(
                 likelihood=likelihood,
-                prior=prior_material_parameters,
+                prior=prior,
                 initial_parameters=initial_parameters,
                 num_iterations=int(1e4),
                 num_burn_in_iterations=int(5e3),
@@ -620,7 +617,7 @@ def calibration_step() -> None:
         for likelihood in likelihoods:
             config = EfficientNUTSConfig(
                 likelihood=likelihood,
-                prior=prior_material_parameters,
+                prior=prior,
                 initial_parameters=initial_parameters,
                 num_iterations=int(1e4),
                 num_burn_in_iterations=int(1e4),
