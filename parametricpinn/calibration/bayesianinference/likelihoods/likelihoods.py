@@ -90,7 +90,8 @@ class StandardPPINNQLikelihoodWrapper:
         return (-1 / 2) * torch.log(M) - Q
 
     def _calculate_scores(self, parameters: Tensor) -> Tensor:
-        return jacfwd(self._likelihood_strategy.log_probs_individual)(parameters)
+        return torch.autograd.functional.jacobian(self._likelihood_strategy.log_probs_individual, parameters)
+        # return jacfwd(self._likelihood_strategy.log_probs_individual)(parameters)
 
     # def _estimate_robust_covariance_matrix(self, scores: Tensor) -> Tensor:
     #     num_scores = len(scores)
