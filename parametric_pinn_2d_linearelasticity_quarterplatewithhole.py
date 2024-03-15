@@ -15,7 +15,6 @@ from parametricpinn.bayesian.prior import (
     create_univariate_uniform_distributed_prior,
     multiply_priors,
 )
-from parametricpinn.gps import IndependentMultiOutputGP, ZeroMeanScaledRBFKernelGP
 from parametricpinn.calibration import (
     CalibrationData,
     CalibrationDataLoader2D,
@@ -27,8 +26,8 @@ from parametricpinn.calibration import (
     test_least_squares_calibration,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods import (
-    create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps,
     create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps,
+    create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps,
 )
 from parametricpinn.calibration.data import concatenate_calibration_data
 from parametricpinn.calibration.utility import load_model
@@ -50,6 +49,7 @@ from parametricpinn.fem import (
     generate_validation_data,
     run_simulation,
 )
+from parametricpinn.gps import IndependentMultiOutputGP, ZeroMeanScaledRBFKernelGP
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader, PandasDataWriter
 from parametricpinn.network import FFNN

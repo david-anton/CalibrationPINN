@@ -1,7 +1,7 @@
+import math
 import os
 from datetime import date
 from time import perf_counter
-import math
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -29,10 +29,9 @@ from parametricpinn.calibration import (
     test_coverage,
     test_least_squares_calibration,
 )
-from parametricpinn.gps import IndependentMultiOutputGP, ZeroMeanScaledRBFKernelGP
 from parametricpinn.calibration.bayesianinference.likelihoods import (
-    create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps,
     create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps,
+    create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps,
 )
 from parametricpinn.calibration.data import concatenate_calibration_data
 from parametricpinn.calibration.utility import load_model
@@ -55,6 +54,7 @@ from parametricpinn.fem import (
     generate_validation_data,
     run_simulation,
 )
+from parametricpinn.gps import IndependentMultiOutputGP, ZeroMeanScaledRBFKernelGP
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader, PandasDataWriter
 from parametricpinn.network import FFNN
@@ -505,7 +505,6 @@ def calibration_step() -> None:
         )
 
     def generate_calibration_data() -> CalibrationData:
-
         def _read_raw_data() -> tuple[Tensor, Tensor]:
             csv_reader = CSVDataReader(project_directory)
             data = csv_reader.read(
@@ -765,10 +764,11 @@ def calibration_step() -> None:
 
         full_raw_coordinates, full_raw_displacements = _read_raw_data()
         full_raw_coordinates = _transform_coordinates(full_raw_coordinates)
-        full_coordinates, full_displacements = (
-            _filter_data_points_within_measurement_area(
-                full_raw_coordinates, full_raw_displacements
-            )
+        (
+            full_coordinates,
+            full_displacements,
+        ) = _filter_data_points_within_measurement_area(
+            full_raw_coordinates, full_raw_displacements
         )
         _visualize_data(full_coordinates, full_displacements)
         coordinates_sets, displacements_sets = _create_data_sets(

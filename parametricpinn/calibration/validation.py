@@ -12,9 +12,7 @@ from parametricpinn.calibration.bayesianinference.mcmc.base import (
 from parametricpinn.calibration.bayesianinference.plot import (
     plot_posterior_normal_distributions,
 )
-from parametricpinn.calibration.leastsquares import (
-    LeastSquaresConfig,
-)
+from parametricpinn.calibration.leastsquares import LeastSquaresConfig
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import PandasDataWriter
 from parametricpinn.types import Device, NPArray

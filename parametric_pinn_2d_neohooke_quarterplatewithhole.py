@@ -26,8 +26,8 @@ from parametricpinn.calibration import (
     test_least_squares_calibration,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods import (
-    create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps,
     create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps,
+    create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps,
 )
 from parametricpinn.calibration.data import concatenate_calibration_data
 from parametricpinn.calibration.utility import load_model
