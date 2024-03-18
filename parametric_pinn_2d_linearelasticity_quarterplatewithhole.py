@@ -107,12 +107,12 @@ fem_element_size = 0.1
 # Validation
 regenerate_valid_data = False
 input_subdir_valid = f"20240304_validation_data_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}_K_G"
-num_samples_valid = 16  # 100
+num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_q_likelihood = True  # False
+use_q_likelihood = False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -597,8 +597,8 @@ def calibration_step() -> None:
     ) -> tuple[MetropolisHastingsConfig, ...]:
         configs = []
         for likelihood in likelihoods:
-            std_proposal_density_bulk_modulus = 100.0  # 200.0
-            std_proposal_density_shear_modulus = 50.0  # 100.0
+            std_proposal_density_bulk_modulus = 200.0
+            std_proposal_density_shear_modulus = 100.0
             cov_proposal_density = torch.diag(
                 torch.tensor(
                     [
