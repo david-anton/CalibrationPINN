@@ -112,7 +112,7 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_q_likelihood = False
+use_q_likelihood = True  # False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -597,8 +597,8 @@ def calibration_step() -> None:
     ) -> tuple[MetropolisHastingsConfig, ...]:
         configs = []
         for likelihood in likelihoods:
-            std_proposal_density_bulk_modulus = 200.0
-            std_proposal_density_shear_modulus = 100.0
+            std_proposal_density_bulk_modulus = 100.0  # 200.0
+            std_proposal_density_shear_modulus = 50.0  # 100.0
             cov_proposal_density = torch.diag(
                 torch.tensor(
                     [
