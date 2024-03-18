@@ -51,9 +51,9 @@ class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
         output_scale = parameters[0]
         length_scale = parameters[1]
         if output_scale >= self._lower_limit_output_scale:
-            self.kernel.outputscale = output_scale.to(self._device)
+            self.kernel.outputscale = output_scale.clone().to(self._device)
         if length_scale >= self._lower_limit_length_scale:
-            self.kernel.base_kernel.lengthscale = length_scale.to(self._device)
+            self.kernel.base_kernel.lengthscale = length_scale.clone().to(self._device)
 
     def get_named_parameters(self) -> NamedParameters:
         return {

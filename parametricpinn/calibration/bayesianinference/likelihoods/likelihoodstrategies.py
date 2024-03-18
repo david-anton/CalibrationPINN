@@ -295,7 +295,7 @@ class NoiseAndModelErrorOptimizeLikelihoodStrategy(torch.nn.Module):
     ) -> None:
         super().__init__()
         self._model_error_standard_deviation_parameters = torch.nn.Parameter(
-            initial_model_error_standard_deviations, requires_grad=True
+            initial_model_error_standard_deviations.clone(), requires_grad=True
         )
         self._distribution = NoiseAndModelErrorLikelihoodDistribution(data, device)
         self._residual_calculator = residual_calculator
