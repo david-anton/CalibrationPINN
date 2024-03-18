@@ -1,5 +1,5 @@
 # Base docker image
-FROM --platform=linux/amd64 dolfinx/dolfinx:stable
+FROM dolfinx/dolfinx:stable
 
 ### Define default arguments
 # Are overwritten by build arguments (if supplied while building the container)
@@ -54,8 +54,7 @@ RUN apt-get install -y petsc-dev
 RUN pip install --upgrade pip && \
     pip install -r /tmp/$requirements && \
     pip install -r /tmp/$dev_requirements && \
-    pip install torch --index-url https://download.pytorch.org/whl/cpu
-    # pip install --pre torch --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+    pip install --pre torch --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 
 ### Clean up
 RUN apt-get clean && \
