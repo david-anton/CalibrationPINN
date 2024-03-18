@@ -98,4 +98,8 @@ def optimize_hyperparameters(
         return loss.item()
 
     for _ in range(num_iterations):
-        optimizer.step(loss_func_closure)
+        loss = optimizer.step(loss_func_closure)
+        print("########################################")
+        print(f"ITERATION: {_}")
+        print(f"LOSS: {loss}")
+        print(f"PARAMETERS: {likelihood._model_error_gp.get_named_parameters()}")
