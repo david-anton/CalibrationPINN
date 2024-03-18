@@ -793,13 +793,14 @@ def calibration_step() -> None:
 
     calibration_data = generate_calibration_data()
 
-    model_error_gp = IndependentMultiOutputGP(
-        independent_gps=[
-            ZeroMeanScaledRBFKernelGP(device),
-            ZeroMeanScaledRBFKernelGP(device),
-        ],
-        device=device,
-    ).to(device)
+    def create_model_error_gp() -> IndependentMultiOutputGP:
+        return IndependentMultiOutputGP(
+            independent_gps=[
+                ZeroMeanScaledRBFKernelGP(device),
+                ZeroMeanScaledRBFKernelGP(device),
+            ],
+            device=device,
+        ).to(device)
 
     initial_gp_output_scale = 0.1
     initial_gp_length_scale = 0.1
@@ -821,7 +822,7 @@ def calibration_step() -> None:
         likelihood = create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps(
             model=model,
             num_model_parameters=num_material_parameters,
-            model_error_gp=model_error_gp,
+            model_error_gp=create_model_error_gp(),
             initial_model_error_gp_parameters=initial_model_error_parameters,
             data=calibration_data,
             prior_material_parameters=prior,
@@ -833,7 +834,7 @@ def calibration_step() -> None:
         likelihood = create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps(
             model=model,
             num_model_parameters=num_material_parameters,
-            model_error_gp=model_error_gp,
+            model_error_gp=create_model_error_gp(),
             initial_model_error_gp_parameters=initial_model_error_parameters,
             data=calibration_data,
             prior_material_parameters=prior,

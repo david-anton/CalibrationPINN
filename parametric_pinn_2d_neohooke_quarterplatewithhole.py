@@ -83,7 +83,7 @@ layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_per_parameter = 1  # 32
+num_samples_per_parameter = 32
 num_collocation_points = 64
 number_points_per_bc = 64
 bcs_overlap_distance = 1e-2
@@ -100,7 +100,7 @@ fem_element_size = 0.2
 # Validation
 regenerate_valid_data = False
 input_subdir_valid = f"20240305_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
-num_samples_valid = 1  # 100
+num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
@@ -113,7 +113,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = "20240311"
-output_subdirectory = "20240311_parametric_pinn_neohooke_quarterplatewithhole_K_4000_8000_G_500_1500_samples_32_col_64_bc_64_neurons_6_128"  # f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_samples_{num_samples_per_parameter}_col_{int(num_collocation_points)}_bc_{int(number_points_per_bc)}_neurons_6_128"
+output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_samples_{num_samples_per_parameter}_col_{int(num_collocation_points)}_bc_{int(number_points_per_bc)}_neurons_6_128"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdirectory, "normalization")
 save_metadata = True
@@ -431,8 +431,8 @@ def training_step() -> None:
 def calibration_step() -> None:
     print("Start calibration ...")
     num_test_cases = num_samples_valid
-    num_data_sets = 2  # 16
-    num_data_points = 256  # 256
+    num_data_sets = 16
+    num_data_points = 128
     std_noise = 5 * 1e-4
 
     initial_bulk_modulus = 6000.0
@@ -476,13 +476,14 @@ def calibration_step() -> None:
 
     calibration_data, true_parameters = generate_calibration_data()
 
-    model_error_gp = IndependentMultiOutputGP(
-        independent_gps=[
-            ZeroMeanScaledRBFKernelGP(device),
-            ZeroMeanScaledRBFKernelGP(device),
-        ],
-        device=device,
-    ).to(device)
+    def create_model_error_gp() -> IndependentMultiOutputGP:
+        return IndependentMultiOutputGP(
+            independent_gps=[
+                ZeroMeanScaledRBFKernelGP(device),
+                ZeroMeanScaledRBFKernelGP(device),
+            ],
+            device=device,
+        ).to(device)
 
     initial_gp_output_scale = 0.1
     initial_gp_length_scale = 0.1
@@ -505,7 +506,7 @@ def calibration_step() -> None:
             create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps(
                 model=model,
                 num_model_parameters=num_material_parameters,
-                model_error_gp=model_error_gp,
+                model_error_gp=create_model_error_gp(),
                 initial_model_error_gp_parameters=initial_model_error_parameters,
                 data=data,
                 prior_material_parameters=prior,
@@ -524,7 +525,7 @@ def calibration_step() -> None:
             create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps(
                 model=model,
                 num_model_parameters=num_material_parameters,
-                model_error_gp=model_error_gp,
+                model_error_gp=create_model_error_gp(),
                 initial_model_error_gp_parameters=initial_model_error_parameters,
                 data=data,
                 prior_material_parameters=prior,

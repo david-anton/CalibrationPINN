@@ -112,7 +112,7 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_q_likelihood = True  # False
+use_q_likelihood = False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -459,8 +459,8 @@ def training_step() -> None:
 def calibration_step() -> None:
     print("Start calibration ...")
     num_test_cases = num_samples_valid
-    num_data_sets = 32  # 16
-    num_data_points = 128  # 256
+    num_data_sets = 16
+    num_data_points = 128
     std_noise = 5 * 1e-4
 
     initial_bulk_modulus = 160000.0
@@ -503,13 +503,14 @@ def calibration_step() -> None:
 
     calibration_data, true_parameters = generate_calibration_data()
 
-    model_error_gp = IndependentMultiOutputGP(
-        independent_gps=[
-            ZeroMeanScaledRBFKernelGP(device),
-            ZeroMeanScaledRBFKernelGP(device),
-        ],
-        device=device,
-    ).to(device)
+    def create_model_error_gp() -> IndependentMultiOutputGP:
+        return IndependentMultiOutputGP(
+            independent_gps=[
+                ZeroMeanScaledRBFKernelGP(device),
+                ZeroMeanScaledRBFKernelGP(device),
+            ],
+            device=device,
+        ).to(device)
 
     initial_gp_output_scale = 0.1
     initial_gp_length_scale = 0.1
@@ -532,7 +533,7 @@ def calibration_step() -> None:
             create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps(
                 model=model,
                 num_model_parameters=num_material_parameters,
-                model_error_gp=model_error_gp,
+                model_error_gp=create_model_error_gp(),
                 initial_model_error_gp_parameters=initial_model_error_parameters,
                 data=data,
                 prior_material_parameters=prior,
@@ -551,7 +552,7 @@ def calibration_step() -> None:
             create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps(
                 model=model,
                 num_model_parameters=num_material_parameters,
-                model_error_gp=model_error_gp,
+                model_error_gp=create_model_error_gp(),
                 initial_model_error_gp_parameters=initial_model_error_parameters,
                 data=data,
                 prior_material_parameters=prior,
