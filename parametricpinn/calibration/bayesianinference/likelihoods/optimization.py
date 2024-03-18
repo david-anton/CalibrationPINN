@@ -1,24 +1,22 @@
 from typing import TypeAlias
 
+import numpy as np
+import pandas as pd
 import torch
 
 from parametricpinn.bayesian.prior import Prior
 from parametricpinn.calibration.bayesianinference.likelihoods.likelihoodstrategies import (
-    NoiseAndModelErrorGPsOptimizeLikelihoodStrategy,
-    NoiseAndModelErrorOptimizeLikelihoodStrategy,
+    OptimizeLikelihoodStrategy,
 )
+from parametricpinn.io import ProjectDirectory
+from parametricpinn.io.readerswriters import PandasDataWriter
 from parametricpinn.types import Device, Tensor
-
-OptimizeLikelihoodStrategies: TypeAlias = (
-    NoiseAndModelErrorOptimizeLikelihoodStrategy
-    | NoiseAndModelErrorGPsOptimizeLikelihoodStrategy
-)
 
 
 class LogMarginalLikelihood(torch.nn.Module):
     def __init__(
         self,
-        likelihood: OptimizeLikelihoodStrategies,
+        likelihood: OptimizeLikelihoodStrategy,
         num_material_parameter_samples: int,
         prior_material_parameters: Prior,
         device: Device,
@@ -62,8 +60,8 @@ class LogMarginalLikelihood(torch.nn.Module):
         return max_log_prob + torch.log(torch.sum(torch.exp(log_probs - max_log_prob)))
 
 
-def optimize_hyperparameters(
-    likelihood: OptimizeLikelihoodStrategies,
+def optimize_likelihood_hyperparameters(
+    likelihood: OptimizeLikelihoodStrategy,
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
     num_iterations: int,
@@ -103,3 +101,26 @@ def optimize_hyperparameters(
         print(f"ITERATION: {_}")
         print(f"LOSS: {loss}")
         print(f"PARAMETERS: {likelihood._model_error_gp.get_named_parameters()}")
+
+
+def save_optimized_likelihood_hyperparameters(
+    likelihood: OptimizeLikelihoodStrategy,
+    file_name_prefix: str,
+    test_case_index: int,
+    output_subdirectory: str,
+    project_directory: ProjectDirectory,
+) -> None:
+    named_parameters = likelihood.get_named_parameters()
+    header = tuple(key for key, _ in named_parameters.items())
+    parameters = np.array(
+        tuple(value.item() for _, value in named_parameters.items())
+    ).reshape((1, -1))
+    data_frame = pd.DataFrame(parameters, columns=header)
+    data_writer = PandasDataWriter(project_directory)
+    file_name = f"{file_name_prefix}_{test_case_index}.csv"
+    data_writer.write(
+        data=data_frame,
+        file_name=file_name,
+        subdir_name=output_subdirectory,
+        header=header,
+    )

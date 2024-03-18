@@ -529,6 +529,16 @@ def calibration_step() -> None:
     model_error_optimization_num_iterations = 16
 
     if use_q_likelihood:
+        output_subdir_calibration = os.path.join(
+            output_subdirectory, "calibration", "with_model_error_gps_and_q_likelihood"
+        )
+    else:
+        output_subdir_calibration = os.path.join(
+            output_subdirectory, "calibration", "with_model_error_gps"
+        )
+    output_subdir_likelihoods = os.path.join(output_subdir_calibration, "likelihoods")
+
+    if use_q_likelihood:
         likelihoods = tuple(
             create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps(
                 model=model,
@@ -539,13 +549,12 @@ def calibration_step() -> None:
                 prior_material_parameters=prior,
                 num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
                 num_iterations=model_error_optimization_num_iterations,
+                test_case_index=test_case_index,
+                output_subdirectory=output_subdir_likelihoods,
+                project_directory=project_directory,
                 device=device,
             )
-            for data in calibration_data
-        )
-
-        output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration", "with_model_error_gps_and_q_likelihood"
+            for test_case_index, data in enumerate(calibration_data)
         )
     else:
         likelihoods = tuple(
@@ -558,13 +567,12 @@ def calibration_step() -> None:
                 prior_material_parameters=prior,
                 num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
                 num_iterations=model_error_optimization_num_iterations,
+                test_case_index=test_case_index,
+                output_subdirectory=output_subdir_likelihoods,
+                project_directory=project_directory,
                 device=device,
             )
-            for data in calibration_data
-        )
-
-        output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration", "with_model_error_gps"
+            for test_case_index, data in enumerate(calibration_data)
         )
 
     def set_up_least_squares_configs(

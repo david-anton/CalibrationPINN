@@ -1,7 +1,7 @@
 from typing import TypeAlias, cast
 
 import torch
-from torch.func import jacfwd, vmap
+from torch.func import vmap
 
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
 from parametricpinn.bayesian.prior import Prior
@@ -14,7 +14,8 @@ from parametricpinn.calibration.bayesianinference.likelihoods.likelihoodstrategi
     NoiseLikelihoodStrategy,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods.optimization import (
-    optimize_hyperparameters,
+    optimize_likelihood_hyperparameters,
+    save_optimized_likelihood_hyperparameters,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods.residualcalculator import (
     StandardResidualCalculator,
@@ -28,25 +29,18 @@ from parametricpinn.calibration.data import (
 )
 from parametricpinn.calibration.utility import freeze_model
 from parametricpinn.gps import GaussianProcess
+from parametricpinn.io import ProjectDirectory
 from parametricpinn.statistics.distributions import (
     IndependentMultivariateNormalDistributon,
     create_independent_multivariate_normal_distribution,
 )
 from parametricpinn.types import Device, Module, Tensor
 
-QLikelihoodStrategies: TypeAlias = (
-    NoiseLikelihoodStrategy
-    | NoiseAndModelErrorSamplingLikelihoodStrategy
-    | NoiseAndModelErrorOptimizeLikelihoodStrategy
-    | NoiseAndModelErrorGPsSamplingLikelihoodStrategy
-    | NoiseAndModelErrorGPsOptimizeLikelihoodStrategy
-)
-
 
 class StandardPPINNQLikelihoodWrapper:
     def __init__(
         self,
-        likelihood_strategy: QLikelihoodStrategies,
+        likelihood_strategy: LikelihoodStrategy,
         data: PreprocessedCalibrationData,
         num_model_parameters: int,
         device: Device,
@@ -299,6 +293,9 @@ def _create_optimized_noise_and_model_error_likelihood_strategy(
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
     num_iterations: int,
+    test_case_index: int,
+    output_subdirectory: str,
+    project_directory: ProjectDirectory,
     device: Device,
 ) -> tuple[NoiseAndModelErrorOptimizeLikelihoodStrategy, PreprocessedCalibrationData]:
     preprocessed_data = preprocess_calibration_data(data)
@@ -314,7 +311,7 @@ def _create_optimized_noise_and_model_error_likelihood_strategy(
         device=device,
     )
     likelihood_strategy.train()
-    optimize_hyperparameters(
+    optimize_likelihood_hyperparameters(
         likelihood=likelihood_strategy,
         prior_material_parameters=prior_material_parameters,
         num_material_parameter_samples=num_material_parameter_samples,
@@ -322,7 +319,13 @@ def _create_optimized_noise_and_model_error_likelihood_strategy(
         device=device,
     )
     freeze_model(likelihood_strategy)
-    print(likelihood_strategy._model_error_standard_deviation_parameters)
+    save_optimized_likelihood_hyperparameters(
+        likelihood=likelihood_strategy,
+        file_name_prefix="model_error_standard_deviations",
+        test_case_index=test_case_index,
+        output_subdirectory=output_subdirectory,
+        project_directory=project_directory,
+    )
     return likelihood_strategy, preprocessed_data
 
 
@@ -355,6 +358,9 @@ def create_optimized_standard_ppinn_likelihood_for_noise_and_model_error(
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
     num_iterations: int,
+    test_case_index: int,
+    output_subdirectory: str,
+    project_directory: ProjectDirectory,
     device: Device,
 ) -> StandardPPINNLikelihood:
     (
@@ -368,6 +374,9 @@ def create_optimized_standard_ppinn_likelihood_for_noise_and_model_error(
         prior_material_parameters=prior_material_parameters,
         num_material_parameter_samples=num_material_parameter_samples,
         num_iterations=num_iterations,
+        test_case_index=test_case_index,
+        output_subdirectory=output_subdirectory,
+        project_directory=project_directory,
         device=device,
     )
     return StandardPPINNLikelihood(
@@ -408,6 +417,9 @@ def create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error(
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
     num_iterations: int,
+    test_case_index: int,
+    output_subdirectory: str,
+    project_directory: ProjectDirectory,
     device: Device,
 ) -> StandardPPINNLikelihood:
     (
@@ -421,6 +433,9 @@ def create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error(
         prior_material_parameters=prior_material_parameters,
         num_material_parameter_samples=num_material_parameter_samples,
         num_iterations=num_iterations,
+        test_case_index=test_case_index,
+        output_subdirectory=output_subdirectory,
+        project_directory=project_directory,
         device=device,
     )
     q_likelihood_strategy = StandardPPINNQLikelihoodWrapper(
@@ -470,6 +485,9 @@ def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
     num_iterations: int,
+    test_case_index: int,
+    output_subdirectory: str,
+    project_directory: ProjectDirectory,
     device: Device,
 ) -> tuple[
     NoiseAndModelErrorGPsOptimizeLikelihoodStrategy, PreprocessedCalibrationData
@@ -487,7 +505,7 @@ def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
         device=device,
     )
     likelihood_strategy.train()
-    optimize_hyperparameters(
+    optimize_likelihood_hyperparameters(
         likelihood=likelihood_strategy,
         prior_material_parameters=prior_material_parameters,
         num_material_parameter_samples=num_material_parameter_samples,
@@ -495,7 +513,13 @@ def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
         device=device,
     )
     freeze_model(likelihood_strategy)
-    print(model_error_gp.get_named_parameters())
+    save_optimized_likelihood_hyperparameters(
+        likelihood=likelihood_strategy,
+        file_name_prefix="model_error_gp_parameters",
+        test_case_index=test_case_index,
+        output_subdirectory=output_subdirectory,
+        project_directory=project_directory,
+    )
     return likelihood_strategy, preprocessed_data
 
 
@@ -531,6 +555,9 @@ def create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps(
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
     num_iterations: int,
+    test_case_index: int,
+    output_subdirectory: str,
+    project_directory: ProjectDirectory,
     device: Device,
 ) -> StandardPPINNLikelihood:
     model_error_gp.set_parameters(initial_model_error_gp_parameters)
@@ -545,6 +572,9 @@ def create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps(
         prior_material_parameters=prior_material_parameters,
         num_material_parameter_samples=num_material_parameter_samples,
         num_iterations=num_iterations,
+        test_case_index=test_case_index,
+        output_subdirectory=output_subdirectory,
+        project_directory=project_directory,
         device=device,
     )
     return StandardPPINNLikelihood(
@@ -591,6 +621,9 @@ def create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps(
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
     num_iterations: int,
+    test_case_index: int,
+    output_subdirectory: str,
+    project_directory: ProjectDirectory,
     device: Device,
 ) -> StandardPPINNLikelihood:
     model_error_gp.set_parameters(initial_model_error_gp_parameters)
@@ -605,6 +638,9 @@ def create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps(
         prior_material_parameters=prior_material_parameters,
         num_material_parameter_samples=num_material_parameter_samples,
         num_iterations=num_iterations,
+        test_case_index=test_case_index,
+        output_subdirectory=output_subdirectory,
+        project_directory=project_directory,
         device=device,
     )
     q_likelihood_strategy = StandardPPINNQLikelihoodWrapper(

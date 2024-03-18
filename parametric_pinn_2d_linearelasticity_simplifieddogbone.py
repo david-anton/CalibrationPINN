@@ -819,6 +819,8 @@ def calibration_step() -> None:
     model_error_optimization_num_material_parameter_samples = 128
     model_error_optimization_num_iterations = 16
 
+    output_subdir_likelihoods = os.path.join(output_subdir_calibration, "likelihoods")
+
     if use_q_likelihood:
         likelihood = create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps(
             model=model,
@@ -829,6 +831,9 @@ def calibration_step() -> None:
             prior_material_parameters=prior,
             num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
             num_iterations=model_error_optimization_num_iterations,
+            test_case_index=0,
+            output_subdirectory=output_subdir_likelihoods,
+            project_directory=project_directory,
             device=device,
         )
     else:
@@ -841,6 +846,9 @@ def calibration_step() -> None:
             prior_material_parameters=prior,
             num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
             num_iterations=model_error_optimization_num_iterations,
+            test_case_index=0,
+            output_subdirectory=output_subdir_likelihoods,
+            project_directory=project_directory,
             device=device,
         )
 

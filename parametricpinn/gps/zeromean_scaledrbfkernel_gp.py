@@ -57,8 +57,8 @@ class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
 
     def get_named_parameters(self) -> NamedParameters:
         return {
-            "output scale": self.kernel.outputscale,
-            "length scale": self.kernel.base_kernel.lengthscale,
+            "output_scale": self.kernel.outputscale,
+            "length_scale": self.kernel.base_kernel.lengthscale,
         }
 
     def get_uninformed_parameters_prior(

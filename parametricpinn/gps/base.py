@@ -9,7 +9,6 @@ GPMultivariateNormal: TypeAlias = gpytorch.distributions.MultivariateNormal
 
 
 NamedParameters: TypeAlias = dict[str, Tensor]
-NamedParametersMultiOutputGP: TypeAlias = dict[str, NamedParameters]
 
 
 class GaussianProcess(Protocol):
@@ -34,7 +33,7 @@ class GaussianProcess(Protocol):
     def set_parameters(self, parameters: Tensor) -> None:
         pass
 
-    def get_named_parameters(self) -> NamedParameters | NamedParametersMultiOutputGP:
+    def get_named_parameters(self) -> NamedParameters:
         pass
 
     def get_uninformed_parameters_prior(self, device: Device) -> Prior:

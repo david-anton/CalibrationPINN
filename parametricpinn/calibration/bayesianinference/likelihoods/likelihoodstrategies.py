@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Protocol, TypeAlias
 
 import torch
 
@@ -15,6 +15,8 @@ from parametricpinn.statistics.distributions import (
 )
 from parametricpinn.types import Device, Module, Parameter, Tensor
 
+NamedParameters: TypeAlias = dict[str, Tensor]
+
 
 class LikelihoodStrategy(Protocol):
     def forward(self, parameters: Tensor) -> Tensor:
@@ -24,6 +26,11 @@ class LikelihoodStrategy(Protocol):
         pass
 
     def log_probs_individual(self, parameters: Tensor) -> Tensor:
+        pass
+
+
+class OptimizeLikelihoodStrategy(LikelihoodStrategy, Protocol):
+    def get_named_parameters(self) -> NamedParameters:
         pass
 
 
@@ -323,6 +330,14 @@ class NoiseAndModelErrorOptimizeLikelihoodStrategy(torch.nn.Module):
             model_parameters, self._model_error_standard_deviation_parameters
         )
 
+    def get_named_parameters(self) -> NamedParameters:
+        return {
+            f"stddev_dimension_{count}": parameter
+            for count, parameter in enumerate(
+                self._model_error_standard_deviation_parameters
+            )
+        }
+
     def _calculate_log_probs_for_data_sets(
         self,
         model_parameters: Tensor,
@@ -532,6 +547,9 @@ class NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(torch.nn.Module):
         return self._calculate_log_probs_for_data_sets(
             model_parameters, self._model_error_gp
         )
+
+    def get_named_parameters(self) -> NamedParameters:
+        return self._model_error_gp.get_named_parameters()
 
     def _calculate_log_probs_for_data_sets(
         self,
