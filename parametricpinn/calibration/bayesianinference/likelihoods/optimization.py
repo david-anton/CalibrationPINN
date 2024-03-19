@@ -67,7 +67,7 @@ def optimize_likelihood_hyperparameters(
     num_iterations: int,
     device: Device,
 ) -> None:
-    print("Optimization of likelihood parameters starts ...")
+    print("Start optimization of likelihood parameters ...")
     log_marginal_likelihood = LogMarginalLikelihood(
         likelihood=likelihood,
         num_material_parameter_samples=num_material_parameter_samples,
