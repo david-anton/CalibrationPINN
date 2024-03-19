@@ -6,7 +6,7 @@ import torch
 
 from parametricpinn.bayesian.prior import Prior
 from parametricpinn.calibration.bayesianinference.likelihoods.likelihoodstrategies import (
-    OptimizeLikelihoodStrategy,
+    OptimizedLikelihoodStrategy,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import PandasDataWriter
@@ -16,7 +16,7 @@ from parametricpinn.types import Device, Tensor
 class LogMarginalLikelihood(torch.nn.Module):
     def __init__(
         self,
-        likelihood: OptimizeLikelihoodStrategy,
+        likelihood: OptimizedLikelihoodStrategy,
         num_material_parameter_samples: int,
         prior_material_parameters: Prior,
         device: Device,
@@ -61,7 +61,7 @@ class LogMarginalLikelihood(torch.nn.Module):
 
 
 def optimize_likelihood_hyperparameters(
-    likelihood: OptimizeLikelihoodStrategy,
+    likelihood: OptimizedLikelihoodStrategy,
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
     num_iterations: int,
@@ -100,7 +100,7 @@ def optimize_likelihood_hyperparameters(
 
 
 def save_optimized_likelihood_hyperparameters(
-    likelihood: OptimizeLikelihoodStrategy,
+    likelihood: OptimizedLikelihoodStrategy,
     file_name_prefix: str,
     test_case_index: int,
     output_subdirectory: str,

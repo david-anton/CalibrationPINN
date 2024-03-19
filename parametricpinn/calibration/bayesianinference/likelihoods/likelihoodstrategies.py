@@ -1,10 +1,11 @@
-from typing import Protocol, TypeAlias
+from typing import Optional, Protocol, TypeAlias
 
 import torch
 
 from parametricpinn.calibration.bayesianinference.likelihoods.residualcalculator import (
     StandardResidualCalculator,
 )
+from parametricpinn.errors import OptimizedLikelihoodStrategyError
 from parametricpinn.calibration.data import PreprocessedCalibrationData
 from parametricpinn.gps import GaussianProcess
 from parametricpinn.statistics.distributions import (
@@ -29,7 +30,7 @@ class LikelihoodStrategy(Protocol):
         pass
 
 
-class OptimizeLikelihoodStrategy(LikelihoodStrategy, Protocol):
+class OptimizedLikelihoodStrategy(LikelihoodStrategy, Protocol):
     def get_named_parameters(self) -> NamedParameters:
         pass
 
@@ -133,7 +134,7 @@ class NoiseLikelihoodStrategy(torch.nn.Module):
 
 
 ### Noise and model error
-class NoiseAndModelErrorLikelihoodDistribution:
+class NoiseAndErrorLikelihoodDistribution:
     def __init__(
         self,
         data: PreprocessedCalibrationData,
@@ -206,7 +207,7 @@ class NoiseAndModelErrorLikelihoodDistribution:
         )
 
 
-class NoiseAndModelErrorSamplingLikelihoodStrategy(torch.nn.Module):
+class NoiseAndErrorSamplingLikelihoodStrategy(torch.nn.Module):
     def __init__(
         self,
         data: PreprocessedCalibrationData,
@@ -215,7 +216,7 @@ class NoiseAndModelErrorSamplingLikelihoodStrategy(torch.nn.Module):
         device: Device,
     ) -> None:
         super().__init__()
-        self._distribution = NoiseAndModelErrorLikelihoodDistribution(data, device)
+        self._distribution = NoiseAndErrorLikelihoodDistribution(data, device)
         self._residual_calculator = residual_calculator
         self._inputs_sets = tuple(inputs.detach().to(device) for inputs in data.inputs)
         self._outputs_sets = tuple(
@@ -291,7 +292,7 @@ class NoiseAndModelErrorSamplingLikelihoodStrategy(torch.nn.Module):
         return torch.unsqueeze(distribution.log_prob(residuals), dim=0)
 
 
-class NoiseAndModelErrorOptimizeLikelihoodStrategy(torch.nn.Module):
+class NoiseAndErrorOptimizedLikelihoodStrategy(torch.nn.Module):
     def __init__(
         self,
         initial_model_error_standard_deviations: Tensor,
@@ -304,7 +305,7 @@ class NoiseAndModelErrorOptimizeLikelihoodStrategy(torch.nn.Module):
         self._model_error_standard_deviation_parameters = torch.nn.Parameter(
             initial_model_error_standard_deviations.clone(), requires_grad=True
         )
-        self._distribution = NoiseAndModelErrorLikelihoodDistribution(data, device)
+        self._distribution = NoiseAndErrorLikelihoodDistribution(data, device)
         self._residual_calculator = residual_calculator
         self._inputs_sets = tuple(inputs.detach().to(device) for inputs in data.inputs)
         self._outputs_sets = tuple(
@@ -379,7 +380,7 @@ class NoiseAndModelErrorOptimizeLikelihoodStrategy(torch.nn.Module):
 
 
 ### Noise and model error GPs
-class NoiseAndModelErrorGPsLikelihoodDistribution:
+class NoiseAndErrorGPsLikelihoodDistribution:
     def __init__(
         self,
         data: PreprocessedCalibrationData,
@@ -430,7 +431,55 @@ class NoiseAndModelErrorGPsLikelihoodDistribution:
         return model_error_gp.forward_kernel(inputs, inputs)
 
 
-class NoiseAndModelErrorGPsSamplingLikelihoodStrategy(torch.nn.Module):
+class NoiseAndErrorGPsOptimizedLikelihoodDistribution:
+    def __init__(
+        self,
+        data: PreprocessedCalibrationData,
+        device: Device,
+    ) -> None:
+        self._standard_deviation_noise = torch.tensor(data.std_noise, device=device)
+        self._device = device
+
+    def initialize(
+        self,
+        model_error_covariance: Tensor,
+        num_flattened_outputs: int,
+    ) -> MultivariateNormalDistributon:
+        means = self._assemble_means(num_flattened_outputs)
+        covariance_matrix = self._assemble_covariance_matrix(
+            model_error_covariance, num_flattened_outputs
+        )
+        return create_multivariate_normal_distribution(
+            means=means, covariance_matrix=covariance_matrix, device=self._device
+        )
+
+    def assemble_error_covariance_matrices(
+        self, model_error_gp: GaussianProcess, inputs_sets: tuple[Tensor, ...]
+    ) -> tuple[Tensor, ...]:
+        return tuple(
+            model_error_gp.forward_kernel(inputs, inputs) for inputs in inputs_sets
+        )
+
+    def _assemble_means(self, num_flattened_outputs: int) -> Tensor:
+        return torch.zeros(
+            (num_flattened_outputs,), dtype=torch.float64, device=self._device
+        )
+
+    def _assemble_covariance_matrix(
+        self,
+        model_error_covariance: Tensor,
+        num_flattened_outputs: int,
+    ) -> Tensor:
+        noise_covariance = self._assemble_noise_covariance_matrix(num_flattened_outputs)
+        return noise_covariance + model_error_covariance
+
+    def _assemble_noise_covariance_matrix(self, num_flattened_outputs: int) -> Tensor:
+        return self._standard_deviation_noise**2 * torch.eye(
+            num_flattened_outputs, dtype=torch.float64, device=self._device
+        )
+
+
+class NoiseAndErrorGPsSamplingLikelihoodStrategy(torch.nn.Module):
     def __init__(
         self,
         model_error_gp: GaussianProcess,
@@ -441,7 +490,7 @@ class NoiseAndModelErrorGPsSamplingLikelihoodStrategy(torch.nn.Module):
     ) -> None:
         super().__init__()
         self._model_error_gp = model_error_gp.to(device)
-        self._distribution = NoiseAndModelErrorGPsLikelihoodDistribution(data, device)
+        self._distribution = NoiseAndErrorGPsLikelihoodDistribution(data, device)
         self._residual_calculator = residual_calculator
         self._inputs_sets = tuple(inputs.detach().to(device) for inputs in data.inputs)
         self._outputs_sets = tuple(
@@ -511,7 +560,7 @@ class NoiseAndModelErrorGPsSamplingLikelihoodStrategy(torch.nn.Module):
         return torch.unsqueeze(distribution.log_prob(residuals), dim=0)
 
 
-class NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(torch.nn.Module):
+class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
     def __init__(
         self,
         model_error_gp: Module,
@@ -522,7 +571,14 @@ class NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(torch.nn.Module):
     ) -> None:
         super().__init__()
         self._model_error_gp = model_error_gp.to(device)
-        self._distribution = NoiseAndModelErrorGPsLikelihoodDistribution(data, device)
+        self._is_training_mode = True
+        self._distribution_training = NoiseAndErrorGPsLikelihoodDistribution(
+            data, device
+        )
+        self._error_covariances_sets: Optional[tuple[Tensor, ...]] = None
+        self._distribution_prediction = NoiseAndErrorGPsOptimizedLikelihoodDistribution(
+            data, device
+        )
         self._residual_calculator = residual_calculator
         self._inputs_sets = tuple(inputs.detach().to(device) for inputs in data.inputs)
         self._outputs_sets = tuple(
@@ -534,6 +590,18 @@ class NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(torch.nn.Module):
         self._standard_deviation_noise = data.std_noise
         self._num_model_parameters = num_model_parameters
         self._device = device
+
+    def training_mode(self) -> None:
+        self._is_training_mode = True
+        self._error_covariances_sets = None
+
+    def prediction_mode(self) -> None:
+        self._is_training_mode = False
+        self._error_covariances_sets = (
+            self._distribution_prediction.assemble_error_covariance_matrices(
+                self._model_error_gp, self._inputs_sets
+            )
+        )
 
     def forward(self, parameters: Tensor) -> Tensor:
         return self.log_prob(parameters)
@@ -556,22 +624,43 @@ class NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(torch.nn.Module):
         model_parameters: Tensor,
         model_error_gp: GaussianProcess,
     ) -> Tensor:
-        log_probs = tuple(
-            self._calculate_one_log_prob_for_data_set(
-                model_parameters,
-                model_error_gp,
-                self._inputs_sets[data_set_index],
-                self._outputs_sets[data_set_index],
-                self._num_data_points_per_set[data_set_index],
+        if self._is_training_mode:
+            log_probs = tuple(
+                self._calculate_one_log_prob_for_data_set_in_training(
+                    model_parameters,
+                    model_error_gp,
+                    self._inputs_sets[data_set_index],
+                    self._outputs_sets[data_set_index],
+                    self._num_data_points_per_set[data_set_index],
+                )
+                for data_set_index in range(self._num_data_sets)
             )
-            for data_set_index in range(self._num_data_sets)
-        )
-        if self._num_data_sets == 1:
-            return log_probs[0]
+            if self._num_data_sets == 1:
+                return log_probs[0]
+            else:
+                return torch.concat(log_probs)
         else:
-            return torch.concat(log_probs)
+            if self._error_covariances_sets is not None:
+                log_probs = tuple(
+                    self._calculate_one_log_prob_for_data_set(
+                        model_parameters,
+                        self._error_covariances_sets[data_set_index],
+                        self._inputs_sets[data_set_index],
+                        self._outputs_sets[data_set_index],
+                        self._num_data_points_per_set[data_set_index],
+                    )
+                    for data_set_index in range(self._num_data_sets)
+                )
+                if self._num_data_sets == 1:
+                    return log_probs[0]
+                else:
+                    return torch.concat(log_probs)
+            else:
+                raise OptimizedLikelihoodStrategyError(
+                    "The covariance matrices of the model errors must first be calculated for the prediction."
+                )
 
-    def _calculate_one_log_prob_for_data_set(
+    def _calculate_one_log_prob_for_data_set_in_training(
         self,
         model_parameters: Tensor,
         model_error_gp: GaussianProcess,
@@ -580,8 +669,25 @@ class NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(torch.nn.Module):
         num_data_points: int,
     ) -> Tensor:
         num_flattened_outputs = num_data_points * self._dim_outputs
-        distribution = self._distribution.initialize(
+        distribution = self._distribution_training.initialize(
             model_error_gp, inputs, num_flattened_outputs
+        )
+        residuals = self._residual_calculator.calculate_residuals(
+            model_parameters, inputs, outputs
+        )
+        return torch.unsqueeze(distribution.log_prob(residuals), dim=0)
+
+    def _calculate_one_log_prob_for_data_set(
+        self,
+        model_parameters: Tensor,
+        error_covariance: Tensor,
+        inputs: Tensor,
+        outputs: Tensor,
+        num_data_points: int,
+    ) -> Tensor:
+        num_flattened_outputs = num_data_points * self._dim_outputs
+        distribution = self._distribution_prediction.initialize(
+            error_covariance, num_flattened_outputs
         )
         residuals = self._residual_calculator.calculate_residuals(
             model_parameters, inputs, outputs

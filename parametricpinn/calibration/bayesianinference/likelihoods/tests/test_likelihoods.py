@@ -15,10 +15,10 @@ from parametricpinn.ansatz.base import (
 )
 from parametricpinn.calibration.bayesianinference.likelihoods.likelihoods import (
     BayesianPPINNLikelihood,
-    NoiseAndModelErrorGPsOptimizeLikelihoodStrategy,
-    NoiseAndModelErrorGPsSamplingLikelihoodStrategy,
-    NoiseAndModelErrorOptimizeLikelihoodStrategy,
-    NoiseAndModelErrorSamplingLikelihoodStrategy,
+    NoiseAndErrorGPsSamplingLikelihoodStrategy,
+    NoiseAndErrorSamplingLikelihoodStrategy,
+    NoiseAndErrorGPsOptimizedLikelihoodStrategy,
+    NoiseAndErrorOptimizedLikelihoodStrategy,
     NoiseLikelihoodStrategy,
     StandardPPINNLikelihood,
     StandardResidualCalculator,
@@ -308,8 +308,8 @@ def test_standard_calibration_likelihood_for_noise_multiple_data_sets_multiple_d
 NoiseAndModelErrorLikelihoodFactoryFunc: TypeAlias = Callable[
     [StandardResidualCalculator, Tensor, PreprocessedCalibrationData, int],
     tuple[
-        NoiseAndModelErrorSamplingLikelihoodStrategy
-        | NoiseAndModelErrorOptimizeLikelihoodStrategy,
+        NoiseAndErrorSamplingLikelihoodStrategy
+        | NoiseAndErrorOptimizedLikelihoodStrategy,
         Tensor,
     ],
 ]
@@ -320,8 +320,8 @@ def _create_noise_and_model_error_likelihood_strategy_for_sampling(
     initial_model_error_standard_deviations: Tensor,
     data: PreprocessedCalibrationData,
     num_model_parameters: int,
-) -> tuple[NoiseAndModelErrorSamplingLikelihoodStrategy, Tensor]:
-    likelihood_strategy = NoiseAndModelErrorSamplingLikelihoodStrategy(
+) -> tuple[NoiseAndErrorSamplingLikelihoodStrategy, Tensor]:
+    likelihood_strategy = NoiseAndErrorSamplingLikelihoodStrategy(
         residual_calculator=residual_calculator,
         data=data,
         num_model_parameters=num_model_parameters,
@@ -338,8 +338,8 @@ def _create_optimized_noise_and_model_error_likelihood_strategy(
     initial_model_error_standard_deviations: Tensor,
     data: PreprocessedCalibrationData,
     num_model_parameters: int,
-) -> tuple[NoiseAndModelErrorOptimizeLikelihoodStrategy, Tensor]:
-    likelihood_strategy = NoiseAndModelErrorOptimizeLikelihoodStrategy(
+) -> tuple[NoiseAndErrorOptimizedLikelihoodStrategy, Tensor]:
+    likelihood_strategy = NoiseAndErrorOptimizedLikelihoodStrategy(
         residual_calculator=residual_calculator,
         initial_model_error_standard_deviations=initial_model_error_standard_deviations,
         data=data,
@@ -628,8 +628,8 @@ NoiseAndModelErrorGPsLikelihoodFactoryFunc: TypeAlias = Callable[
         int,
     ],
     tuple[
-        NoiseAndModelErrorGPsSamplingLikelihoodStrategy
-        | NoiseAndModelErrorGPsOptimizeLikelihoodStrategy,
+        NoiseAndErrorGPsSamplingLikelihoodStrategy
+        | NoiseAndErrorGPsOptimizedLikelihoodStrategy,
         Tensor,
     ],
 ]
@@ -641,8 +641,8 @@ def _create_noise_and_model_error_gps_likelihood_strategy_for_sampling(
     initial_gp_parameters: Tensor,
     data: PreprocessedCalibrationData,
     num_model_parameters: int,
-) -> tuple[NoiseAndModelErrorGPsSamplingLikelihoodStrategy, Tensor]:
-    likelihood_strategy = NoiseAndModelErrorGPsSamplingLikelihoodStrategy(
+) -> tuple[NoiseAndErrorGPsSamplingLikelihoodStrategy, Tensor]:
+    likelihood_strategy = NoiseAndErrorGPsSamplingLikelihoodStrategy(
         model_error_gp=model_error_gp,
         data=data,
         residual_calculator=residual_calculator,
@@ -653,21 +653,41 @@ def _create_noise_and_model_error_gps_likelihood_strategy_for_sampling(
     return likelihood_strategy, parameters
 
 
-def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
+def _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_training(
     residual_calculator: StandardResidualCalculator,
     model_error_gp: Module,
     initial_gp_parameters: Tensor,
     data: PreprocessedCalibrationData,
     num_model_parameters: int,
-) -> tuple[NoiseAndModelErrorGPsOptimizeLikelihoodStrategy, Tensor]:
+) -> tuple[NoiseAndErrorGPsOptimizedLikelihoodStrategy, Tensor]:
     model_error_gp.set_parameters(initial_gp_parameters)
-    likelihood_strategy = NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(
+    likelihood_strategy = NoiseAndErrorGPsOptimizedLikelihoodStrategy(
         model_error_gp=model_error_gp,
         data=data,
         residual_calculator=residual_calculator,
         num_model_parameters=num_model_parameters,
         device=device,
     )
+    parameters = torch.tensor([1.0])
+    return likelihood_strategy, parameters
+
+
+def _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_prediction(
+    residual_calculator: StandardResidualCalculator,
+    model_error_gp: Module,
+    initial_gp_parameters: Tensor,
+    data: PreprocessedCalibrationData,
+    num_model_parameters: int,
+) -> tuple[NoiseAndErrorGPsOptimizedLikelihoodStrategy, Tensor]:
+    model_error_gp.set_parameters(initial_gp_parameters)
+    likelihood_strategy = NoiseAndErrorGPsOptimizedLikelihoodStrategy(
+        model_error_gp=model_error_gp,
+        data=data,
+        residual_calculator=residual_calculator,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
+    likelihood_strategy.prediction_mode()
     parameters = torch.tensor([1.0])
     return likelihood_strategy, parameters
 
@@ -732,7 +752,8 @@ class FakeZeroMeanScaledRBFKernelGP(ZeroMeanScaledRBFKernelGP):
     ("likelihood_factory_func"),
     [
         _create_noise_and_model_error_gps_likelihood_strategy_for_sampling,
-        _create_optimized_noise_and_model_error_gps_likelihood_strategy,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_training,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_prediction,
     ],
 )
 def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_data_set_single_dimension(
@@ -797,7 +818,8 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_da
     ("likelihood_factory_func"),
     [
         _create_noise_and_model_error_gps_likelihood_strategy_for_sampling,
-        _create_optimized_noise_and_model_error_gps_likelihood_strategy,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_training,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_prediction,
     ],
 )
 def test_standard_calibration_likelihood_for_noise_and_model_error_gps_multiple_data_sets_single_dimension(
@@ -862,7 +884,8 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_gps_multiple_
     ("likelihood_factory_func"),
     [
         _create_noise_and_model_error_gps_likelihood_strategy_for_sampling,
-        _create_optimized_noise_and_model_error_gps_likelihood_strategy,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_training,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_prediction,
     ],
 )
 def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_data_set_multiple_dimension(
@@ -934,7 +957,8 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_da
     ("likelihood_factory_func"),
     [
         _create_noise_and_model_error_gps_likelihood_strategy_for_sampling,
-        _create_optimized_noise_and_model_error_gps_likelihood_strategy,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_training,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_prediction,
     ],
 )
 def test_standard_calibration_likelihood_for_noise_and_model_error_gps_multiple_data_sets_multiple_dimension(

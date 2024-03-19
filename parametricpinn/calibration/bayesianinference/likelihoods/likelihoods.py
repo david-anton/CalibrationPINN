@@ -7,10 +7,10 @@ from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
 from parametricpinn.bayesian.prior import Prior
 from parametricpinn.calibration.bayesianinference.likelihoods.likelihoodstrategies import (
     LikelihoodStrategy,
-    NoiseAndModelErrorGPsOptimizeLikelihoodStrategy,
-    NoiseAndModelErrorGPsSamplingLikelihoodStrategy,
-    NoiseAndModelErrorOptimizeLikelihoodStrategy,
-    NoiseAndModelErrorSamplingLikelihoodStrategy,
+    NoiseAndErrorGPsOptimizedLikelihoodStrategy,
+    NoiseAndErrorGPsSamplingLikelihoodStrategy,
+    NoiseAndErrorOptimizedLikelihoodStrategy,
+    NoiseAndErrorSamplingLikelihoodStrategy,
     NoiseLikelihoodStrategy,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods.optimization import (
@@ -270,13 +270,13 @@ def _create_noise_and_model_error_likelihood_strategy_for_sampling(
     num_model_parameters: int,
     data: CalibrationData,
     device: Device,
-) -> tuple[NoiseAndModelErrorSamplingLikelihoodStrategy, PreprocessedCalibrationData]:
+) -> tuple[NoiseAndErrorSamplingLikelihoodStrategy, PreprocessedCalibrationData]:
     preprocessed_data = preprocess_calibration_data(data)
     residual_calculator = StandardResidualCalculator(
         model=model,
         device=device,
     )
-    likelihood_strategy = NoiseAndModelErrorSamplingLikelihoodStrategy(
+    likelihood_strategy = NoiseAndErrorSamplingLikelihoodStrategy(
         residual_calculator=residual_calculator,
         data=preprocessed_data,
         num_model_parameters=num_model_parameters,
@@ -297,13 +297,13 @@ def _create_optimized_noise_and_model_error_likelihood_strategy(
     output_subdirectory: str,
     project_directory: ProjectDirectory,
     device: Device,
-) -> tuple[NoiseAndModelErrorOptimizeLikelihoodStrategy, PreprocessedCalibrationData]:
+) -> tuple[NoiseAndErrorOptimizedLikelihoodStrategy, PreprocessedCalibrationData]:
     preprocessed_data = preprocess_calibration_data(data)
     residual_calculator = StandardResidualCalculator(
         model=model,
         device=device,
     )
-    likelihood_strategy = NoiseAndModelErrorOptimizeLikelihoodStrategy(
+    likelihood_strategy = NoiseAndErrorOptimizedLikelihoodStrategy(
         initial_model_error_standard_deviations=initial_model_error_standard_deviations,
         residual_calculator=residual_calculator,
         data=preprocessed_data,
@@ -459,15 +459,13 @@ def _create_noise_and_model_error_gps_likelihood_strategy_for_sampling(
     model_error_gp: GaussianProcess,
     data: CalibrationData,
     device: Device,
-) -> tuple[
-    NoiseAndModelErrorGPsSamplingLikelihoodStrategy, PreprocessedCalibrationData
-]:
+) -> tuple[NoiseAndErrorGPsSamplingLikelihoodStrategy, PreprocessedCalibrationData]:
     preprocessed_data = preprocess_calibration_data(data)
     residual_calculator = StandardResidualCalculator(
         model=model,
         device=device,
     )
-    likelihood_strategy = NoiseAndModelErrorGPsSamplingLikelihoodStrategy(
+    likelihood_strategy = NoiseAndErrorGPsSamplingLikelihoodStrategy(
         residual_calculator=residual_calculator,
         data=preprocessed_data,
         num_model_parameters=num_model_parameters,
@@ -489,15 +487,13 @@ def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
     output_subdirectory: str,
     project_directory: ProjectDirectory,
     device: Device,
-) -> tuple[
-    NoiseAndModelErrorGPsOptimizeLikelihoodStrategy, PreprocessedCalibrationData
-]:
+) -> tuple[NoiseAndErrorGPsOptimizedLikelihoodStrategy, PreprocessedCalibrationData]:
     preprocessed_data = preprocess_calibration_data(data)
     residual_calculator = StandardResidualCalculator(
         model=model,
         device=device,
     )
-    likelihood_strategy = NoiseAndModelErrorGPsOptimizeLikelihoodStrategy(
+    likelihood_strategy = NoiseAndErrorGPsOptimizedLikelihoodStrategy(
         model_error_gp=model_error_gp,
         data=preprocessed_data,
         residual_calculator=residual_calculator,
@@ -513,6 +509,7 @@ def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
         device=device,
     )
     freeze_model(likelihood_strategy)
+    likelihood_strategy.prediction_mode()
     save_optimized_likelihood_hyperparameters(
         likelihood=likelihood_strategy,
         file_name_prefix="model_error_gp_parameters",
