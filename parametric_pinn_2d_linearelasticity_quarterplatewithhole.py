@@ -71,7 +71,7 @@ from parametricpinn.training.training_standard_linearelasticity_quarterplatewith
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -86,7 +86,7 @@ max_youngs_modulus = 240000.0
 min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
 # Network
-layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
+layer_sizes = [4, 64, 64, 64, 64, 64, 64, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
@@ -105,8 +105,8 @@ fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size = 0.1
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = f"20240304_validation_data_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}_K_G"
+regenerate_valid_data = True
+input_subdir_valid = f"20240319_validation_data_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}_K_G"
 num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
@@ -119,8 +119,8 @@ use_hamiltonian = False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = "20240311"
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_6_128"
+output_date = current_date
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_6_64"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdirectory, "normalization")
 save_metadata = True
@@ -386,7 +386,7 @@ def create_ansatz() -> StandardAnsatz:
         return normalization_values
 
     normalization_values = _determine_normalization_values()
-    network = FFNN(layer_sizes=layer_sizes, activation=torch.nn.SiLU())
+    network = FFNN(layer_sizes=layer_sizes)
     return create_standard_normalized_hbc_ansatz_quarter_plate_with_hole(
         min_inputs=normalization_values[key_min_inputs],
         max_inputs=normalization_values[key_max_inputs],
@@ -656,7 +656,7 @@ def calibration_step() -> None:
                 prior=prior,
                 initial_parameters=initial_parameters,
                 num_iterations=int(1e4),
-                num_burn_in_iterations=int(1e4),
+                num_burn_in_iterations=int(5e3),
                 max_tree_depth=7,
                 leapfrog_step_sizes=torch.tensor([1, 1], device=device),
             )
