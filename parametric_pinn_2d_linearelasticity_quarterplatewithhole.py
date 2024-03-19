@@ -460,7 +460,7 @@ def calibration_step() -> None:
     print("Start calibration ...")
     num_test_cases = num_samples_valid
     num_data_sets = 1
-    num_data_points = 256
+    num_data_points = 128
     std_noise = 5 * 1e-4
 
     initial_bulk_modulus = 160000.0

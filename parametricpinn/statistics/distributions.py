@@ -118,8 +118,7 @@ class MultivariateNormalDistributon:
         self._distribution = torch.distributions.MultivariateNormal(
             loc=means.type(torch.float64).to(device),
             covariance_matrix=covariance_matrix.type(torch.float64).to(device),
-            validate_args=True,
-            # validate_args=False,
+            validate_args=False,
         )
         self.means = self._distribution.mean
         self.variances = self._distribution.variance
