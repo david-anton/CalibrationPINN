@@ -5,8 +5,8 @@ import torch
 from parametricpinn.calibration.bayesianinference.likelihoods.residualcalculator import (
     StandardResidualCalculator,
 )
-from parametricpinn.errors import OptimizedLikelihoodStrategyError
 from parametricpinn.calibration.data import PreprocessedCalibrationData
+from parametricpinn.errors import OptimizedLikelihoodStrategyError
 from parametricpinn.gps import GaussianProcess
 from parametricpinn.statistics.distributions import (
     IndependentMultivariateNormalDistributon,

@@ -1,7 +1,7 @@
-from typing import TypeAlias, cast
+from typing import cast
 
 import torch
-from torch.func import vmap
+from torch.func import jacfwd, vmap
 
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
 from parametricpinn.bayesian.prior import Prior
@@ -54,7 +54,36 @@ class StandardPPINNQLikelihoodWrapper:
         return self._calibrated_log_likelihood(parameters)
 
     def _calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
-        return self._default_calibrated_log_likelihood(parameters)
+        scores = self._calculate_scores(parameters)
+        W = self._estimate_covariance_matrix(scores)
+        Q = self._calculate_q(scores, W)
+        M = torch.det(W)
+
+        return (-1 / 2) * torch.log(M) - Q
+
+    def _calculate_scores(self, parameters: Tensor) -> Tensor:
+        return jacfwd(self._likelihood_strategy.log_probs_individual)(parameters)
+
+    def _estimate_covariance_matrix(self, scores: Tensor) -> Tensor:
+        mean_score = torch.mean(scores, dim=0)
+
+        def _vmap_calculate_covariance(score) -> Tensor:
+            deviation = torch.unsqueeze(score - mean_score, dim=0)
+            return torch.matmul(torch.transpose(deviation, 0, 1), deviation)
+
+        covariances = vmap(_vmap_calculate_covariance)(scores)
+        return torch.mean(covariances, dim=0)
+
+    def _calculate_q(self, scores: Tensor, covariance: Tensor) -> Tensor:
+        num_scores = torch.tensor(len(scores), device=self._device)
+        sqrt_num_scores = torch.sqrt(num_scores)
+        total_score = torch.sum(scores, dim=0)
+        scaled_total_score = total_score / sqrt_num_scores
+        return torch.squeeze(
+            (1 / 2)
+            * (scaled_total_score @ torch.inverse(covariance) @ scaled_total_score),
+            dim=0,
+        )
 
     # def _robust_calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
     #     scores = self._calculate_scores(parameters)
@@ -74,20 +103,6 @@ class StandardPPINNQLikelihoodWrapper:
     #     #     return torch.where(abs_x <= d_0, x**2, k * abs_x**gamma + c)
 
     #     # return (-1 / 2) * torch.log(M) - (1 / 2) * g(torch.sqrt(2 * Q))
-
-    def _default_calibrated_log_likelihood(self, parameters: Tensor) -> Tensor:
-        scores = self._calculate_scores(parameters)
-        W = self._estimate_default_covariance_matrix(scores)
-        Q = self._calculate_q(scores, W)
-        M = torch.det(W)
-
-        return (-1 / 2) * torch.log(M) - Q
-
-    def _calculate_scores(self, parameters: Tensor) -> Tensor:
-        return torch.autograd.functional.jacobian(
-            self._likelihood_strategy.log_probs_individual, parameters
-        )
-        # return jacfwd(self._likelihood_strategy.log_probs_individual)(parameters)
 
     # def _estimate_robust_covariance_matrix(self, scores: Tensor) -> Tensor:
     #     num_scores = len(scores)
@@ -147,27 +162,6 @@ class StandardPPINNQLikelihoodWrapper:
     #     covariance = D @ R_T @ R @ D
 
     #     return covariance
-
-    def _estimate_default_covariance_matrix(self, scores: Tensor) -> Tensor:
-        mean_score = torch.mean(scores, dim=0)
-
-        def _vmap_calculate_covariance(score) -> Tensor:
-            deviation = torch.unsqueeze(score - mean_score, dim=0)
-            return torch.matmul(torch.transpose(deviation, 0, 1), deviation)
-
-        covariances = vmap(_vmap_calculate_covariance)(scores)
-        return torch.mean(covariances, dim=0)
-
-    def _calculate_q(self, scores: Tensor, covariance: Tensor) -> Tensor:
-        num_scores = torch.tensor(len(scores), device=self._device)
-        sqrt_num_scores = torch.sqrt(num_scores)
-        total_score = torch.sum(scores, dim=0)
-        scaled_total_score = total_score / sqrt_num_scores
-        return torch.squeeze(
-            (1 / 2)
-            * (scaled_total_score @ torch.inverse(covariance) @ scaled_total_score),
-            dim=0,
-        )
 
 
 class StandardPPINNLikelihood:

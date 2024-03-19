@@ -15,10 +15,10 @@ from parametricpinn.ansatz.base import (
 )
 from parametricpinn.calibration.bayesianinference.likelihoods.likelihoods import (
     BayesianPPINNLikelihood,
-    NoiseAndErrorGPsSamplingLikelihoodStrategy,
-    NoiseAndErrorSamplingLikelihoodStrategy,
     NoiseAndErrorGPsOptimizedLikelihoodStrategy,
+    NoiseAndErrorGPsSamplingLikelihoodStrategy,
     NoiseAndErrorOptimizedLikelihoodStrategy,
+    NoiseAndErrorSamplingLikelihoodStrategy,
     NoiseLikelihoodStrategy,
     StandardPPINNLikelihood,
     StandardResidualCalculator,
