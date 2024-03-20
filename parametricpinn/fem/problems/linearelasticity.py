@@ -21,6 +21,7 @@ from parametricpinn.fem.problems.base import (
     BaseSimulationResults,
     MaterialParameters,
     apply_boundary_conditions,
+    print_maximum_infinitesiaml_strain,
     save_displacements,
     save_parameters,
 )
@@ -75,6 +76,7 @@ class LinearElasticityProblemBase(ABC):
     def solve(self) -> DFunction:
         dolfinx.log.set_log_level(dolfinx.log.LogLevel.WARNING)
         solution_function = self._problem.solve()
+        print_maximum_infinitesiaml_strain(solution_function, self._mesh)
         return solution_function
 
     @abstractmethod
