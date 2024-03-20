@@ -43,6 +43,8 @@ def create_strain_function_space(
     degree_solution = solution_function.function_space.ufl_element().degree()
     family_solution = solution_function.function_space.ufl_element().family()
     num_sub_spaces = solution_function.function_space.num_sub_spaces
-    shape = (num_sub_spaces, num_sub_spaces) if num_sub_spaces != 0 else None
-    element = (family_solution, degree_solution - 1, shape)
+    degree_strain = degree_solution - 1
+    family_strain = family_solution if degree_strain >= 1 else "DG"
+    shape_strain = (num_sub_spaces, num_sub_spaces) if num_sub_spaces != 0 else None
+    element = (family_strain, degree_strain, shape_strain)
     return fem.functionspace(mesh, element)

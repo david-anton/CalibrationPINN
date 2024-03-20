@@ -14,6 +14,10 @@ from parametricpinn.fem.base import (
     join_output_path,
 )
 from parametricpinn.fem.boundaryconditions import BoundaryConditions, DirichletBC
+from parametricpinn.fem.mechanics import (
+    compute_green_strain_function,
+    compute_infinitesimal_strain_function,
+)
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import PandasDataWriter
 from parametricpinn.types import NPArray
@@ -117,3 +121,31 @@ def _validate_results(simulation_results: BaseSimulationResults) -> None:
         raise FEMResultsError(
             "The number of parameter names does not correspond to the number of parameters."
         )
+
+
+def print_maximum_infinitesiaml_strain(
+    solution_function: DFunction, mesh: DMesh
+) -> None:
+    strain_function = compute_infinitesimal_strain_function(solution_function, mesh)
+    geometric_dim = mesh.geometry.dim
+    strain = strain_function.x.array.reshape((-1, geometric_dim, geometric_dim))
+    max_strain_xx = np.amax(np.absolute(strain[:, 0, 0]))
+    max_strain_yy = np.amax(np.absolute(strain[:, 1, 1]))
+    max_strain_xy = np.amax(np.absolute(strain[:, 0, 1]))
+    max_strain_yx = np.amax(np.absolute(strain[:, 1, 0]))
+    print(
+        f"Maximum infinitesimal strains: eps_xx = {max_strain_xx}, eps_yy = {max_strain_yy}, eps_xy = {max_strain_xy}, eps_yx = {max_strain_yx}"
+    )
+
+
+def print_maximum_green_strain(solution_function: DFunction, mesh: DMesh) -> None:
+    strain_function = compute_green_strain_function(solution_function, mesh)
+    geometric_dim = mesh.geometry.dim
+    strain = strain_function.x.array.reshape((-1, geometric_dim, geometric_dim))
+    max_strain_xx = np.amax(np.absolute(strain[:, 0, 0]))
+    max_strain_yy = np.amax(np.absolute(strain[:, 1, 1]))
+    max_strain_xy = np.amax(np.absolute(strain[:, 0, 1]))
+    max_strain_yx = np.amax(np.absolute(strain[:, 1, 0]))
+    print(
+        f"Maximum Green strains: E_xx = {max_strain_xx}, E_yy = {max_strain_yy}, E_xy = {max_strain_xy}, E_yx = {max_strain_yx}"
+    )

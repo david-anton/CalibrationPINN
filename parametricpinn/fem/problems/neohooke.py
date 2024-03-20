@@ -3,7 +3,6 @@ from typing import Callable, TypeAlias
 
 import dolfinx
 import dolfinx.fem as fem
-import numpy as np
 import ufl
 from dolfinx import default_scalar_type
 from dolfinx.fem.petsc import NonlinearProblem
@@ -18,14 +17,12 @@ from parametricpinn.fem.base import (
     UFLTrialFunction,
 )
 from parametricpinn.fem.domains import Domain
-from parametricpinn.fem.mechanics import (
-    compute_green_strain_function,
-    compute_infinitesimal_strain_function,
-)
 from parametricpinn.fem.problems.base import (
     BaseSimulationResults,
     MaterialParameters,
     apply_boundary_conditions,
+    print_maximum_green_strain,
+    print_maximum_infinitesiaml_strain,
     save_displacements,
     save_parameters,
 )
@@ -78,8 +75,8 @@ class NeoHookeProblem:
         num_iterations, converged = solver.solve(self._solution_function)
         assert converged
         print(f"Number of iterations: {num_iterations}")
-        self._print_maximum_infinitesiaml_strain(self._solution_function)
-        self._print_maximum_green_strain(self._solution_function)
+        print_maximum_infinitesiaml_strain(self._solution_function, self._mesh)
+        print_maximum_green_strain(self._solution_function, self._mesh)
         return self._solution_function
 
     def compile_results(self, approximate_solution: DFunction) -> NeoHookeResults:
@@ -192,29 +189,3 @@ class NeoHookeProblem:
         residual_form = lhs - rhs
         problem = NonlinearProblem(residual_form, solution_function, dirichlet_bcs)
         return problem, solution_function
-
-    def _print_maximum_infinitesiaml_strain(self, solution_function: DFunction) -> None:
-        strain_function = compute_infinitesimal_strain_function(
-            solution_function, self._mesh
-        )
-        geometric_dim = self._mesh.geometry.dim
-        strain = strain_function.x.array.reshape((-1, geometric_dim, geometric_dim))
-        max_strain_xx = np.amax(np.absolute(strain[:, 0, 0]))
-        max_strain_yy = np.amax(np.absolute(strain[:, 1, 1]))
-        max_strain_xy = np.amax(np.absolute(strain[:, 0, 1]))
-        max_strain_yx = np.amax(np.absolute(strain[:, 1, 0]))
-        print(
-            f"Maximum infinitesimal strains: eps_xx = {max_strain_xx}, eps_yy = {max_strain_yy}, eps_xy = {max_strain_xy}, eps_yx = {max_strain_yx}"
-        )
-
-    def _print_maximum_green_strain(self, solution_function: DFunction) -> None:
-        strain_function = compute_green_strain_function(solution_function, self._mesh)
-        geometric_dim = self._mesh.geometry.dim
-        strain = strain_function.x.array.reshape((-1, geometric_dim, geometric_dim))
-        max_strain_xx = np.amax(np.absolute(strain[:, 0, 0]))
-        max_strain_yy = np.amax(np.absolute(strain[:, 1, 1]))
-        max_strain_xy = np.amax(np.absolute(strain[:, 0, 1]))
-        max_strain_yx = np.amax(np.absolute(strain[:, 1, 0]))
-        print(
-            f"Maximum Green strains: E_xx = {max_strain_xx}, E_yy = {max_strain_yy}, E_xy = {max_strain_xy}, E_yx = {max_strain_yx}"
-        )
