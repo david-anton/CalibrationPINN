@@ -6,8 +6,11 @@ import torch
 
 from parametricpinn.bayesian.prior import MultipliedPriors, Prior
 from parametricpinn.errors import UnvalidGPMultivariateNormaError
-from parametricpinn.gps.base import GaussianProcess, NamedParameters
-from parametricpinn.gps.utility import validate_parameters_size
+from parametricpinn.gps.base import (
+    GaussianProcess,
+    NamedParameters,
+    validate_parameters_size,
+)
 from parametricpinn.types import Device, GPMultivariateNormal, Tensor
 
 GPMultivariateNormalList: TypeAlias = list[GPMultivariateNormal]

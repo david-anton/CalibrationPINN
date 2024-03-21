@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from parametricpinn.errors import UnvalidGPParametersError
-from parametricpinn.gps.utility import validate_parameters_size
+from parametricpinn.gps.base import validate_parameters_size
 from parametricpinn.types import Tensor, TensorSize
 
 

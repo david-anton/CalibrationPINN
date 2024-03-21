@@ -3,11 +3,10 @@ from typing import Optional, Protocol, TypeAlias
 import gpytorch
 
 from parametricpinn.bayesian.prior import Prior
-from parametricpinn.types import Device, Tensor
+from parametricpinn.errors import UnvalidGPParametersError
+from parametricpinn.types import Device, Tensor, TensorSize
 
 GPMultivariateNormal: TypeAlias = gpytorch.distributions.MultivariateNormal
-
-
 NamedParameters: TypeAlias = dict[str, Tensor]
 
 
@@ -41,3 +40,11 @@ class GaussianProcess(Protocol):
 
     def to(self, device: Device) -> "GaussianProcess":
         pass
+
+
+def validate_parameters_size(parameters: Tensor, valid_size: TensorSize) -> None:
+    parameters_size = parameters.size()
+    if parameters_size != valid_size:
+        raise UnvalidGPParametersError(
+            f"Parameter tensor has unvalid size {parameters_size}"
+        )

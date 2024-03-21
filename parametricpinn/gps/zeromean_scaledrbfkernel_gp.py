@@ -1,4 +1,4 @@
-from typing import Optional, TypeAlias
+from typing import Optional
 
 import gpytorch
 import torch
@@ -8,16 +8,24 @@ from parametricpinn.bayesian.prior import (
     create_univariate_uniform_distributed_prior,
     multiply_priors,
 )
-from parametricpinn.gps.base import NamedParameters
-from parametricpinn.gps.utility import validate_parameters_size
+from parametricpinn.gps.base import (
+    GPMultivariateNormal,
+    NamedParameters,
+    validate_parameters_size,
+)
+from parametricpinn.gps.kernels import RBFKernel, Kernel
+from parametricpinn.gps.means import ZeroMean
 from parametricpinn.types import Device, Tensor
+from parametricpinn.errors import GPKernelNotImplementedError
 
-GPMultivariateNormal: TypeAlias = gpytorch.distributions.MultivariateNormal
+
+kernels = {"rbf": RBFKernel}
 
 
-class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
+class ZeroMeanGP(gpytorch.models.ExactGP):
     def __init__(
         self,
+        kernel: Kernel,
         device: Device,
         train_x: Optional[Tensor] = None,
         train_y: Optional[Tensor] = None,
@@ -26,56 +34,56 @@ class ZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
             train_x.to(device)
             train_y.to(device)
         likelihood = gpytorch.likelihoods.GaussianLikelihood().to(device)
-        super(ZeroMeanScaledRBFKernelGP, self).__init__(train_x, train_y, likelihood)
-        self.mean = gpytorch.means.ZeroMean().to(device)
-        self.kernel = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()).to(
-            device
-        )
-        self.num_gps = 1
-        self.num_hyperparameters = 2
+        super().__init__(train_x, train_y, likelihood)
+        self._mean = ZeroMean(device)
+        self._kernel = kernel
         self._device = device
-        self._lower_limit_output_scale = 0.0
-        self._lower_limit_length_scale = 0.0
+        self.num_gps = 1
+        self.num_hyperparameters = (
+            self._mean.num_hyperparameters + self._kernel.num_hyperparameters
+        )
 
     def forward(self, x: Tensor) -> GPMultivariateNormal:
-        mean_x = self.mean(x)
-        covariance_x = self.kernel(x)
-        return gpytorch.distributions.MultivariateNormal(mean_x, covariance_x)
+        mean = self._mean(x)
+        covariance_matrix = self._kernel(x, x)
+        return gpytorch.distributions.MultivariateNormal(mean, covariance_matrix)
 
     def forward_kernel(self, x_1: Tensor, x_2: Tensor) -> Tensor:
-        lazy_covariance_matrix = self.kernel(x_1, x_2)
+        lazy_covariance_matrix = self._kernel(x_1, x_2)
         return lazy_covariance_matrix.to_dense().to(self._device)
 
     def set_parameters(self, parameters: Tensor) -> None:
-        validate_parameters_size(parameters, torch.Size([self.num_hyperparameters]))
-        output_scale = parameters[0]
-        length_scale = parameters[1]
-        if output_scale >= self._lower_limit_output_scale:
-            self.kernel.outputscale = output_scale.clone().to(self._device)
-        if length_scale >= self._lower_limit_length_scale:
-            self.kernel.base_kernel.lengthscale = length_scale.clone().to(self._device)
+        self._kernel.set_parameters(parameters)
 
     def get_named_parameters(self) -> NamedParameters:
-        return {
-            "output_scale": self.kernel.outputscale,
-            "length_scale": self.kernel.base_kernel.lengthscale,
-        }
+        return self._kernel.get_named_parameters()
 
     def get_uninformed_parameters_prior(
         self,
         upper_limit_output_scale: float,
         upper_limit_length_scale: float,
         device: Device,
-        **kwargs: float
+        **kwargs: float,
     ) -> Prior:
-        output_scale_prior = create_univariate_uniform_distributed_prior(
-            lower_limit=self._lower_limit_output_scale,
-            upper_limit=upper_limit_output_scale,
+        return self.get_uninformed_parameters_prior(
+            upper_limit_output_scale=upper_limit_output_scale,
+            upper_limit_length_scale=upper_limit_length_scale,
             device=device,
+            **kwargs,
         )
-        length_scale_prior = create_univariate_uniform_distributed_prior(
-            lower_limit=self._lower_limit_length_scale,
-            upper_limit=upper_limit_length_scale,
-            device=device,
+
+
+def create_zero_mean_gaussian_process(
+    kernel: str,
+    device: Device,
+    train_x: Optional[Tensor] = None,
+    train_y: Optional[Tensor] = None,
+) -> ZeroMeanGP:
+    if kernel not in kernels.keys():
+        raise GPKernelNotImplementedError(
+            f"There is no implementation for the requested Gaussian process kernel {kernel}."
         )
-        return multiply_priors([output_scale_prior, length_scale_prior])
+    kernel_type = kernels[kernel]
+    return ZeroMeanGP(
+        kernel=kernel_type(device), device=device, train_x=train_x, train_y=train_y
+    )

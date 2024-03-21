@@ -722,9 +722,7 @@ class FakeKernel(gpytorch.kernels.Kernel):
 class FakeZeroMeanScaledRBFKernelGP(ZeroMeanScaledRBFKernelGP):
     def __init__(self, variance_error: float, train_x=None, train_y=None) -> None:
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
-        super(FakeZeroMeanScaledRBFKernelGP, self).__init__(
-            train_x, train_y, likelihood
-        )
+        super().__init__(train_x, train_y, likelihood)
         self._variance_error = variance_error
         self.kernel = FakeKernel(variance_error)
         self.num_gps = 1
@@ -740,12 +738,6 @@ class FakeZeroMeanScaledRBFKernelGP(ZeroMeanScaledRBFKernelGP):
             )
         num_inputs = x_1.size()[0]
         return self._variance_error * torch.eye(num_inputs)
-
-    def set_covariance_parameters(self, parameters: Tensor) -> None:
-        pass
-
-    def get_uninformed_covariance_parameters_prior(self) -> None:
-        pass
 
 
 @pytest.mark.parametrize(
