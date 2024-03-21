@@ -1,5 +1,18 @@
-from .base import GaussianProcess
-from .independentmultioutput_gp import IndependentMultiOutputGP
-from .zeromean_scaledrbfkernel_gp import ZeroMeanScaledRBFKernelGP
+from typing import TypeAlias
 
-__all__ = ["GaussianProcess", "IndependentMultiOutputGP", "ZeroMeanScaledRBFKernelGP"]
+from parametricpinn.gps.gp import GP, create_gaussian_process
+from parametricpinn.gps.kernels import ScaledRBFKernelParameterPriorConfig
+from parametricpinn.gps.means import ConstantMeanParameterPriorConfig
+from parametricpinn.gps.multioutputgp import IndependentMultiOutputGP
+from parametricpinn.gps.prior import create_uninformed_gp_parameters_prior
+
+GaussianProcess: TypeAlias = GP | IndependentMultiOutputGP
+
+__all__ = [
+    "GaussianProcess",
+    "create_gaussian_process",
+    "ScaledRBFKernelParameterPriorConfig",
+    "ConstantMeanParameterPriorConfig",
+    "IndependentMultiOutputGP",
+    "create_uninformed_gp_parameters_prior",
+]

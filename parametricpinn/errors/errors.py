@@ -112,7 +112,7 @@ class UnvalidGPParametersError(Error):
         super().__init__(message)
 
 
-class UnvalidGPMultivariateNormaError(Error):
+class UnvalidGPMultivariateNormalError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
 
@@ -123,5 +123,25 @@ class ParameterSamplingError(Error):
 
 
 class OptimizedLikelihoodStrategyError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
+class GPMeanNotImplementedError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
+class GPKernelNotImplementedError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
+class GPMeanPriorNotImplementedError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
+class GPKernelPriorNotImplementedError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)

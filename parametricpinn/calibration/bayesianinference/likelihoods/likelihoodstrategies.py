@@ -563,7 +563,7 @@ class NoiseAndErrorGPsSamplingLikelihoodStrategy(torch.nn.Module):
 class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
     def __init__(
         self,
-        model_error_gp: Module,
+        model_error_gp: GaussianProcess,
         data: PreprocessedCalibrationData,
         residual_calculator: StandardResidualCalculator,
         num_model_parameters: int,

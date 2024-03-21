@@ -28,11 +28,7 @@ from parametricpinn.calibration.data import (
     PreprocessedCalibrationData,
 )
 from parametricpinn.errors import TestConfigurationError
-from parametricpinn.gps import (
-    GaussianProcess,
-    IndependentMultiOutputGP,
-    ZeroMeanScaledRBFKernelGP,
-)
+from parametricpinn.gps import GaussianProcess, IndependentMultiOutputGP
 from parametricpinn.gps.base import GPMultivariateNormal
 from parametricpinn.network import BFFNN, FFNN
 from parametricpinn.settings import set_default_dtype
@@ -635,6 +631,36 @@ NoiseAndModelErrorGPsLikelihoodFactoryFunc: TypeAlias = Callable[
 ]
 
 
+class FakeZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
+    def __init__(
+        self, variance_error: float, mean: float = 0.0, train_x=None, train_y=None
+    ) -> None:
+        likelihood = gpytorch.likelihoods.GaussianLikelihood()
+        super().__init__(train_x, train_y, likelihood)
+        self._variance_error = variance_error
+        self._mean = mean
+        self.num_gps = 1
+        self.num_hyperparameters = 2
+
+    def forward(self, x: Tensor) -> GPMultivariateNormal:
+        return torch.tensor(0.0)
+
+    def forward_mean(self, x: Tensor) -> Tensor:
+        num_inputs = x.size()[0]
+        return self._mean * torch.eye(num_inputs)
+
+    def forward_kernel(self, x_1: Tensor, x_2: Tensor) -> Tensor:
+        if x_1.size() != x_2.size():
+            raise TestConfigurationError(
+                "Fake GP only defined for inputs with the same shape."
+            )
+        num_inputs = x_1.size()[0]
+        return self._variance_error * torch.eye(num_inputs)
+
+    def set_parameters(self, parameters: Tensor) -> None:
+        pass
+
+
 def _create_noise_and_model_error_gps_likelihood_strategy_for_sampling(
     residual_calculator: StandardResidualCalculator,
     model_error_gp: GaussianProcess,
@@ -690,62 +716,6 @@ def _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_predicti
     likelihood_strategy.prediction_mode()
     parameters = torch.tensor([1.0])
     return likelihood_strategy, parameters
-
-
-class FakeLazyTensor(torch.Tensor):
-    def __init__(self, torch_tensor: Tensor) -> None:
-        self._torch_tensor = torch_tensor
-
-    def to_dense(self, dtype=None, *, masked_grad=True) -> Tensor:
-        return self._torch_tensor
-
-
-class FakeBaseKernel(gpytorch.kernels.Kernel):
-    has_lengthscale = True
-
-
-class FakeKernel(gpytorch.kernels.Kernel):
-    def __init__(self, variance_error) -> None:
-        super(FakeKernel, self).__init__()
-        self._variance_error = variance_error
-        self.base_kernel = FakeBaseKernel()
-
-    def forward(self, x_1: Tensor, x_2: Tensor, **params) -> FakeLazyTensor:
-        if x_1.size() != x_2.size():
-            raise TestConfigurationError(
-                "Fake GP kernel only defined for inputs with the same shape."
-            )
-        num_inputs = x_1.size()[0]
-        return FakeLazyTensor(self._variance_error * torch.eye(num_inputs))
-
-
-class FakeZeroMeanScaledRBFKernelGP(ZeroMeanScaledRBFKernelGP):
-    def __init__(self, variance_error: float, train_x=None, train_y=None) -> None:
-        likelihood = gpytorch.likelihoods.GaussianLikelihood()
-        super(FakeZeroMeanScaledRBFKernelGP, self).__init__(
-            train_x, train_y, likelihood
-        )
-        self._variance_error = variance_error
-        self.kernel = FakeKernel(variance_error)
-        self.num_gps = 1
-        self.num_hyperparameters = 2
-
-    def forward(self, x: Tensor) -> GPMultivariateNormal:
-        return torch.tensor(0.0)
-
-    def forward_kernel(self, x_1: Tensor, x_2: Tensor) -> Tensor:
-        if x_1.size() != x_2.size():
-            raise TestConfigurationError(
-                "Fake GP only defined for inputs with the same shape."
-            )
-        num_inputs = x_1.size()[0]
-        return self._variance_error * torch.eye(num_inputs)
-
-    def set_covariance_parameters(self, parameters: Tensor) -> None:
-        pass
-
-    def get_uninformed_covariance_parameters_prior(self) -> None:
-        pass
 
 
 @pytest.mark.parametrize(
