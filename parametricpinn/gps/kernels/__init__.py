@@ -1,13 +1,13 @@
 from parametricpinn.gps.kernels.base import Kernel
 from parametricpinn.gps.kernels.prior import (
-    RBFKernelParameterPriorConfig,
+    ScaledRBFKernelParameterPriorConfig,
     create_uninformed_kernel_parameters_prior,
 )
-from parametricpinn.gps.kernels.rbfkernel import RBFKernel
+from parametricpinn.gps.kernels.scaledrbfkernel import ScaledRBFKernel
 
 __all__ = [
     "Kernel",
-    "RBFKernelParameterPriorConfig",
+    "ScaledRBFKernelParameterPriorConfig",
     "create_uninformed_kernel_parameters_prior",
-    "RBFKernel",
+    "ScaledRBFKernel",
 ]

@@ -6,7 +6,7 @@ from parametricpinn.gps.utility import validate_parameters_size
 from parametricpinn.types import Device, Tensor
 
 
-class RBFKernel(Kernel):
+class ScaledRBFKernel(Kernel):
     def __init__(self, device: Device) -> None:
         super().__init__(
             num_hyperparameters=2,

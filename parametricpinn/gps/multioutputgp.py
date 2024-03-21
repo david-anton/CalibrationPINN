@@ -93,7 +93,7 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
         super().__init__()
         for gp in gps:
             gp.to(device)
-        self._gps = gps
+        self._gps = torch.nn.ModuleList(gps)
         self.num_gps = len(self._gps)
         self.num_hyperparameters = self._determine_number_of_hyperparameters()
         self._device = device

@@ -4,7 +4,7 @@ import gpytorch
 
 from parametricpinn.errors import GPKernelNotImplementedError, GPMeanNotImplementedError
 from parametricpinn.gps.base import GPMultivariateNormal, NamedParameters
-from parametricpinn.gps.kernels import Kernel, RBFKernel
+from parametricpinn.gps.kernels import Kernel, ScaledRBFKernel
 from parametricpinn.gps.means import ConstantMean, NonZeroMean, ZeroMean
 from parametricpinn.gps.utility import validate_parameters_size
 from parametricpinn.types import Device, Tensor
@@ -97,8 +97,8 @@ def _create_mean(mean: str, device: Device) -> ZeroMean | NonZeroMean:
 
 
 def _create_kernel(kernel: str, device: Device) -> Kernel:
-    if kernel == "rbf":
-        return RBFKernel(device)
+    if kernel == "scaled_rbf":
+        return ScaledRBFKernel(device)
     else:
         raise GPKernelNotImplementedError(
             f"There is no implementation for the requested Gaussian process kernel: {kernel}."

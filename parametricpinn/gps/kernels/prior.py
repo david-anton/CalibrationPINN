@@ -15,7 +15,7 @@ class KernelParameterPriorConfig:
     pass
 
 
-class RBFKernelParameterPriorConfig(KernelParameterPriorConfig):
+class ScaledRBFKernelParameterPriorConfig(KernelParameterPriorConfig):
     limits_output_scale: tuple[float, float]
     limits_length_scale: tuple[float, float]
 
@@ -25,7 +25,7 @@ def create_uninformed_kernel_parameters_prior(
 ) -> Prior:
     index_lower_limit = 0
     index_upper_limit = 1
-    if isinstance(config, RBFKernelParameterPriorConfig):
+    if isinstance(config, ScaledRBFKernelParameterPriorConfig):
         limits_output_scale = config.limits_output_scale
         limits_length_scale = config.limits_length_scale
         return create_multivariate_uniform_distributed_prior(
