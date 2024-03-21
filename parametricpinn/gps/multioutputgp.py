@@ -6,16 +6,14 @@ import torch
 
 from parametricpinn.errors import UnvalidGPMultivariateNormalError
 from parametricpinn.gps.base import GPMultivariateNormal, NamedParameters
-from parametricpinn.gps.gp import GaussianProcess
+from parametricpinn.gps.gp import GP
 from parametricpinn.gps.utility import validate_parameters_size
 from parametricpinn.types import Device, Tensor
 
 GPMultivariateNormalList: TypeAlias = list[GPMultivariateNormal]
 
 
-class IndependentMultiOutputGPMultivariateNormal(
-    gpytorch.distributions.MultivariateNormal
-):
+class IndependentMultiOutputGPMultivariateNormal(GPMultivariateNormal):
     def __init__(self, multivariate_normals: GPMultivariateNormalList, device: Device):
         self._validate_equal_size(multivariate_normals)
         self._multivariate_normals = multivariate_normals
@@ -89,18 +87,18 @@ class IndependentMultiOutputGPMultivariateNormal(
 class IndependentMultiOutputGP(gpytorch.models.GP):
     def __init__(
         self,
-        gps: list[GaussianProcess],
+        gps: list[GP],
         device: Device,
     ) -> None:
         super().__init__()
-        self._gps = gps
-        for gp in self._gps:
+        for gp in gps:
             gp.to(device)
+        self._gps = gps
         self.num_gps = len(self._gps)
         self.num_hyperparameters = self._determine_number_of_hyperparameters()
         self._device = device
 
-    def forward(self, x: Tensor) -> GPMultivariateNormalList:
+    def forward(self, x: Tensor) -> GPMultivariateNormal:
         multivariate_normals = [gp.forward(x) for gp in self._gps]
         return IndependentMultiOutputGPMultivariateNormal(
             multivariate_normals, self._device
@@ -152,7 +150,7 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
         return torch.concat(sub_covar_matrices, dim=0)
 
     def set_parameters(self, parameters: Tensor) -> None:
-        self._validate_hyperparameters_size(parameters)
+        validate_parameters_size(parameters, self.num_hyperparameters)
         start_index = 0
         for gp in self._gps[:-1]:
             num_parameters = gp.num_hyperparameters
@@ -174,15 +172,7 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
         }
 
     def _determine_number_of_hyperparameters(self) -> int:
-        num_parameters_list = [gp.num_hyperparameters for gp in self._gps]
-        return sum(num_parameters_list)
-
-    def _validate_hyperparameters_size(self, parameters: Tensor) -> None:
-        num_hyperparameters = sum([gp.num_hyperparameters for gp in self._gps])
-        validate_parameters_size(parameters, torch.Size([num_hyperparameters]))
-
-    def __call__(self, x: Tensor) -> GPMultivariateNormalList:
-        return self.forward(x)
+        return sum([gp.num_hyperparameters for gp in self._gps])
 
 
 def _create_zeros(dim_1: int, dim_2: int, device: Device) -> Tensor:

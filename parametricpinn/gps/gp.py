@@ -1,7 +1,6 @@
 from typing import Optional
 
 import gpytorch
-import torch
 
 from parametricpinn.errors import GPKernelNotImplementedError, GPMeanNotImplementedError
 from parametricpinn.gps.base import GPMultivariateNormal, NamedParameters
@@ -11,7 +10,7 @@ from parametricpinn.gps.utility import validate_parameters_size
 from parametricpinn.types import Device, Tensor
 
 
-class GaussianProcess(gpytorch.models.ExactGP):
+class GP(gpytorch.models.ExactGP):
     def __init__(
         self,
         mean: ZeroMean | NonZeroMean,
@@ -20,19 +19,15 @@ class GaussianProcess(gpytorch.models.ExactGP):
         train_x: Optional[Tensor] = None,
         train_y: Optional[Tensor] = None,
     ) -> None:
-        if train_x is not None and train_y is not None:
-            train_x.to(device)
-            train_y.to(device)
+        train_x, train_y = self._preprocess_trainings_data(train_x, train_y, device)
         likelihood = gpytorch.likelihoods.GaussianLikelihood().to(device)
         super().__init__(train_x, train_y, likelihood)
+        self.num_gps = 1
+        self.num_hyperparameters = mean.num_hyperparameters + kernel.num_hyperparameters
         self._mean = mean
         self._kernel = kernel
-        self._device = device
         self._is_zero_mean = isinstance(self._mean, ZeroMean)
-        self.num_gps = 1
-        self.num_hyperparameters = (
-            self._mean.num_hyperparameters + self._kernel.num_hyperparameters
-        )
+        self._device = device
 
     def forward(self, x: Tensor) -> GPMultivariateNormal:
         mean = self._mean(x)
@@ -44,10 +39,10 @@ class GaussianProcess(gpytorch.models.ExactGP):
 
     def forward_kernel(self, x_1: Tensor, x_2: Tensor) -> Tensor:
         lazy_covariance_matrix = self._kernel(x_1, x_2)
-        return lazy_covariance_matrix.to_dense().to(self._device)
+        return lazy_covariance_matrix.to_dense()
 
     def set_parameters(self, parameters: Tensor) -> None:
-        validate_parameters_size(parameters, torch.Size([self.num_hyperparameters]))
+        validate_parameters_size(parameters, self.num_hyperparameters)
         if self._is_zero_mean:
             self._kernel.set_parameters(parameters)
         else:
@@ -63,6 +58,14 @@ class GaussianProcess(gpytorch.models.ExactGP):
             parameters_mean = self._mean.get_named_parameters()
             return parameters_mean | parameters_kernel
 
+    def _preprocess_trainings_data(
+        self, train_x: Optional[Tensor], train_y: Optional[Tensor], device: Device
+    ) -> tuple[Optional[Tensor], Optional[Tensor]]:
+        if train_x is not None and train_y is not None:
+            train_x.to(device)
+            train_y.to(device)
+        return train_x, train_y
+
 
 def create_gaussian_process(
     mean: str,
@@ -70,10 +73,10 @@ def create_gaussian_process(
     device: Device,
     train_x: Optional[Tensor] = None,
     train_y: Optional[Tensor] = None,
-) -> GaussianProcess:
-    mean_module = _create_mean_module(mean, device)
-    kernel_module = _create_kernel_module(kernel, device)
-    return GaussianProcess(
+) -> GP:
+    mean_module = _create_mean(mean, device)
+    kernel_module = _create_kernel(kernel, device)
+    return GP(
         mean=mean_module,
         kernel=kernel_module,
         device=device,
@@ -82,7 +85,7 @@ def create_gaussian_process(
     )
 
 
-def _create_mean_module(mean: str, device: Device) -> ZeroMean | NonZeroMean:
+def _create_mean(mean: str, device: Device) -> ZeroMean | NonZeroMean:
     if mean == "zero":
         return ZeroMean(device)
     elif mean == "constant":
@@ -93,7 +96,7 @@ def _create_mean_module(mean: str, device: Device) -> ZeroMean | NonZeroMean:
         )
 
 
-def _create_kernel_module(kernel: str, device: Device) -> Kernel:
+def _create_kernel(kernel: str, device: Device) -> Kernel:
     if kernel == "rbf":
         return RBFKernel(device)
     else:
