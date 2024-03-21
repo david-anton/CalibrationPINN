@@ -49,7 +49,7 @@ from parametricpinn.fem import (
     generate_validation_data,
     run_simulation,
 )
-from parametricpinn.gps import IndependentMultiOutputGP, ZeroMeanScaledRBFKernelGP
+from parametricpinn.gps import IndependentMultiOutputGP, create_gaussian_process
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader, PandasDataWriter
 from parametricpinn.network import FFNN
@@ -506,8 +506,12 @@ def calibration_step() -> None:
     def create_model_error_gp() -> IndependentMultiOutputGP:
         return IndependentMultiOutputGP(
             gps=[
-                ZeroMeanScaledRBFKernelGP(device),
-                ZeroMeanScaledRBFKernelGP(device),
+                create_gaussian_process(
+                    mean="zero", kernel="scaled_rbf", device=device
+                ),
+                create_gaussian_process(
+                    mean="zero", kernel="scaled_rbf", device=device
+                ),
             ],
             device=device,
         ).to(device)
