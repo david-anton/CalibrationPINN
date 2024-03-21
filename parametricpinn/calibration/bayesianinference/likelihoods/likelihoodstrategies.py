@@ -395,7 +395,7 @@ class NoiseAndErrorGPsLikelihoodDistribution:
         inputs: Tensor,
         num_flattened_outputs: int,
     ) -> MultivariateNormalDistributon:
-        means = self._assemble_means(num_flattened_outputs)
+        means = self._assemble_means(model_error_gp, inputs, num_flattened_outputs)
         covariance_matrix = self._assemble_covariance_matrix(
             model_error_gp, inputs, num_flattened_outputs
         )
@@ -403,10 +403,25 @@ class NoiseAndErrorGPsLikelihoodDistribution:
             means=means, covariance_matrix=covariance_matrix, device=self._device
         )
 
-    def _assemble_means(self, num_flattened_outputs: int) -> Tensor:
+    def _assemble_means(
+        self,
+        model_error_gp: GaussianProcess,
+        inputs: Tensor,
+        num_flattened_outputs: int,
+    ) -> Tensor:
+        noise_means = self._assemble_noise_means(num_flattened_outputs)
+        error_means = self._assemble_error_means(model_error_gp, inputs)
+        return noise_means + error_means
+
+    def _assemble_noise_means(self, num_flattened_outputs: int) -> Tensor:
         return torch.zeros(
             (num_flattened_outputs,), dtype=torch.float64, device=self._device
         )
+
+    def _assemble_error_means(
+        self, model_error_gp: GaussianProcess, inputs: Tensor
+    ) -> Tensor:
+        return model_error_gp.forward_mean(inputs)
 
     def _assemble_covariance_matrix(
         self,
@@ -442,12 +457,13 @@ class NoiseAndErrorGPsOptimizedLikelihoodDistribution:
 
     def initialize(
         self,
-        model_error_covariance: Tensor,
+        error_mean: Tensor,
+        error_covariance: Tensor,
         num_flattened_outputs: int,
     ) -> MultivariateNormalDistributon:
-        means = self._assemble_means(num_flattened_outputs)
+        means = self._assemble_mean(error_mean, num_flattened_outputs)
         covariance_matrix = self._assemble_covariance_matrix(
-            model_error_covariance, num_flattened_outputs
+            error_covariance, num_flattened_outputs
         )
         return create_multivariate_normal_distribution(
             means=means, covariance_matrix=covariance_matrix, device=self._device
@@ -460,18 +476,27 @@ class NoiseAndErrorGPsOptimizedLikelihoodDistribution:
             model_error_gp.forward_kernel(inputs, inputs) for inputs in inputs_sets
         )
 
-    def _assemble_means(self, num_flattened_outputs: int) -> Tensor:
+    def assemble_error_means(
+        self, model_error_gp: GaussianProcess, inputs_sets: tuple[Tensor, ...]
+    ) -> tuple[Tensor, ...]:
+        return tuple(model_error_gp.forward_mean(inputs) for inputs in inputs_sets)
+
+    def _assemble_mean(self, error_mean: Tensor, num_flattened_outputs: int) -> Tensor:
+        noise_means = self._assemble_noise_mean(num_flattened_outputs)
+        return noise_means + error_mean
+
+    def _assemble_noise_mean(self, num_flattened_outputs: int) -> Tensor:
         return torch.zeros(
             (num_flattened_outputs,), dtype=torch.float64, device=self._device
         )
 
     def _assemble_covariance_matrix(
         self,
-        model_error_covariance: Tensor,
+        error_covariance: Tensor,
         num_flattened_outputs: int,
     ) -> Tensor:
         noise_covariance = self._assemble_noise_covariance_matrix(num_flattened_outputs)
-        return noise_covariance + model_error_covariance
+        return noise_covariance + error_covariance
 
     def _assemble_noise_covariance_matrix(self, num_flattened_outputs: int) -> Tensor:
         return self._standard_deviation_noise**2 * torch.eye(
@@ -575,6 +600,7 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
         self._distribution_training = NoiseAndErrorGPsLikelihoodDistribution(
             data, device
         )
+        self._error_means_sets: Optional[tuple[Tensor, ...]] = None
         self._error_covariances_sets: Optional[tuple[Tensor, ...]] = None
         self._distribution_prediction = NoiseAndErrorGPsOptimizedLikelihoodDistribution(
             data, device
@@ -593,10 +619,14 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
 
     def training_mode(self) -> None:
         self._is_training_mode = True
+        self._error_means_sets = None
         self._error_covariances_sets = None
 
     def prediction_mode(self) -> None:
         self._is_training_mode = False
+        self._error_means_sets = self._distribution_prediction.assemble_error_means(
+            self._model_error_gp, self._inputs_sets
+        )
         self._error_covariances_sets = (
             self._distribution_prediction.assemble_error_covariance_matrices(
                 self._model_error_gp, self._inputs_sets
@@ -640,10 +670,14 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
             else:
                 return torch.concat(log_probs)
         else:
-            if self._error_covariances_sets is not None:
+            if (
+                self._error_covariances_sets is not None
+                and self._error_means_sets is not None
+            ):
                 log_probs = tuple(
                     self._calculate_one_log_prob_for_data_set(
                         model_parameters,
+                        self._error_means_sets[data_set_index],
                         self._error_covariances_sets[data_set_index],
                         self._inputs_sets[data_set_index],
                         self._outputs_sets[data_set_index],
@@ -680,6 +714,7 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
     def _calculate_one_log_prob_for_data_set(
         self,
         model_parameters: Tensor,
+        error_mean: Tensor,
         error_covariance: Tensor,
         inputs: Tensor,
         outputs: Tensor,
@@ -687,7 +722,7 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
     ) -> Tensor:
         num_flattened_outputs = num_data_points * self._dim_outputs
         distribution = self._distribution_prediction.initialize(
-            error_covariance, num_flattened_outputs
+            error_mean, error_covariance, num_flattened_outputs
         )
         residuals = self._residual_calculator.calculate_residuals(
             model_parameters, inputs, outputs
