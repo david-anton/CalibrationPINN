@@ -647,7 +647,7 @@ class FakeZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
 
     def forward_mean(self, x: Tensor) -> Tensor:
         num_inputs = x.size()[0]
-        return self._mean * torch.eye(num_inputs)
+        return self._mean * torch.ones(num_inputs)
 
     def forward_kernel(self, x_1: Tensor, x_2: Tensor) -> Tensor:
         if x_1.size() != x_2.size():
