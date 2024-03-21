@@ -491,7 +491,7 @@ def calibration_step() -> None:
 
     initial_gp_constant_mean = 1e-4
     initial_gp_output_scale = 1e-2
-    initial_gp_length_scale = 1e-1
+    initial_gp_length_scale = 1e-2
     initial_model_error_parameters = torch.tensor(
         [
             initial_gp_constant_mean,
