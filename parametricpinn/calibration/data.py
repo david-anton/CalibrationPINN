@@ -84,8 +84,8 @@ class CalibrationDataLoader2D:
     ) -> tuple[tuple[Tensor, ...], tuple[Tensor, ...]]:
         inputs_sets = []
         noisy_outputs_sets = []
+        random_indices = self._generate_random_indices(len(data))
         for _ in range(self._num_data_sets):
-            random_indices = self._generate_random_indices(len(data))
             inputs_all = data[:, self._slice_inputs]
             inputs = inputs_all[random_indices, :]
             outputs_all = data[:, self._slice_outputs]
