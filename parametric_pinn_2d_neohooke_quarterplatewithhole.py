@@ -432,7 +432,7 @@ def calibration_step() -> None:
     print("Start calibration ...")
     num_test_cases = num_samples_valid
     num_data_sets = 1
-    num_data_points = 128
+    num_data_points = 256
     std_noise = 5 * 1e-4
 
     initial_bulk_modulus = 6000.0
@@ -480,21 +480,24 @@ def calibration_step() -> None:
         return IndependentMultiOutputGP(
             gps=[
                 create_gaussian_process(
-                    mean="zero", kernel="scaled_rbf", device=device
+                    mean="constant", kernel="scaled_rbf", device=device
                 ),
                 create_gaussian_process(
-                    mean="zero", kernel="scaled_rbf", device=device
+                    mean="constant", kernel="scaled_rbf", device=device
                 ),
             ],
             device=device,
         ).to(device)
 
-    initial_gp_output_scale = 0.01
-    initial_gp_length_scale = 0.01
+    initial_gp_constant_mean = 1e-4
+    initial_gp_output_scale = 1e-2
+    initial_gp_length_scale = 1e-1
     initial_model_error_parameters = torch.tensor(
         [
+            initial_gp_constant_mean,
             initial_gp_output_scale,
             initial_gp_length_scale,
+            initial_gp_constant_mean,
             initial_gp_output_scale,
             initial_gp_length_scale,
         ],
@@ -502,7 +505,7 @@ def calibration_step() -> None:
         device=device,
     )
 
-    model_error_optimization_num_material_parameter_samples = 128
+    model_error_optimization_num_material_parameter_samples = 256
     model_error_optimization_num_iterations = 16
 
     if use_q_likelihood:
