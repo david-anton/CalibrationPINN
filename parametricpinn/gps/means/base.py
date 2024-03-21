@@ -1,24 +1,30 @@
-from typing import Protocol, TypeAlias
+from abc import ABC, abstractmethod
+from typing import TypeAlias
 
-from parametricpinn.bayesian.prior import Prior
+import torch
+
 from parametricpinn.gps.base import NamedParameters
-from parametricpinn.types import Device, Tensor
+from parametricpinn.types import Tensor
 
 MeanOutput: TypeAlias = Tensor
 
 
-class Mean(Protocol):
+class NonZeroMean(torch.nn.Module, ABC):
+    def __init__(self, num_hyperparameters: int) -> None:
+        super().__init__()
+        self.num_hyperparameters = num_hyperparameters
+
+    @abstractmethod
     def forward(self, x: Tensor) -> MeanOutput:
         pass
 
+    @abstractmethod
     def set_parameters(self, parameters: Tensor) -> None:
         pass
 
+    @abstractmethod
     def get_named_parameters(self) -> NamedParameters:
         pass
 
-    def get_uninformed_parameters_prior(self, device: Device, **kwargs: float) -> Prior:
-        pass
-
-    def __call__(self, x_1: Tensor, x_2: Tensor) -> MeanOutput:
-        pass
+    def __call__(self, x: Tensor) -> MeanOutput:
+        return self.forward(x)

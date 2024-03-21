@@ -10,6 +10,10 @@ from .errors import (
     FEMProblemConfigError,
     FEMResultsError,
     FileNotFoundError,
+    GPKernelNotImplementedError,
+    GPKernelPriorNotImplementedError,
+    GPMeanNotImplementedError,
+    GPMeanPriorNotImplementedError,
     IndependentMultivariateNormalDistributionError,
     MixedDistributionError,
     MultivariateNormalDistributionError,
@@ -21,9 +25,8 @@ from .errors import (
     UnivariateNormalDistributionError,
     UnivariateUniformDistributionError,
     UnvalidCalibrationDataError,
-    UnvalidGPMultivariateNormaError,
+    UnvalidGPMultivariateNormalError,
     UnvalidGPParametersError,
-    GPKernelNotImplementedError,
 )
 
 __all__ = [
@@ -50,6 +53,9 @@ __all__ = [
     "UnivariateUniformDistributionError",
     "UnvalidCalibrationDataError",
     "UnvalidGPParametersError",
-    "UnvalidGPMultivariateNormaError",
+    "UnvalidGPMultivariateNormalError",
     "GPKernelNotImplementedError",
+    "GPKernelPriorNotImplementedError",
+    "GPMeanPriorNotImplementedError",
+    "GPMeanNotImplementedError",
 ]

@@ -478,7 +478,7 @@ def calibration_step() -> None:
 
     def create_model_error_gp() -> IndependentMultiOutputGP:
         return IndependentMultiOutputGP(
-            independent_gps=[
+            gps=[
                 ZeroMeanScaledRBFKernelGP(device),
                 ZeroMeanScaledRBFKernelGP(device),
             ],
