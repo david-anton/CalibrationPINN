@@ -1,5 +1,3 @@
-from typing import TypeAlias
-
 import numpy as np
 import pandas as pd
 import torch
@@ -23,19 +21,9 @@ class LogMarginalLikelihood(torch.nn.Module):
     ) -> None:
         super().__init__()
         self._likelihood = likelihood
+        self._num_material_parameter_samples = num_material_parameter_samples
         self._material_parameter_samples = (
             prior_material_parameters.sample((num_material_parameter_samples, 1))
-            .detach()
-            .requires_grad_(False)
-            .to(device)
-        )
-        self._log_probs_prior_material_parameters = (
-            torch.concat(
-                [
-                    torch.unsqueeze(prior_material_parameters.log_prob(sample), dim=0)
-                    for sample in self._material_parameter_samples
-                ],
-            )
             .detach()
             .requires_grad_(False)
             .to(device)
@@ -52,8 +40,9 @@ class LogMarginalLikelihood(torch.nn.Module):
                 for material_parameter in self._material_parameter_samples
             ]
         )
-        log_probs = log_probs_likelihood + self._log_probs_prior_material_parameters
-        return self._logarithmic_sum_of_exponentials(log_probs)
+        return torch.log(
+            torch.tensor(1 / self._num_material_parameter_samples)
+        ) + self._logarithmic_sum_of_exponentials(log_probs_likelihood)
 
     def _logarithmic_sum_of_exponentials(self, log_probs: Tensor) -> Tensor:
         max_log_prob = torch.max(log_probs)
