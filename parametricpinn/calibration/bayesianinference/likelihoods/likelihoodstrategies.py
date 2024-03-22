@@ -18,6 +18,7 @@ from parametricpinn.types import Device, Parameter, Tensor
 
 NamedParameters: TypeAlias = dict[str, Tensor]
 NamedParametersTuple: TypeAlias = tuple[NamedParameters, ...]
+TensorTuple: TypeAlias = tuple[Tensor, ...]
 GaussianProcessTuple: TypeAlias = tuple[GaussianProcess, ...]
 
 
@@ -302,7 +303,8 @@ class NoiseAndErrorSamplingLikelihoodStrategy(torch.nn.Module):
 class NoiseAndErrorOptimizedLikelihoodStrategy(torch.nn.Module):
     def __init__(
         self,
-        initial_model_error_standard_deviations: Tensor,
+        initial_model_error_standard_deviations: TensorTuple,
+        use_independent_model_error_standard_deviations: bool,
         data: PreprocessedCalibrationData,
         residual_calculator: StandardResidualCalculator,
         num_model_parameters: int,
@@ -310,8 +312,12 @@ class NoiseAndErrorOptimizedLikelihoodStrategy(torch.nn.Module):
     ) -> None:
         super().__init__()
         self.num_data_sets = data.num_data_sets
-        self._model_error_standard_deviation_parameters = torch.nn.Parameter(
-            initial_model_error_standard_deviations.clone(), requires_grad=True
+        self._model_error_standard_deviation_parameters = torch.nn.ParameterList(
+            torch.nn.Parameter(standard_deviations.clone(), requires_grad=True)
+            for standard_deviations in initial_model_error_standard_deviations
+        )
+        self._use_independent_model_error_standard_deviations = (
+            use_independent_model_error_standard_deviations
         )
         self._distribution = NoiseAndErrorLikelihoodDistribution(data, device)
         self._residual_calculator = residual_calculator
@@ -334,45 +340,68 @@ class NoiseAndErrorOptimizedLikelihoodStrategy(torch.nn.Module):
 
     def log_probs_individual(self, parameters: Tensor) -> Tensor:
         model_parameters = parameters
-        return self._calculate_log_probs_for_data_sets(
-            model_parameters, self._model_error_standard_deviation_parameters
-        )
+        return self._calculate_log_probs_for_data_sets(model_parameters)
 
     def log_prob_individual(self, parameters: Tensor, data_set_index: int) -> Tensor:
         model_parameters = parameters
-        return self._calculate_one_log_prob_for_data_set(
-            model_parameters,
-            self._model_error_standard_deviation_parameters,
-            self._inputs_sets[data_set_index],
-            self._outputs_sets[data_set_index],
-            self._num_data_points_per_set[data_set_index],
-        )[0]
+        if self._use_independent_model_error_standard_deviations:
+            log_prob = self._calculate_one_log_prob_for_data_set(
+                model_parameters,
+                self._model_error_standard_deviation_parameters[data_set_index],
+                self._inputs_sets[data_set_index],
+                self._outputs_sets[data_set_index],
+                self._num_data_points_per_set[data_set_index],
+            )
+        else:
+            log_prob = self._calculate_one_log_prob_for_data_set(
+                model_parameters,
+                self._model_error_standard_deviation_parameters[0],
+                self._inputs_sets[data_set_index],
+                self._outputs_sets[data_set_index],
+                self._num_data_points_per_set[data_set_index],
+            )
+        return log_prob[0]
 
     def get_named_parameters(self) -> NamedParametersTuple:
-        return (
-            {
+        def _get_one_named_parameters(data_set_index: int) -> NamedParameters:
+            return {
                 f"stddev_dimension_{count}": parameter
                 for count, parameter in enumerate(
-                    self._model_error_standard_deviation_parameters
+                    self._model_error_standard_deviation_parameters[data_set_index]
                 )
-            },
+            }
+
+        return tuple(
+            _get_one_named_parameters(data_set_index)
+            for data_set_index in range(self.num_data_sets)
         )
 
     def _calculate_log_probs_for_data_sets(
         self,
         model_parameters: Tensor,
-        model_error_standard_deviation_parameters: Tensor,
     ) -> Tensor:
-        log_probs = tuple(
-            self._calculate_one_log_prob_for_data_set(
-                model_parameters,
-                model_error_standard_deviation_parameters,
-                self._inputs_sets[data_set_index],
-                self._outputs_sets[data_set_index],
-                self._num_data_points_per_set[data_set_index],
+        if self._use_independent_model_error_standard_deviations:
+            log_probs = tuple(
+                self._calculate_one_log_prob_for_data_set(
+                    model_parameters,
+                    self._model_error_standard_deviation_parameters[data_set_index],
+                    self._inputs_sets[data_set_index],
+                    self._outputs_sets[data_set_index],
+                    self._num_data_points_per_set[data_set_index],
+                )
+                for data_set_index in range(self.num_data_sets)
             )
-            for data_set_index in range(self.num_data_sets)
-        )
+        else:
+            log_probs = tuple(
+                self._calculate_one_log_prob_for_data_set(
+                    model_parameters,
+                    self._model_error_standard_deviation_parameters[0],
+                    self._inputs_sets[data_set_index],
+                    self._outputs_sets[data_set_index],
+                    self._num_data_points_per_set[data_set_index],
+                )
+                for data_set_index in range(self.num_data_sets)
+            )
         if self.num_data_sets == 1:
             return log_probs[0]
         else:

@@ -12,6 +12,8 @@ from parametricpinn.calibration.bayesianinference.likelihoods.likelihoodstrategi
     NoiseAndErrorOptimizedLikelihoodStrategy,
     NoiseAndErrorSamplingLikelihoodStrategy,
     NoiseLikelihoodStrategy,
+    GaussianProcessTuple,
+    TensorTuple,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods.optimization import (
     optimize_likelihood_hyperparameters_independently,
@@ -282,7 +284,8 @@ def _create_noise_and_model_error_likelihood_strategy_for_sampling(
 def _create_optimized_noise_and_model_error_likelihood_strategy(
     model: StandardAnsatz,
     num_model_parameters: int,
-    initial_model_error_standard_deviations: Tensor,
+    initial_model_error_standard_deviations: TensorTuple,
+    use_independent_model_error_standard_deviations: bool,
     data: CalibrationData,
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
@@ -299,13 +302,14 @@ def _create_optimized_noise_and_model_error_likelihood_strategy(
     )
     likelihood_strategy = NoiseAndErrorOptimizedLikelihoodStrategy(
         initial_model_error_standard_deviations=initial_model_error_standard_deviations,
+        use_independent_model_error_standard_deviations=use_independent_model_error_standard_deviations,
         residual_calculator=residual_calculator,
         data=preprocessed_data,
         num_model_parameters=num_model_parameters,
         device=device,
     )
     likelihood_strategy.train()
-    optimize_likelihood_hyperparameters(
+    optimize_likelihood_hyperparameters_independently(
         likelihood=likelihood_strategy,
         prior_material_parameters=prior_material_parameters,
         num_material_parameter_samples=num_material_parameter_samples,
@@ -348,6 +352,7 @@ def create_optimized_standard_ppinn_likelihood_for_noise_and_model_error(
     model: StandardAnsatz,
     num_model_parameters: int,
     initial_model_error_standard_deviations: Tensor,
+    use_independent_model_error_standard_deviations: bool,
     data: CalibrationData,
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
@@ -357,13 +362,21 @@ def create_optimized_standard_ppinn_likelihood_for_noise_and_model_error(
     project_directory: ProjectDirectory,
     device: Device,
 ) -> StandardPPINNLikelihood:
+    _initial_model_error_standard_deviations = (
+        _clone_model_error_standard_deviations_if_necessary(
+            initial_model_error_standard_deviations,
+            use_independent_model_error_standard_deviations,
+            data,
+        )
+    )
     (
         likelihood_strategy,
         _,
     ) = _create_optimized_noise_and_model_error_likelihood_strategy(
         model=model,
         num_model_parameters=num_model_parameters,
-        initial_model_error_standard_deviations=initial_model_error_standard_deviations,
+        initial_model_error_standard_deviations=_initial_model_error_standard_deviations,
+        use_independent_model_error_standard_deviations=use_independent_model_error_standard_deviations,
         data=data,
         prior_material_parameters=prior_material_parameters,
         num_material_parameter_samples=num_material_parameter_samples,
@@ -407,6 +420,7 @@ def create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error(
     model: StandardAnsatz,
     num_model_parameters: int,
     initial_model_error_standard_deviations: Tensor,
+    use_independent_model_error_standard_deviations: bool,
     data: CalibrationData,
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
@@ -416,13 +430,21 @@ def create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error(
     project_directory: ProjectDirectory,
     device: Device,
 ) -> StandardPPINNLikelihood:
+    _initial_model_error_standard_deviations = (
+        _clone_model_error_standard_deviations_if_necessary(
+            initial_model_error_standard_deviations,
+            use_independent_model_error_standard_deviations,
+            data,
+        )
+    )
     (
         likelihood_strategy,
         preprocessed_data,
     ) = _create_optimized_noise_and_model_error_likelihood_strategy(
         model=model,
         num_model_parameters=num_model_parameters,
-        initial_model_error_standard_deviations=initial_model_error_standard_deviations,
+        initial_model_error_standard_deviations=_initial_model_error_standard_deviations,
+        use_independent_model_error_standard_deviations=use_independent_model_error_standard_deviations,
         data=data,
         prior_material_parameters=prior_material_parameters,
         num_material_parameter_samples=num_material_parameter_samples,
@@ -442,6 +464,20 @@ def create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error(
         likelihood_strategy=q_likelihood_strategy,
         device=device,
     )
+
+
+def _clone_model_error_standard_deviations_if_necessary(
+    initial_model_error_standard_deviations: Tensor,
+    use_independent_model_error_standard_deviations: bool,
+    data: CalibrationData,
+) -> TensorTuple:
+    if use_independent_model_error_standard_deviations:
+        return tuple(
+            copy.deepcopy(initial_model_error_standard_deviations)
+            for _ in range(data.num_data_sets)
+        )
+    else:
+        return (initial_model_error_standard_deviations,)
 
 
 ### Noise and model error GPs
@@ -472,7 +508,7 @@ def _create_noise_and_model_error_gps_likelihood_strategy_for_sampling(
 def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
     model: StandardAnsatz,
     num_model_parameters: int,
-    model_error_gps: tuple[GaussianProcess, ...],
+    model_error_gps: GaussianProcessTuple,
     use_independent_model_error_gps: bool,
     data: CalibrationData,
     prior_material_parameters: Prior,
@@ -662,7 +698,7 @@ def _clone_model_error_gps_if_necessary(
     model_error_gp: GaussianProcess,
     use_independent_model_error_gps: bool,
     data: CalibrationData,
-) -> tuple[GaussianProcess, ...]:
+) -> GaussianProcessTuple:
     if use_independent_model_error_gps:
         return tuple(copy.deepcopy(model_error_gp) for _ in range(data.num_data_sets))
     else:
