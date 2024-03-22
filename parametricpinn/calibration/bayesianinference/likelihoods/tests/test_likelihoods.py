@@ -339,7 +339,31 @@ def _create_optimized_noise_and_model_error_likelihood_strategy(
 ) -> tuple[NoiseAndErrorOptimizedLikelihoodStrategy, Tensor]:
     likelihood_strategy = NoiseAndErrorOptimizedLikelihoodStrategy(
         residual_calculator=residual_calculator,
-        initial_model_error_standard_deviations=initial_model_error_standard_deviations,
+        initial_model_error_standard_deviations=(
+            initial_model_error_standard_deviations,
+        ),
+        use_independent_model_error_standard_deviations=False,
+        data=data,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
+    parameters = torch.tensor([1.0])
+    return likelihood_strategy, parameters
+
+
+def _create_optimized_noise_and_model_error_likelihood_strategy_independent_stddevs(
+    residual_calculator: StandardResidualCalculator,
+    initial_model_error_standard_deviations: Tensor,
+    data: PreprocessedCalibrationData,
+    num_model_parameters: int,
+) -> tuple[NoiseAndErrorOptimizedLikelihoodStrategy, Tensor]:
+    likelihood_strategy = NoiseAndErrorOptimizedLikelihoodStrategy(
+        residual_calculator=residual_calculator,
+        initial_model_error_standard_deviations=tuple(
+            copy.deepcopy(initial_model_error_standard_deviations)
+            for _ in range(data.num_data_sets)
+        ),
+        use_independent_model_error_standard_deviations=True,
         data=data,
         num_model_parameters=num_model_parameters,
         device=device,
@@ -353,6 +377,7 @@ def _create_optimized_noise_and_model_error_likelihood_strategy(
     [
         _create_noise_and_model_error_likelihood_strategy_for_sampling,
         _create_optimized_noise_and_model_error_likelihood_strategy,
+        _create_optimized_noise_and_model_error_likelihood_strategy_independent_stddevs,
     ],
 )
 def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_set_single_dimension(
@@ -416,6 +441,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_s
     [
         _create_noise_and_model_error_likelihood_strategy_for_sampling,
         _create_optimized_noise_and_model_error_likelihood_strategy,
+        _create_optimized_noise_and_model_error_likelihood_strategy_independent_stddevs,
     ],
 )
 def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data_sets_single_dimension(
@@ -479,6 +505,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data
     [
         _create_noise_and_model_error_likelihood_strategy_for_sampling,
         _create_optimized_noise_and_model_error_likelihood_strategy,
+        _create_optimized_noise_and_model_error_likelihood_strategy_independent_stddevs,
     ],
 )
 def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_set_multiple_dimension(
@@ -544,6 +571,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_s
     [
         _create_noise_and_model_error_likelihood_strategy_for_sampling,
         _create_optimized_noise_and_model_error_likelihood_strategy,
+        _create_optimized_noise_and_model_error_likelihood_strategy_independent_stddevs,
     ],
 )
 def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data_sets_multiple_dimension(

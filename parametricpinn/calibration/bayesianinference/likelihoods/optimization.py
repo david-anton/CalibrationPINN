@@ -6,12 +6,12 @@ from parametricpinn.bayesian.prior import Prior
 from parametricpinn.calibration.bayesianinference.likelihoods.likelihoodstrategies import (
     OptimizedLikelihoodStrategy,
 )
-from parametricpinn.io import ProjectDirectory
-from parametricpinn.io.readerswriters import PandasDataWriter
-from parametricpinn.types import Device, Tensor
 from parametricpinn.calibration.bayesianinference.likelihoods.utility import (
     logarithmic_sum_of_exponentials,
 )
+from parametricpinn.io import ProjectDirectory
+from parametricpinn.io.readerswriters import PandasDataWriter
+from parametricpinn.types import Device, Tensor
 
 
 class LogMarginalLikelihood(torch.nn.Module):

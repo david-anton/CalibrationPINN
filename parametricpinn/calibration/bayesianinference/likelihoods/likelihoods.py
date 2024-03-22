@@ -6,13 +6,13 @@ from torch.func import jacfwd, vmap
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
 from parametricpinn.bayesian.prior import Prior
 from parametricpinn.calibration.bayesianinference.likelihoods.likelihoodstrategies import (
+    GaussianProcessTuple,
     LikelihoodStrategy,
     NoiseAndErrorGPsOptimizedLikelihoodStrategy,
     NoiseAndErrorGPsSamplingLikelihoodStrategy,
     NoiseAndErrorOptimizedLikelihoodStrategy,
     NoiseAndErrorSamplingLikelihoodStrategy,
     NoiseLikelihoodStrategy,
-    GaussianProcessTuple,
     TensorTuple,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods.optimization import (
