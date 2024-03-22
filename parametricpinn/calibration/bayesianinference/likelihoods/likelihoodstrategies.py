@@ -6,7 +6,7 @@ from parametricpinn.calibration.bayesianinference.likelihoods.residualcalculator
     StandardResidualCalculator,
 )
 from parametricpinn.calibration.data import PreprocessedCalibrationData
-from parametricpinn.errors import OptimizedLikelihoodStrategyError
+from parametricpinn.errors import OptimizedModelErrorGPLikelihoodStrategyError
 from parametricpinn.gps import GaussianProcess
 from parametricpinn.statistics.distributions import (
     IndependentMultivariateNormalDistributon,
@@ -14,9 +14,11 @@ from parametricpinn.statistics.distributions import (
     create_independent_multivariate_normal_distribution,
     create_multivariate_normal_distribution,
 )
-from parametricpinn.types import Device, Module, Parameter, Tensor
+from parametricpinn.types import Device, Parameter, Tensor
 
 NamedParameters: TypeAlias = dict[str, Tensor]
+NamedParametersTuple: TypeAlias = tuple[NamedParameters, ...]
+GaussianProcessTuple: TypeAlias = tuple[GaussianProcess, ...]
 
 
 class LikelihoodStrategy(Protocol):
@@ -31,7 +33,7 @@ class LikelihoodStrategy(Protocol):
 
 
 class OptimizedLikelihoodStrategy(LikelihoodStrategy, Protocol):
-    def get_named_parameters(self) -> NamedParameters:
+    def get_named_parameters(self) -> NamedParametersTuple:
         pass
 
 
@@ -331,13 +333,15 @@ class NoiseAndErrorOptimizedLikelihoodStrategy(torch.nn.Module):
             model_parameters, self._model_error_standard_deviation_parameters
         )
 
-    def get_named_parameters(self) -> NamedParameters:
-        return {
-            f"stddev_dimension_{count}": parameter
-            for count, parameter in enumerate(
-                self._model_error_standard_deviation_parameters
-            )
-        }
+    def get_named_parameters(self) -> NamedParametersTuple:
+        return (
+            {
+                f"stddev_dimension_{count}": parameter
+                for count, parameter in enumerate(
+                    self._model_error_standard_deviation_parameters
+                )
+            },
+        )
 
     def _calculate_log_probs_for_data_sets(
         self,
@@ -588,14 +592,21 @@ class NoiseAndErrorGPsSamplingLikelihoodStrategy(torch.nn.Module):
 class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
     def __init__(
         self,
-        model_error_gp: GaussianProcess,
+        model_error_gps: GaussianProcessTuple,
+        use_independent_model_error_gps: bool,
         data: PreprocessedCalibrationData,
         residual_calculator: StandardResidualCalculator,
         num_model_parameters: int,
         device: Device,
     ) -> None:
         super().__init__()
-        self._model_error_gp = model_error_gp.to(device)
+        self._validate_number_of_model_error_gps(
+            model_error_gps, use_independent_model_error_gps, data
+        )
+        self._model_error_gps = torch.nn.ModuleList(
+            tuple(gp.to(device) for gp in model_error_gps)
+        )
+        self._use_independent_gps = use_independent_model_error_gps
         self._is_training_mode = True
         self._distribution_training = NoiseAndErrorGPsLikelihoodDistribution(
             data, device
@@ -624,13 +635,9 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
 
     def prediction_mode(self) -> None:
         self._is_training_mode = False
-        self._error_means_sets = self._distribution_prediction.assemble_error_means(
-            self._model_error_gp, self._inputs_sets
-        )
+        self._error_means_sets = self._assemble_error_means_for_prediction()
         self._error_covariances_sets = (
-            self._distribution_prediction.assemble_error_covariance_matrices(
-                self._model_error_gp, self._inputs_sets
-            )
+            self._assemble_error_covariance_matrices_for_prediction()
         )
 
     def forward(self, parameters: Tensor) -> Tensor:
@@ -642,29 +649,38 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
 
     def log_probs_individual(self, parameters: Tensor) -> Tensor:
         model_parameters = parameters
-        return self._calculate_log_probs_for_data_sets(
-            model_parameters, self._model_error_gp
-        )
+        return self._calculate_log_probs_for_data_sets(model_parameters)
 
-    def get_named_parameters(self) -> NamedParameters:
-        return self._model_error_gp.get_named_parameters()
+    def get_named_parameters(self) -> NamedParametersTuple:
+        return tuple(gp.get_named_parameters() for gp in self._model_error_gps)
 
     def _calculate_log_probs_for_data_sets(
         self,
         model_parameters: Tensor,
-        model_error_gp: GaussianProcess,
     ) -> Tensor:
         if self._is_training_mode:
-            log_probs = tuple(
-                self._calculate_one_log_prob_for_data_set_in_training(
-                    model_parameters,
-                    model_error_gp,
-                    self._inputs_sets[data_set_index],
-                    self._outputs_sets[data_set_index],
-                    self._num_data_points_per_set[data_set_index],
+            if self._use_independent_gps:
+                log_probs = tuple(
+                    self._calculate_one_log_prob_for_data_set_in_training(
+                        model_parameters,
+                        self._model_error_gps[data_set_index],
+                        self._inputs_sets[data_set_index],
+                        self._outputs_sets[data_set_index],
+                        self._num_data_points_per_set[data_set_index],
+                    )
+                    for data_set_index in range(self._num_data_sets)
                 )
-                for data_set_index in range(self._num_data_sets)
-            )
+            else:
+                log_probs = tuple(
+                    self._calculate_one_log_prob_for_data_set_in_training(
+                        model_parameters,
+                        self._model_error_gps[0],
+                        self._inputs_sets[data_set_index],
+                        self._outputs_sets[data_set_index],
+                        self._num_data_points_per_set[data_set_index],
+                    )
+                    for data_set_index in range(self._num_data_sets)
+                )
             if self._num_data_sets == 1:
                 return log_probs[0]
             else:
@@ -675,7 +691,7 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
                 and self._error_means_sets is not None
             ):
                 log_probs = tuple(
-                    self._calculate_one_log_prob_for_data_set(
+                    self._calculate_one_log_prob_for_data_set_in_prediction(
                         model_parameters,
                         self._error_means_sets[data_set_index],
                         self._error_covariances_sets[data_set_index],
@@ -690,8 +706,9 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
                 else:
                     return torch.concat(log_probs)
             else:
-                raise OptimizedLikelihoodStrategyError(
-                    "The covariance matrices of the model errors must first be calculated for the prediction."
+                raise OptimizedModelErrorGPLikelihoodStrategyError(
+                    "The means and covariance matrices of the model errors \
+                    must first be calculated for the prediction."
                 )
 
     def _calculate_one_log_prob_for_data_set_in_training(
@@ -711,7 +728,7 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
         )
         return torch.unsqueeze(distribution.log_prob(residuals), dim=0)
 
-    def _calculate_one_log_prob_for_data_set(
+    def _calculate_one_log_prob_for_data_set_in_prediction(
         self,
         model_parameters: Tensor,
         error_mean: Tensor,
@@ -728,6 +745,51 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
             model_parameters, inputs, outputs
         )
         return torch.unsqueeze(distribution.log_prob(residuals), dim=0)
+
+    def _validate_number_of_model_error_gps(
+        self,
+        model_error_gps: GaussianProcessTuple,
+        use_independent_model_error_gps: bool,
+        data: PreprocessedCalibrationData,
+    ) -> None:
+        num_model_error_gps = len(model_error_gps)
+        num_data_sets = data.num_data_sets
+        if use_independent_model_error_gps:
+            if not num_model_error_gps == num_data_sets:
+                raise OptimizedModelErrorGPLikelihoodStrategyError(
+                    f"The number of independent model error GPs {num_model_error_gps} \
+                    does not match the number of data sets {num_data_sets}."
+                )
+        else:
+            if not num_model_error_gps == 1:
+                raise OptimizedModelErrorGPLikelihoodStrategyError(
+                    f"The number of not independent model error GPs {num_model_error_gps} \
+                    is expected to be 1."
+                )
+
+    def _assemble_error_means_for_prediction(self) -> tuple[Tensor, ...]:
+        if self._use_independent_gps:
+            return tuple(
+                self._distribution_prediction.assemble_error_means(gp, (inputs_set,))[0]
+                for gp, inputs_set in zip(self._model_error_gps, self._inputs_sets)
+            )
+        else:
+            return self._distribution_prediction.assemble_error_means(
+                self._model_error_gps[0], self._inputs_sets
+            )
+
+    def _assemble_error_covariance_matrices_for_prediction(self) -> tuple[Tensor, ...]:
+        if self._use_independent_gps:
+            return tuple(
+                self._distribution_prediction.assemble_error_covariance_matrices(
+                    gp, (inputs_set,)
+                )[0]
+                for gp, inputs_set in zip(self._model_error_gps, self._inputs_sets)
+            )
+        else:
+            return self._distribution_prediction.assemble_error_covariance_matrices(
+                self._model_error_gps[0], self._inputs_sets
+            )
 
 
 def sum_individual_log_probs(log_probs: Tensor, num_data_sets: int) -> Tensor:

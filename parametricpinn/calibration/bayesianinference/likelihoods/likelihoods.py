@@ -1,4 +1,4 @@
-from typing import cast
+import copy
 
 import torch
 from torch.func import jacfwd, vmap
@@ -34,7 +34,7 @@ from parametricpinn.statistics.distributions import (
     IndependentMultivariateNormalDistributon,
     create_independent_multivariate_normal_distribution,
 )
-from parametricpinn.types import Device, Module, Tensor
+from parametricpinn.types import Device, Tensor
 
 
 class StandardPPINNQLikelihoodWrapper:
@@ -472,7 +472,8 @@ def _create_noise_and_model_error_gps_likelihood_strategy_for_sampling(
 def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
     model: StandardAnsatz,
     num_model_parameters: int,
-    model_error_gp: GaussianProcess,
+    model_error_gps: tuple[GaussianProcess, ...],
+    use_independent_model_error_gps: bool,
     data: CalibrationData,
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
@@ -488,7 +489,8 @@ def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
         device=device,
     )
     likelihood_strategy = NoiseAndErrorGPsOptimizedLikelihoodStrategy(
-        model_error_gp=model_error_gp,
+        model_error_gps=model_error_gps,
+        use_independent_model_error_gps=use_independent_model_error_gps,
         data=preprocessed_data,
         residual_calculator=residual_calculator,
         num_model_parameters=num_model_parameters,
@@ -542,6 +544,7 @@ def create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps(
     num_model_parameters: int,
     model_error_gp: GaussianProcess,
     initial_model_error_gp_parameters: Tensor,
+    use_independent_model_error_gps: bool,
     data: CalibrationData,
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
@@ -552,13 +555,17 @@ def create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps(
     device: Device,
 ) -> StandardPPINNLikelihood:
     model_error_gp.set_parameters(initial_model_error_gp_parameters)
+    model_error_gps = _clone_model_error_gps_if_necessary(
+        model_error_gp, use_independent_model_error_gps, data
+    )
     (
         likelihood_strategy,
         _,
     ) = _create_optimized_noise_and_model_error_gps_likelihood_strategy(
         model=model,
         num_model_parameters=num_model_parameters,
-        model_error_gp=model_error_gp,
+        model_error_gps=model_error_gps,
+        use_independent_model_error_gps=use_independent_model_error_gps,
         data=data,
         prior_material_parameters=prior_material_parameters,
         num_material_parameter_samples=num_material_parameter_samples,
@@ -608,6 +615,7 @@ def create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps(
     num_model_parameters: int,
     model_error_gp: GaussianProcess,
     initial_model_error_gp_parameters: Tensor,
+    use_independent_model_error_gps: bool,
     data: CalibrationData,
     prior_material_parameters: Prior,
     num_material_parameter_samples: int,
@@ -618,13 +626,17 @@ def create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps(
     device: Device,
 ) -> StandardPPINNLikelihood:
     model_error_gp.set_parameters(initial_model_error_gp_parameters)
+    model_error_gps = _clone_model_error_gps_if_necessary(
+        model_error_gp, use_independent_model_error_gps, data
+    )
     (
         likelihood_strategy,
         preprocessed_data,
     ) = _create_optimized_noise_and_model_error_gps_likelihood_strategy(
         model=model,
         num_model_parameters=num_model_parameters,
-        model_error_gp=model_error_gp,
+        model_error_gps=model_error_gps,
+        use_independent_model_error_gps=use_independent_model_error_gps,
         data=data,
         prior_material_parameters=prior_material_parameters,
         num_material_parameter_samples=num_material_parameter_samples,
@@ -644,6 +656,17 @@ def create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps(
         likelihood_strategy=q_likelihood_strategy,
         device=device,
     )
+
+
+def _clone_model_error_gps_if_necessary(
+    model_error_gp: GaussianProcess,
+    use_independent_model_error_gps: bool,
+    data: CalibrationData,
+) -> tuple[GaussianProcess, ...]:
+    if use_independent_model_error_gps:
+        return tuple(copy.deepcopy(model_error_gp) for _ in range(data.num_data_sets))
+    else:
+        return (model_error_gp,)
 
 
 ##### Bayesian PPINN likelihoods

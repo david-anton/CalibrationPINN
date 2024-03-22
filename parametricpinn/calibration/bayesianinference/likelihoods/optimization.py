@@ -95,11 +95,19 @@ def save_optimized_likelihood_hyperparameters(
     output_subdirectory: str,
     project_directory: ProjectDirectory,
 ) -> None:
-    named_parameters = likelihood.get_named_parameters()
-    header = tuple(key for key, _ in named_parameters.items())
-    parameters = np.array(
-        tuple(value.item() for _, value in named_parameters.items())
-    ).reshape((1, -1))
+    named_parameters_tuple = likelihood.get_named_parameters()
+    header = tuple(key for key, _ in named_parameters_tuple[0].items())
+    parameters_list = [
+        np.array([value.item() for _, value in named_parameters.items()]).reshape(
+            (1, -1)
+        )
+        for named_parameters in named_parameters_tuple
+    ]
+    parameters = (
+        parameters_list[0]
+        if len(parameters_list) == 1
+        else np.concatenate(parameters_list, axis=0)
+    )
     data_frame = pd.DataFrame(parameters, columns=header)
     data_writer = PandasDataWriter(project_directory)
     file_name = f"{file_name_prefix}_{test_case_index}.csv"

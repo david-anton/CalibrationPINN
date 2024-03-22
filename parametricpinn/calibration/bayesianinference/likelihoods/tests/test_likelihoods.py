@@ -1,7 +1,7 @@
+import copy
 import math
 from typing import Callable, TypeAlias
 
-import gpytorch
 import pytest
 import torch
 
@@ -28,11 +28,13 @@ from parametricpinn.calibration.data import (
     PreprocessedCalibrationData,
 )
 from parametricpinn.errors import TestConfigurationError
-from parametricpinn.gps import GaussianProcess, IndependentMultiOutputGP
-from parametricpinn.gps.base import GPMultivariateNormal
+from parametricpinn.gps import GP, GaussianProcess, IndependentMultiOutputGP
+from parametricpinn.gps.base import GPMultivariateNormal, NamedParameters
+from parametricpinn.gps.kernels.base import Kernel
+from parametricpinn.gps.means import ZeroMean
 from parametricpinn.network import BFFNN, FFNN
 from parametricpinn.settings import set_default_dtype
-from parametricpinn.types import Module, Tensor
+from parametricpinn.types import Tensor
 
 set_default_dtype(torch.float64)
 
@@ -631,34 +633,44 @@ NoiseAndModelErrorGPsLikelihoodFactoryFunc: TypeAlias = Callable[
 ]
 
 
-class FakeZeroMeanScaledRBFKernelGP(gpytorch.models.ExactGP):
-    def __init__(
-        self, variance_error: float, mean: float = 0.0, train_x=None, train_y=None
-    ) -> None:
-        likelihood = gpytorch.likelihoods.GaussianLikelihood()
-        super().__init__(train_x, train_y, likelihood)
+class FakeKernel(Kernel):
+    def __init__(self, variance_error) -> None:
+        super().__init__(num_hyperparameters=2, device=device)
         self._variance_error = variance_error
-        self._mean = mean
-        self.num_gps = 1
-        self.num_hyperparameters = 2
 
-    def forward(self, x: Tensor) -> GPMultivariateNormal:
-        return torch.tensor(0.0)
-
-    def forward_mean(self, x: Tensor) -> Tensor:
-        num_inputs = x.size()[0]
-        return self._mean * torch.ones(num_inputs)
-
-    def forward_kernel(self, x_1: Tensor, x_2: Tensor) -> Tensor:
+    def forward(self, x_1: Tensor, x_2: Tensor, **params) -> Tensor:
         if x_1.size() != x_2.size():
             raise TestConfigurationError(
-                "Fake GP only defined for inputs with the same shape."
+                "Fake GP kernel only defined for inputs with the same shape."
             )
         num_inputs = x_1.size()[0]
         return self._variance_error * torch.eye(num_inputs)
 
     def set_parameters(self, parameters: Tensor) -> None:
         pass
+
+    def get_named_parameters(self) -> NamedParameters:
+        return {
+            "kernel_parameetr_1": torch.tensor(0.0),
+            "kernel_parameetr_2": torch.tensor(0.0),
+        }
+
+
+class FakeZeroMeanScaledRBFKernelGP(GP):
+    def __init__(self, variance_error: float) -> None:
+        fake_mean_module = ZeroMean(device)
+        fake_kernel_module = FakeKernel(variance_error)
+        super().__init__(
+            mean=fake_mean_module, kernel=fake_kernel_module, device=device
+        )
+        self.num_gps = 1
+        self.num_hyperparameters = 2
+
+    def set_parameters(self, parameters: Tensor) -> None:
+        pass
+
+    def get_named_parameters(self) -> NamedParameters:
+        return {"parameetr": torch.tensor(0.0)}
 
 
 def _create_noise_and_model_error_gps_likelihood_strategy_for_sampling(
@@ -681,14 +693,15 @@ def _create_noise_and_model_error_gps_likelihood_strategy_for_sampling(
 
 def _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_training(
     residual_calculator: StandardResidualCalculator,
-    model_error_gp: Module,
+    model_error_gp: GaussianProcess,
     initial_gp_parameters: Tensor,
     data: PreprocessedCalibrationData,
     num_model_parameters: int,
 ) -> tuple[NoiseAndErrorGPsOptimizedLikelihoodStrategy, Tensor]:
     model_error_gp.set_parameters(initial_gp_parameters)
     likelihood_strategy = NoiseAndErrorGPsOptimizedLikelihoodStrategy(
-        model_error_gp=model_error_gp,
+        model_error_gps=(model_error_gp,),
+        use_independent_model_error_gps=False,
         data=data,
         residual_calculator=residual_calculator,
         num_model_parameters=num_model_parameters,
@@ -700,14 +713,60 @@ def _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_training
 
 def _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_prediction(
     residual_calculator: StandardResidualCalculator,
-    model_error_gp: Module,
+    model_error_gp: GaussianProcess,
     initial_gp_parameters: Tensor,
     data: PreprocessedCalibrationData,
     num_model_parameters: int,
 ) -> tuple[NoiseAndErrorGPsOptimizedLikelihoodStrategy, Tensor]:
     model_error_gp.set_parameters(initial_gp_parameters)
     likelihood_strategy = NoiseAndErrorGPsOptimizedLikelihoodStrategy(
-        model_error_gp=model_error_gp,
+        model_error_gps=(model_error_gp,),
+        use_independent_model_error_gps=False,
+        data=data,
+        residual_calculator=residual_calculator,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
+    likelihood_strategy.prediction_mode()
+    parameters = torch.tensor([1.0])
+    return likelihood_strategy, parameters
+
+
+def _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_training_independent_gps(
+    residual_calculator: StandardResidualCalculator,
+    model_error_gp: GaussianProcess,
+    initial_gp_parameters: Tensor,
+    data: PreprocessedCalibrationData,
+    num_model_parameters: int,
+) -> tuple[NoiseAndErrorGPsOptimizedLikelihoodStrategy, Tensor]:
+    model_error_gp.set_parameters(initial_gp_parameters)
+    likelihood_strategy = NoiseAndErrorGPsOptimizedLikelihoodStrategy(
+        model_error_gps=tuple(
+            copy.deepcopy(model_error_gp) for _ in range(data.num_data_sets)
+        ),
+        use_independent_model_error_gps=True,
+        data=data,
+        residual_calculator=residual_calculator,
+        num_model_parameters=num_model_parameters,
+        device=device,
+    )
+    parameters = torch.tensor([1.0])
+    return likelihood_strategy, parameters
+
+
+def _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_prediction_independent_gps(
+    residual_calculator: StandardResidualCalculator,
+    model_error_gp: GaussianProcess,
+    initial_gp_parameters: Tensor,
+    data: PreprocessedCalibrationData,
+    num_model_parameters: int,
+) -> tuple[NoiseAndErrorGPsOptimizedLikelihoodStrategy, Tensor]:
+    model_error_gp.set_parameters(initial_gp_parameters)
+    likelihood_strategy = NoiseAndErrorGPsOptimizedLikelihoodStrategy(
+        model_error_gps=tuple(
+            copy.deepcopy(model_error_gp) for _ in range(data.num_data_sets)
+        ),
+        use_independent_model_error_gps=True,
         data=data,
         residual_calculator=residual_calculator,
         num_model_parameters=num_model_parameters,
@@ -724,6 +783,8 @@ def _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_predicti
         _create_noise_and_model_error_gps_likelihood_strategy_for_sampling,
         _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_training,
         _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_prediction,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_training_independent_gps,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_prediction_independent_gps,
     ],
 )
 def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_data_set_single_dimension(
@@ -790,6 +851,8 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_da
         _create_noise_and_model_error_gps_likelihood_strategy_for_sampling,
         _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_training,
         _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_prediction,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_training_independent_gps,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_prediction_independent_gps,
     ],
 )
 def test_standard_calibration_likelihood_for_noise_and_model_error_gps_multiple_data_sets_single_dimension(
@@ -856,6 +919,8 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_gps_multiple_
         _create_noise_and_model_error_gps_likelihood_strategy_for_sampling,
         _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_training,
         _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_prediction,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_training_independent_gps,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_prediction_independent_gps,
     ],
 )
 def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_data_set_multiple_dimension(
@@ -929,6 +994,8 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_da
         _create_noise_and_model_error_gps_likelihood_strategy_for_sampling,
         _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_training,
         _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_prediction,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_training_independent_gps,
+        _create_optimized_noise_and_model_error_gps_likelihood_strategy_for_prediction_independent_gps,
     ],
 )
 def test_standard_calibration_likelihood_for_noise_and_model_error_gps_multiple_data_sets_multiple_dimension(
