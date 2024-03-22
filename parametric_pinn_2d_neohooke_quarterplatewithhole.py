@@ -507,7 +507,9 @@ def calibration_step() -> None:
 
     if use_q_likelihood:
         output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration", "with_model_error_gps_and_q_likelihood"
+            output_subdirectory,
+            "calibration",
+            "with_independent_model_error_gps_and_q_likelihood",
         )
     else:
         output_subdir_calibration = os.path.join(
