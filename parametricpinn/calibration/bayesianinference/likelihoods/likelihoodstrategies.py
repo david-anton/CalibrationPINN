@@ -33,6 +33,11 @@ class LikelihoodStrategy(Protocol):
 
 
 class OptimizedLikelihoodStrategy(LikelihoodStrategy, Protocol):
+    num_data_sets: int
+
+    def log_prob_individual(self, parameters: Tensor, data_set_index: int) -> Tensor:
+        pass
+
     def get_named_parameters(self) -> NamedParametersTuple:
         pass
 
@@ -304,6 +309,7 @@ class NoiseAndErrorOptimizedLikelihoodStrategy(torch.nn.Module):
         device: Device,
     ) -> None:
         super().__init__()
+        self.num_data_sets = data.num_data_sets
         self._model_error_standard_deviation_parameters = torch.nn.Parameter(
             initial_model_error_standard_deviations.clone(), requires_grad=True
         )
@@ -313,7 +319,6 @@ class NoiseAndErrorOptimizedLikelihoodStrategy(torch.nn.Module):
         self._outputs_sets = tuple(
             outputs.detach().to(device) for outputs in data.outputs
         )
-        self._num_data_sets = data.num_data_sets
         self._num_data_points_per_set = data.num_data_points_per_set
         self._dim_outputs = data.dim_outputs
         self._standard_deviation_noise = data.std_noise
@@ -325,13 +330,23 @@ class NoiseAndErrorOptimizedLikelihoodStrategy(torch.nn.Module):
 
     def log_prob(self, parameters: Tensor) -> Tensor:
         log_probs = self.log_probs_individual(parameters)
-        return sum_individual_log_probs(log_probs, self._num_data_sets)
+        return sum_individual_log_probs(log_probs, self.num_data_sets)
 
     def log_probs_individual(self, parameters: Tensor) -> Tensor:
         model_parameters = parameters
         return self._calculate_log_probs_for_data_sets(
             model_parameters, self._model_error_standard_deviation_parameters
         )
+
+    def log_prob_individual(self, parameters: Tensor, data_set_index: int) -> Tensor:
+        model_parameters = parameters
+        return self._calculate_one_log_prob_for_data_set(
+            model_parameters,
+            self._model_error_standard_deviation_parameters,
+            self._inputs_sets[data_set_index],
+            self._outputs_sets[data_set_index],
+            self._num_data_points_per_set[data_set_index],
+        )[0]
 
     def get_named_parameters(self) -> NamedParametersTuple:
         return (
@@ -356,9 +371,9 @@ class NoiseAndErrorOptimizedLikelihoodStrategy(torch.nn.Module):
                 self._outputs_sets[data_set_index],
                 self._num_data_points_per_set[data_set_index],
             )
-            for data_set_index in range(self._num_data_sets)
+            for data_set_index in range(self.num_data_sets)
         )
-        if self._num_data_sets == 1:
+        if self.num_data_sets == 1:
             return log_probs[0]
         else:
             return torch.concat(log_probs)
@@ -600,6 +615,7 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
         device: Device,
     ) -> None:
         super().__init__()
+        self.num_data_sets = data.num_data_sets
         self._validate_number_of_model_error_gps(
             model_error_gps, use_independent_model_error_gps, data
         )
@@ -621,7 +637,6 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
         self._outputs_sets = tuple(
             outputs.detach().to(device) for outputs in data.outputs
         )
-        self._num_data_sets = data.num_data_sets
         self._num_data_points_per_set = data.num_data_points_per_set
         self._dim_outputs = data.dim_outputs
         self._standard_deviation_noise = data.std_noise
@@ -645,11 +660,51 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
 
     def log_prob(self, parameters: Tensor) -> Tensor:
         log_probs = self.log_probs_individual(parameters)
-        return sum_individual_log_probs(log_probs, self._num_data_sets)
+        return sum_individual_log_probs(log_probs, self.num_data_sets)
 
     def log_probs_individual(self, parameters: Tensor) -> Tensor:
         model_parameters = parameters
         return self._calculate_log_probs_for_data_sets(model_parameters)
+
+    def log_prob_individual(self, parameters: Tensor, data_set_index: int) -> Tensor:
+        model_parameters = parameters
+        if self._is_training_mode:
+            if self._use_independent_gps:
+                log_prob = self._calculate_one_log_prob_for_data_set_in_training(
+                    model_parameters,
+                    self._model_error_gps[data_set_index],
+                    self._inputs_sets[data_set_index],
+                    self._outputs_sets[data_set_index],
+                    self._num_data_points_per_set[data_set_index],
+                )
+            else:
+                log_prob = self._calculate_one_log_prob_for_data_set_in_training(
+                    model_parameters,
+                    self._model_error_gps[0],
+                    self._inputs_sets[data_set_index],
+                    self._outputs_sets[data_set_index],
+                    self._num_data_points_per_set[data_set_index],
+                )
+        else:
+            if (
+                self._error_covariances_sets is not None
+                and self._error_means_sets is not None
+            ):
+                log_prob = self._calculate_one_log_prob_for_data_set_in_prediction(
+                    model_parameters,
+                    self._error_means_sets[data_set_index],
+                    self._error_covariances_sets[data_set_index],
+                    self._inputs_sets[data_set_index],
+                    self._outputs_sets[data_set_index],
+                    self._num_data_points_per_set[data_set_index],
+                )
+
+            else:
+                raise OptimizedModelErrorGPLikelihoodStrategyError(
+                    "The means and covariance matrices of the model errors \
+                    must first be calculated for the prediction."
+                )
+        return log_prob[0]
 
     def get_named_parameters(self) -> NamedParametersTuple:
         return tuple(gp.get_named_parameters() for gp in self._model_error_gps)
@@ -668,7 +723,7 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
                         self._outputs_sets[data_set_index],
                         self._num_data_points_per_set[data_set_index],
                     )
-                    for data_set_index in range(self._num_data_sets)
+                    for data_set_index in range(self.num_data_sets)
                 )
             else:
                 log_probs = tuple(
@@ -679,9 +734,9 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
                         self._outputs_sets[data_set_index],
                         self._num_data_points_per_set[data_set_index],
                     )
-                    for data_set_index in range(self._num_data_sets)
+                    for data_set_index in range(self.num_data_sets)
                 )
-            if self._num_data_sets == 1:
+            if self.num_data_sets == 1:
                 return log_probs[0]
             else:
                 return torch.concat(log_probs)
@@ -699,9 +754,9 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
                         self._outputs_sets[data_set_index],
                         self._num_data_points_per_set[data_set_index],
                     )
-                    for data_set_index in range(self._num_data_sets)
+                    for data_set_index in range(self.num_data_sets)
                 )
-                if self._num_data_sets == 1:
+                if self.num_data_sets == 1:
                     return log_probs[0]
                 else:
                     return torch.concat(log_probs)

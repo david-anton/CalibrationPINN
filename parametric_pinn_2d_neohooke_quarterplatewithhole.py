@@ -105,7 +105,7 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_q_likelihood = True
+use_q_likelihood = False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -509,7 +509,7 @@ def calibration_step() -> None:
         output_subdir_calibration = os.path.join(
             output_subdirectory,
             "calibration",
-            "with_independent_model_error_gps_and_q_likelihood",
+            "with_model_error_gps_and_q_likelihood",
         )
     else:
         output_subdir_calibration = os.path.join(
