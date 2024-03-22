@@ -100,12 +100,12 @@ fem_element_size = 0.2
 # Validation
 regenerate_valid_data = False
 input_subdir_valid = f"20240305_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
-num_samples_valid = 10  # 100
+num_samples_valid = 1  # 100
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_q_likelihood = True  # False
+use_q_likelihood = False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -502,7 +502,7 @@ def calibration_step() -> None:
         device=device,
     )
 
-    model_error_optimization_num_material_parameter_samples = 256
+    model_error_optimization_num_material_parameter_samples = 128
     model_error_optimization_num_iterations = 16
 
     if use_q_likelihood:
@@ -521,7 +521,7 @@ def calibration_step() -> None:
                 model=model,
                 num_model_parameters=num_material_parameters,
                 model_error_gp=create_model_error_gp(),
-                use_independent_model_error_gps=False,
+                use_independent_model_error_gps=True,
                 initial_model_error_gp_parameters=initial_model_error_parameters,
                 data=data,
                 prior_material_parameters=prior,
@@ -540,7 +540,7 @@ def calibration_step() -> None:
                 model=model,
                 num_model_parameters=num_material_parameters,
                 model_error_gp=create_model_error_gp(),
-                use_independent_model_error_gps=False,
+                use_independent_model_error_gps=True,
                 initial_model_error_gp_parameters=initial_model_error_parameters,
                 data=data,
                 prior_material_parameters=prior,
