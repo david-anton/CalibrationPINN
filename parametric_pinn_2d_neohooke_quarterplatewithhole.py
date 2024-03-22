@@ -105,7 +105,7 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_q_likelihood = False
+use_q_likelihood = True
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -432,7 +432,7 @@ def calibration_step() -> None:
     print("Start calibration ...")
     num_test_cases = num_samples_valid
     num_data_sets = 32
-    num_data_points = 128
+    num_data_points = 64
     std_noise = 5 * 1e-4
 
     initial_bulk_modulus = 6000.0
