@@ -84,11 +84,11 @@ class CalibrationDataLoader2D:
     ) -> tuple[tuple[Tensor, ...], tuple[Tensor, ...]]:
         inputs_sets = []
         noisy_outputs_sets = []
-        random_indices = self._generate_random_indices(len(data))
+        inputs_all = data[:, self._slice_inputs]
+        outputs_all = data[:, self._slice_outputs]
         for _ in range(self._num_data_sets):
-            inputs_all = data[:, self._slice_inputs]
+            random_indices = self._generate_random_indices(len(data))
             inputs = inputs_all[random_indices, :]
-            outputs_all = data[:, self._slice_outputs]
             outputs = outputs_all[random_indices, :]
             noisy_outputs = self._add_gaussian_noise(outputs)
             inputs_sets.append(inputs)
