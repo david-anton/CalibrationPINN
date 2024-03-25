@@ -119,7 +119,7 @@ input_subdir_calibration = os.path.join(
     "Paper_PINNs", "20240123_experimental_dic_data_dogbone"
 )
 input_file_name_calibration = "displacements_dic.csv"
-use_q_likelihood = True  # False
+use_q_likelihood = False
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -466,7 +466,7 @@ def training_step() -> None:
 def calibration_step() -> None:
     print("Start calibration ...")
     num_total_data_points = 5240
-    num_data_sets = 32
+    num_data_sets = 1
     num_data_points = int(math.floor(num_total_data_points / num_data_sets))
     std_noise = 5 * 1e-4
 
@@ -820,7 +820,7 @@ def calibration_step() -> None:
         device=device,
     )
 
-    model_error_optimization_num_material_parameter_samples = 128
+    model_error_optimization_num_material_parameter_samples = 256
     model_error_optimization_num_iterations = 16
 
     output_subdir_likelihoods = os.path.join(output_subdir_calibration, "likelihoods")
@@ -899,7 +899,7 @@ def calibration_step() -> None:
             likelihood=likelihood,
             prior=prior,
             initial_parameters=initial_parameters,
-            num_iterations=int(1e5),
+            num_iterations=int(2e4),
             num_burn_in_iterations=int(1e4),
             cov_proposal_density=cov_proposal_density,
         )
