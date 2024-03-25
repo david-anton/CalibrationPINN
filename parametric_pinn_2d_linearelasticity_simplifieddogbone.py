@@ -465,7 +465,7 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    num_total_data_points = 2048  # 5240
+    num_total_data_points = 5240
     num_data_sets = 1
     num_data_points = (
         num_total_data_points  # int(math.floor(num_total_data_points / num_data_sets))
@@ -822,7 +822,7 @@ def calibration_step() -> None:
         device=device,
     )
 
-    model_error_optimization_num_material_parameter_samples = 256
+    model_error_optimization_num_material_parameter_samples = 128
     model_error_optimization_num_iterations = 16
 
     output_subdir_likelihoods = os.path.join(output_subdir_calibration, "likelihoods")

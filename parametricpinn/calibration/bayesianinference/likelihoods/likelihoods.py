@@ -17,7 +17,6 @@ from parametricpinn.calibration.bayesianinference.likelihoods.likelihoodstrategi
 )
 from parametricpinn.calibration.bayesianinference.likelihoods.optimization import (
     optimize_likelihood_hyperparameters_independently,
-    optimize_likelihood_hyperparameters,
     save_optimized_likelihood_hyperparameters,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods.residualcalculator import (
@@ -534,7 +533,7 @@ def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
         device=device,
     )
     likelihood_strategy.train()
-    optimize_likelihood_hyperparameters(
+    optimize_likelihood_hyperparameters_independently(
         likelihood=likelihood_strategy,
         prior_material_parameters=prior_material_parameters,
         num_material_parameter_samples=num_material_parameter_samples,
