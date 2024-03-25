@@ -467,7 +467,7 @@ def calibration_step() -> None:
     print("Start calibration ...")
     num_total_data_points = 5240
     num_data_sets = 1
-    num_data_points = 2048  # int(math.floor(num_total_data_points / num_data_sets))
+    num_data_points = 1024  # int(math.floor(num_total_data_points / num_data_sets))
     std_noise = 5 * 1e-4
 
     exact_youngs_modulus = 192800.0
