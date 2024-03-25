@@ -79,7 +79,7 @@ def generate_calibration_data(
         repeat_shape = (num_observations), 1
         return data_func(x, beta.repeat(repeat_shape), gamma)
 
-    data_set_list: list[CalibrationData] = []
+    test_cases_list: list[CalibrationData] = []
     true_parameters_list: list[Tensor] = []
     for _ in range(num_tests):
         x = generate_x()
@@ -88,10 +88,10 @@ def generate_calibration_data(
         data_set = CalibrationData(
             num_data_sets=1, inputs=(x,), outputs=(y,), std_noise=std_noise
         )
-        data_set_list.append(data_set)
+        test_cases_list.append(data_set)
         true_parameters_list.append(true_beta)
     return (
-        tuple(data_set_list),
+        tuple(test_cases_list),
         torch.vstack(true_parameters_list).detach().cpu().numpy(),
     )
 

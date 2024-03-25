@@ -265,8 +265,8 @@ def _validate_calibration_data(calibration_data: CalibrationData) -> None:
         raise UnvalidCalibrationDataError(
             "Size of input and output data sets does not match."
         )
-    num_inputs = [input.size() for input in inputs_list]
-    num_outputs = [output.size() for output in outputs_list]
+    num_inputs = [len(input) for input in inputs_list]
+    num_outputs = [len(output) for output in outputs_list]
     if not num_inputs == num_outputs:
         raise UnvalidCalibrationDataError(
             "Size of input and output data points does not match."
