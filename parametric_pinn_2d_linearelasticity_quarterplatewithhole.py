@@ -107,7 +107,7 @@ fem_element_size = 0.1
 # Validation
 regenerate_valid_data = False
 input_subdir_valid = f"20240304_validation_data_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}_K_G"
-num_samples_valid = 50
+num_samples_valid = 10
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
@@ -459,7 +459,7 @@ def training_step() -> None:
 def calibration_step() -> None:
     print("Start calibration ...")
     num_test_cases = num_samples_valid
-    num_data_sets = 32
+    num_data_sets = 64
     num_data_points = 64
     std_noise = 5 * 1e-4
 
@@ -629,7 +629,7 @@ def calibration_step() -> None:
                 prior=prior,
                 initial_parameters=initial_parameters,
                 num_iterations=int(1e4),
-                num_burn_in_iterations=int(5e3),
+                num_burn_in_iterations=int(1e4),
                 cov_proposal_density=cov_proposal_density,
             )
             configs.append(config)
