@@ -828,7 +828,7 @@ def calibration_step() -> None:
         device=device,
     )
 
-    model_error_optimization_num_material_parameter_samples = 128
+    model_error_optimization_num_material_parameter_samples = 256
     model_error_optimization_num_iterations = 16
 
     output_subdir_likelihoods = os.path.join(output_subdir_calibration, "likelihoods")
