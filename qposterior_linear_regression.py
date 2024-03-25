@@ -31,8 +31,9 @@ set_seed(0)
 # Set up
 num_inputs = 3
 num_parameters = num_inputs
-num_observations = 100
 num_tests = 100
+num_data_sets = 100
+num_observations = 1
 true_mean_epsilon = torch.tensor(0.1, device=device)
 true_sigma_epsilon = torch.tensor(1.0, device=device)
 true_beta = torch.ones(num_inputs, device=device)
@@ -82,11 +83,11 @@ def generate_calibration_data(
     test_cases_list: list[CalibrationData] = []
     true_parameters_list: list[Tensor] = []
     for _ in range(num_tests):
-        x = generate_x()
-        y = calculate_y(x, true_beta)
+        x = tuple(generate_x() for _ in range(num_data_sets))
+        y = tuple(calculate_y(inputs, true_beta) for inputs in x)
         std_noise = true_sigma_epsilon.item()
         data_set = CalibrationData(
-            num_data_sets=1, inputs=(x,), outputs=(y,), std_noise=std_noise
+            num_data_sets=num_data_sets, inputs=x, outputs=y, std_noise=std_noise
         )
         test_cases_list.append(data_set)
         true_parameters_list.append(true_beta)
@@ -203,15 +204,15 @@ if __name__ == "__main__":
         parameter_names=parameter_names,
         prior=prior,
     )
-    run_coverage_test(
-        consider_model_error=False,
-        gamma=2.0,
-        parameter_names=parameter_names,
-        prior=prior,
-    )
-    run_coverage_test(
-        consider_model_error=True,
-        gamma=2.0,
-        parameter_names=parameter_names,
-        prior=prior,
-    )
+    # run_coverage_test(
+    #     consider_model_error=False,
+    #     gamma=2.0,
+    #     parameter_names=parameter_names,
+    #     prior=prior,
+    # )
+    # run_coverage_test(
+    #     consider_model_error=True,
+    #     gamma=2.0,
+    #     parameter_names=parameter_names,
+    #     prior=prior,
+    # )
