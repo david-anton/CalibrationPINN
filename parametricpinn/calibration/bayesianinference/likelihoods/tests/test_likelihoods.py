@@ -29,9 +29,10 @@ from parametricpinn.calibration.data import (
 )
 from parametricpinn.errors import TestConfigurationError
 from parametricpinn.gps import GP, GaussianProcess, IndependentMultiOutputGP
-from parametricpinn.gps.base import GPMultivariateNormal, NamedParameters
+from parametricpinn.gps.base import NamedParameters
 from parametricpinn.gps.kernels.base import Kernel
 from parametricpinn.gps.means import ZeroMean
+from parametricpinn.gps.normalizers import InputNormalizer
 from parametricpinn.network import BFFNN, FFNN
 from parametricpinn.settings import set_default_dtype
 from parametricpinn.types import Tensor
@@ -688,8 +689,16 @@ class FakeZeroMeanScaledRBFKernelGP(GP):
     def __init__(self, variance_error: float) -> None:
         fake_mean_module = ZeroMean(device)
         fake_kernel_module = FakeKernel(variance_error)
+        fake_input_normalizer = InputNormalizer(
+            min_inputs=torch.tensor([0.0]),
+            max_inputs=torch.tensor([0.0]),
+            device=device,
+        )
         super().__init__(
-            mean=fake_mean_module, kernel=fake_kernel_module, device=device
+            mean=fake_mean_module,
+            kernel=fake_kernel_module,
+            input_normalizer=fake_input_normalizer,
+            device=device,
         )
         self.num_gps = 1
         self.num_hyperparameters = 2
