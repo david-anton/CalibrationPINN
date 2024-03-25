@@ -20,6 +20,7 @@ from parametricpinn.bayesian.prior import (
     create_univariate_uniform_distributed_prior,
     multiply_priors,
 )
+from parametricpinn.errors import CalibrationDataConfigError
 from parametricpinn.calibration import (
     CalibrationData,
     EfficientNUTSConfig,
@@ -467,9 +468,7 @@ def calibration_step() -> None:
     print("Start calibration ...")
     num_total_data_points = 5240
     num_data_sets = 1
-    num_data_points = (
-        num_total_data_points  # int(math.floor(num_total_data_points / num_data_sets))
-    )
+    num_data_points = 1024  # int(math.floor(num_total_data_points / num_data_sets))
     std_noise = 5 * 1e-4
 
     exact_youngs_modulus = 192800.0
@@ -752,6 +751,13 @@ def calibration_step() -> None:
         ) -> tuple[tuple[Tensor, ...], tuple[Tensor, ...]]:
             size_full_data = len(full_coordinates)
             num_total_data_points = num_data_sets * num_data_points
+
+            if num_total_data_points > size_full_data:
+                raise CalibrationDataConfigError(
+                    f"The number of requested data points {num_total_data_points} \
+                    is greater than the number of available data points {size_full_data}."
+                )
+
             random_indices = torch.randperm(size_full_data)[:num_total_data_points]
             random_set_indices = torch.split(random_indices, num_data_points)
 

@@ -27,6 +27,11 @@ class DatasetConfigError(Error):
         super().__init__(message)
 
 
+class CalibrationDataConfigError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
 class UnvalidCalibrationDataError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
