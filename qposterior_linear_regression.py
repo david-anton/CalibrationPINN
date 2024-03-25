@@ -33,7 +33,8 @@ num_inputs = 3
 num_parameters = num_inputs
 num_observations = 100
 num_tests = 100
-true_sigma = torch.tensor(1.0, device=device)
+true_mean_epsilon = torch.tensor(0.1, device=device)
+true_sigma_epsilon = torch.tensor(1.0, device=device)
 true_beta = torch.ones(num_inputs, device=device)
 # Output
 output_date = date.today().strftime("%Y%m%d")
@@ -45,12 +46,12 @@ def model_func(x: Tensor, beta: Tensor) -> Tensor:
 
 
 def data_func(x: Tensor, beta: Tensor, gamma: float) -> Tensor:
-    epsilon_mean = torch.zeros(len(x), device=device)
+    epsilon_mean = true_mean_epsilon * torch.ones(len(x), device=device)
     epsilon_stddev = torch.sqrt(
         torch.ones(len(x), device=device) + torch.absolute(x[:, 0]) ** gamma
     )
-    epsilon = torch.normal(epsilon_mean, epsilon_stddev)
-    return model_func(x, beta) + true_sigma * epsilon
+    normalized_epsilon_dist = torch.normal(epsilon_mean, epsilon_stddev)
+    return model_func(x, beta) + true_sigma_epsilon * normalized_epsilon_dist
 
 
 class LinearRegressionModel(torch.nn.Module):
@@ -83,8 +84,10 @@ def generate_calibration_data(
     for _ in range(num_tests):
         x = generate_x()
         y = calculate_y(x, true_beta)
-        std_noise = true_sigma.item()
-        data_set = CalibrationData(inputs=x, outputs=y, std_noise=std_noise)
+        std_noise = true_sigma_epsilon.item()
+        data_set = CalibrationData(
+            num_data_sets=1, inputs=(x,), outputs=(y,), std_noise=std_noise
+        )
         data_set_list.append(data_set)
         true_parameters_list.append(true_beta)
     return (
@@ -95,7 +98,6 @@ def generate_calibration_data(
 
 def generate_likelihoods(
     consider_model_error: bool,
-    make_robust: bool,
     calibration_data: tuple[CalibrationData, ...],
 ) -> tuple[Likelihood, ...]:
     if consider_model_error:
@@ -104,7 +106,6 @@ def generate_likelihoods(
                 model=model,
                 num_model_parameters=num_parameters,
                 data=data,
-                make_robust=make_robust,
                 device=device,
             )
             for data in calibration_data
@@ -149,19 +150,16 @@ def set_up_mcmc_configs(
 
 def run_coverage_test(
     consider_model_error: bool,
-    make_robust: bool,
     gamma: float,
     parameter_names: tuple[str, ...],
     prior: Prior,
 ) -> None:
     output_subdir_calibration = os.path.join(
         output_subdirectory,
-        f"gamma_{gamma}_q_posterior_{consider_model_error}_make_robust_{make_robust}",
+        f"gamma_{gamma}_q_posterior_{consider_model_error}",
     )
     calibration_data, true_parameters = generate_calibration_data(gamma)
-    likelihoods = generate_likelihoods(
-        consider_model_error, make_robust, calibration_data
-    )
+    likelihoods = generate_likelihoods(consider_model_error, calibration_data)
     mcmc_configs = set_up_mcmc_configs(likelihoods, prior, consider_model_error)
     print("############################################################")
     print(f"Q-posterior used: {consider_model_error}")
@@ -195,28 +193,24 @@ if __name__ == "__main__":
 
     run_coverage_test(
         consider_model_error=False,
-        make_robust=False,
         gamma=0.0,
         parameter_names=parameter_names,
         prior=prior,
     )
     run_coverage_test(
         consider_model_error=True,
-        make_robust=False,
         gamma=0.0,
         parameter_names=parameter_names,
         prior=prior,
     )
     run_coverage_test(
         consider_model_error=False,
-        make_robust=False,
         gamma=2.0,
         parameter_names=parameter_names,
         prior=prior,
     )
     run_coverage_test(
         consider_model_error=True,
-        make_robust=False,
         gamma=2.0,
         parameter_names=parameter_names,
         prior=prior,
