@@ -20,7 +20,6 @@ from parametricpinn.bayesian.prior import (
     create_univariate_uniform_distributed_prior,
     multiply_priors,
 )
-from parametricpinn.errors import CalibrationDataConfigError
 from parametricpinn.calibration import (
     CalibrationData,
     EfficientNUTSConfig,
@@ -48,6 +47,7 @@ from parametricpinn.data.validationdata_2d import (
     ValidationDataset2DConfig,
     create_validation_dataset,
 )
+from parametricpinn.errors import CalibrationDataConfigError
 from parametricpinn.fem import (
     LinearElasticityProblemConfig_K_G,
     SimplifiedDogBoneDomainConfig,
@@ -803,13 +803,41 @@ def calibration_step() -> None:
     calibration_data = generate_calibration_data()
 
     def create_model_error_gp() -> IndependentMultiOutputGP:
+        min_inputs = torch.tensor(
+            [
+                -geometry_config.left_half_measurement_length,
+                -geometry_config.half_measurement_height,
+                min_bulk_modulus,
+                min_shear_modulus,
+            ],
+            dtype=torch.float64,
+            device=device,
+        )
+        max_inputs = torch.tensor(
+            [
+                geometry_config.right_half_measurement_length,
+                geometry_config.half_measurement_height,
+                max_bulk_modulus,
+                max_shear_modulus,
+            ],
+            dtype=torch.float64,
+            device=device,
+        )
         return IndependentMultiOutputGP(
             gps=[
                 create_gaussian_process(
-                    mean="zero", kernel="scaled_rbf", device=device
+                    mean="zero",
+                    kernel="scaled_rbf",
+                    min_inputs=min_inputs,
+                    max_inputs=max_inputs,
+                    device=device,
                 ),
                 create_gaussian_process(
-                    mean="zero", kernel="scaled_rbf", device=device
+                    mean="zero",
+                    kernel="scaled_rbf",
+                    min_inputs=min_inputs,
+                    max_inputs=max_inputs,
+                    device=device,
                 ),
             ],
             device=device,

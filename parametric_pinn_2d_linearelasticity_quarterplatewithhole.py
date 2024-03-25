@@ -504,13 +504,32 @@ def calibration_step() -> None:
     calibration_data, true_parameters = generate_calibration_data()
 
     def create_model_error_gp() -> IndependentMultiOutputGP:
+        domain_config = create_fem_domain_config()
+        min_inputs = torch.tensor(
+            [-domain_config.edge_length, 0.0, min_bulk_modulus, min_shear_modulus],
+            dtype=torch.float64,
+            device=device,
+        )
+        max_inputs = torch.tensor(
+            [0.0, domain_config.edge_length, max_bulk_modulus, max_shear_modulus],
+            dtype=torch.float64,
+            device=device,
+        )
         return IndependentMultiOutputGP(
             gps=[
                 create_gaussian_process(
-                    mean="zero", kernel="scaled_rbf", device=device
+                    mean="zero",
+                    kernel="scaled_rbf",
+                    min_inputs=min_inputs,
+                    max_inputs=max_inputs,
+                    device=device,
                 ),
                 create_gaussian_process(
-                    mean="zero", kernel="scaled_rbf", device=device
+                    mean="zero",
+                    kernel="scaled_rbf",
+                    min_inputs=min_inputs,
+                    max_inputs=max_inputs,
+                    device=device,
                 ),
             ],
             device=device,
