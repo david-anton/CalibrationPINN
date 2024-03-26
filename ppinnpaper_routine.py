@@ -127,7 +127,7 @@ def load_coordinates_data() -> Tensor:
         data = csv_reader.read(
             file_name=input_file_calibration_data,
             subdir_name=input_subdir_calibration_data,
-            read_from_output_dir=False
+            read_from_output_dir=False,
         )
         slice_coordinates = slice(0, 2)
         slice_displacements = slice(2, 4)
