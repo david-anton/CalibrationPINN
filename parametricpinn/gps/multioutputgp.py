@@ -166,7 +166,7 @@ class IndependentMultiOutputGP(gpytorch.models.GP):
 
     def get_named_parameters(self) -> NamedParameters:
         return {
-            f"{key}_{count}": value
+            f"{key}_dim_{count}": value
             for count, gp in enumerate(self._gps)
             for key, value in gp.get_named_parameters().items()
         }
