@@ -820,7 +820,7 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
         model_parameters = parameters
         return self._calculate_log_probs_for_data_sets(model_parameters)
 
-    def log_prob_individual_dat_set(
+    def log_prob_individual_data_set(
         self, parameters: Tensor, data_set_index: int
     ) -> Tensor:
         model_parameters = parameters
