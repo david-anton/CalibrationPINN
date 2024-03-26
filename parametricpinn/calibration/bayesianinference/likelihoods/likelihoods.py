@@ -16,6 +16,7 @@ from parametricpinn.calibration.bayesianinference.likelihoods.likelihoodstrategi
     TensorTuple,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods.optimization import (
+    optimize_likelihood_hyperparameters,
     optimize_likelihood_hyperparameters_independently,
     save_optimized_likelihood_hyperparameters,
 )
@@ -309,13 +310,22 @@ def _create_optimized_noise_and_model_error_likelihood_strategy(
         device=device,
     )
     likelihood_strategy.train()
-    optimize_likelihood_hyperparameters_independently(
-        likelihood=likelihood_strategy,
-        prior_material_parameters=prior_material_parameters,
-        num_material_parameter_samples=num_material_parameter_samples,
-        num_iterations=num_iterations,
-        device=device,
-    )
+    if use_independent_model_error_standard_deviations:
+        optimize_likelihood_hyperparameters_independently(
+            likelihood=likelihood_strategy,
+            prior_material_parameters=prior_material_parameters,
+            num_material_parameter_samples=num_material_parameter_samples,
+            num_iterations=num_iterations,
+            device=device,
+        )
+    else:
+        optimize_likelihood_hyperparameters(
+            likelihood=likelihood_strategy,
+            prior_material_parameters=prior_material_parameters,
+            num_material_parameter_samples=num_material_parameter_samples,
+            num_iterations=num_iterations,
+            device=device,
+        )
     freeze_model(likelihood_strategy)
     save_optimized_likelihood_hyperparameters(
         likelihood=likelihood_strategy,
@@ -533,13 +543,22 @@ def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
         device=device,
     )
     likelihood_strategy.train()
-    optimize_likelihood_hyperparameters_independently(
-        likelihood=likelihood_strategy,
-        prior_material_parameters=prior_material_parameters,
-        num_material_parameter_samples=num_material_parameter_samples,
-        num_iterations=num_iterations,
-        device=device,
-    )
+    if use_independent_model_error_gps:
+        optimize_likelihood_hyperparameters_independently(
+            likelihood=likelihood_strategy,
+            prior_material_parameters=prior_material_parameters,
+            num_material_parameter_samples=num_material_parameter_samples,
+            num_iterations=num_iterations,
+            device=device,
+        )
+    else:
+        optimize_likelihood_hyperparameters(
+            likelihood=likelihood_strategy,
+            prior_material_parameters=prior_material_parameters,
+            num_material_parameter_samples=num_material_parameter_samples,
+            num_iterations=num_iterations,
+            device=device,
+        )
     freeze_model(likelihood_strategy)
     likelihood_strategy.prediction_mode()
     save_optimized_likelihood_hyperparameters(

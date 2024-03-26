@@ -74,7 +74,7 @@ class IndependentLogMarginalLikelihood(torch.nn.Module):
         log_probs_likelihood = torch.concat(
             [
                 torch.unsqueeze(
-                    self._likelihood.log_prob_individual(
+                    self._likelihood.log_prob_individual_data_set(
                         material_parameter, data_set_index
                     ),
                     dim=0,

@@ -36,7 +36,9 @@ class LikelihoodStrategy(Protocol):
 class OptimizedLikelihoodStrategy(LikelihoodStrategy, Protocol):
     num_data_sets: int
 
-    def log_prob_individual(self, parameters: Tensor, data_set_index: int) -> Tensor:
+    def log_prob_individual_data_set(
+        self, parameters: Tensor, data_set_index: int
+    ) -> Tensor:
         pass
 
     def get_named_parameters(self) -> NamedParametersTuple:
@@ -105,10 +107,37 @@ class NoiseLikelihoodStrategy(torch.nn.Module):
 
     def log_prob(self, parameters: Tensor) -> Tensor:
         log_probs = self.log_probs_individual(parameters)
-        return sum_individual_log_probs(log_probs, self._num_data_sets)
+        return torch.sum(log_probs)
 
     def log_probs_individual(self, parameters: Tensor) -> Tensor:
         model_parameters = parameters
+        if self._num_data_sets == 1:
+            return self._log_probs_individual_data_points(model_parameters)
+        return self._log_probs_individual_data_sets(model_parameters)
+
+    def _log_probs_individual_data_points(self, model_parameters: Tensor) -> Tensor:
+        data_set_index = 0
+        return self._calculate_log_probs_for_data_points(
+            model_parameters,
+            self._inputs_sets[data_set_index],
+            self._outputs_sets[data_set_index],
+            self._num_data_points_per_set[data_set_index],
+        )
+
+    def _calculate_log_probs_for_data_points(
+        self,
+        model_parameters: Tensor,
+        inputs: Tensor,
+        outputs: Tensor,
+        num_data_points: int,
+    ) -> Tensor:
+        distribution = self._initialize_residuals_distribution(num_data_points)
+        residuals = self._residual_calculator.calculate_residuals(
+            model_parameters, inputs, outputs
+        )
+        return distribution.log_probs_individual(residuals)
+
+    def _log_probs_individual_data_sets(self, model_parameters: Tensor) -> Tensor:
         return self._calculate_log_probs_for_data_sets(model_parameters)
 
     def _calculate_log_probs_for_data_sets(self, model_parameters: Tensor) -> Tensor:
@@ -121,10 +150,7 @@ class NoiseLikelihoodStrategy(torch.nn.Module):
             )
             for data_set_index in range(self._num_data_sets)
         )
-        if self._num_data_sets == 1:
-            return log_probs[0]
-        else:
-            return torch.concat(log_probs)
+        return torch.concat(log_probs)
 
     def _calculate_one_log_prob_for_data_set(
         self,
@@ -133,12 +159,17 @@ class NoiseLikelihoodStrategy(torch.nn.Module):
         outputs: Tensor,
         num_data_points: int,
     ) -> Tensor:
-        num_flattened_outputs = num_data_points * self._dim_outputs
-        distribution = self._distribution.initialize(num_flattened_outputs)
+        distribution = self._initialize_residuals_distribution(num_data_points)
         residuals = self._residual_calculator.calculate_residuals(
             model_parameters, inputs, outputs
         )
         return torch.unsqueeze(distribution.log_prob(residuals), dim=0)
+
+    def _initialize_residuals_distribution(
+        self, num_data_points: int
+    ) -> IndependentMultivariateNormalDistributon:
+        num_flattened_outputs = num_data_points * self._dim_outputs
+        return self._distribution.initialize(num_flattened_outputs)
 
 
 ### Noise and model error
@@ -242,14 +273,18 @@ class NoiseAndErrorSamplingLikelihoodStrategy(torch.nn.Module):
 
     def log_prob(self, parameters: Tensor) -> Tensor:
         log_probs = self.log_probs_individual(parameters)
-        return sum_individual_log_probs(log_probs, self._num_data_sets)
+        return torch.sum(log_probs)
 
     def log_probs_individual(self, parameters: Tensor) -> Tensor:
         (
             model_parameters,
             model_error_standard_deviation_parameters,
         ) = self._split_parameters(parameters)
-        return self._calculate_log_probs_for_data_sets(
+        if self._num_data_sets == 1:
+            return self._log_probs_individual_data_points(
+                model_parameters, model_error_standard_deviation_parameters
+            )
+        return self._log_probs_individual_data_sets(
             model_parameters, model_error_standard_deviation_parameters
         )
 
@@ -259,6 +294,46 @@ class NoiseAndErrorSamplingLikelihoodStrategy(torch.nn.Module):
             self._num_model_parameters :
         ]
         return model_parameters, model_error_standard_deviation_parameters
+
+    def _log_probs_individual_data_points(
+        self,
+        model_parameters: Tensor,
+        model_error_standard_deviation_parameters: Tensor,
+    ) -> Tensor:
+        data_set_index = 0
+        return self._calculate_log_probs_for_data_points(
+            model_parameters,
+            model_error_standard_deviation_parameters,
+            self._inputs_sets[data_set_index],
+            self._outputs_sets[data_set_index],
+            self._num_data_points_per_set[data_set_index],
+        )
+
+    def _calculate_log_probs_for_data_points(
+        self,
+        model_parameters: Tensor,
+        model_error_standard_deviation_parameters: Tensor,
+        inputs: Tensor,
+        outputs: Tensor,
+        num_data_points: int,
+    ) -> Tensor:
+        distribution = self._initialize_residuals_distribution(
+            model_error_standard_deviation_parameters,
+            num_data_points,
+        )
+        residuals = self._residual_calculator.calculate_residuals(
+            model_parameters, inputs, outputs
+        )
+        return distribution.log_probs_individual(residuals)
+
+    def _log_probs_individual_data_sets(
+        self,
+        model_parameters: Tensor,
+        model_error_standard_deviation_parameters: Tensor,
+    ) -> Tensor:
+        return self._calculate_log_probs_for_data_sets(
+            model_parameters, model_error_standard_deviation_parameters
+        )
 
     def _calculate_log_probs_for_data_sets(
         self,
@@ -275,10 +350,7 @@ class NoiseAndErrorSamplingLikelihoodStrategy(torch.nn.Module):
             )
             for data_set_index in range(self._num_data_sets)
         )
-        if self._num_data_sets == 1:
-            return log_probs[0]
-        else:
-            return torch.concat(log_probs)
+        return torch.concat(log_probs)
 
     def _calculate_one_log_prob_for_data_set(
         self,
@@ -288,16 +360,24 @@ class NoiseAndErrorSamplingLikelihoodStrategy(torch.nn.Module):
         outputs: Tensor,
         num_data_points: int,
     ) -> Tensor:
-        num_flattened_outputs = num_data_points * self._dim_outputs
-        distribution = self._distribution.initialize(
+        distribution = self._initialize_residuals_distribution(
             model_error_standard_deviation_parameters,
             num_data_points,
-            num_flattened_outputs,
         )
         residuals = self._residual_calculator.calculate_residuals(
             model_parameters, inputs, outputs
         )
         return torch.unsqueeze(distribution.log_prob(residuals), dim=0)
+
+    def _initialize_residuals_distribution(
+        self, model_error_standard_deviation_parameters: Tensor, num_data_points: int
+    ) -> IndependentMultivariateNormalDistributon:
+        num_flattened_outputs = num_data_points * self._dim_outputs
+        return self._distribution.initialize(
+            model_error_standard_deviation_parameters,
+            num_data_points,
+            num_flattened_outputs,
+        )
 
 
 class NoiseAndErrorOptimizedLikelihoodStrategy(torch.nn.Module):
@@ -325,6 +405,7 @@ class NoiseAndErrorOptimizedLikelihoodStrategy(torch.nn.Module):
         self._outputs_sets = tuple(
             outputs.detach().to(device) for outputs in data.outputs
         )
+        self._num_data_sets = data.num_data_sets
         self._num_data_points_per_set = data.num_data_points_per_set
         self._dim_outputs = data.dim_outputs
         self._standard_deviation_noise = data.std_noise
@@ -336,13 +417,17 @@ class NoiseAndErrorOptimizedLikelihoodStrategy(torch.nn.Module):
 
     def log_prob(self, parameters: Tensor) -> Tensor:
         log_probs = self.log_probs_individual(parameters)
-        return sum_individual_log_probs(log_probs, self.num_data_sets)
+        return torch.sum(log_probs)
 
     def log_probs_individual(self, parameters: Tensor) -> Tensor:
         model_parameters = parameters
-        return self._calculate_log_probs_for_data_sets(model_parameters)
+        if self._num_data_sets == 1:
+            return self._log_probs_individual_data_points(model_parameters)
+        return self._log_probs_individual_data_sets(model_parameters)
 
-    def log_prob_individual(self, parameters: Tensor, data_set_index: int) -> Tensor:
+    def log_prob_individual_data_set(
+        self, parameters: Tensor, data_set_index: int
+    ) -> Tensor:
         model_parameters = parameters
         if self._use_independent_model_error_standard_deviations:
             log_prob = self._calculate_one_log_prob_for_data_set(
@@ -376,6 +461,39 @@ class NoiseAndErrorOptimizedLikelihoodStrategy(torch.nn.Module):
             for data_set_index in range(self.num_data_sets)
         )
 
+    def _log_probs_individual_data_points(
+        self,
+        model_parameters: Tensor,
+    ) -> Tensor:
+        data_set_index = 0
+        return self._calculate_log_probs_for_data_points(
+            model_parameters,
+            self._model_error_standard_deviation_parameters[data_set_index],
+            self._inputs_sets[data_set_index],
+            self._outputs_sets[data_set_index],
+            self._num_data_points_per_set[data_set_index],
+        )
+
+    def _calculate_log_probs_for_data_points(
+        self,
+        model_parameters: Tensor,
+        model_error_standard_deviation_parameters: Tensor,
+        inputs: Tensor,
+        outputs: Tensor,
+        num_data_points: int,
+    ) -> Tensor:
+        distribution = self._initialize_residuals_distribution(
+            model_error_standard_deviation_parameters,
+            num_data_points,
+        )
+        residuals = self._residual_calculator.calculate_residuals(
+            model_parameters, inputs, outputs
+        )
+        return distribution.log_probs_individual(residuals)
+
+    def _log_probs_individual_data_sets(self, model_parameters: Tensor) -> Tensor:
+        return self._calculate_log_probs_for_data_sets(model_parameters)
+
     def _calculate_log_probs_for_data_sets(
         self,
         model_parameters: Tensor,
@@ -402,10 +520,7 @@ class NoiseAndErrorOptimizedLikelihoodStrategy(torch.nn.Module):
                 )
                 for data_set_index in range(self.num_data_sets)
             )
-        if self.num_data_sets == 1:
-            return log_probs[0]
-        else:
-            return torch.concat(log_probs)
+        return torch.concat(log_probs)
 
     def _calculate_one_log_prob_for_data_set(
         self,
@@ -415,16 +530,26 @@ class NoiseAndErrorOptimizedLikelihoodStrategy(torch.nn.Module):
         outputs: Tensor,
         num_data_points: int,
     ) -> Tensor:
-        num_flattened_outputs = num_data_points * self._dim_outputs
-        distribution = self._distribution.initialize(
+        distribution = self._initialize_residuals_distribution(
             model_error_standard_deviation_parameters,
             num_data_points,
-            num_flattened_outputs,
         )
         residuals = self._residual_calculator.calculate_residuals(
             model_parameters, inputs, outputs
         )
         return torch.unsqueeze(distribution.log_prob(residuals), dim=0)
+
+    def _initialize_residuals_distribution(
+        self,
+        model_error_standard_deviation_parameters: Tensor,
+        num_data_points: int,
+    ) -> IndependentMultivariateNormalDistributon:
+        num_flattened_outputs = num_data_points * self._dim_outputs
+        return self._distribution.initialize(
+            model_error_standard_deviation_parameters,
+            num_data_points,
+            num_flattened_outputs,
+        )
 
 
 ### Noise and model error GPs
@@ -581,7 +706,7 @@ class NoiseAndErrorGPsSamplingLikelihoodStrategy(torch.nn.Module):
 
     def log_prob(self, parameters: Tensor) -> Tensor:
         log_probs = self.log_probs_individual(parameters)
-        return sum_individual_log_probs(log_probs, self._num_data_sets)
+        return torch.sum(log_probs)
 
     def log_probs_individual(self, parameters: Tensor) -> Tensor:
         model_parameters, model_error_gp_parameters = self._split_parameters(parameters)
@@ -689,13 +814,15 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
 
     def log_prob(self, parameters: Tensor) -> Tensor:
         log_probs = self.log_probs_individual(parameters)
-        return sum_individual_log_probs(log_probs, self.num_data_sets)
+        return torch.sum(log_probs)
 
     def log_probs_individual(self, parameters: Tensor) -> Tensor:
         model_parameters = parameters
         return self._calculate_log_probs_for_data_sets(model_parameters)
 
-    def log_prob_individual(self, parameters: Tensor, data_set_index: int) -> Tensor:
+    def log_prob_individual_dat_set(
+        self, parameters: Tensor, data_set_index: int
+    ) -> Tensor:
         model_parameters = parameters
         if self._is_training_mode:
             if self._use_independent_gps:
@@ -874,9 +1001,3 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
             return self._distribution_prediction.assemble_error_covariance_matrices(
                 self._model_error_gps[0], self._inputs_sets
             )
-
-
-def sum_individual_log_probs(log_probs: Tensor, num_data_sets: int) -> Tensor:
-    if num_data_sets == 1:
-        return log_probs[0]
-    return torch.sum(log_probs)
