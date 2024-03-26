@@ -31,7 +31,7 @@ set_seed(0)
 # Set up
 num_inputs = 3
 num_parameters = num_inputs
-num_tests = 100
+num_tests = 1000
 num_data_sets = 1
 num_observations = 100
 true_mean_epsilon = torch.tensor(0.5, device=device)
@@ -39,7 +39,7 @@ true_sigma_epsilon = torch.tensor(1.0, device=device)
 true_beta = torch.ones(num_inputs, device=device)
 # Output
 output_date = date.today().strftime("%Y%m%d")
-output_subdirectory = f"{output_date}_qposterior_test_linear_regression_mean_error_0.5"
+output_subdirectory = f"{output_date}_qposterior_test_linear_regression_mean_error_0.1"
 
 
 def model_func(x: Tensor, beta: Tensor) -> Tensor:
