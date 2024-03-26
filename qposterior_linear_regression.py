@@ -32,8 +32,8 @@ set_seed(0)
 num_inputs = 3
 num_parameters = num_inputs
 num_tests = 100
-num_data_sets = 100
-num_observations = 1
+num_data_sets = 1
+num_observations = 100
 true_mean_epsilon = torch.tensor(0.1, device=device)
 true_sigma_epsilon = torch.tensor(1.0, device=device)
 true_beta = torch.ones(num_inputs, device=device)
@@ -204,15 +204,15 @@ if __name__ == "__main__":
         parameter_names=parameter_names,
         prior=prior,
     )
-    # run_coverage_test(
-    #     consider_model_error=False,
-    #     gamma=2.0,
-    #     parameter_names=parameter_names,
-    #     prior=prior,
-    # )
-    # run_coverage_test(
-    #     consider_model_error=True,
-    #     gamma=2.0,
-    #     parameter_names=parameter_names,
-    #     prior=prior,
-    # )
+    run_coverage_test(
+        consider_model_error=False,
+        gamma=2.0,
+        parameter_names=parameter_names,
+        prior=prior,
+    )
+    run_coverage_test(
+        consider_model_error=True,
+        gamma=2.0,
+        parameter_names=parameter_names,
+        prior=prior,
+    )
