@@ -845,7 +845,9 @@ def calibration_step() -> None:
         [
             initial_gp_output_scale,
             initial_gp_length_scale,
+            initial_gp_length_scale,
             initial_gp_output_scale,
+            initial_gp_length_scale,
             initial_gp_length_scale,
         ],
         dtype=torch.float64,
