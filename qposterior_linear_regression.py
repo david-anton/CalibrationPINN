@@ -34,7 +34,7 @@ num_parameters = num_inputs
 num_tests = 1000
 num_data_sets = 1
 num_observations = 100
-true_mean_epsilon = torch.tensor(0.5, device=device)
+true_mean_epsilon = torch.tensor(1.0, device=device)
 true_sigma_epsilon = torch.tensor(1.0, device=device)
 true_beta = torch.ones(num_inputs, device=device)
 # Output
