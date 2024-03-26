@@ -32,7 +32,6 @@
 				"ms-python.mypy-type-checker",
 				"ms-python.isort",
 				"ms-azuretools.vscode-docker",
-				"eamodio.gitlens",
 				"mhutchie.git-graph"
 			]
 		}
