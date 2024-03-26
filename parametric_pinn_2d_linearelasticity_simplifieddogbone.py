@@ -807,8 +807,6 @@ def calibration_step() -> None:
             [
                 -geometry_config.left_half_measurement_length,
                 -geometry_config.half_measurement_height,
-                min_bulk_modulus,
-                min_shear_modulus,
             ],
             dtype=torch.float64,
             device=device,
@@ -817,8 +815,6 @@ def calibration_step() -> None:
             [
                 geometry_config.right_half_measurement_length,
                 geometry_config.half_measurement_height,
-                max_bulk_modulus,
-                max_shear_modulus,
             ],
             dtype=torch.float64,
             device=device,

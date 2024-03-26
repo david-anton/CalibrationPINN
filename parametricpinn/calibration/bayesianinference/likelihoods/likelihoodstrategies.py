@@ -624,11 +624,8 @@ class NoiseAndErrorGPsSamplingLikelihoodStrategy(torch.nn.Module):
         num_data_points: int,
     ) -> Tensor:
         num_flattened_outputs = num_data_points * self._dim_outputs
-        gp_inputs = torch.concat(
-            (inputs, model_parameters.repeat((num_data_points, 1))), dim=1
-        )
         distribution = self._distribution.initialize(
-            model_error_gp, gp_inputs, num_flattened_outputs
+            model_error_gp, inputs, num_flattened_outputs
         )
         residuals = self._residual_calculator.calculate_residuals(
             model_parameters, inputs, outputs
@@ -807,11 +804,8 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
         num_data_points: int,
     ) -> Tensor:
         num_flattened_outputs = num_data_points * self._dim_outputs
-        gp_inputs = torch.concat(
-            (inputs, model_parameters.repeat((num_data_points, 1))), dim=1
-        )
         distribution = self._distribution_training.initialize(
-            model_error_gp, gp_inputs, num_flattened_outputs
+            model_error_gp, inputs, num_flattened_outputs
         )
         residuals = self._residual_calculator.calculate_residuals(
             model_parameters, inputs, outputs

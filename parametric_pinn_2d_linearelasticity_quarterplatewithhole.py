@@ -506,12 +506,12 @@ def calibration_step() -> None:
     def create_model_error_gp() -> IndependentMultiOutputGP:
         domain_config = create_fem_domain_config()
         min_inputs = torch.tensor(
-            [-domain_config.edge_length, 0.0, min_bulk_modulus, min_shear_modulus],
+            [-domain_config.edge_length, 0.0],
             dtype=torch.float64,
             device=device,
         )
         max_inputs = torch.tensor(
-            [0.0, domain_config.edge_length, max_bulk_modulus, max_shear_modulus],
+            [0.0, domain_config.edge_length],
             dtype=torch.float64,
             device=device,
         )

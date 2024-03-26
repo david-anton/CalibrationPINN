@@ -541,7 +541,7 @@ def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
         device=device,
     )
     freeze_model(likelihood_strategy)
-    # likelihood_strategy.prediction_mode()
+    likelihood_strategy.prediction_mode()
     save_optimized_likelihood_hyperparameters(
         likelihood=likelihood_strategy,
         file_name_prefix="model_error_gp_parameters",
