@@ -39,7 +39,7 @@ true_sigma_epsilon = torch.tensor(1.0, device=device)
 true_beta = torch.ones(num_inputs, device=device)
 # Output
 output_date = date.today().strftime("%Y%m%d")
-output_subdirectory = f"{output_date}_qposterior_test_linear_regression"
+output_subdirectory = f"{output_date}_qposterior_test_linear_regression_mean_error_0.1"
 
 
 def model_func(x: Tensor, beta: Tensor) -> Tensor:
