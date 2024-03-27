@@ -28,6 +28,7 @@ from .errors import (
     UnvalidCalibrationDataError,
     UnvalidGPMultivariateNormalError,
     UnvalidGPParametersError,
+    UnvalidGPPriorConfigError,
 )
 
 __all__ = [
@@ -60,4 +61,5 @@ __all__ = [
     "GPKernelPriorNotImplementedError",
     "GPMeanPriorNotImplementedError",
     "GPMeanNotImplementedError",
+    "UnvalidGPPriorConfigError",
 ]

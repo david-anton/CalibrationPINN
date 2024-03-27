@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import TypeAlias
 
 from parametricpinn.bayesian.prior import (
     Prior,
@@ -9,12 +10,11 @@ from parametricpinn.types import Device
 
 
 @dataclass
-class MeanParameterPriorConfig:
-    pass
-
-
-class ConstantMeanParameterPriorConfig(MeanParameterPriorConfig):
+class ConstantMeanParameterPriorConfig:
     limits_constant_mean: tuple[float, float]
+
+
+MeanParameterPriorConfig: TypeAlias = ConstantMeanParameterPriorConfig
 
 
 def create_uninformed_mean_parameters_prior(

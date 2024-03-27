@@ -122,6 +122,11 @@ class UnvalidGPMultivariateNormalError(Error):
         super().__init__(message)
 
 
+class UnvalidGPPriorConfigError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
 class ParameterSamplingError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)

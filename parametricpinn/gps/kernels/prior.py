@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import TypeAlias
 
 import torch
 
@@ -11,13 +12,12 @@ from parametricpinn.types import Device
 
 
 @dataclass
-class KernelParameterPriorConfig:
-    pass
-
-
-class ScaledRBFKernelParameterPriorConfig(KernelParameterPriorConfig):
+class ScaledRBFKernelParameterPriorConfig:
     limits_output_scale: tuple[float, float]
     limits_length_scale: tuple[float, float]
+
+
+KernelParameterPriorConfig: TypeAlias = ScaledRBFKernelParameterPriorConfig
 
 
 def create_uninformed_kernel_parameters_prior(
@@ -33,12 +33,14 @@ def create_uninformed_kernel_parameters_prior(
                 [
                     limits_output_scale[index_lower_limit],
                     limits_length_scale[index_lower_limit],
+                    limits_length_scale[index_lower_limit],
                 ],
                 device=device,
             ),
             upper_limits=torch.tensor(
                 [
                     limits_output_scale[index_upper_limit],
+                    limits_length_scale[index_upper_limit],
                     limits_length_scale[index_upper_limit],
                 ],
                 device=device,
