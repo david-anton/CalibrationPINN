@@ -508,8 +508,8 @@ def calibration_step() -> None:
             device=device,
         ).to(device)
 
-    initial_gp_output_scale = 1e-4
-    initial_gp_length_scale = 1e-4
+    initial_gp_output_scale = 1e-3
+    initial_gp_length_scale = 1e-3
     initial_model_error_parameters = torch.tensor(
         [
             initial_gp_output_scale,
@@ -523,7 +523,7 @@ def calibration_step() -> None:
         device=device,
     )
 
-    model_error_optimization_num_material_parameter_samples = 128
+    model_error_optimization_num_material_parameter_samples = 256
     model_error_optimization_num_iterations = 16
 
     if use_q_likelihood:
