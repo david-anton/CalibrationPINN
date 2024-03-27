@@ -218,7 +218,7 @@ def _plot_univariate_normal_distribution_histogram(
         mean + (config.interval_num_stds * standard_deviation),
     ]
     x_tick_labels = [
-        str(round(tick, 2)) if tick >= 1.0 else str(round(tick, 4)) for tick in x_ticks
+        str(round(tick, 2)) if tick >= 1.0 else str(round(tick, 6)) for tick in x_ticks
     ]
     axes.axvline(
         x=mean,
@@ -303,7 +303,7 @@ def _plot_sampling_trace(
         mean + (config.interval_num_stds * standard_deviation),
     ]
     y_tick_labels = [
-        str(round(tick, 2)) if tick >= 1.0 else str(round(tick, 4)) for tick in y_ticks
+        str(round(tick, 2)) if tick >= 1.0 else str(round(tick, 6)) for tick in y_ticks
     ]
     axes.set_yticks(y_ticks)
     axes.set_yticklabels(y_tick_labels)

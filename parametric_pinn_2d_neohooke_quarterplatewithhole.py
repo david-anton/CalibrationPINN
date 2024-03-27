@@ -13,6 +13,7 @@ from parametricpinn.ansatz import (
 from parametricpinn.bayesian.likelihood import Likelihood
 from parametricpinn.bayesian.prior import (
     create_univariate_uniform_distributed_prior,
+    create_gamma_distributed_prior,
     multiply_priors,
 )
 from parametricpinn.calibration import (
@@ -28,6 +29,7 @@ from parametricpinn.calibration import (
 from parametricpinn.calibration.bayesianinference.likelihoods import (
     create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps,
     create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps,
+    create_standard_ppinn_likelihood_for_noise_and_model_error_gps_sampling,
 )
 from parametricpinn.calibration.data import concatenate_calibration_data
 from parametricpinn.calibration.utility import load_model
@@ -49,7 +51,11 @@ from parametricpinn.fem import (
     generate_validation_data,
     run_simulation,
 )
-from parametricpinn.gps import IndependentMultiOutputGP, create_gaussian_process
+from parametricpinn.gps import (
+    IndependentMultiOutputGP,
+    ScaledRBFKernelParameterPriorConfig,
+    create_gaussian_process,
+)
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader, PandasDataWriter
 from parametricpinn.network import FFNN
@@ -445,9 +451,11 @@ def calibration_step() -> None:
         lower_limit=min_shear_modulus, upper_limit=max_shear_modulus, device=device
     )
 
-    prior = multiply_priors([prior_bulk_modulus, prior_shear_modulus])
-    parameter_names = ("bulk modulus", "shear modulus")
-    initial_parameters = torch.tensor(
+    prior_material_parameters = multiply_priors(
+        [prior_bulk_modulus, prior_shear_modulus]
+    )
+    material_parameter_names = ("bulk modulus", "shear modulus")
+    initial_material_parameters = torch.tensor(
         [initial_bulk_modulus, initial_shear_modulus],
         device=device,
     )
@@ -474,7 +482,7 @@ def calibration_step() -> None:
         device=device,
     )
 
-    calibration_data, true_parameters = generate_calibration_data()
+    calibration_data, true_material_parameters = generate_calibration_data()
 
     def create_model_error_gp() -> IndependentMultiOutputGP:
         domain_config = create_fem_domain_config()
@@ -508,9 +516,41 @@ def calibration_step() -> None:
             device=device,
         ).to(device)
 
+    model_error_gp = create_model_error_gp()
+    # gp_kernel_parameters_prior_config = ScaledRBFKernelParameterPriorConfig(
+    #     limits_length_scale=(0.0, 1.0), limits_output_scale=(0.0, 1.0)
+    # )
+    # prior_gp_parameters = create_uninformed_gp_parameters_prior(
+    #     ((gp_kernel_parameters_prior_config,), (gp_kernel_parameters_prior_config,)),
+    #     device,
+    # )
+    prior_output_scale = create_gamma_distributed_prior(
+        concentration=1.01, rate=10.0, device=device
+    )
+    prior_length_scale = create_gamma_distributed_prior(
+        concentration=1.01, rate=10.0, device=device
+    )
+    prior_gp_parameters = multiply_priors(
+        [
+            prior_output_scale,
+            prior_length_scale,
+            prior_length_scale,
+            prior_output_scale,
+            prior_length_scale,
+            prior_length_scale,
+        ]
+    )
+    gp_parameter_names = (
+        "output_scale_0",
+        "length_scale_0_0",
+        "length_scale_0_1",
+        "output_scale_1",
+        "length_scale_1_0",
+        "length_scale_1_1",
+    )
     initial_gp_output_scale = 1e-3
     initial_gp_length_scale = 1e-3
-    initial_model_error_parameters = torch.tensor(
+    initial_model_error_gp_parameters = torch.tensor(
         [
             initial_gp_output_scale,
             initial_gp_length_scale,
@@ -521,6 +561,12 @@ def calibration_step() -> None:
         ],
         dtype=torch.float64,
         device=device,
+    )
+
+    prior = multiply_priors([prior_material_parameters, prior_gp_parameters])
+    parameter_names = material_parameter_names + gp_parameter_names
+    initial_parameters = torch.concat(
+        (initial_material_parameters, initial_model_error_gp_parameters)
     )
 
     model_error_optimization_num_material_parameter_samples = 256
@@ -534,7 +580,7 @@ def calibration_step() -> None:
         )
     else:
         output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration", "with_model_error_gps"
+            output_subdirectory, "calibration", "with_model_error_gps_sampling"
         )
     output_subdir_likelihoods = os.path.join(output_subdir_calibration, "likelihoods")
 
@@ -543,11 +589,11 @@ def calibration_step() -> None:
             create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps(
                 model=model,
                 num_model_parameters=num_material_parameters,
-                model_error_gp=create_model_error_gp(),
+                model_error_gp=model_error_gp,
                 use_independent_model_error_gps=True,
-                initial_model_error_gp_parameters=initial_model_error_parameters,
+                initial_model_error_gp_parameters=initial_model_error_gp_parameters,
                 data=data,
-                prior_material_parameters=prior,
+                prior_material_parameters=prior_material_parameters,
                 num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
                 num_iterations=model_error_optimization_num_iterations,
                 test_case_index=test_case_index,
@@ -559,22 +605,14 @@ def calibration_step() -> None:
         )
     else:
         likelihoods = tuple(
-            create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps(
+            create_standard_ppinn_likelihood_for_noise_and_model_error_gps_sampling(
                 model=model,
                 num_model_parameters=num_material_parameters,
-                model_error_gp=create_model_error_gp(),
-                use_independent_model_error_gps=True,
-                initial_model_error_gp_parameters=initial_model_error_parameters,
+                model_error_gp=model_error_gp,
                 data=data,
-                prior_material_parameters=prior,
-                num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
-                num_iterations=model_error_optimization_num_iterations,
-                test_case_index=test_case_index,
-                output_subdirectory=output_subdir_likelihoods,
-                project_directory=project_directory,
                 device=device,
             )
-            for test_case_index, data in enumerate(calibration_data)
+            for _, data in enumerate(calibration_data)
         )
 
     def set_up_least_squares_configs(
@@ -595,7 +633,7 @@ def calibration_step() -> None:
             config = LeastSquaresConfig(
                 ansatz=model,
                 calibration_data=concatenated_data,
-                initial_parameters=initial_parameters,
+                initial_parameters=initial_material_parameters,
                 num_iterations=1000,
                 resdiual_weights=residual_weights,
             )
@@ -607,13 +645,21 @@ def calibration_step() -> None:
     ) -> tuple[MetropolisHastingsConfig, ...]:
         configs = []
         for likelihood in likelihoods:
-            std_proposal_density_bulk_modulus = 10.0
-            std_proposal_density_shear_modulus = 2.0
+            std_proposal_density_bulk_modulus = 1.0
+            std_proposal_density_shear_modulus = 0.2
+            std_gp_output_scale = 1e-6
+            std_gp_length_scale = 1e-5
             covar_proposal_density = torch.diag(
                 torch.tensor(
                     [
                         std_proposal_density_bulk_modulus,
                         std_proposal_density_shear_modulus,
+                        std_gp_output_scale,
+                        std_gp_length_scale,
+                        std_gp_length_scale,
+                        std_gp_output_scale,
+                        std_gp_length_scale,
+                        std_gp_length_scale,
                     ],
                     dtype=torch.float64,
                     device=device,
@@ -624,8 +670,8 @@ def calibration_step() -> None:
                 likelihood=likelihood,
                 prior=prior,
                 initial_parameters=initial_parameters,
-                num_iterations=int(1e4),
-                num_burn_in_iterations=int(2e4),
+                num_iterations=int(1e5),
+                num_burn_in_iterations=int(5e4),
                 cov_proposal_density=covar_proposal_density,
             )
             configs.append(config)
@@ -638,8 +684,8 @@ def calibration_step() -> None:
         for likelihood in likelihoods:
             config = HamiltonianConfig(
                 likelihood=likelihood,
-                prior=prior,
-                initial_parameters=initial_parameters,
+                prior=prior_material_parameters,
+                initial_parameters=initial_material_parameters,
                 num_iterations=int(1e4),
                 num_burn_in_iterations=int(5e3),
                 num_leabfrog_steps=128,
@@ -655,8 +701,8 @@ def calibration_step() -> None:
         for likelihood in likelihoods:
             config = EfficientNUTSConfig(
                 likelihood=likelihood,
-                prior=prior,
-                initial_parameters=initial_parameters,
+                prior=prior_material_parameters,
+                initial_parameters=initial_material_parameters,
                 num_iterations=int(1e4),
                 num_burn_in_iterations=int(1e4),
                 max_tree_depth=7,
@@ -670,8 +716,8 @@ def calibration_step() -> None:
         start = perf_counter()
         test_least_squares_calibration(
             calibration_configs=configs_ls,
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
+            parameter_names=material_parameter_names,
+            true_parameters=true_material_parameters,
             output_subdir=os.path.join(output_subdir_calibration, "least_squares"),
             project_directory=project_directory,
             device=device,
@@ -686,7 +732,7 @@ def calibration_step() -> None:
         test_coverage(
             calibration_configs=configs_mh,
             parameter_names=parameter_names,
-            true_parameters=true_parameters,
+            true_parameters=true_material_parameters,
             output_subdir=os.path.join(
                 output_subdir_calibration, "metropolis_hastings"
             ),
@@ -702,8 +748,8 @@ def calibration_step() -> None:
         start = perf_counter()
         test_coverage(
             calibration_configs=configs_h,
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
+            parameter_names=material_parameter_names,
+            true_parameters=true_material_parameters,
             output_subdir=os.path.join(output_subdir_calibration, "hamiltonian"),
             project_directory=project_directory,
             device=device,
@@ -717,8 +763,8 @@ def calibration_step() -> None:
         start = perf_counter()
         test_coverage(
             calibration_configs=configs_en,
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
+            parameter_names=material_parameter_names,
+            true_parameters=true_material_parameters,
             output_subdir=os.path.join(output_subdir_calibration, "efficient_nuts"),
             project_directory=project_directory,
             device=device,
