@@ -10,12 +10,14 @@ from parametricpinn.statistics.distributions import (
     UnivariateDistributions,
     UnivariateNormalDistributon,
     UnivariateUniformDistributon,
+    GammaDistribution,
     create_independent_multivariate_normal_distribution,
     create_mixed_independent_multivariate_distribution,
     create_multivariate_normal_distribution,
     create_multivariate_uniform_distribution,
     create_univariate_normal_distribution,
     create_univariate_uniform_distribution,
+    create_gamma_distribution,
 )
 from parametricpinn.types import Device, Tensor
 
@@ -26,6 +28,7 @@ PriorDistribution: TypeAlias = Union[
     MultivariateUniformDistribution,
     MixedIndependetMultivariateDistribution,
     IndependentMultivariateNormalDistributon,
+    GammaDistribution,
 ]
 
 
@@ -135,6 +138,13 @@ def create_independent_multivariate_normal_distributed_prior(
     distribution = create_independent_multivariate_normal_distribution(
         means, standard_deviations, device
     )
+    return Prior(distribution)
+
+
+def create_gamma_distributed_prior(
+    concentration: float, rate: float, device: Device
+) -> Prior:
+    distribution = create_gamma_distribution(concentration, rate, device)
     return Prior(distribution)
 
 

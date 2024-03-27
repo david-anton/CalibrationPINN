@@ -9,6 +9,7 @@ from parametricpinn.errors import (
     MultivariateUniformDistributionError,
     UnivariateNormalDistributionError,
     UnivariateUniformDistributionError,
+    GammaDistributionError,
 )
 from parametricpinn.types import Device, Tensor
 
@@ -171,6 +172,34 @@ class IndependentMultivariateNormalDistributon:
             )
 
 
+class GammaDistribution:
+    def __init__(self, concentration: float, rate: float, device: Device) -> None:
+        self._distribution = torch.distributions.Gamma(
+            concentration=torch.tensor(
+                concentration, dtype=torch.float64, device=device
+            ),
+            rate=torch.tensor(rate, dtype=torch.float64, device=device),
+            validate_args=False,
+        )
+        self.dim = 1
+
+    def log_prob(self, sample: Tensor) -> Tensor:
+        self._validate_sample(sample)
+        if torch.all(sample < 0.0):
+            log_prob = torch.tensor(-torch.inf)
+        else:
+            log_prob = self._distribution.log_prob(sample)
+        return squeeze_if_necessary(log_prob)
+
+    def sample(self, sample_shape=torch.Size()) -> Tensor:
+        return self._distribution.rsample(sample_shape)
+
+    def _validate_sample(self, sample: Tensor) -> None:
+        shape = sample.shape
+        if not (shape == torch.Size([1]) or shape == torch.Size([])):
+            raise GammaDistributionError(f"Unexpected shape of sample: {shape}.")
+
+
 UnivariateDistributions: TypeAlias = Union[
     UnivariateUniformDistributon, UnivariateNormalDistributon
 ]
@@ -246,6 +275,12 @@ def create_independent_multivariate_normal_distribution(
     means: Tensor, standard_deviations: Tensor, device: Device
 ) -> IndependentMultivariateNormalDistributon:
     return IndependentMultivariateNormalDistributon(means, standard_deviations, device)
+
+
+def create_gamma_distribution(
+    concentration: float, rate: float, device: Device
+) -> GammaDistribution:
+    return GammaDistribution(concentration, rate, device)
 
 
 def create_mixed_independent_multivariate_distribution(

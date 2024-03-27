@@ -1,12 +1,12 @@
 from typing import TypeAlias
 
 from parametricpinn.bayesian.prior import Prior, multiply_priors
+from parametricpinn.errors import UnvalidGPPriorConfigError
 from parametricpinn.gps.kernels import create_uninformed_kernel_parameters_prior
 from parametricpinn.gps.kernels.prior import KernelParameterPriorConfig
 from parametricpinn.gps.means import create_uninformed_mean_parameters_prior
 from parametricpinn.gps.means.prior import MeanParameterPriorConfig
 from parametricpinn.types import Device
-from parametricpinn.errors import UnvalidGPPriorConfigError
 
 ZeroMeanGPParametersPriorConfig: TypeAlias = tuple[KernelParameterPriorConfig]
 GPParametersPriorConfig: TypeAlias = tuple[
