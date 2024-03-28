@@ -603,7 +603,7 @@ def calibration_step() -> None:
             ** 2
         )
         num_rwmh_iterations = int(1e5)
-        num_rwmh_burn_in_iterations = int(5e4)
+        num_rwmh_burn_in_iterations = int(2e5)
 
     elif method == "empirical_bayes_with_error_gps":
         model_error_optimization_num_material_parameter_samples = 128
