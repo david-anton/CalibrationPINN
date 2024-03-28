@@ -112,9 +112,9 @@ num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
 # method = "full_bayes_with_error_gps"
-method = "empirical_bayes_with_error_gps"
+# method = "empirical_bayes_with_error_gps"
 # method = "empirical_bayes_with_error_stds_and_q_likelihood"
-# method = "overestimated_error_stds"
+method = "overestimated_error_stds"
 # method = "overestimated_error_stds_with_q_likelihood"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
@@ -699,7 +699,7 @@ def calibration_step() -> None:
         num_rwmh_burn_in_iterations = int(5e3)
 
     elif method == "overestimated_error_stds":
-        std_model_error = 1e-2
+        std_model_error = 5e-2
         std_noise_and_model_error = std_noise + std_model_error
 
         for data in calibration_data:
@@ -733,10 +733,10 @@ def calibration_step() -> None:
             ** 2
         )
         num_rwmh_iterations = int(5e4)
-        num_rwmh_burn_in_iterations = int(1e4)
+        num_rwmh_burn_in_iterations = int(2e4)
 
     elif method == "overestimated_error_stds_with_q_likelihood":
-        std_model_error = 1e-2
+        std_model_error = 5e-2
         std_noise_and_model_error = std_noise + std_model_error
 
         for data in calibration_data:
@@ -770,7 +770,7 @@ def calibration_step() -> None:
             ** 2
         )
         num_rwmh_iterations = int(5e4)
-        num_rwmh_burn_in_iterations = int(1e4)
+        num_rwmh_burn_in_iterations = int(2e4)
 
     else:
         raise UnvalidMainConfigError(
