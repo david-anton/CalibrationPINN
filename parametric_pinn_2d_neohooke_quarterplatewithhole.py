@@ -111,11 +111,11 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-# method = "full_bayes_with_error_gps"
+method = "full_bayes_with_error_gps"
 # method = "empirical_bayes_with_error_gps"
 # method = "empirical_bayes_with_error_stds_and_q_likelihood"
 # method = "overestimated_error_stds"
-method = "overestimated_error_stds_with_q_likelihood"
+# method = "overestimated_error_stds_with_q_likelihood"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -530,7 +530,7 @@ def calibration_step() -> None:
         "output_scale_1",
         "length_scale_1",
     )
-    initial_gp_output_scale = 1e-3
+    initial_gp_output_scale = 1e-2
     initial_gp_length_scale = 1e-3
     initial_model_error_gp_parameters = torch.tensor(
         [
