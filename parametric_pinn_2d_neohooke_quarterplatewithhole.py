@@ -110,8 +110,8 @@ num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
 # method = "full_bayes_with_error_gps"
-method = "empirical_bayes_with_error_gps"
-# method = "empirical_bayes_with_error_stds_and_q_likelihood"
+# method = "empirical_bayes_with_error_gps"
+method = "empirical_bayes_with_error_stds_and_q_likelihood"
 # method = "overestimated_error_stds_with_q_likelihood"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
