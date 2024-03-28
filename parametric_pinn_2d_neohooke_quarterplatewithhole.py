@@ -112,9 +112,9 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-# method = "full_bayes_with_error_gps"
+method = "full_bayes_with_error_gps"
 # method = "empirical_bayes_with_error_gps"
-method = "empirical_bayes_with_error_stds"
+# method = "empirical_bayes_with_error_stds"
 # method = "empirical_bayes_with_error_stds_and_q_likelihood"
 # method = "overestimated_error_stds"
 # method = "overestimated_error_stds_with_q_likelihood"
@@ -584,8 +584,8 @@ def calibration_step() -> None:
         )
 
         std_proposal_density_bulk_modulus = 2.0
-        std_proposal_density_shear_modulus = 0.2
-        std_gp_output_scale = 1e-4
+        std_proposal_density_shear_modulus = 0.1
+        std_gp_output_scale = 1e-5
         std_gp_length_scale = 1e-4
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
