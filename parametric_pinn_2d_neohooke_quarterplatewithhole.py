@@ -111,8 +111,8 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-method = "full_bayes_with_error_gps"
-# method = "empirical_bayes_with_error_gps"
+# method = "full_bayes_with_error_gps"
+method = "empirical_bayes_with_error_gps"
 # method = "empirical_bayes_with_error_stds_and_q_likelihood"
 # method = "overestimated_error_stds"
 # method = "overestimated_error_stds_with_q_likelihood"
