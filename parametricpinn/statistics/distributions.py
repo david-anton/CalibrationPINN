@@ -181,12 +181,13 @@ class GammaDistribution:
             rate=torch.tensor(rate, dtype=torch.float64, device=device),
             validate_args=False,
         )
+        self._device = device
         self.dim = 1
 
     def log_prob(self, sample: Tensor) -> Tensor:
         self._validate_sample(sample)
         if torch.all(sample < 0.0):
-            log_prob = torch.tensor(-torch.inf)
+            log_prob = torch.tensor(-torch.inf, device=self._device)
         else:
             log_prob = self._distribution.log_prob(sample)
         return squeeze_if_necessary(log_prob)
