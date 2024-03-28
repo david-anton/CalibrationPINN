@@ -30,6 +30,7 @@ from parametricpinn.calibration import (
 from parametricpinn.calibration.bayesianinference.likelihoods import (
     create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps,
     create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error,
+    create_standard_ppinn_likelihood_for_noise,
     create_standard_ppinn_likelihood_for_noise_and_model_error_gps_sampling,
     create_standard_ppinn_q_likelihood_for_noise,
 )
@@ -46,6 +47,7 @@ from parametricpinn.data.validationdata_2d import (
     ValidationDataset2DConfig,
     create_validation_dataset,
 )
+from parametricpinn.errors import UnvalidMainConfigError
 from parametricpinn.fem import (
     NeoHookeProblemConfig,
     QuarterPlateWithHoleDomainConfig,
@@ -112,7 +114,8 @@ batch_size_valid = num_samples_valid
 # method = "full_bayes_with_error_gps"
 # method = "empirical_bayes_with_error_gps"
 # method = "empirical_bayes_with_error_stds_and_q_likelihood"
-method = "overestimated_error_stds_with_q_likelihood"
+method = "overestimated_error_stds"
+# method = "overestimated_error_stds_with_q_likelihood"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -695,6 +698,43 @@ def calibration_step() -> None:
         num_rwmh_iterations = int(1e4)
         num_rwmh_burn_in_iterations = int(5e3)
 
+    elif method == "overestimated_error_stds":
+        std_model_error = 1e-1
+        std_noise_and_model_error = std_noise + std_model_error
+
+        for data in calibration_data:
+            data.std_noise = std_noise_and_model_error
+
+        likelihoods = tuple(
+            create_standard_ppinn_likelihood_for_noise(
+                model=model,
+                num_model_parameters=num_material_parameters,
+                data=data,
+                device=device,
+            )
+            for _, data in enumerate(calibration_data)
+        )
+
+        prior = prior_material_parameters
+        parameter_names = material_parameter_names
+        initial_parameters = initial_material_parameters
+
+        std_proposal_density_bulk_modulus = 5.0
+        std_proposal_density_shear_modulus = 1.0
+        covar_rwmh_proposal_density = torch.diag(
+            torch.tensor(
+                [
+                    std_proposal_density_bulk_modulus,
+                    std_proposal_density_shear_modulus,
+                ],
+                dtype=torch.float64,
+                device=device,
+            )
+            ** 2
+        )
+        num_rwmh_iterations = int(1e4)
+        num_rwmh_burn_in_iterations = int(5e3)
+
     elif method == "overestimated_error_stds_with_q_likelihood":
         std_model_error = 1e-1
         std_noise_and_model_error = std_noise + std_model_error
@@ -731,6 +771,11 @@ def calibration_step() -> None:
         )
         num_rwmh_iterations = int(1e4)
         num_rwmh_burn_in_iterations = int(5e3)
+
+    else:
+        raise UnvalidMainConfigError(
+            f"There is no implementation for the requested method: {method}"
+        )
 
     def set_up_least_squares_configs(
         calibration_data: tuple[CalibrationData, ...],

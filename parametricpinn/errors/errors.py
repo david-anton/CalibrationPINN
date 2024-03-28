@@ -5,6 +5,11 @@ class Error(Exception):
     pass
 
 
+class UnvalidMainConfigError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
 class DirectoryNotFoundError(Error):
     def __init__(self, path_to_directory: Path) -> None:
         self._message = f"The directory {path_to_directory} could not be found"
