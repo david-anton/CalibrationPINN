@@ -699,7 +699,7 @@ def calibration_step() -> None:
         num_rwmh_burn_in_iterations = int(5e3)
 
     elif method == "overestimated_error_stds":
-        std_model_error = 1e-1
+        std_model_error = 1e-2
         std_noise_and_model_error = std_noise + std_model_error
 
         for data in calibration_data:
@@ -719,8 +719,8 @@ def calibration_step() -> None:
         parameter_names = material_parameter_names
         initial_parameters = initial_material_parameters
 
-        std_proposal_density_bulk_modulus = 5.0
-        std_proposal_density_shear_modulus = 1.0
+        std_proposal_density_bulk_modulus = 10.0
+        std_proposal_density_shear_modulus = 2.0
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
@@ -732,11 +732,11 @@ def calibration_step() -> None:
             )
             ** 2
         )
-        num_rwmh_iterations = int(1e4)
-        num_rwmh_burn_in_iterations = int(5e3)
+        num_rwmh_iterations = int(5e4)
+        num_rwmh_burn_in_iterations = int(1e4)
 
     elif method == "overestimated_error_stds_with_q_likelihood":
-        std_model_error = 1e-1
+        std_model_error = 1e-2
         std_noise_and_model_error = std_noise + std_model_error
 
         for data in calibration_data:
@@ -756,8 +756,8 @@ def calibration_step() -> None:
         parameter_names = material_parameter_names
         initial_parameters = initial_material_parameters
 
-        std_proposal_density_bulk_modulus = 5.0
-        std_proposal_density_shear_modulus = 1.0
+        std_proposal_density_bulk_modulus = 10.0
+        std_proposal_density_shear_modulus = 2.0
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
@@ -769,8 +769,8 @@ def calibration_step() -> None:
             )
             ** 2
         )
-        num_rwmh_iterations = int(1e4)
-        num_rwmh_burn_in_iterations = int(5e3)
+        num_rwmh_iterations = int(5e4)
+        num_rwmh_burn_in_iterations = int(1e4)
 
     else:
         raise UnvalidMainConfigError(
