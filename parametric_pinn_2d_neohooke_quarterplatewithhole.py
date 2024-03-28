@@ -111,11 +111,11 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-# method = "full_bayes_with_error_gps"
+method = "full_bayes_with_error_gps"
 # method = "empirical_bayes_with_error_gps"
 # method = "empirical_bayes_with_error_stds_and_q_likelihood"
 # method = "overestimated_error_stds"
-method = "overestimated_error_stds_with_q_likelihood"
+# method = "overestimated_error_stds_with_q_likelihood"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -531,7 +531,7 @@ def calibration_step() -> None:
         "length_scale_1",
     )
     initial_gp_output_scale = 1e-2
-    initial_gp_length_scale = 1e-3
+    initial_gp_length_scale = 1e-2
     initial_model_error_gp_parameters = torch.tensor(
         [
             initial_gp_output_scale,
@@ -547,10 +547,10 @@ def calibration_step() -> None:
 
     if method == "full_bayes_with_error_gps":
         prior_output_scale = create_gamma_distributed_prior(
-            concentration=1.01, rate=10.0, device=device
+            concentration=1.1, rate=10.0, device=device
         )
         prior_length_scale = create_gamma_distributed_prior(
-            concentration=1.01, rate=10.0, device=device
+            concentration=1.1, rate=10.0, device=device
         )
         prior_gp_parameters = multiply_priors(
             [
@@ -583,7 +583,7 @@ def calibration_step() -> None:
 
         std_proposal_density_bulk_modulus = 2.0
         std_proposal_density_shear_modulus = 0.2
-        std_gp_output_scale = 1e-6
+        std_gp_output_scale = 1e-4
         std_gp_length_scale = 1e-4
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
@@ -600,7 +600,7 @@ def calibration_step() -> None:
             )
             ** 2
         )
-        num_rwmh_iterations = int(5e5)
+        num_rwmh_iterations = int(1e5)
         num_rwmh_burn_in_iterations = int(5e4)
 
     elif method == "empirical_bayes_with_error_gps":
