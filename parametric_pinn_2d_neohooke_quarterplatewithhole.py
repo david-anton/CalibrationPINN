@@ -28,6 +28,7 @@ from parametricpinn.calibration import (
     test_least_squares_calibration,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods import (
+    create_optimized_standard_ppinn_likelihood_for_noise_and_model_error,
     create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps,
     create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error,
     create_standard_ppinn_likelihood_for_noise,
@@ -112,7 +113,8 @@ num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
 # method = "full_bayes_with_error_gps"
-method = "empirical_bayes_with_error_gps"
+# method = "empirical_bayes_with_error_gps"
+method = "empirical_bayes_with_error_stds"
 # method = "empirical_bayes_with_error_stds_and_q_likelihood"
 # method = "overestimated_error_stds"
 # method = "overestimated_error_stds_with_q_likelihood"
@@ -614,6 +616,58 @@ def calibration_step() -> None:
                 model_error_gp=model_error_gp,
                 initial_model_error_gp_parameters=initial_model_error_gp_parameters,
                 use_independent_model_error_gps=True,
+                data=data,
+                prior_material_parameters=prior_material_parameters,
+                num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
+                num_iterations=model_error_optimization_num_iterations,
+                test_case_index=test_case_index,
+                output_subdirectory=output_subdir_likelihoods,
+                project_directory=project_directory,
+                device=device,
+            )
+            for test_case_index, data in enumerate(calibration_data)
+        )
+
+        prior = prior_material_parameters
+        parameter_names = material_parameter_names
+        initial_parameters = initial_material_parameters
+
+        std_proposal_density_bulk_modulus = 5.0
+        std_proposal_density_shear_modulus = 1.0
+        covar_rwmh_proposal_density = torch.diag(
+            torch.tensor(
+                [
+                    std_proposal_density_bulk_modulus,
+                    std_proposal_density_shear_modulus,
+                ],
+                dtype=torch.float64,
+                device=device,
+            )
+            ** 2
+        )
+        num_rwmh_iterations = int(1e4)
+        num_rwmh_burn_in_iterations = int(5e3)
+
+    elif method == "empirical_bayes_with_error_stds":
+        initial_model_error_std = 1e-3
+        initial_model_error_stds_parameters = torch.tensor(
+            [
+                initial_model_error_std,
+                initial_model_error_std,
+            ],
+            dtype=torch.float64,
+            device=device,
+        )
+
+        model_error_optimization_num_material_parameter_samples = 128
+        model_error_optimization_num_iterations = 16
+
+        likelihoods = tuple(
+            create_optimized_standard_ppinn_likelihood_for_noise_and_model_error(
+                model=model,
+                num_model_parameters=num_material_parameters,
+                initial_model_error_standard_deviations=initial_model_error_stds_parameters,
+                use_independent_model_error_standard_deviations=True,
                 data=data,
                 prior_material_parameters=prior_material_parameters,
                 num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
