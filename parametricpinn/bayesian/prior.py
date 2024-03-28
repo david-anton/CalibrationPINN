@@ -3,6 +3,7 @@ from typing import TypeAlias, Union
 import torch
 
 from parametricpinn.statistics.distributions import (
+    GammaDistribution,
     IndependentMultivariateNormalDistributon,
     MixedIndependetMultivariateDistribution,
     MultivariateNormalDistributon,
@@ -10,14 +11,13 @@ from parametricpinn.statistics.distributions import (
     UnivariateDistributions,
     UnivariateNormalDistributon,
     UnivariateUniformDistributon,
-    GammaDistribution,
+    create_gamma_distribution,
     create_independent_multivariate_normal_distribution,
     create_mixed_independent_multivariate_distribution,
     create_multivariate_normal_distribution,
     create_multivariate_uniform_distribution,
     create_univariate_normal_distribution,
     create_univariate_uniform_distribution,
-    create_gamma_distribution,
 )
 from parametricpinn.types import Device, Tensor
 

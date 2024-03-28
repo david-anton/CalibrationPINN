@@ -33,14 +33,12 @@ def create_uninformed_kernel_parameters_prior(
                 [
                     limits_output_scale[index_lower_limit],
                     limits_length_scale[index_lower_limit],
-                    limits_length_scale[index_lower_limit],
                 ],
                 device=device,
             ),
             upper_limits=torch.tensor(
                 [
                     limits_output_scale[index_upper_limit],
-                    limits_length_scale[index_upper_limit],
                     limits_length_scale[index_upper_limit],
                 ],
                 device=device,

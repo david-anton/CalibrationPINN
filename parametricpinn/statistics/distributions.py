@@ -3,13 +3,13 @@ from typing import Protocol, TypeAlias, Union
 import torch
 
 from parametricpinn.errors import (
+    GammaDistributionError,
     IndependentMultivariateNormalDistributionError,
     MixedDistributionError,
     MultivariateNormalDistributionError,
     MultivariateUniformDistributionError,
     UnivariateNormalDistributionError,
     UnivariateUniformDistributionError,
-    GammaDistributionError,
 )
 from parametricpinn.types import Device, Tensor
 

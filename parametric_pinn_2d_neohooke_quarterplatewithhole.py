@@ -1,6 +1,7 @@
 import os
 from datetime import date
 from time import perf_counter
+from typing import TypeAlias
 
 import numpy as np
 import pandas as pd
@@ -12,8 +13,8 @@ from parametricpinn.ansatz import (
 )
 from parametricpinn.bayesian.likelihood import Likelihood
 from parametricpinn.bayesian.prior import (
-    create_univariate_uniform_distributed_prior,
     create_gamma_distributed_prior,
+    create_univariate_uniform_distributed_prior,
     multiply_priors,
 )
 from parametricpinn.calibration import (
@@ -28,8 +29,9 @@ from parametricpinn.calibration import (
 )
 from parametricpinn.calibration.bayesianinference.likelihoods import (
     create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps,
-    create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps,
+    create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error,
     create_standard_ppinn_likelihood_for_noise_and_model_error_gps_sampling,
+    create_standard_ppinn_q_likelihood_for_noise,
 )
 from parametricpinn.calibration.data import concatenate_calibration_data
 from parametricpinn.calibration.utility import load_model
@@ -51,11 +53,7 @@ from parametricpinn.fem import (
     generate_validation_data,
     run_simulation,
 )
-from parametricpinn.gps import (
-    IndependentMultiOutputGP,
-    ScaledRBFKernelParameterPriorConfig,
-    create_gaussian_process,
-)
+from parametricpinn.gps import IndependentMultiOutputGP, create_gaussian_process
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader, PandasDataWriter
 from parametricpinn.network import FFNN
@@ -111,7 +109,10 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_q_likelihood = False
+method = "full_bayes_with_error_gps"
+# method = "empirical_bayes_with_error_gps"
+# method = "empirical_bayes_with_error_stds_and_q_likelihood"
+# method = "overestimated_error_stds_with_q_likelihood"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -441,8 +442,14 @@ def calibration_step() -> None:
     num_data_points = 128
     std_noise = 5 * 1e-4
 
+    material_parameter_names = ("bulk modulus", "shear modulus")
+
     initial_bulk_modulus = 6000.0
     initial_shear_modulus = 1000.0
+    initial_material_parameters = torch.tensor(
+        [initial_bulk_modulus, initial_shear_modulus],
+        device=device,
+    )
 
     prior_bulk_modulus = create_univariate_uniform_distributed_prior(
         lower_limit=min_bulk_modulus, upper_limit=max_bulk_modulus, device=device
@@ -450,14 +457,8 @@ def calibration_step() -> None:
     prior_shear_modulus = create_univariate_uniform_distributed_prior(
         lower_limit=min_shear_modulus, upper_limit=max_shear_modulus, device=device
     )
-
     prior_material_parameters = multiply_priors(
         [prior_bulk_modulus, prior_shear_modulus]
-    )
-    material_parameter_names = ("bulk modulus", "shear modulus")
-    initial_material_parameters = torch.tensor(
-        [initial_bulk_modulus, initial_shear_modulus],
-        device=device,
     )
 
     def generate_calibration_data() -> tuple[tuple[CalibrationData, ...], NPArray]:
@@ -485,14 +486,13 @@ def calibration_step() -> None:
     calibration_data, true_material_parameters = generate_calibration_data()
 
     def create_model_error_gp() -> IndependentMultiOutputGP:
-        domain_config = create_fem_domain_config()
         min_inputs = torch.tensor(
-            [-domain_config.edge_length, 0.0],
+            [-edge_length, 0.0],
             dtype=torch.float64,
             device=device,
         )
         max_inputs = torch.tensor(
-            [0.0, domain_config.edge_length],
+            [0.0, edge_length],
             dtype=torch.float64,
             device=device,
         )
@@ -516,37 +516,16 @@ def calibration_step() -> None:
             device=device,
         ).to(device)
 
+    output_subdir_calibration = os.path.join(output_subdirectory, "calibration", method)
+    output_subdir_likelihoods = os.path.join(output_subdir_calibration, "likelihoods")
+
     model_error_gp = create_model_error_gp()
-    # gp_kernel_parameters_prior_config = ScaledRBFKernelParameterPriorConfig(
-    #     limits_length_scale=(0.0, 1.0), limits_output_scale=(0.0, 1.0)
-    # )
-    # prior_gp_parameters = create_uninformed_gp_parameters_prior(
-    #     ((gp_kernel_parameters_prior_config,), (gp_kernel_parameters_prior_config,)),
-    #     device,
-    # )
-    prior_output_scale = create_gamma_distributed_prior(
-        concentration=1.01, rate=10.0, device=device
-    )
-    prior_length_scale = create_gamma_distributed_prior(
-        concentration=1.01, rate=10.0, device=device
-    )
-    prior_gp_parameters = multiply_priors(
-        [
-            prior_output_scale,
-            prior_length_scale,
-            prior_length_scale,
-            prior_output_scale,
-            prior_length_scale,
-            prior_length_scale,
-        ]
-    )
+
     gp_parameter_names = (
         "output_scale_0",
-        "length_scale_0_0",
-        "length_scale_0_1",
+        "length_scale_0",
         "output_scale_1",
-        "length_scale_1_0",
-        "length_scale_1_1",
+        "length_scale_1",
     )
     initial_gp_output_scale = 1e-3
     initial_gp_length_scale = 1e-3
@@ -554,44 +533,84 @@ def calibration_step() -> None:
         [
             initial_gp_output_scale,
             initial_gp_length_scale,
-            initial_gp_length_scale,
             initial_gp_output_scale,
-            initial_gp_length_scale,
             initial_gp_length_scale,
         ],
         dtype=torch.float64,
         device=device,
     )
 
-    prior = multiply_priors([prior_material_parameters, prior_gp_parameters])
-    parameter_names = material_parameter_names + gp_parameter_names
-    initial_parameters = torch.concat(
-        (initial_material_parameters, initial_model_error_gp_parameters)
-    )
+    ParameterNames: TypeAlias = tuple[str, str] | tuple[str, str, str, str, str, str]
 
-    model_error_optimization_num_material_parameter_samples = 256
-    model_error_optimization_num_iterations = 16
-
-    if use_q_likelihood:
-        output_subdir_calibration = os.path.join(
-            output_subdirectory,
-            "calibration",
-            "with_model_error_gps_and_q_likelihood",
+    if method == "full_bayes_with_error_gps":
+        prior_output_scale = create_gamma_distributed_prior(
+            concentration=1.01, rate=10.0, device=device
         )
-    else:
-        output_subdir_calibration = os.path.join(
-            output_subdirectory, "calibration", "with_model_error_gps_sampling"
+        prior_length_scale = create_gamma_distributed_prior(
+            concentration=1.01, rate=10.0, device=device
         )
-    output_subdir_likelihoods = os.path.join(output_subdir_calibration, "likelihoods")
+        prior_gp_parameters = multiply_priors(
+            [
+                prior_output_scale,
+                prior_length_scale,
+                prior_output_scale,
+                prior_length_scale,
+            ]
+        )
 
-    if use_q_likelihood:
+        model_error_optimization_num_material_parameter_samples = 128
+        model_error_optimization_num_iterations = 16
+
         likelihoods = tuple(
-            create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error_gps(
+            create_standard_ppinn_likelihood_for_noise_and_model_error_gps_sampling(
                 model=model,
                 num_model_parameters=num_material_parameters,
                 model_error_gp=model_error_gp,
-                use_independent_model_error_gps=True,
+                data=data,
+                device=device,
+            )
+            for _, data in enumerate(calibration_data)
+        )
+
+        prior = multiply_priors([prior_material_parameters, prior_gp_parameters])
+        parameter_names: ParameterNames = material_parameter_names + gp_parameter_names
+        initial_parameters = torch.concat(
+            (initial_material_parameters, initial_model_error_gp_parameters)
+        )
+
+        std_proposal_density_bulk_modulus = 2.0
+        std_proposal_density_shear_modulus = 0.2
+        std_gp_output_scale = 1e-6
+        std_gp_length_scale = 1e-4
+        covar_rwmh_proposal_density = torch.diag(
+            torch.tensor(
+                [
+                    std_proposal_density_bulk_modulus,
+                    std_proposal_density_shear_modulus,
+                    std_gp_output_scale,
+                    std_gp_length_scale,
+                    std_gp_output_scale,
+                    std_gp_length_scale,
+                ],
+                dtype=torch.float64,
+                device=device,
+            )
+            ** 2
+        )
+        num_rwmh_iterations = int(5e5)
+        num_rwmh_burn_in_iterations = int(5e4)
+
+    elif method == "empirical_bayes_with_error_gps":
+        model_error_optimization_num_material_parameter_samples = 128
+        model_error_optimization_num_iterations = 16
+
+        likelihoods = tuple(
+            create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps(
+                model=model,
+                num_model_parameters=num_material_parameters,
+                model_error_gp=model_error_gp,
                 initial_model_error_gp_parameters=initial_model_error_gp_parameters,
+                use_independent_model_error_gps=True,
                 data=data,
                 prior_material_parameters=prior_material_parameters,
                 num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
@@ -603,17 +622,115 @@ def calibration_step() -> None:
             )
             for test_case_index, data in enumerate(calibration_data)
         )
-    else:
+
+        prior = prior_material_parameters
+        parameter_names = material_parameter_names
+        initial_parameters = initial_material_parameters
+
+        std_proposal_density_bulk_modulus = 5.0
+        std_proposal_density_shear_modulus = 1.0
+        covar_rwmh_proposal_density = torch.diag(
+            torch.tensor(
+                [
+                    std_proposal_density_bulk_modulus,
+                    std_proposal_density_shear_modulus,
+                ],
+                dtype=torch.float64,
+                device=device,
+            )
+            ** 2
+        )
+        num_rwmh_iterations = int(1e4)
+        num_rwmh_burn_in_iterations = int(5e3)
+
+    elif method == "empirical_bayes_with_error_stds_and_q_likelihood":
+        initial_model_error_std = 1e-3
+        initial_model_error_stds_parameters = torch.tensor(
+            [
+                initial_model_error_std,
+                initial_model_error_std,
+            ],
+            dtype=torch.float64,
+            device=device,
+        )
+
+        model_error_optimization_num_material_parameter_samples = 128
+        model_error_optimization_num_iterations = 16
+
         likelihoods = tuple(
-            create_standard_ppinn_likelihood_for_noise_and_model_error_gps_sampling(
+            create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error(
                 model=model,
                 num_model_parameters=num_material_parameters,
-                model_error_gp=model_error_gp,
+                initial_model_error_standard_deviations=initial_model_error_stds_parameters,
+                use_independent_model_error_standard_deviations=True,
+                data=data,
+                prior_material_parameters=prior_material_parameters,
+                num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
+                num_iterations=model_error_optimization_num_iterations,
+                test_case_index=test_case_index,
+                output_subdirectory=output_subdir_likelihoods,
+                project_directory=project_directory,
+                device=device,
+            )
+            for test_case_index, data in enumerate(calibration_data)
+        )
+
+        prior = prior_material_parameters
+        parameter_names = material_parameter_names
+        initial_parameters = initial_material_parameters
+
+        std_proposal_density_bulk_modulus = 5.0
+        std_proposal_density_shear_modulus = 1.0
+        covar_rwmh_proposal_density = torch.diag(
+            torch.tensor(
+                [
+                    std_proposal_density_bulk_modulus,
+                    std_proposal_density_shear_modulus,
+                ],
+                dtype=torch.float64,
+                device=device,
+            )
+            ** 2
+        )
+        num_rwmh_iterations = int(1e4)
+        num_rwmh_burn_in_iterations = int(5e3)
+
+    elif method == "overestimated_error_stds_with_q_likelihood":
+        std_model_error = 1e-1
+        std_noise_and_model_error = std_noise + std_model_error
+
+        for data in calibration_data:
+            data.std_noise = std_noise_and_model_error
+
+        likelihoods = tuple(
+            create_standard_ppinn_q_likelihood_for_noise(
+                model=model,
+                num_model_parameters=num_material_parameters,
                 data=data,
                 device=device,
             )
             for _, data in enumerate(calibration_data)
         )
+
+        prior = prior_material_parameters
+        parameter_names = material_parameter_names
+        initial_parameters = initial_material_parameters
+
+        std_proposal_density_bulk_modulus = 5.0
+        std_proposal_density_shear_modulus = 1.0
+        covar_rwmh_proposal_density = torch.diag(
+            torch.tensor(
+                [
+                    std_proposal_density_bulk_modulus,
+                    std_proposal_density_shear_modulus,
+                ],
+                dtype=torch.float64,
+                device=device,
+            )
+            ** 2
+        )
+        num_rwmh_iterations = int(1e4)
+        num_rwmh_burn_in_iterations = int(5e3)
 
     def set_up_least_squares_configs(
         calibration_data: tuple[CalibrationData, ...],
@@ -645,34 +762,13 @@ def calibration_step() -> None:
     ) -> tuple[MetropolisHastingsConfig, ...]:
         configs = []
         for likelihood in likelihoods:
-            std_proposal_density_bulk_modulus = 1.0
-            std_proposal_density_shear_modulus = 0.2
-            std_gp_output_scale = 1e-6
-            std_gp_length_scale = 1e-5
-            covar_proposal_density = torch.diag(
-                torch.tensor(
-                    [
-                        std_proposal_density_bulk_modulus,
-                        std_proposal_density_shear_modulus,
-                        std_gp_output_scale,
-                        std_gp_length_scale,
-                        std_gp_length_scale,
-                        std_gp_output_scale,
-                        std_gp_length_scale,
-                        std_gp_length_scale,
-                    ],
-                    dtype=torch.float64,
-                    device=device,
-                )
-                ** 2
-            )
             config = MetropolisHastingsConfig(
                 likelihood=likelihood,
                 prior=prior,
                 initial_parameters=initial_parameters,
-                num_iterations=int(1e5),
-                num_burn_in_iterations=int(5e4),
-                cov_proposal_density=covar_proposal_density,
+                num_iterations=num_rwmh_iterations,
+                num_burn_in_iterations=num_rwmh_burn_in_iterations,
+                cov_proposal_density=covar_rwmh_proposal_density,
             )
             configs.append(config)
         return tuple(configs)

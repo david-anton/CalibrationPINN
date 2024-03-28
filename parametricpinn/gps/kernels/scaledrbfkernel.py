@@ -10,11 +10,11 @@ from parametricpinn.types import Device, Tensor
 class ScaledRBFKernel(Kernel):
     def __init__(self, device: Device) -> None:
         super().__init__(
-            num_hyperparameters=3,
+            num_hyperparameters=2,
             device=device,
         )
         self._kernel = gpytorch.kernels.ScaleKernel(
-            gpytorch.kernels.RBFKernel(ard_num_dims=2)
+            gpytorch.kernels.RBFKernel(ard_num_dims=1)
         ).to(device)
         self._lower_limit_output_scale = 0.0
         self._lower_limit_length_scale = 0.0
@@ -47,6 +47,5 @@ class ScaledRBFKernel(Kernel):
     def get_named_parameters(self) -> NamedParameters:
         return {
             "output_scale": self._kernel.outputscale,
-            "length_scale_1": self._kernel.base_kernel.lengthscale[0, 0],
-            "length_scale_2": self._kernel.base_kernel.lengthscale[0, 1],
+            "length_scale": self._kernel.base_kernel.lengthscale,
         }
