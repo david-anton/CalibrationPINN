@@ -13,11 +13,10 @@ from parametricpinn.ansatz import (
 )
 from parametricpinn.bayesian.likelihood import Likelihood
 from parametricpinn.bayesian.prior import (
-    create_univariate_uniform_distributed_prior,
     create_gamma_distributed_prior,
+    create_univariate_uniform_distributed_prior,
     multiply_priors,
 )
-from parametricpinn.errors import UnvalidMainConfigError
 from parametricpinn.calibration import (
     CalibrationData,
     CalibrationDataLoader2D,
@@ -47,6 +46,7 @@ from parametricpinn.data.trainingdata_2d import (
     QuarterPlateWithHoleTrainingDataset2DConfig,
     create_training_dataset,
 )
+from parametricpinn.errors import UnvalidMainConfigError
 from parametricpinn.fem import (
     LinearElasticityProblemConfig_K_G,
     QuarterPlateWithHoleDomainConfig,
