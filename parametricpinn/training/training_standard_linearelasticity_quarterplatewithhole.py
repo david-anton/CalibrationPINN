@@ -135,9 +135,10 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         def loss_func_data(
             ansatz: StandardAnsatz, simulation_data: SimulationData
         ) -> Tensor:
-            x, y_true = simulation_data
-            x = x.to(device)
-            y_true = y_true.to(device)
+            x_coor = simulation_data.x_coor
+            x_params = simulation_data.x_params
+            x = torch.concat((x_coor, x_params), dim=1).to(device)
+            y_true = simulation_data.y_true.to(device)
             y = ansatz(x)
             return loss_metric(y_true, y)
 
@@ -164,9 +165,11 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             mae_hist_batches = []
             rl2_hist_batches = []
 
-            for x, y_true in valid_batches:
-                x = x.to(device)
-                y_true = y_true.to(device)
+            for valid_batch in valid_batches:
+                x_coor = valid_batch.x_coor
+                x_params = valid_batch.x_params
+                x = torch.concat((x_coor, x_params), dim=1).to(device)
+                y_true = valid_batch.y_true.to(device)
                 y = ansatz(x)
                 mae_batch = mean_absolute_error(y_true, y)
                 rl2_batch = relative_l2_norm(y_true, y)
