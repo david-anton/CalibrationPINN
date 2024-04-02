@@ -1,6 +1,7 @@
 import pytest
 import torch
 
+from parametricpinn.data.dataset import SimulationData, SimulationDataList
 from parametricpinn.data.simulationdata_linearelasticity_1d import (
     StretchedRodSimulationDatasetLinearElasticity1D,
     StretchedRodSimulationDatasetLinearElasticity1DConfig,
@@ -46,7 +47,7 @@ def test_calculate_displacements_solution(coordinate: Tensor, expected: Tensor) 
     torch.testing.assert_close(actual, expected)
 
 
-### Test ValidationDataset
+### Test SimulationDataset
 @pytest.fixture
 def sut() -> StretchedRodSimulationDatasetLinearElasticity1D:
     set_seed(random_seed)
@@ -63,11 +64,11 @@ def sut() -> StretchedRodSimulationDatasetLinearElasticity1D:
 
 
 @pytest.fixture
-def expected_input_sample() -> tuple[list[Tensor], list[Tensor]]:
+def expected_x() -> tuple[list[Tensor], list[Tensor]]:
     # The random numbers must be generated in the same order as in the system under test.
     set_seed(random_seed)
-    youngs_modulus_list = []
     coordinates_list = []
+    youngs_modulus_list = []
     for _ in range(num_samples):
         youngs_modulus = (
             min_youngs_modulus
@@ -87,28 +88,42 @@ def test_len(sut: StretchedRodSimulationDatasetLinearElasticity1D) -> None:
 
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
-def test_input_sample(
+def test_x_coor(
     sut: StretchedRodSimulationDatasetLinearElasticity1D,
-    expected_input_sample: tuple[list[Tensor], list[Tensor]],
+    expected_x: tuple[list[Tensor], list[Tensor]],
     idx_sample: int,
 ) -> None:
-    actual, _ = sut[idx_sample]
+    sample = sut[idx_sample]
+    actual = sample.x_coor
 
-    x_coordinates_list, x_youngs_modulus_list = expected_input_sample
-    x_coordinates = x_coordinates_list[idx_sample]
-    x_youngs_modulus = x_youngs_modulus_list[idx_sample]
-    expected = torch.concat((x_coordinates, x_youngs_modulus), dim=1)
+    x_coor_list, _ = expected_x
+    expected = x_coor_list[idx_sample]
     torch.testing.assert_close(actual, expected)
 
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
-def test_output_sample(
+def test_x_params(
+    sut: StretchedRodSimulationDatasetLinearElasticity1D,
+    expected_x: tuple[list[Tensor], list[Tensor]],
+    idx_sample: int,
+) -> None:
+    sample = sut[idx_sample]
+    actual = sample.x_params
+
+    _, x_params_list = expected_x
+    expected = x_params_list[idx_sample]
+    torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize(("idx_sample"), range(num_samples))
+def test_y_true(
     sut: StretchedRodSimulationDatasetLinearElasticity1D, idx_sample: int
 ) -> None:
-    input, actual = sut[idx_sample]
+    sample = sut[idx_sample]
+    actual = sample.y_true
 
-    x_coordinates = input[:, 0].view((num_points, 1))
-    x_youngs_modulus = input[:, 1].view((num_points, 1))
+    x_coordinates = sample.x_coor
+    x_youngs_modulus = sample.x_params
     expected = calculate_linear_elastic_displacements_solution(
         coordinates=x_coordinates,
         length=length,
@@ -121,33 +136,54 @@ def test_output_sample(
 
 # ### Test collate_func()
 @pytest.fixture
-def fake_batch() -> list[tuple[Tensor, Tensor]]:
-    sample_x_0 = torch.tensor([[1.0, 1.1]])
-    sample_y_true_0 = torch.tensor([[2.0]])
-    sample_x_1 = torch.tensor([[10.0, 10.1]])
-    sample_y_true_1 = torch.tensor([[20.0]])
-    return [(sample_x_0, sample_y_true_0), (sample_x_1, sample_y_true_1)]
+def fake_batch() -> SimulationDataList:
+    sample_0 = SimulationData(
+        x_coor=torch.tensor([[1.0, 1.1]]),
+        x_params=torch.tensor([[2.0, 2.1]]),
+        y_true=torch.tensor([[3.0]]),
+    )
+    sample_1 = SimulationData(
+        x_coor=torch.tensor([[10.0, 10.1]]),
+        x_params=torch.tensor([[20.0, 20.1]]),
+        y_true=torch.tensor([[30.0]]),
+    )
+    return [sample_0, sample_1]
 
 
-def test_batch_pde__x(
+def test_batch_x_coor(
     sut: StretchedRodSimulationDatasetLinearElasticity1D,
-    fake_batch: list[tuple[Tensor, Tensor]],
+    fake_batch: SimulationDataList,
 ):
     collate_func = sut.get_collate_func()
 
-    actual, _ = collate_func(fake_batch)
+    batched_data = collate_func(fake_batch)
+    actual = batched_data.x_coor
 
     expected = torch.tensor([[1.0, 1.1], [10.0, 10.1]])
     torch.testing.assert_close(actual, expected)
 
 
-def test_batch_pde__y_true(
+def test_batch_x_params(
     sut: StretchedRodSimulationDatasetLinearElasticity1D,
-    fake_batch: list[tuple[Tensor, Tensor]],
+    fake_batch: SimulationDataList,
 ):
     collate_func = sut.get_collate_func()
 
-    _, actual = collate_func(fake_batch)
+    batched_data = collate_func(fake_batch)
+    actual = batched_data.x_params
 
-    expected = torch.tensor([[2.0], [20.0]])
+    expected = torch.tensor([[2.0, 2.1], [20.0, 20.1]])
+    torch.testing.assert_close(actual, expected)
+
+
+def test_batch_y_true(
+    sut: StretchedRodSimulationDatasetLinearElasticity1D,
+    fake_batch: SimulationDataList,
+):
+    collate_func = sut.get_collate_func()
+
+    batched_data = collate_func(fake_batch)
+    actual = batched_data.y_true
+
+    expected = torch.tensor([[3.0], [30.0]])
     torch.testing.assert_close(actual, expected)

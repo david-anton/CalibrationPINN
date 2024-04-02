@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 
 from parametricpinn.ansatz import StandardAnsatz
 from parametricpinn.data.dataset import (
-    SimulationBatch,
+    SimulationData,
     TrainingData2DCollocation,
     TrainingData2DStressBC,
     TrainingData2DTractionBC,
@@ -89,7 +89,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
         collocation_data: TrainingData2DCollocation,
         stress_bc_data: TrainingData2DStressBC,
         traction_bc_data: TrainingData2DTractionBC,
-        simulation_data: Optional[SimulationBatch] = None,
+        simulation_data: Optional[SimulationData] = None,
     ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         def loss_func_pde(
             ansatz: StandardAnsatz, collocation_data: TrainingData2DCollocation
@@ -135,7 +135,7 @@ def train_parametric_pinn(train_config: TrainingConfiguration) -> None:
             return loss_metric(y_true, y)
 
         def loss_func_data(
-            ansatz: StandardAnsatz, simulation_data: SimulationBatch
+            ansatz: StandardAnsatz, simulation_data: SimulationData
         ) -> Tensor:
             x, y_true = simulation_data
             x = x.to(device)

@@ -6,9 +6,9 @@ from torch.utils.data import Dataset
 
 from parametricpinn.data.base import repeat_tensor
 from parametricpinn.data.dataset.dataset import (
-    SimulationBatch,
-    SimulationBatchList,
     SimulationCollateFunc,
+    SimulationData,
+    SimulationDataList,
 )
 from parametricpinn.data.geometry import StretchedRod1D
 from parametricpinn.types import Tensor
@@ -60,23 +60,30 @@ class StretchedRodSimulationDatasetLinearElasticity1D(Dataset):
         self._max_youngs_modulus = max_youngs_modulus
         self._num_points = num_points
         self._num_samples = num_samples
-        self._samples_x: list[Tensor] = []
-        self._samples_y_true: list[Tensor] = []
+        self._samples: SimulationDataList = []
 
         self._generate_samples()
 
     def get_collate_func(self) -> SimulationCollateFunc:
-        def collate_func(batch: SimulationBatchList) -> SimulationBatch:
-            x_batch = []
+        def collate_func(batch: SimulationDataList) -> SimulationData:
+            x_coor_batch = []
+            x_params_batch = []
             y_true_batch = []
 
-            for sample_x, sample_y_true in batch:
-                x_batch.append(sample_x)
-                y_true_batch.append(sample_y_true)
+            def append_to_batch(sample: SimulationData) -> None:
+                x_coor_batch.append(sample.x_coor)
+                x_params_batch.append(sample.x_params)
+                y_true_batch.append(sample.y_true)
 
-            batch_x = torch.concat(x_batch, dim=0)
-            batch_y_true = torch.concat(y_true_batch, dim=0)
-            return batch_x, batch_y_true
+            for sample in batch:
+                append_to_batch(sample)
+
+            batched_data = SimulationData(
+                x_coor=torch.concat(x_coor_batch, dim=0),
+                x_params=torch.concat(x_params_batch, dim=0),
+                y_true=torch.concat(y_true_batch, dim=0),
+            )
+            return batched_data
 
         return collate_func
 
@@ -84,8 +91,7 @@ class StretchedRodSimulationDatasetLinearElasticity1D(Dataset):
         for i in range(self._num_samples):
             youngs_modulus = self._generate_random_youngs_modulus()
             coordinates = self._generate_random_coordinates()
-            self._add_input_sample(coordinates, youngs_modulus)
-            self._add_output_sample(coordinates, youngs_modulus)
+            self._add_sample(coordinates, youngs_modulus)
 
     def _generate_random_youngs_modulus(self) -> Tensor:
         return self._min_youngs_modulus + torch.rand((1)) * (
@@ -95,13 +101,9 @@ class StretchedRodSimulationDatasetLinearElasticity1D(Dataset):
     def _generate_random_coordinates(self) -> Tensor:
         return self._geometry.create_random_points(self._num_points)
 
-    def _add_input_sample(self, coordinates: Tensor, youngs_modulus: Tensor) -> None:
+    def _add_sample(self, coordinates: Tensor, youngs_modulus: Tensor) -> None:
         x_coor = coordinates
-        x_E = repeat_tensor(youngs_modulus, (self._num_points, 1))
-        x = torch.concat((x_coor, x_E), dim=1)
-        self._samples_x.append(x)
-
-    def _add_output_sample(self, coordinates: Tensor, youngs_modulus: Tensor) -> None:
+        x_params = repeat_tensor(youngs_modulus, (self._num_points, 1))
         y_true = calculate_linear_elastic_displacements_solution(
             coordinates=coordinates,
             length=self._geometry.length,
@@ -109,12 +111,11 @@ class StretchedRodSimulationDatasetLinearElasticity1D(Dataset):
             traction=self._traction,
             volume_force=self._volume_force,
         )
-        self._samples_y_true.append(cast(Tensor, y_true))
+        sample = SimulationData(x_coor=x_coor, x_params=x_params, y_true=y_true)
+        self._samples.append(sample)
 
     def __len__(self) -> int:
         return self._num_samples
 
-    def __getitem__(self, idx: int) -> tuple[Tensor, Tensor]:
-        sample_x = self._samples_x[idx]
-        sample_y_true = self._samples_y_true[idx]
-        return sample_x, sample_y_true
+    def __getitem__(self, idx: int) -> SimulationData:
+        return self._samples[idx]
