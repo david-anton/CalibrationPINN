@@ -509,7 +509,9 @@ def _create_ticks(
         min_value, max_value, num=plot_config.num_cbar_ticks, endpoint=True
     ).tolist()
     order_ticks = int(math.floor(math.log10(abs(mean_value))))
-    if order_ticks < 0:
+    if order_ticks == 0:
+        ticks = [round(tick, 2) for tick in ticks]
+    elif order_ticks < 0:
         ticks = [round(tick, abs(order_ticks) + 2) for tick in ticks]
     else:
         ticks = [(round(tick / order_ticks, 2) * order_ticks) for tick in ticks]
@@ -849,7 +851,9 @@ def _plot_errors_histogram(
         mean + standard_deviation,
     ]
     order_x_ticks = int(math.floor(math.log10(abs(mean))))
-    if order_x_ticks < 0:
+    if order_x_ticks == 0:
+        x_ticks = [round(tick, 2) for tick in x_ticks]
+    elif order_x_ticks < 0:
         x_ticks = [round(tick, abs(order_x_ticks) + 2) for tick in x_ticks]
     else:
         x_ticks = [(round(tick / order_x_ticks, 2) * order_x_ticks) for tick in x_ticks]
