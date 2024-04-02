@@ -28,9 +28,7 @@ from parametricpinn.calibration import (
     test_least_squares_calibration,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods import (
-    create_optimized_standard_ppinn_likelihood_for_noise_and_model_error,
     create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps,
-    create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error,
     create_standard_ppinn_likelihood_for_noise,
     create_standard_ppinn_likelihood_for_noise_and_model_error_gps_sampling,
     create_standard_ppinn_q_likelihood_for_noise,
@@ -649,7 +647,7 @@ def calibration_step() -> None:
         )
 
         prior = prior_material_parameters
-        parameter_names: ParameterNames = material_parameter_names
+        parameter_names = material_parameter_names
         initial_parameters = initial_material_parameters
 
         std_proposal_density_bulk_modulus = 5.0
@@ -736,7 +734,7 @@ def calibration_step() -> None:
         )
 
         prior = multiply_priors([prior_material_parameters, prior_gp_parameters])
-        parameter_names: ParameterNames = material_parameter_names + gp_parameter_names
+        parameter_names = material_parameter_names + gp_parameter_names
         initial_parameters = torch.concat(
             (initial_material_parameters, initial_model_error_gp_parameters)
         )
