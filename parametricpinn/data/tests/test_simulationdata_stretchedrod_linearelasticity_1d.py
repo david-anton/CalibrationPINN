@@ -2,10 +2,10 @@ import pytest
 import torch
 
 from parametricpinn.data.validationdata_linearelasticity_1d import (
-    StretchedRodValidationDatasetLinearElasticity1D,
-    StretchedRodValidationDatasetLinearElasticity1DConfig,
+    StretchedRodSimulationDatasetLinearElasticity1D,
+    StretchedRodSimulationDatasetLinearElasticity1DConfig,
     calculate_linear_elastic_displacements_solution,
-    create_validation_dataset,
+    create_simulation_dataset,
 )
 from parametricpinn.settings import set_seed
 from parametricpinn.types import Tensor
@@ -48,9 +48,9 @@ def test_calculate_displacements_solution(coordinate: Tensor, expected: Tensor) 
 
 ### Test ValidationDataset
 @pytest.fixture
-def sut() -> StretchedRodValidationDatasetLinearElasticity1D:
+def sut() -> StretchedRodSimulationDatasetLinearElasticity1D:
     set_seed(random_seed)
-    config = StretchedRodValidationDatasetLinearElasticity1DConfig(
+    config = StretchedRodSimulationDatasetLinearElasticity1DConfig(
         length=length,
         traction=traction,
         volume_force=volume_force,
@@ -59,7 +59,7 @@ def sut() -> StretchedRodValidationDatasetLinearElasticity1D:
         num_points=num_points,
         num_samples=num_samples,
     )
-    return create_validation_dataset(config=config)
+    return create_simulation_dataset(config=config)
 
 
 @pytest.fixture
@@ -79,7 +79,7 @@ def expected_input_sample() -> tuple[list[Tensor], list[Tensor]]:
     return coordinates_list, youngs_modulus_list
 
 
-def test_len(sut: StretchedRodValidationDatasetLinearElasticity1D) -> None:
+def test_len(sut: StretchedRodSimulationDatasetLinearElasticity1D) -> None:
     actual = len(sut)
 
     expected = num_samples
@@ -88,7 +88,7 @@ def test_len(sut: StretchedRodValidationDatasetLinearElasticity1D) -> None:
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
 def test_input_sample(
-    sut: StretchedRodValidationDatasetLinearElasticity1D,
+    sut: StretchedRodSimulationDatasetLinearElasticity1D,
     expected_input_sample: tuple[list[Tensor], list[Tensor]],
     idx_sample: int,
 ) -> None:
@@ -103,7 +103,7 @@ def test_input_sample(
 
 @pytest.mark.parametrize(("idx_sample"), range(num_samples))
 def test_output_sample(
-    sut: StretchedRodValidationDatasetLinearElasticity1D, idx_sample: int
+    sut: StretchedRodSimulationDatasetLinearElasticity1D, idx_sample: int
 ) -> None:
     input, actual = sut[idx_sample]
 
@@ -130,7 +130,7 @@ def fake_batch() -> list[tuple[Tensor, Tensor]]:
 
 
 def test_batch_pde__x(
-    sut: StretchedRodValidationDatasetLinearElasticity1D,
+    sut: StretchedRodSimulationDatasetLinearElasticity1D,
     fake_batch: list[tuple[Tensor, Tensor]],
 ):
     collate_func = sut.get_collate_func()
@@ -142,7 +142,7 @@ def test_batch_pde__x(
 
 
 def test_batch_pde__y_true(
-    sut: StretchedRodValidationDatasetLinearElasticity1D,
+    sut: StretchedRodSimulationDatasetLinearElasticity1D,
     fake_batch: list[tuple[Tensor, Tensor]],
 ):
     collate_func = sut.get_collate_func()

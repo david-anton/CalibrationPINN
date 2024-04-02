@@ -6,9 +6,9 @@ from torch.utils.data import Dataset
 
 from parametricpinn.data.base import repeat_tensor
 from parametricpinn.data.dataset.dataset import (
-    ValidationBatch,
-    ValidationBatchList,
-    ValidationCollateFunc,
+    SimulationBatch,
+    SimulationBatchList,
+    SimulationCollateFunc,
 )
 from parametricpinn.data.geometry import StretchedRod1D
 from parametricpinn.types import Tensor
@@ -31,7 +31,7 @@ def calculate_linear_elastic_displacements_solution(
 
 
 @dataclass
-class StretchedRodValidationDatasetLinearElasticity1DConfig:
+class StretchedRodSimulationDatasetLinearElasticity1DConfig:
     length: float
     traction: float
     volume_force: float
@@ -41,7 +41,7 @@ class StretchedRodValidationDatasetLinearElasticity1DConfig:
     num_samples: int
 
 
-class StretchedRodValidationDatasetLinearElasticity1D(Dataset):
+class StretchedRodSimulationDatasetLinearElasticity1D(Dataset):
     def __init__(
         self,
         geometry: StretchedRod1D,
@@ -65,8 +65,8 @@ class StretchedRodValidationDatasetLinearElasticity1D(Dataset):
 
         self._generate_samples()
 
-    def get_collate_func(self) -> ValidationCollateFunc:
-        def collate_func(batch: ValidationBatchList) -> ValidationBatch:
+    def get_collate_func(self) -> SimulationCollateFunc:
+        def collate_func(batch: SimulationBatchList) -> SimulationBatch:
             x_batch = []
             y_true_batch = []
 

@@ -11,7 +11,7 @@ from parametricpinn.data.dataset import (
     TrainingData2DTractionBC,
 )
 from parametricpinn.data.trainingdata_2d import QuarterPlateWithHoleTrainingDataset2D
-from parametricpinn.data.validationdata_2d import ValidationDataset2D
+from parametricpinn.data.validationdata_2d import SimulationDataset2D
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.loaderssavers import PytorchModelSaver
 from parametricpinn.postprocessing.plot import (
@@ -39,7 +39,7 @@ class TrainingConfiguration:
     training_dataset: QuarterPlateWithHoleTrainingDataset2D
     number_training_epochs: int
     training_batch_size: int
-    validation_dataset: ValidationDataset2D
+    validation_dataset: SimulationDataset2D
     validation_interval: int
     output_subdirectory: str
     project_directory: ProjectDirectory

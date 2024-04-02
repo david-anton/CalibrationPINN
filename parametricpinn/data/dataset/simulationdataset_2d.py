@@ -6,9 +6,9 @@ from torch.utils.data import Dataset
 
 from parametricpinn.data.base import repeat_tensor
 from parametricpinn.data.dataset.dataset import (
-    ValidationBatch,
-    ValidationBatchList,
-    ValidationCollateFunc,
+    SimulationBatch,
+    SimulationBatchList,
+    SimulationCollateFunc,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader
@@ -16,14 +16,14 @@ from parametricpinn.types import Tensor
 
 
 @dataclass
-class ValidationDataset2DConfig:
+class SimulationDataset2DConfig:
     input_subdir: str
     num_points: int
     num_samples: int
     project_directory: ProjectDirectory
 
 
-class ValidationDataset2D(Dataset):
+class SimulationDataset2D(Dataset):
     def __init__(
         self,
         input_subdir: str,
@@ -44,8 +44,8 @@ class ValidationDataset2D(Dataset):
 
         self._load_samples()
 
-    def get_collate_func(self) -> ValidationCollateFunc:
-        def collate_func(batch: ValidationBatchList) -> ValidationBatch:
+    def get_collate_func(self) -> SimulationCollateFunc:
+        def collate_func(batch: SimulationBatchList) -> SimulationBatch:
             x_batch = []
             y_true_batch = []
 

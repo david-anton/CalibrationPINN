@@ -1,10 +1,10 @@
 from typing import TypeAlias
 
 from parametricpinn.data.dataset import (
-    StretchedRodValidationDatasetLinearElasticity1D,
-    StretchedRodValidationDatasetLinearElasticity1DConfig,
+    StretchedRodSimulationDatasetLinearElasticity1D,
+    StretchedRodSimulationDatasetLinearElasticity1DConfig,
 )
-from parametricpinn.data.dataset.validationdataset_stretchedrod_1d import (
+from parametricpinn.data.dataset.simulationdataset_stretchedrod_1d import (
     LinearElasticDispalcementSolutionFunc,
     calculate_linear_elastic_displacements_solution,
 )
@@ -12,15 +12,15 @@ from parametricpinn.data.geometry import StretchedRod1D
 from parametricpinn.errors import DatasetConfigError
 
 ValidationDatasetConfig: TypeAlias = (
-    StretchedRodValidationDatasetLinearElasticity1DConfig
+    StretchedRodSimulationDatasetLinearElasticity1DConfig
 )
-ValidationDataset: TypeAlias = StretchedRodValidationDatasetLinearElasticity1D
+ValidationDataset: TypeAlias = StretchedRodSimulationDatasetLinearElasticity1D
 
 
-def create_validation_dataset(config: ValidationDatasetConfig) -> ValidationDataset:
-    if isinstance(config, StretchedRodValidationDatasetLinearElasticity1DConfig):
+def create_simulation_dataset(config: ValidationDatasetConfig) -> ValidationDataset:
+    if isinstance(config, StretchedRodSimulationDatasetLinearElasticity1DConfig):
         geometry = StretchedRod1D(length=config.length)
-        return StretchedRodValidationDatasetLinearElasticity1D(
+        return StretchedRodSimulationDatasetLinearElasticity1D(
             geometry=geometry,
             traction=config.traction,
             volume_force=config.volume_force,

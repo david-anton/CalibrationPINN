@@ -6,6 +6,11 @@ from .dataset import (
     TrainingData2DSymmetryBC,
     TrainingData2DTractionBC,
 )
+from .simulationdataset_2d import SimulationDataset2D, SimulationDataset2DConfig
+from .simulationdataset_stretchedrod_1d import (
+    StretchedRodSimulationDatasetLinearElasticity1D,
+    StretchedRodSimulationDatasetLinearElasticity1DConfig,
+)
 from .trainingdataset_dogbone_2d import (
     DogBoneTrainingDataset2D,
     DogBoneTrainingDataset2DConfig,
@@ -30,11 +35,6 @@ from .trainingdataset_stretchedrod_1d import (
     StretchedRodTrainingDataset1D,
     StretchedRodTrainingDataset1DConfig,
 )
-from .validationdataset_2d import ValidationDataset2D, ValidationDataset2DConfig
-from .validationdataset_stretchedrod_1d import (
-    StretchedRodValidationDatasetLinearElasticity1D,
-    StretchedRodValidationDatasetLinearElasticity1DConfig,
-)
 
 __all__ = [
     "TrainingData1DCollocation",
@@ -55,8 +55,8 @@ __all__ = [
     "SimplifiedDogBoneTrainingDataset2DConfig",
     "StretchedRodTrainingDataset1D",
     "StretchedRodTrainingDataset1DConfig",
-    "ValidationDataset2D",
-    "ValidationDataset2DConfig",
-    "StretchedRodValidationDatasetLinearElasticity1D",
-    "StretchedRodValidationDatasetLinearElasticity1DConfig",
+    "SimulationDataset2D",
+    "SimulationDataset2DConfig",
+    "StretchedRodSimulationDatasetLinearElasticity1D",
+    "StretchedRodSimulationDatasetLinearElasticity1DConfig",
 ]

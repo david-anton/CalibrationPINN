@@ -43,9 +43,9 @@ from parametricpinn.data.trainingdata_2d import (
     create_training_dataset,
 )
 from parametricpinn.data.validationdata_2d import (
-    ValidationDataset2D,
-    ValidationDataset2DConfig,
-    create_validation_dataset,
+    SimulationDataset2D,
+    SimulationDataset2DConfig,
+    create_simulation_dataset,
 )
 from parametricpinn.errors import CalibrationDataConfigError
 from parametricpinn.fem import (
@@ -187,7 +187,7 @@ def create_fem_domain_config() -> SimplifiedDogBoneDomainConfig:
     )
 
 
-def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, ValidationDataset2D]:
+def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, SimulationDataset2D]:
     def _create_training_dataset() -> SimplifiedDogBoneTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_uniform_grid(
@@ -210,7 +210,7 @@ def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, ValidationDat
         )
         return create_training_dataset(config_training_data)
 
-    def _create_validation_dataset() -> ValidationDataset2D:
+    def _create_validation_dataset() -> SimulationDataset2D:
         def _generate_validation_data() -> None:
             offset_training_range_bulk_modulus = 1000.0
             offset_training_range_shear_modulus = 500.0
@@ -256,13 +256,13 @@ def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, ValidationDat
             _generate_validation_data()
         else:
             print("Load validation data ...")
-        config_validation_data = ValidationDataset2DConfig(
+        config_validation_data = SimulationDataset2DConfig(
             input_subdir=input_subdir_valid,
             num_points=num_points_valid,
             num_samples=num_samples_valid,
             project_directory=project_directory,
         )
-        return create_validation_dataset(config_validation_data)
+        return create_simulation_dataset(config_validation_data)
 
     training_dataset = _create_training_dataset()
     validation_dataset = _create_validation_dataset()

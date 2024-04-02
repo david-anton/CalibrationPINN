@@ -22,6 +22,6 @@ TrainingData2DSymmetryBC = namedtuple(
     "TrainingData2DSymmetryBC", ["x_coor_1", "x_coor_2", "x_params"]
 )
 
-ValidationBatch: TypeAlias = tuple[Tensor, Tensor]
-ValidationBatchList: TypeAlias = list[ValidationBatch]
-ValidationCollateFunc: TypeAlias = Callable[[ValidationBatchList], ValidationBatch]
+SimulationBatch: TypeAlias = tuple[Tensor, Tensor]
+SimulationBatchList: TypeAlias = list[SimulationBatch]
+SimulationCollateFunc: TypeAlias = Callable[[SimulationBatchList], SimulationBatch]

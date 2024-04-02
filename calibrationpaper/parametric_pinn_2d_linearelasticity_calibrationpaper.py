@@ -34,9 +34,9 @@ from parametricpinn.data.trainingdata_2d import (
     create_training_dataset,
 )
 from parametricpinn.data.validationdata_2d import (
-    ValidationDataset2D,
-    ValidationDataset2DConfig,
-    create_validation_dataset,
+    SimulationDataset2D,
+    SimulationDataset2DConfig,
+    create_simulation_dataset,
 )
 from parametricpinn.fem import (
     LinearElasticityProblemConfig_E_nu,
@@ -144,7 +144,7 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
 
 
 def create_datasets() -> (
-    tuple[QuarterPlateWithHoleTrainingDataset2D, ValidationDataset2D]
+    tuple[QuarterPlateWithHoleTrainingDataset2D, SimulationDataset2D]
 ):
     def _create_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
@@ -169,7 +169,7 @@ def create_datasets() -> (
         )
         return create_training_dataset(config_training_data)
 
-    def _create_validation_dataset() -> ValidationDataset2D:
+    def _create_validation_dataset() -> SimulationDataset2D:
         def _generate_validation_data() -> None:
             def _generate_random_parameter_list(
                 size: int, min_value: float, max_value: float
@@ -207,13 +207,13 @@ def create_datasets() -> (
         if regenerate_valid_data:
             print("Run FE simulations to generate validation data ...")
             _generate_validation_data()
-        config_validation_data = ValidationDataset2DConfig(
+        config_validation_data = SimulationDataset2DConfig(
             input_subdir=input_subdir_valid,
             num_points=num_points_valid,
             num_samples=num_samples_valid,
             project_directory=project_directory,
         )
-        return create_validation_dataset(config_validation_data)
+        return create_simulation_dataset(config_validation_data)
 
     training_dataset = _create_training_dataset()
     validation_dataset = _create_validation_dataset()

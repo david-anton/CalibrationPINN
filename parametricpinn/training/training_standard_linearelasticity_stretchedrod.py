@@ -11,7 +11,7 @@ from parametricpinn.data.dataset import (
 )
 from parametricpinn.data.trainingdata_1d import StretchedRodTrainingDataset1D
 from parametricpinn.data.validationdata_linearelasticity_1d import (
-    StretchedRodValidationDatasetLinearElasticity1D,
+    StretchedRodSimulationDatasetLinearElasticity1D,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.loaderssavers import PytorchModelSaver
@@ -36,7 +36,7 @@ class StandardTrainingConfiguration:
     training_dataset: StretchedRodTrainingDataset1D
     number_training_epochs: int
     training_batch_size: int
-    validation_dataset: StretchedRodValidationDatasetLinearElasticity1D
+    validation_dataset: StretchedRodSimulationDatasetLinearElasticity1D
     output_subdirectory: str
     project_directory: ProjectDirectory
     device: Device

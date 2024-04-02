@@ -33,10 +33,10 @@ from parametricpinn.data.trainingdata_1d import (
     create_training_dataset,
 )
 from parametricpinn.data.validationdata_linearelasticity_1d import (
-    StretchedRodValidationDatasetLinearElasticity1D,
-    StretchedRodValidationDatasetLinearElasticity1DConfig,
+    StretchedRodSimulationDatasetLinearElasticity1D,
+    StretchedRodSimulationDatasetLinearElasticity1DConfig,
     calculate_linear_elastic_displacements_solution,
-    create_validation_dataset,
+    create_simulation_dataset,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.network import FFNN
@@ -100,7 +100,7 @@ set_seed(0)
 
 def create_datasets() -> (
     tuple[
-        StretchedRodTrainingDataset1D, StretchedRodValidationDatasetLinearElasticity1D
+        StretchedRodTrainingDataset1D, StretchedRodSimulationDatasetLinearElasticity1D
     ]
 ):
     def _create_training_dataset() -> StretchedRodTrainingDataset1D:
@@ -120,12 +120,12 @@ def create_datasets() -> (
         return create_training_dataset(config_training_dataset)
 
     def _create_validation_dataset() -> (
-        StretchedRodValidationDatasetLinearElasticity1DConfig
+        StretchedRodSimulationDatasetLinearElasticity1DConfig
     ):
         offset_training_range_youngs_modulus = 1000.0
 
         config_validation_dataset = (
-            StretchedRodValidationDatasetLinearElasticity1DConfig(
+            StretchedRodSimulationDatasetLinearElasticity1DConfig(
                 length=length,
                 min_youngs_modulus=min_youngs_modulus
                 + offset_training_range_youngs_modulus,
@@ -137,7 +137,7 @@ def create_datasets() -> (
                 num_samples=num_samples_valid,
             )
         )
-        return create_validation_dataset(config_validation_dataset)
+        return create_simulation_dataset(config_validation_dataset)
 
     training_dataset = _create_training_dataset()
     validation_dataset = _create_validation_dataset()
