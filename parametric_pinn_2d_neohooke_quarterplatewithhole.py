@@ -28,9 +28,7 @@ from parametricpinn.calibration import (
     test_least_squares_calibration,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods import (
-    create_optimized_standard_ppinn_likelihood_for_noise_and_model_error,
     create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps,
-    create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error,
     create_standard_ppinn_likelihood_for_noise,
     create_standard_ppinn_likelihood_for_noise_and_model_error_gps_sampling,
     create_standard_ppinn_q_likelihood_for_noise,
@@ -96,6 +94,7 @@ num_points_per_bc = 4  # 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
+use_simulation_data = True
 regenerate_train_data = True
 num_data_samples_per_parameter = 1  # 5
 num_data_points = 8  # 1024
@@ -109,19 +108,18 @@ fem_element_family = "Lagrange"
 fem_element_degree = 2
 fem_element_size = 1.0  # 0.2
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = "20240305_validation_data_neohooke_quarterplatewithhole_K_4000_8000_G_500_1500_edge_100_radius_10_traction_-100_elementsize_0.2"  # f"20240305_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
+regenerate_valid_data = True
+input_subdir_valid = f"20240402_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"  # f"20240305_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
 num_samples_valid = 1  # 100
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-# method = "full_bayes_with_error_gps"
-# method = "empirical_bayes_with_error_gps"
-# method = "empirical_bayes_with_error_stds"
-# method = "empirical_bayes_with_error_stds_and_q_likelihood"
-method = "overestimated_error_stds"
-# method = "overestimated_error_stds_with_q_likelihood"
+calibration_method = "noise_only"
+# calibration_method = "noise_and_q_likelihood"
+# calibration_method = "overestimated_error_stds"
+# calibration_method = "full_bayes_with_error_gps"
+# calibration_method = "empirical_bayes_with_error_gps"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -157,7 +155,9 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
 
 def create_datasets() -> (
     tuple[
-        QuarterPlateWithHoleTrainingDataset2D, SimulationDataset2D, SimulationDataset2D
+        QuarterPlateWithHoleTrainingDataset2D,
+        SimulationDataset2D | None,
+        SimulationDataset2D,
     ]
 ):
     def _create_pinn_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
@@ -287,7 +287,10 @@ def create_datasets() -> (
         return create_simulation_dataset(config_validation_data)
 
     training_dataset_pinn = _create_pinn_training_dataset()
-    training_dataset_data = _create_data_training_dataset()
+    if use_simulation_data:
+        training_dataset_data = _create_data_training_dataset()
+    else:
+        training_dataset_data = None
     validation_dataset = _create_validation_dataset()
     return training_dataset_pinn, training_dataset_data, validation_dataset
 
@@ -579,7 +582,9 @@ def calibration_step() -> None:
             device=device,
         ).to(device)
 
-    output_subdir_calibration = os.path.join(output_subdirectory, "calibration", method)
+    output_subdir_calibration = os.path.join(
+        output_subdirectory, "calibration", calibration_method
+    )
     output_subdir_likelihoods = os.path.join(output_subdir_calibration, "likelihoods")
 
     model_error_gp = create_model_error_gp()
@@ -605,7 +610,106 @@ def calibration_step() -> None:
 
     ParameterNames: TypeAlias = tuple[str, str] | tuple[str, str, str, str, str, str]
 
-    if method == "full_bayes_with_error_gps":
+    if calibration_method == "noise_only":
+        likelihoods = tuple(
+            create_standard_ppinn_likelihood_for_noise(
+                model=model,
+                num_model_parameters=num_material_parameters,
+                data=data,
+                device=device,
+            )
+            for _, data in enumerate(calibration_data)
+        )
+
+        prior = prior_material_parameters
+        parameter_names: ParameterNames = material_parameter_names
+        initial_parameters = initial_material_parameters
+
+        std_proposal_density_bulk_modulus = 5.0
+        std_proposal_density_shear_modulus = 1.0
+        covar_rwmh_proposal_density = torch.diag(
+            torch.tensor(
+                [
+                    std_proposal_density_bulk_modulus,
+                    std_proposal_density_shear_modulus,
+                ],
+                dtype=torch.float64,
+                device=device,
+            )
+            ** 2
+        )
+        num_rwmh_iterations = int(1e4)
+        num_rwmh_burn_in_iterations = int(5e3)
+
+    elif calibration_method == "noise_and_q_likelihood":
+        likelihoods = tuple(
+            create_standard_ppinn_q_likelihood_for_noise(
+                model=model,
+                num_model_parameters=num_material_parameters,
+                data=data,
+                device=device,
+            )
+            for _, data in enumerate(calibration_data)
+        )
+
+        prior = prior_material_parameters
+        parameter_names = material_parameter_names
+        initial_parameters = initial_material_parameters
+
+        std_proposal_density_bulk_modulus = 5.0
+        std_proposal_density_shear_modulus = 1.0
+        covar_rwmh_proposal_density = torch.diag(
+            torch.tensor(
+                [
+                    std_proposal_density_bulk_modulus,
+                    std_proposal_density_shear_modulus,
+                ],
+                dtype=torch.float64,
+                device=device,
+            )
+            ** 2
+        )
+        num_rwmh_iterations = int(1e4)
+        num_rwmh_burn_in_iterations = int(5e3)
+
+    elif calibration_method == "overestimated_error_stds":
+        std_model_error = 5e-2
+        std_noise_and_model_error = std_noise + std_model_error
+
+        for data in calibration_data:
+            data.std_noise = std_noise_and_model_error
+
+        likelihoods = tuple(
+            create_standard_ppinn_likelihood_for_noise(
+                model=model,
+                num_model_parameters=num_material_parameters,
+                data=data,
+                device=device,
+            )
+            for _, data in enumerate(calibration_data)
+        )
+
+        prior = prior_material_parameters
+        parameter_names = material_parameter_names
+        initial_parameters = initial_material_parameters
+
+        std_proposal_density_bulk_modulus = 10.0
+        std_proposal_density_shear_modulus = 2.0
+        covar_rwmh_proposal_density = torch.diag(
+            torch.tensor(
+                [
+                    std_proposal_density_bulk_modulus,
+                    std_proposal_density_shear_modulus,
+                ],
+                dtype=torch.float64,
+                device=device,
+            )
+            ** 2
+        )
+        num_rwmh_iterations = int(5e4)
+        num_rwmh_burn_in_iterations = int(2e4)
+
+    elif calibration_method == "full_bayes_with_error_gps":
         prior_output_scale = create_gamma_distributed_prior(
             concentration=1.1, rate=10.0, device=device
         )
@@ -636,7 +740,7 @@ def calibration_step() -> None:
         )
 
         prior = multiply_priors([prior_material_parameters, prior_gp_parameters])
-        parameter_names: ParameterNames = material_parameter_names + gp_parameter_names
+        parameter_names = material_parameter_names + gp_parameter_names
         initial_parameters = torch.concat(
             (initial_material_parameters, initial_model_error_gp_parameters)
         )
@@ -663,7 +767,7 @@ def calibration_step() -> None:
         num_rwmh_iterations = int(1e5)
         num_rwmh_burn_in_iterations = int(2e5)
 
-    elif method == "empirical_bayes_with_error_gps":
+    elif calibration_method == "empirical_bayes_with_error_gps":
         model_error_optimization_num_material_parameter_samples = 128
         model_error_optimization_num_iterations = 16
 
@@ -706,187 +810,9 @@ def calibration_step() -> None:
         num_rwmh_iterations = int(1e4)
         num_rwmh_burn_in_iterations = int(5e3)
 
-    elif method == "empirical_bayes_with_error_stds":
-        initial_model_error_std = 1e-3
-        initial_model_error_stds_parameters = torch.tensor(
-            [
-                initial_model_error_std,
-                initial_model_error_std,
-            ],
-            dtype=torch.float64,
-            device=device,
-        )
-
-        model_error_optimization_num_material_parameter_samples = 128
-        model_error_optimization_num_iterations = 16
-
-        likelihoods = tuple(
-            create_optimized_standard_ppinn_likelihood_for_noise_and_model_error(
-                model=model,
-                num_model_parameters=num_material_parameters,
-                initial_model_error_standard_deviations=initial_model_error_stds_parameters,
-                use_independent_model_error_standard_deviations=True,
-                data=data,
-                prior_material_parameters=prior_material_parameters,
-                num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
-                num_iterations=model_error_optimization_num_iterations,
-                test_case_index=test_case_index,
-                output_subdirectory=output_subdir_likelihoods,
-                project_directory=project_directory,
-                device=device,
-            )
-            for test_case_index, data in enumerate(calibration_data)
-        )
-
-        prior = prior_material_parameters
-        parameter_names = material_parameter_names
-        initial_parameters = initial_material_parameters
-
-        std_proposal_density_bulk_modulus = 5.0
-        std_proposal_density_shear_modulus = 1.0
-        covar_rwmh_proposal_density = torch.diag(
-            torch.tensor(
-                [
-                    std_proposal_density_bulk_modulus,
-                    std_proposal_density_shear_modulus,
-                ],
-                dtype=torch.float64,
-                device=device,
-            )
-            ** 2
-        )
-        num_rwmh_iterations = int(1e4)
-        num_rwmh_burn_in_iterations = int(5e3)
-
-    elif method == "empirical_bayes_with_error_stds_and_q_likelihood":
-        initial_model_error_std = 1e-3
-        initial_model_error_stds_parameters = torch.tensor(
-            [
-                initial_model_error_std,
-                initial_model_error_std,
-            ],
-            dtype=torch.float64,
-            device=device,
-        )
-
-        model_error_optimization_num_material_parameter_samples = 128
-        model_error_optimization_num_iterations = 16
-
-        likelihoods = tuple(
-            create_optimized_standard_ppinn_q_likelihood_for_noise_and_model_error(
-                model=model,
-                num_model_parameters=num_material_parameters,
-                initial_model_error_standard_deviations=initial_model_error_stds_parameters,
-                use_independent_model_error_standard_deviations=True,
-                data=data,
-                prior_material_parameters=prior_material_parameters,
-                num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
-                num_iterations=model_error_optimization_num_iterations,
-                test_case_index=test_case_index,
-                output_subdirectory=output_subdir_likelihoods,
-                project_directory=project_directory,
-                device=device,
-            )
-            for test_case_index, data in enumerate(calibration_data)
-        )
-
-        prior = prior_material_parameters
-        parameter_names = material_parameter_names
-        initial_parameters = initial_material_parameters
-
-        std_proposal_density_bulk_modulus = 5.0
-        std_proposal_density_shear_modulus = 1.0
-        covar_rwmh_proposal_density = torch.diag(
-            torch.tensor(
-                [
-                    std_proposal_density_bulk_modulus,
-                    std_proposal_density_shear_modulus,
-                ],
-                dtype=torch.float64,
-                device=device,
-            )
-            ** 2
-        )
-        num_rwmh_iterations = int(1e4)
-        num_rwmh_burn_in_iterations = int(5e3)
-
-    elif method == "overestimated_error_stds":
-        std_model_error = 5e-2
-        std_noise_and_model_error = std_noise + std_model_error
-
-        for data in calibration_data:
-            data.std_noise = std_noise_and_model_error
-
-        likelihoods = tuple(
-            create_standard_ppinn_likelihood_for_noise(
-                model=model,
-                num_model_parameters=num_material_parameters,
-                data=data,
-                device=device,
-            )
-            for _, data in enumerate(calibration_data)
-        )
-
-        prior = prior_material_parameters
-        parameter_names = material_parameter_names
-        initial_parameters = initial_material_parameters
-
-        std_proposal_density_bulk_modulus = 10.0
-        std_proposal_density_shear_modulus = 2.0
-        covar_rwmh_proposal_density = torch.diag(
-            torch.tensor(
-                [
-                    std_proposal_density_bulk_modulus,
-                    std_proposal_density_shear_modulus,
-                ],
-                dtype=torch.float64,
-                device=device,
-            )
-            ** 2
-        )
-        num_rwmh_iterations = int(5e4)
-        num_rwmh_burn_in_iterations = int(2e4)
-
-    elif method == "overestimated_error_stds_with_q_likelihood":
-        std_model_error = 5e-2
-        std_noise_and_model_error = std_noise + std_model_error
-
-        for data in calibration_data:
-            data.std_noise = std_noise_and_model_error
-
-        likelihoods = tuple(
-            create_standard_ppinn_q_likelihood_for_noise(
-                model=model,
-                num_model_parameters=num_material_parameters,
-                data=data,
-                device=device,
-            )
-            for _, data in enumerate(calibration_data)
-        )
-
-        prior = prior_material_parameters
-        parameter_names = material_parameter_names
-        initial_parameters = initial_material_parameters
-
-        std_proposal_density_bulk_modulus = 10.0
-        std_proposal_density_shear_modulus = 2.0
-        covar_rwmh_proposal_density = torch.diag(
-            torch.tensor(
-                [
-                    std_proposal_density_bulk_modulus,
-                    std_proposal_density_shear_modulus,
-                ],
-                dtype=torch.float64,
-                device=device,
-            )
-            ** 2
-        )
-        num_rwmh_iterations = int(5e4)
-        num_rwmh_burn_in_iterations = int(2e4)
-
     else:
         raise UnvalidMainConfigError(
-            f"There is no implementation for the requested method: {method}"
+            f"There is no implementation for the requested method: {calibration_method}"
         )
 
     def set_up_least_squares_configs(
@@ -937,8 +863,8 @@ def calibration_step() -> None:
         for likelihood in likelihoods:
             config = HamiltonianConfig(
                 likelihood=likelihood,
-                prior=prior_material_parameters,
-                initial_parameters=initial_material_parameters,
+                prior=prior,
+                initial_parameters=initial_parameters,
                 num_iterations=int(1e4),
                 num_burn_in_iterations=int(5e3),
                 num_leabfrog_steps=128,
@@ -954,8 +880,8 @@ def calibration_step() -> None:
         for likelihood in likelihoods:
             config = EfficientNUTSConfig(
                 likelihood=likelihood,
-                prior=prior_material_parameters,
-                initial_parameters=initial_material_parameters,
+                prior=prior,
+                initial_parameters=initial_parameters,
                 num_iterations=int(1e4),
                 num_burn_in_iterations=int(1e4),
                 max_tree_depth=7,
@@ -1001,7 +927,7 @@ def calibration_step() -> None:
         start = perf_counter()
         test_coverage(
             calibration_configs=configs_h,
-            parameter_names=material_parameter_names,
+            parameter_names=parameter_names,
             true_parameters=true_material_parameters,
             output_subdir=os.path.join(output_subdir_calibration, "hamiltonian"),
             project_directory=project_directory,
@@ -1016,7 +942,7 @@ def calibration_step() -> None:
         start = perf_counter()
         test_coverage(
             calibration_configs=configs_en,
-            parameter_names=material_parameter_names,
+            parameter_names=parameter_names,
             true_parameters=true_material_parameters,
             output_subdir=os.path.join(output_subdir_calibration, "efficient_nuts"),
             project_directory=project_directory,

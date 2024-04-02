@@ -6,9 +6,9 @@ from torch.utils.data import Dataset
 
 from parametricpinn.data.base import repeat_tensor
 from parametricpinn.data.dataset.dataset import (
-    SimulationBatch,
-    SimulationBatchList,
     SimulationCollateFunc,
+    SimulationData,
+    SimulationDataList,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader
@@ -42,23 +42,30 @@ class SimulationDataset2D(Dataset):
         self._file_name_parameters = "parameters"
         self._slice_coordinates = slice(0, 2)
         self._slice_displacements = slice(2, 4)
-        self._samples_x: list[Tensor] = []
-        self._samples_y_true: list[Tensor] = []
+        self._samples: SimulationDataList = []
 
         self._load_samples()
 
     def get_collate_func(self) -> SimulationCollateFunc:
-        def collate_func(batch: SimulationBatchList) -> SimulationBatch:
-            x_batch = []
+        def collate_func(batch: SimulationDataList) -> SimulationData:
+            x_coor_batch = []
+            x_params_batch = []
             y_true_batch = []
 
-            for sample_x, sample_y_true in batch:
-                x_batch.append(sample_x)
-                y_true_batch.append(sample_y_true)
+            def append_to_batch(sample: SimulationData) -> None:
+                x_coor_batch.append(sample.x_coor)
+                x_params_batch.append(sample.x_params)
+                y_true_batch.append(sample.y_true)
 
-            batch_x = torch.concat(x_batch, dim=0)
-            batch_y_true = torch.concat(y_true_batch, dim=0)
-            return batch_x, batch_y_true
+            for sample in batch:
+                append_to_batch(sample)
+
+            batched_data = SimulationData(
+                x_coor=torch.concat(x_coor_batch, dim=0),
+                x_params=torch.concat(x_params_batch, dim=0),
+                y_true=torch.concat(y_true_batch, dim=0),
+            )
+            return batched_data
 
         return collate_func
 
@@ -67,8 +74,7 @@ class SimulationDataset2D(Dataset):
             displacements = self._read_data(self._file_name_displacements, idx_sample)
             parameters = self._read_data(self._file_name_parameters, idx_sample)
             random_indices = self._generate_random_indices(displacements.size(dim=0))
-            self._add_input_sample(displacements, parameters, random_indices)
-            self._add_output_sample(displacements, random_indices)
+            self._add_sample(displacements, parameters, random_indices)
 
     def _read_data(self, file_name, idx_sample) -> Tensor:
         sample_subdir = f"sample_{idx_sample}"
@@ -81,24 +87,19 @@ class SimulationDataset2D(Dataset):
     def _generate_random_indices(self, max_index: int):
         return torch.randperm(max_index)[: self._num_points]
 
-    def _add_input_sample(
+    def _add_sample(
         self, displacements: Tensor, parameters: Tensor, random_indices: Tensor
     ) -> None:
         x_coor_all = displacements[:, self._slice_coordinates]
         x_coor = x_coor_all[random_indices, :]
         x_params = repeat_tensor(parameters, (self._num_points, 1))
-        x = torch.concat((x_coor, x_params), dim=1)
-        self._samples_x.append(x)
-
-    def _add_output_sample(self, displacements: Tensor, random_indices: Tensor) -> None:
         y_true_all = displacements[:, self._slice_displacements]
         y_true = y_true_all[random_indices, :]
-        self._samples_y_true.append(y_true)
+        sample = SimulationData(x_coor=x_coor, x_params=x_params, y_true=y_true)
+        self._samples.append(sample)
 
     def __len__(self) -> int:
         return self._num_samples
 
-    def __getitem__(self, idx: int) -> tuple[Tensor, Tensor]:
-        sample_x = self._samples_x[idx]
-        sample_y_true = self._samples_y_true[idx]
-        return sample_x, sample_y_true
+    def __getitem__(self, idx: int) -> SimulationData:
+        return self._samples[idx]

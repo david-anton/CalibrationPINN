@@ -200,13 +200,14 @@ def pretraining_step() -> None:
     ansatz = create_standard_ansatz()
     train_config = StandardTrainingConfiguration(
         ansatz=ansatz,
-        training_dataset=training_dataset,
+        training_dataset_pinn=training_dataset,
         number_training_epochs=number_pretraining_epochs,
         training_batch_size=training_batch_size,
         validation_dataset=validation_dataset,
         output_subdirectory=output_subdirectory,
         project_directory=project_directory,
         device=device,
+        training_dataset_data=None,
     )
 
     def _plot_exemplary_displacements() -> None:
