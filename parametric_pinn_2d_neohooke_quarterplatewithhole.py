@@ -857,8 +857,8 @@ def calibration_step() -> None:
         for likelihood in likelihoods:
             config = HamiltonianConfig(
                 likelihood=likelihood,
-                prior=prior_material_parameters,
-                initial_parameters=initial_material_parameters,
+                prior=prior,
+                initial_parameters=initial_parameters,
                 num_iterations=int(1e4),
                 num_burn_in_iterations=int(5e3),
                 num_leabfrog_steps=128,
@@ -874,8 +874,8 @@ def calibration_step() -> None:
         for likelihood in likelihoods:
             config = EfficientNUTSConfig(
                 likelihood=likelihood,
-                prior=prior_material_parameters,
-                initial_parameters=initial_material_parameters,
+                prior=prior,
+                initial_parameters=initial_parameters,
                 num_iterations=int(1e4),
                 num_burn_in_iterations=int(1e4),
                 max_tree_depth=7,
@@ -921,7 +921,7 @@ def calibration_step() -> None:
         start = perf_counter()
         test_coverage(
             calibration_configs=configs_h,
-            parameter_names=material_parameter_names,
+            parameter_names=parameter_names,
             true_parameters=true_material_parameters,
             output_subdir=os.path.join(output_subdir_calibration, "hamiltonian"),
             project_directory=project_directory,
@@ -936,7 +936,7 @@ def calibration_step() -> None:
         start = perf_counter()
         test_coverage(
             calibration_configs=configs_en,
-            parameter_names=material_parameter_names,
+            parameter_names=parameter_names,
             true_parameters=true_material_parameters,
             output_subdir=os.path.join(output_subdir_calibration, "efficient_nuts"),
             project_directory=project_directory,

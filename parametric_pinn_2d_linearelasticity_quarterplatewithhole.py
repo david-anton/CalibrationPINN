@@ -108,7 +108,7 @@ number_training_epochs = 10  # 10000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
-weight_data_loss = 100.0
+weight_data_loss = 1e4
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
@@ -572,7 +572,7 @@ def calibration_step() -> None:
         device=device,
     )
 
-    calibration_data, true_parameters = generate_calibration_data()
+    calibration_data, true_material_parameters = generate_calibration_data()
 
     def create_model_error_gp() -> IndependentMultiOutputGP:
         min_inputs = torch.tensor(
@@ -871,7 +871,7 @@ def calibration_step() -> None:
             config = LeastSquaresConfig(
                 ansatz=model,
                 calibration_data=concatenated_data,
-                initial_parameters=initial_parameters,
+                initial_parameters=initial_material_parameters,
                 num_iterations=1000,
                 resdiual_weights=residual_weights,
             )
@@ -933,8 +933,8 @@ def calibration_step() -> None:
         start = perf_counter()
         test_least_squares_calibration(
             calibration_configs=configs_ls,
-            parameter_names=parameter_names,
-            true_parameters=true_parameters,
+            parameter_names=material_parameter_names,
+            true_parameters=true_material_parameters,
             output_subdir=os.path.join(output_subdir_calibration, "least_squares"),
             project_directory=project_directory,
             device=device,
@@ -949,7 +949,7 @@ def calibration_step() -> None:
         test_coverage(
             calibration_configs=configs_mh,
             parameter_names=parameter_names,
-            true_parameters=true_parameters,
+            true_parameters=true_material_parameters,
             output_subdir=os.path.join(
                 output_subdir_calibration, "metropolis_hastings"
             ),
@@ -966,7 +966,7 @@ def calibration_step() -> None:
         test_coverage(
             calibration_configs=configs_h,
             parameter_names=parameter_names,
-            true_parameters=true_parameters,
+            true_parameters=true_material_parameters,
             output_subdir=os.path.join(output_subdir_calibration, "hamiltonian"),
             project_directory=project_directory,
             device=device,
@@ -981,7 +981,7 @@ def calibration_step() -> None:
         test_coverage(
             calibration_configs=configs_en,
             parameter_names=parameter_names,
-            true_parameters=true_parameters,
+            true_parameters=true_material_parameters,
             output_subdir=os.path.join(output_subdir_calibration, "efficient_nuts"),
             project_directory=project_directory,
             device=device,
