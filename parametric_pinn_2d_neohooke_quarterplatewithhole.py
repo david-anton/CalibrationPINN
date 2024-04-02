@@ -108,14 +108,14 @@ fem_element_family = "Lagrange"
 fem_element_degree = 2
 fem_element_size = 1.0  # 0.2
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = "20240305_validation_data_neohooke_quarterplatewithhole_K_4000_8000_G_500_1500_edge_100_radius_10_traction_-100_elementsize_0.2"  # f"20240305_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
+regenerate_valid_data = True
+input_subdir_valid = f"20240402_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"  # f"20240305_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
 num_samples_valid = 1  # 100
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-calibration_method = "noise"
+calibration_method = "noise_only"
 # calibration_method = "noise_and_q_likelihood"
 # calibration_method = "overestimated_error_stds"
 # calibration_method = "full_bayes_with_error_gps"
@@ -610,7 +610,7 @@ def calibration_step() -> None:
 
     ParameterNames: TypeAlias = tuple[str, str] | tuple[str, str, str, str, str, str]
 
-    if calibration_method == "noise":
+    if calibration_method == "noise_only":
         likelihoods = tuple(
             create_standard_ppinn_likelihood_for_noise(
                 model=model,

@@ -122,7 +122,7 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-calibration_method = "noise"
+calibration_method = "noise_only"
 # calibration_method = "noise_and_q_likelihood"
 # calibration_method = "overestimated_error_stds"
 # calibration_method = "full_bayes_with_error_gps"
@@ -639,7 +639,7 @@ def calibration_step() -> None:
 
     ParameterNames: TypeAlias = tuple[str, str] | tuple[str, str, str, str, str, str]
 
-    if calibration_method == "noise":
+    if calibration_method == "noise_only":
         likelihoods = tuple(
             create_standard_ppinn_likelihood_for_noise(
                 model=model,

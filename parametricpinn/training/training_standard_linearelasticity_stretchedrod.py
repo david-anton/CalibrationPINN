@@ -43,9 +43,9 @@ class StandardTrainingConfiguration:
     output_subdirectory: str
     project_directory: ProjectDirectory
     device: Device
-    training_dataset_data: Optional[StretchedRodSimulationDatasetLinearElasticity1D] = (
-        None
-    )
+    training_dataset_data: Optional[
+        StretchedRodSimulationDatasetLinearElasticity1D
+    ] = None
 
 
 def train_parametric_pinn(train_config: StandardTrainingConfiguration) -> None:
@@ -79,7 +79,6 @@ def train_parametric_pinn(train_config: StandardTrainingConfiguration) -> None:
         traction_bc_data: TrainingData1DTractionBC,
         simulation_data: Optional[SimulationData] = None,
     ) -> tuple[Tensor, Tensor, Tensor]:
-
         def loss_func_pde(
             ansatz: StandardAnsatz, pde_data: TrainingData1DCollocation
         ) -> Tensor:

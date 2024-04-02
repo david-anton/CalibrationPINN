@@ -127,7 +127,7 @@ input_subdir_calibration = os.path.join(
     "Paper_PINNs", "20240123_experimental_dic_data_dogbone"
 )
 input_file_name_calibration = "displacements_dic.csv"
-calibration_method = "noise"
+calibration_method = "noise_only"
 # calibration_method = "noise_and_q_likelihood"
 # calibration_method = "overestimated_error_stds"
 # calibration_method = "full_bayes_with_error_gps"
@@ -932,7 +932,7 @@ def calibration_step() -> None:
 
     ParameterNames: TypeAlias = tuple[str, str] | tuple[str, str, str, str, str, str]
 
-    if calibration_method == "noise":
+    if calibration_method == "noise_only":
         likelihood = create_standard_ppinn_likelihood_for_noise(
             model=model,
             num_model_parameters=num_material_parameters,
