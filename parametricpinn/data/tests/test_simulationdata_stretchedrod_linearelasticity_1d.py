@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from parametricpinn.data.validationdata_linearelasticity_1d import (
+from parametricpinn.data.simulationdata_linearelasticity_1d import (
     StretchedRodSimulationDatasetLinearElasticity1D,
     StretchedRodSimulationDatasetLinearElasticity1DConfig,
     calculate_linear_elastic_displacements_solution,

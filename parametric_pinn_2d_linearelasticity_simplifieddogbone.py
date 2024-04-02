@@ -36,23 +36,23 @@ from parametricpinn.calibration.bayesianinference.likelihoods import (
 from parametricpinn.calibration.data import concatenate_calibration_data
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.data.parameterssampling import sample_uniform_grid
+from parametricpinn.data.simulation_2d import (
+    SimulationDataset2D,
+    SimulationDataset2DConfig,
+    create_simulation_dataset,
+)
 from parametricpinn.data.trainingdata_2d import (
     SimplifiedDogBoneGeometryConfig,
     SimplifiedDogBoneTrainingDataset2D,
     SimplifiedDogBoneTrainingDataset2DConfig,
     create_training_dataset,
 )
-from parametricpinn.data.validationdata_2d import (
-    SimulationDataset2D,
-    SimulationDataset2DConfig,
-    create_simulation_dataset,
-)
 from parametricpinn.errors import CalibrationDataConfigError
 from parametricpinn.fem import (
     LinearElasticityProblemConfig_K_G,
     SimplifiedDogBoneDomainConfig,
     SimulationConfig,
-    generate_validation_data,
+    generate_simulation_data,
     run_simulation,
 )
 from parametricpinn.gps import IndependentMultiOutputGP, create_gaussian_process
@@ -241,7 +241,7 @@ def create_datasets() -> tuple[SimplifiedDogBoneTrainingDataset2D, SimulationDat
                     bulk_moduli_list, shear_moduli_list
                 )
             ]
-            generate_validation_data(
+            generate_simulation_data(
                 domain_config=domain_config,
                 problem_configs=problem_configs,
                 volume_force_x=volume_force_x,

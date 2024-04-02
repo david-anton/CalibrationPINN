@@ -21,6 +21,7 @@ class SimulationDataset2DConfig:
     num_points: int
     num_samples: int
     project_directory: ProjectDirectory
+    read_from_output_dir: bool = False
 
 
 class SimulationDataset2D(Dataset):
@@ -30,11 +31,13 @@ class SimulationDataset2D(Dataset):
         num_points: int,
         num_samples: int,
         project_directory: ProjectDirectory,
+        read_from_output_dir: bool = False,
     ) -> None:
         self._input_subdir = input_subdir
         self._num_points = num_points
         self._num_samples = num_samples
         self._data_reader = CSVDataReader(project_directory)
+        self._read_from_output_dir = read_from_output_dir
         self._file_name_displacements = "displacements"
         self._file_name_parameters = "parameters"
         self._slice_coordinates = slice(0, 2)
@@ -70,7 +73,9 @@ class SimulationDataset2D(Dataset):
     def _read_data(self, file_name, idx_sample) -> Tensor:
         sample_subdir = f"sample_{idx_sample}"
         input_subdir = os.path.join(self._input_subdir, sample_subdir)
-        data = self._data_reader.read(file_name, input_subdir)
+        data = self._data_reader.read(
+            file_name, input_subdir, read_from_output_dir=self._read_from_output_dir
+        )
         return torch.tensor(data, dtype=torch.get_default_dtype())
 
     def _generate_random_indices(self, max_index: int):

@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 from parametricpinn.ansatz import BayesianAnsatz, StandardAnsatz
-from parametricpinn.data.validationdata_linearelasticity_1d import (
+from parametricpinn.data.simulationdata_linearelasticity_1d import (
     calculate_linear_elastic_displacements_solution,
 )
 from parametricpinn.io import ProjectDirectory

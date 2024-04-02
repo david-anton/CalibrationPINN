@@ -9,10 +9,10 @@ from parametricpinn.data.dataset import (
     TrainingData1DCollocation,
     TrainingData1DTractionBC,
 )
-from parametricpinn.data.trainingdata_1d import StretchedRodTrainingDataset1D
-from parametricpinn.data.validationdata_linearelasticity_1d import (
+from parametricpinn.data.simulationdata_linearelasticity_1d import (
     StretchedRodSimulationDatasetLinearElasticity1D,
 )
+from parametricpinn.data.trainingdata_1d import StretchedRodTrainingDataset1D
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.loaderssavers import PytorchModelSaver
 from parametricpinn.postprocessing.plot import (

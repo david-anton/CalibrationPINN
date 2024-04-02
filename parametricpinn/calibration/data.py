@@ -5,7 +5,7 @@ from typing import TypeAlias
 
 import torch
 
-from parametricpinn.data.validationdata_linearelasticity_1d import (
+from parametricpinn.data.simulationdata_linearelasticity_1d import (
     LinearElasticDispalcementSolutionFunc,
 )
 from parametricpinn.errors import UnvalidCalibrationDataError

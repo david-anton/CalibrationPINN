@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 import torch
 
-from parametricpinn.data.validationdata_2d import (
+from parametricpinn.data.simulation_2d import (
     SimulationDataset2D,
     SimulationDataset2DConfig,
     create_simulation_dataset,

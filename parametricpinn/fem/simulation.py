@@ -71,7 +71,7 @@ def run_simulation(
     return simulation_results
 
 
-def generate_validation_data(
+def generate_simulation_data(
     domain_config: DomainConfig,
     problem_configs: ProblemConfigList,
     volume_force_x: float,
@@ -79,9 +79,10 @@ def generate_validation_data(
     save_metadata: bool,
     output_subdir: str,
     project_directory: ProjectDirectory,
+    save_to_input_dir=True,
 ) -> None:
     save_results = True
-    save_to_input_dir = True
+    save_to_input_dir = save_to_input_dir
     num_simulations = len(problem_configs)
     domain = create_domain(
         domain_config=domain_config,

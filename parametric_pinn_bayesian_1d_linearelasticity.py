@@ -25,16 +25,16 @@ from parametricpinn.calibration.bayesianinference.likelihoods import (
 )
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.data.parameterssampling import sample_uniform_grid
-from parametricpinn.data.trainingdata_1d import (
-    StretchedRodTrainingDataset1D,
-    StretchedRodTrainingDataset1DConfig,
-    create_training_dataset,
-)
-from parametricpinn.data.validationdata_linearelasticity_1d import (
+from parametricpinn.data.simulationdata_linearelasticity_1d import (
     StretchedRodSimulationDatasetLinearElasticity1D,
     StretchedRodSimulationDatasetLinearElasticity1DConfig,
     calculate_linear_elastic_displacements_solution,
     create_simulation_dataset,
+)
+from parametricpinn.data.trainingdata_1d import (
+    StretchedRodTrainingDataset1D,
+    StretchedRodTrainingDataset1DConfig,
+    create_training_dataset,
 )
 from parametricpinn.io import ProjectDirectory
 from parametricpinn.io.readerswriters import CSVDataReader

@@ -11,7 +11,7 @@ from .problems import (
     NeoHookeProblemConfig,
     ProblemConfigs,
 )
-from .simulation import SimulationConfig, generate_validation_data, run_simulation
+from .simulation import SimulationConfig, generate_simulation_data, run_simulation
 
 __all__ = [
     "DogBoneDomainConfig",
@@ -24,6 +24,6 @@ __all__ = [
     "NeoHookeProblemConfig",
     "ProblemConfigs",
     "SimulationConfig",
-    "generate_validation_data",
+    "generate_simulation_data",
     "run_simulation",
 ]

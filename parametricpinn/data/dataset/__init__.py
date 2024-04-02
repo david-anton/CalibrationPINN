@@ -1,4 +1,5 @@
 from .dataset import (
+    SimulationBatch,
     TrainingData1DCollocation,
     TrainingData1DTractionBC,
     TrainingData2DCollocation,
@@ -59,4 +60,5 @@ __all__ = [
     "SimulationDataset2DConfig",
     "StretchedRodSimulationDatasetLinearElasticity1D",
     "StretchedRodSimulationDatasetLinearElasticity1DConfig",
+    "SimulationBatch",
 ]
