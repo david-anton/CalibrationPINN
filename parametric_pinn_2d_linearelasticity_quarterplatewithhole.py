@@ -95,17 +95,17 @@ layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_per_parameter = 2  # 32
-num_collocation_points = 2  # 64
-num_points_per_bc = 2  # 64
+num_samples_per_parameter = 32
+num_collocation_points = 64
+num_points_per_bc = 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
 use_simulation_data = True
 regenerate_train_data = True
-num_data_samples_per_parameter = 1  # 5
-num_data_points = 8  # 1024
-number_training_epochs = 10  # 10000
+num_data_samples_per_parameter = 8
+num_data_points = 128
+number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
@@ -113,11 +113,11 @@ weight_data_loss = 1e4
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
-fem_element_size = 1.0  # 0.1
+fem_element_size = 0.1
 # Validation
-regenerate_valid_data = True  # False
-input_subdir_valid = f"20240402_validation_data_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}_K_G"  # f"20240304_validation_data_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}_K_G"
-num_samples_valid = 1  # 100
+regenerate_valid_data = False
+input_subdir_valid = f"20240304_validation_data_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}_K_G"
+num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
@@ -134,7 +134,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_6_128"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_data_samples_per_parameter}_neurons_6_128"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
 save_metadata = True
@@ -735,8 +735,8 @@ def calibration_step() -> None:
             )
             ** 2
         )
-        num_rwmh_iterations = int(5e4)
-        num_rwmh_burn_in_iterations = int(2e4)
+        num_rwmh_iterations = int(1e4)
+        num_rwmh_burn_in_iterations = int(5e3)
 
     elif calibration_method == "full_bayes_with_error_gps":
         prior_output_scale = create_gamma_distributed_prior(
@@ -753,9 +753,6 @@ def calibration_step() -> None:
                 prior_length_scale,
             ]
         )
-
-        model_error_optimization_num_material_parameter_samples = 128
-        model_error_optimization_num_iterations = 16
 
         likelihoods = tuple(
             create_standard_ppinn_likelihood_for_noise_and_model_error_gps_sampling(

@@ -1,6 +1,6 @@
 import statistics
 from dataclasses import dataclass
-from typing import Optional, TypeAlias
+from typing import Optional
 
 import torch
 from torch.utils.data import DataLoader
