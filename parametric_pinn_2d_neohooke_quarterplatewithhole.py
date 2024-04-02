@@ -94,6 +94,7 @@ num_points_per_bc = 4  # 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
+use_simulation_data = True
 regenerate_train_data = True
 num_data_samples_per_parameter = 1  # 5
 num_data_points = 8  # 1024
@@ -284,7 +285,10 @@ def create_datasets() -> (
         return create_simulation_dataset(config_validation_data)
 
     training_dataset_pinn = _create_pinn_training_dataset()
-    training_dataset_data = _create_data_training_dataset()
+    if use_simulation_data:
+        training_dataset_data = _create_data_training_dataset()
+    else:
+        training_dataset_data = None
     validation_dataset = _create_validation_dataset()
     return training_dataset_pinn, training_dataset_data, validation_dataset
 
