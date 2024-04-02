@@ -38,22 +38,22 @@ from parametricpinn.calibration.bayesianinference.likelihoods import (
 from parametricpinn.calibration.data import concatenate_calibration_data
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.data.parameterssampling import sample_uniform_grid
+from parametricpinn.data.simulation_2d import (
+    SimulationDataset2D,
+    SimulationDataset2DConfig,
+    create_simulation_dataset,
+)
 from parametricpinn.data.trainingdata_2d import (
     QuarterPlateWithHoleTrainingDataset2D,
     QuarterPlateWithHoleTrainingDataset2DConfig,
     create_training_dataset,
-)
-from parametricpinn.data.validationdata_2d import (
-    SimulationDataset2D,
-    SimulationDataset2DConfig,
-    create_simulation_dataset,
 )
 from parametricpinn.errors import UnvalidMainConfigError
 from parametricpinn.fem import (
     NeoHookeProblemConfig,
     QuarterPlateWithHoleDomainConfig,
     SimulationConfig,
-    generate_validation_data,
+    generate_simulation_data,
     run_simulation,
 )
 from parametricpinn.gps import IndependentMultiOutputGP, create_gaussian_process
@@ -72,7 +72,7 @@ from parametricpinn.training.training_standard_neohooke_quarterplatewithhole imp
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 num_material_parameters = 2
 edge_length = 100.0
@@ -90,33 +90,37 @@ layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_per_parameter = 32
-num_collocation_points = 64
-number_points_per_bc = 64
+num_samples_per_parameter = 2  # 32
+num_collocation_points = 4  # 64
+num_points_per_bc = 4  # 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_samples_per_parameter**2
-number_training_epochs = 10000
+regenerate_train_data = True
+num_data_samples_per_parameter = 1  # 5
+num_data_points = 8  # 1024
+number_training_epochs = 10  # 10000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
+weight_data_loss = 1.0
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 2
-fem_element_size = 0.2
+fem_element_size = 1.0  # 0.2
 # Validation
 regenerate_valid_data = False
-input_subdir_valid = f"20240305_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
-num_samples_valid = 100
+input_subdir_valid = "20240305_validation_data_neohooke_quarterplatewithhole_K_4000_8000_G_500_1500_edge_100_radius_10_traction_-100_elementsize_0.2"  # f"20240305_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
+num_samples_valid = 1  # 100
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-method = "full_bayes_with_error_gps"
+# method = "full_bayes_with_error_gps"
 # method = "empirical_bayes_with_error_gps"
 # method = "empirical_bayes_with_error_stds"
 # method = "empirical_bayes_with_error_stds_and_q_likelihood"
-# method = "overestimated_error_stds"
+method = "overestimated_error_stds"
 # method = "overestimated_error_stds_with_q_likelihood"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
@@ -124,10 +128,10 @@ use_hamiltonian = False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = "20240311"
-output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_samples_{num_samples_per_parameter}_col_{int(num_collocation_points)}_bc_{int(number_points_per_bc)}_neurons_6_128"
+output_date = current_date
+output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_samples_{num_samples_per_parameter}_col_{int(num_collocation_points)}_bc_{int(num_points_per_bc)}_neurons_6_128"
 output_subdir_training = os.path.join(output_subdirectory, "training")
-output_subdir_normalization = os.path.join(output_subdirectory, "normalization")
+output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
 save_metadata = True
 
 
@@ -152,9 +156,11 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
 
 
 def create_datasets() -> (
-    tuple[QuarterPlateWithHoleTrainingDataset2D, SimulationDataset2D]
+    tuple[
+        QuarterPlateWithHoleTrainingDataset2D, SimulationDataset2D, SimulationDataset2D
+    ]
 ):
-    def _create_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
+    def _create_pinn_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_uniform_grid(
             min_parameters=[min_bulk_modulus, min_shear_modulus],
@@ -171,11 +177,60 @@ def create_datasets() -> (
             traction_left=traction_left,
             volume_force=volume_force,
             num_collocation_points=num_collocation_points,
-            num_points_per_bc=number_points_per_bc,
+            num_points_per_bc=num_points_per_bc,
             bcs_overlap_distance=bcs_overlap_distance,
             bcs_overlap_angle_distance=bcs_overlap_angle_distance,
         )
         return create_training_dataset(config_training_data)
+
+    def _create_data_training_dataset() -> SimulationDataset2D:
+        num_data_samples = num_data_samples_per_parameter**2
+        training_data_subdir = os.path.join(output_subdir_training, "training_data")
+
+        def _generate_data() -> None:
+            parameters_samples = sample_uniform_grid(
+                min_parameters=[min_bulk_modulus, min_shear_modulus],
+                max_parameters=[max_bulk_modulus, max_shear_modulus],
+                num_steps=[
+                    num_data_samples_per_parameter,
+                    num_data_samples_per_parameter,
+                ],
+                device=device,
+            )
+            domain_config = create_fem_domain_config()
+            problem_configs = [
+                NeoHookeProblemConfig(
+                    material_parameters=(
+                        parameters_sample[0].item(),
+                        parameters_sample[1].item(),
+                    ),
+                )
+                for parameters_sample in parameters_samples
+            ]
+
+            generate_simulation_data(
+                domain_config=domain_config,
+                problem_configs=problem_configs,
+                volume_force_x=volume_force_x,
+                volume_force_y=volume_force_y,
+                save_metadata=save_metadata,
+                output_subdir=training_data_subdir,
+                project_directory=project_directory,
+                save_to_input_dir=False,
+            )
+
+        if regenerate_train_data:
+            print("Run FE simulations to generate training data ...")
+            _generate_data()
+        print("Load training data ...")
+        config_validation_data = SimulationDataset2DConfig(
+            input_subdir=training_data_subdir,
+            num_points=num_data_points,
+            num_samples=num_data_samples,
+            project_directory=project_directory,
+            read_from_output_dir=True,
+        )
+        return create_simulation_dataset(config_validation_data)
 
     def _create_validation_dataset() -> SimulationDataset2D:
         def _generate_validation_data() -> None:
@@ -208,7 +263,7 @@ def create_datasets() -> (
                 )
             ]
 
-            generate_validation_data(
+            generate_simulation_data(
                 domain_config=domain_config,
                 problem_configs=problem_configs,
                 volume_force_x=volume_force_x,
@@ -231,9 +286,10 @@ def create_datasets() -> (
         )
         return create_simulation_dataset(config_validation_data)
 
-    training_dataset = _create_training_dataset()
+    training_dataset_pinn = _create_pinn_training_dataset()
+    training_dataset_data = _create_data_training_dataset()
     validation_dataset = _create_validation_dataset()
-    return training_dataset, validation_dataset
+    return training_dataset_pinn, training_dataset_data, validation_dataset
 
 
 def create_ansatz() -> StandardAnsatz:
@@ -391,11 +447,12 @@ ansatz = create_ansatz()
 def training_step() -> None:
     train_config = TrainingConfiguration(
         ansatz=ansatz,
-        number_points_per_bc=number_points_per_bc,
+        number_points_per_bc=num_points_per_bc,
         weight_pde_loss=weight_pde_loss,
         weight_stress_bc_loss=weight_stress_bc_loss,
         weight_traction_bc_loss=weight_traction_bc_loss,
-        training_dataset=training_dataset,
+        weight_data_loss=weight_data_loss,
+        training_dataset_pinn=training_dataset_pinn,
         number_training_epochs=number_training_epochs,
         training_batch_size=training_batch_size,
         validation_dataset=validation_dataset,
@@ -403,6 +460,7 @@ def training_step() -> None:
         output_subdirectory=output_subdir_training,
         project_directory=project_directory,
         device=device,
+        training_dataset_data=training_dataset_data,
     )
 
     def _plot_exemplary_displacement_fields() -> None:
@@ -971,7 +1029,7 @@ def calibration_step() -> None:
     print("Calibration finished.")
 
 
-training_dataset, validation_dataset = create_datasets()
+training_dataset_pinn, training_dataset_data, validation_dataset = create_datasets()
 if retrain_parametric_pinn:
     training_step()
 calibration_step()
