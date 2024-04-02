@@ -104,14 +104,21 @@ class StretchedRodSimulationDatasetLinearElasticity1D(Dataset):
     def _add_sample(self, coordinates: Tensor, youngs_modulus: Tensor) -> None:
         x_coor = coordinates
         x_params = repeat_tensor(youngs_modulus, (self._num_points, 1))
-        y_true = calculate_linear_elastic_displacements_solution(
-            coordinates=coordinates,
-            length=self._geometry.length,
-            youngs_modulus=youngs_modulus,
-            traction=self._traction,
-            volume_force=self._volume_force,
+        y_true = cast(
+            Tensor,
+            calculate_linear_elastic_displacements_solution(
+                coordinates=coordinates,
+                length=self._geometry.length,
+                youngs_modulus=youngs_modulus,
+                traction=self._traction,
+                volume_force=self._volume_force,
+            ),
         )
-        sample = SimulationData(x_coor=x_coor, x_params=x_params, y_true=y_true)
+        sample = SimulationData(
+            x_coor=x_coor.detach(),
+            x_params=x_params.detach(),
+            y_true=y_true.detach(),
+        )
         self._samples.append(sample)
 
     def __len__(self) -> int:

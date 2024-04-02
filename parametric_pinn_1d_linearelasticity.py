@@ -69,16 +69,20 @@ distance_function = "normalized linear"
 num_parameter_samples = 256
 num_collocation_points = 128
 training_batch_size = num_parameter_samples
-number_training_epochs = 500
+use_simulation_data = True
+num_data_samples_per_parameter = 1  # 8
+num_data_points = 8  # 64
+number_training_epochs = 10  # 500
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
+weight_data_loss = 1e4
 # Validation
 num_samples_valid = 1000
 valid_interval = 1
 num_points_valid = 256
 batch_size_valid = num_samples_valid
 # Calibration
-consider_model_error = True
+use_q_likelihood = True
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -98,12 +102,12 @@ set_default_dtype(torch.float64)
 set_seed(0)
 
 
-def create_datasets() -> (
-    tuple[
-        StretchedRodTrainingDataset1D, StretchedRodSimulationDatasetLinearElasticity1D
-    ]
-):
-    def _create_training_dataset() -> StretchedRodTrainingDataset1D:
+def create_datasets() -> tuple[
+    StretchedRodTrainingDataset1D,
+    StretchedRodSimulationDatasetLinearElasticity1D,
+    StretchedRodSimulationDatasetLinearElasticity1D,
+]:
+    def _create_pinn_training_dataset() -> StretchedRodTrainingDataset1D:
         parameter_samples = sample_uniform_grid(
             min_parameters=[min_youngs_modulus],
             max_parameters=[max_youngs_modulus],
@@ -119,12 +123,28 @@ def create_datasets() -> (
         )
         return create_training_dataset(config_training_dataset)
 
+    def _create_data_training_dataset() -> (
+        StretchedRodSimulationDatasetLinearElasticity1DConfig
+    ):
+        config_simulation_dataset = (
+            StretchedRodSimulationDatasetLinearElasticity1DConfig(
+                length=length,
+                min_youngs_modulus=min_youngs_modulus,
+                max_youngs_modulus=max_youngs_modulus,
+                traction=traction,
+                volume_force=volume_force,
+                num_points=num_points_valid,
+                num_samples=num_samples_valid,
+            )
+        )
+        return create_simulation_dataset(config_simulation_dataset)
+
     def _create_validation_dataset() -> (
         StretchedRodSimulationDatasetLinearElasticity1DConfig
     ):
         offset_training_range_youngs_modulus = 1000.0
 
-        config_validation_dataset = (
+        config_simulation_dataset = (
             StretchedRodSimulationDatasetLinearElasticity1DConfig(
                 length=length,
                 min_youngs_modulus=min_youngs_modulus
@@ -137,11 +157,12 @@ def create_datasets() -> (
                 num_samples=num_samples_valid,
             )
         )
-        return create_simulation_dataset(config_validation_dataset)
+        return create_simulation_dataset(config_simulation_dataset)
 
-    training_dataset = _create_training_dataset()
+    training_dataset_pinn = _create_pinn_training_dataset()
+    training_dataset_data = _create_data_training_dataset()
     validation_dataset = _create_validation_dataset()
-    return training_dataset, validation_dataset
+    return training_dataset_pinn, training_dataset_data, validation_dataset
 
 
 def create_ansatz() -> StandardAnsatz:
@@ -188,13 +209,15 @@ def training_step() -> None:
         ansatz=ansatz,
         weight_pde_loss=weight_pde_loss,
         weight_traction_bc_loss=weight_traction_bc_loss,
-        training_dataset=training_dataset,
+        weight_data_loss=weight_data_loss,
+        training_dataset_pinn=training_dataset_pinn,
         number_training_epochs=number_training_epochs,
         training_batch_size=training_batch_size,
         validation_dataset=validation_dataset,
         output_subdirectory=output_subdirectory_training,
         project_directory=project_directory,
         device=device,
+        training_dataset_data=training_dataset_data,
     )
 
     def _plot_exemplary_displacements() -> None:
@@ -264,7 +287,7 @@ def calibration_step() -> None:
 
     calibration_data, true_parameters = generate_calibration_data()
 
-    if consider_model_error:
+    if use_q_likelihood:
         likelihoods = tuple(
             create_standard_ppinn_q_likelihood_for_noise(
                 model=model,
@@ -443,6 +466,6 @@ def calibration_step() -> None:
 
 
 if retrain_parametric_pinn:
-    training_dataset, validation_dataset = create_datasets()
+    training_dataset_pinn, training_dataset_data, validation_dataset = create_datasets()
     training_step()
 calibration_step()
