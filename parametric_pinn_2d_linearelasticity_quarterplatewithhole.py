@@ -35,7 +35,7 @@ from parametricpinn.calibration.bayesianinference.likelihoods import (
 )
 from parametricpinn.calibration.data import concatenate_calibration_data
 from parametricpinn.calibration.utility import load_model
-from parametricpinn.data.parameterssampling import sample_uniform_grid
+from parametricpinn.data.parameterssampling import sample_quasirandom_sobol
 from parametricpinn.data.simulation_2d import (
     SimulationDataset2D,
     SimulationDataset2DConfig,
@@ -96,16 +96,16 @@ activation = torch.nn.SiLU()  # torch.nn.Tanh()
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_per_parameter = 32
-num_collocation_points = 32  # 64
-num_points_per_bc = 32  # 64
+num_parameter_samples_pinn = 1024
+num_collocation_points = 32
+num_points_per_bc = 32
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
-training_batch_size = num_samples_per_parameter**2
+training_batch_size = num_parameter_samples_pinn
 use_simulation_data = True
-regenerate_train_data = False  # True
-num_data_samples_per_parameter = 8
-num_data_points = 256  # 128
+regenerate_train_data = True
+num_parameter_samples_data = 128
+num_data_points = 128
 number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
@@ -119,7 +119,7 @@ fem_element_size = 0.1
 regenerate_valid_data = False
 input_subdir_valid = f"20240304_validation_data_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}_K_G"
 num_samples_valid = 100
-validation_interval = 1  # 10
+validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
@@ -135,7 +135,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_data_samples_per_parameter}_neurons_6_128_SiLU"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_pinnsamples_{num_parameter_samples_pinn}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_parameter_samples_data}_neurons_6_128_SiLU"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
 save_metadata = True
@@ -193,17 +193,19 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
     )
 
 
-def create_datasets() -> tuple[
-    QuarterPlateWithHoleTrainingDataset2D,
-    SimulationDataset2D | None,
-    SimulationDataset2D,
-]:
+def create_datasets() -> (
+    tuple[
+        QuarterPlateWithHoleTrainingDataset2D,
+        SimulationDataset2D | None,
+        SimulationDataset2D,
+    ]
+):
     def _create_pinn_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
-        parameters_samples = sample_uniform_grid(
+        parameters_samples = sample_quasirandom_sobol(
             min_parameters=[min_bulk_modulus, min_shear_modulus],
             max_parameters=[max_bulk_modulus, max_shear_modulus],
-            num_steps=[num_samples_per_parameter, num_samples_per_parameter],
+            num_samples=num_parameter_samples_pinn,
             device=device,
         )
         traction_left = torch.tensor([traction_left_x, traction_left_y])
@@ -222,17 +224,13 @@ def create_datasets() -> tuple[
         return create_training_dataset(config_training_data)
 
     def _create_data_training_dataset() -> SimulationDataset2D:
-        num_data_samples = num_data_samples_per_parameter**2
         training_data_subdir = os.path.join(output_subdir_training, "training_data")
 
         def _generate_data() -> None:
-            parameters_samples = sample_uniform_grid(
+            parameters_samples = sample_quasirandom_sobol(
                 min_parameters=[min_bulk_modulus, min_shear_modulus],
                 max_parameters=[max_bulk_modulus, max_shear_modulus],
-                num_steps=[
-                    num_data_samples_per_parameter,
-                    num_data_samples_per_parameter,
-                ],
+                num_samples=num_parameter_samples_data,
                 device=device,
             )
             domain_config = create_fem_domain_config()
@@ -265,7 +263,7 @@ def create_datasets() -> tuple[
         config_validation_data = SimulationDataset2DConfig(
             input_subdir=training_data_subdir,
             num_points=num_data_points,
-            num_samples=num_data_samples,
+            num_samples=num_parameter_samples_data,
             project_directory=project_directory,
             read_from_output_dir=True,
         )

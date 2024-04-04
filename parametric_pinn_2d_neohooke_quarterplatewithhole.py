@@ -35,7 +35,7 @@ from parametricpinn.calibration.bayesianinference.likelihoods import (
 )
 from parametricpinn.calibration.data import concatenate_calibration_data
 from parametricpinn.calibration.utility import load_model
-from parametricpinn.data.parameterssampling import sample_uniform_grid
+from parametricpinn.data.parameterssampling import sample_quasirandom_sobol
 from parametricpinn.data.simulation_2d import (
     SimulationDataset2D,
     SimulationDataset2DConfig,
@@ -85,19 +85,20 @@ min_shear_modulus = 500.0
 max_shear_modulus = 1500.0
 # Network
 layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
+activation = torch.nn.SiLU()  # torch.nn.Tanh()
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_per_parameter = 32
-num_collocation_points = 64
-num_points_per_bc = 64
+num_parameter_samples_pinn = 1024
+num_collocation_points = 32
+num_points_per_bc = 32
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
-training_batch_size = num_samples_per_parameter**2
+training_batch_size = num_parameter_samples_pinn
 use_simulation_data = True
 regenerate_train_data = True
-num_data_samples_per_parameter = 8
-num_data_points = 128
+num_parameter_samples_data = 128
+num_points_data = 128
 number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
@@ -127,7 +128,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_data_samples_per_parameter}_neurons_6_128"
+output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_pinnsamples_{num_parameter_samples_pinn}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_parameter_samples_data}_neurons_6_128_SiLU"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
 save_metadata = True
@@ -162,10 +163,10 @@ def create_datasets() -> (
 ):
     def _create_pinn_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
-        parameters_samples = sample_uniform_grid(
+        parameters_samples = sample_quasirandom_sobol(
             min_parameters=[min_bulk_modulus, min_shear_modulus],
             max_parameters=[max_bulk_modulus, max_shear_modulus],
-            num_steps=[num_samples_per_parameter, num_samples_per_parameter],
+            num_samples=num_parameter_samples_pinn,
             device=device,
         )
         traction_left = torch.tensor([traction_left_x, traction_left_y])
@@ -184,17 +185,13 @@ def create_datasets() -> (
         return create_training_dataset(config_training_data)
 
     def _create_data_training_dataset() -> SimulationDataset2D:
-        num_data_samples = num_data_samples_per_parameter**2
         training_data_subdir = os.path.join(output_subdir_training, "training_data")
 
         def _generate_data() -> None:
-            parameters_samples = sample_uniform_grid(
+            parameters_samples = sample_quasirandom_sobol(
                 min_parameters=[min_bulk_modulus, min_shear_modulus],
                 max_parameters=[max_bulk_modulus, max_shear_modulus],
-                num_steps=[
-                    num_data_samples_per_parameter,
-                    num_data_samples_per_parameter,
-                ],
+                num_samples=num_parameter_samples_data,
                 device=device,
             )
             domain_config = create_fem_domain_config()
@@ -225,8 +222,8 @@ def create_datasets() -> (
         print("Load training data ...")
         config_validation_data = SimulationDataset2DConfig(
             input_subdir=training_data_subdir,
-            num_points=num_data_points,
-            num_samples=num_data_samples,
+            num_points=num_points_data,
+            num_samples=num_parameter_samples_data,
             project_directory=project_directory,
             read_from_output_dir=True,
         )
@@ -432,7 +429,7 @@ def create_ansatz() -> StandardAnsatz:
         return normalization_values
 
     normalization_values = _determine_normalization_values()
-    network = FFNN(layer_sizes=layer_sizes)
+    network = FFNN(layer_sizes=layer_sizes, activation=activation)
     return create_standard_normalized_hbc_ansatz_quarter_plate_with_hole(
         min_inputs=normalization_values[key_min_inputs],
         max_inputs=normalization_values[key_max_inputs],
@@ -625,8 +622,8 @@ def calibration_step() -> None:
         parameter_names: ParameterNames = material_parameter_names
         initial_parameters = initial_material_parameters
 
-        std_proposal_density_bulk_modulus = 5.0
-        std_proposal_density_shear_modulus = 1.0
+        std_proposal_density_bulk_modulus = 2.0
+        std_proposal_density_shear_modulus = 0.5
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
@@ -656,8 +653,8 @@ def calibration_step() -> None:
         parameter_names = material_parameter_names
         initial_parameters = initial_material_parameters
 
-        std_proposal_density_bulk_modulus = 5.0
-        std_proposal_density_shear_modulus = 1.0
+        std_proposal_density_bulk_modulus = 2.0
+        std_proposal_density_shear_modulus = 0.5
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
@@ -693,8 +690,8 @@ def calibration_step() -> None:
         parameter_names = material_parameter_names
         initial_parameters = initial_material_parameters
 
-        std_proposal_density_bulk_modulus = 5.0
-        std_proposal_density_shear_modulus = 1.0
+        std_proposal_density_bulk_modulus = 2.0
+        std_proposal_density_shear_modulus = 0.5
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
@@ -743,7 +740,7 @@ def calibration_step() -> None:
         )
 
         std_proposal_density_bulk_modulus = 2.0
-        std_proposal_density_shear_modulus = 0.1
+        std_proposal_density_shear_modulus = 0.5
         std_gp_output_scale = 1e-5
         std_gp_length_scale = 1e-4
         covar_rwmh_proposal_density = torch.diag(
@@ -791,8 +788,8 @@ def calibration_step() -> None:
         parameter_names = material_parameter_names
         initial_parameters = initial_material_parameters
 
-        std_proposal_density_bulk_modulus = 5.0
-        std_proposal_density_shear_modulus = 1.0
+        std_proposal_density_bulk_modulus = 2.0
+        std_proposal_density_shear_modulus = 0.5
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [

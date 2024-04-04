@@ -38,7 +38,7 @@ from parametricpinn.calibration.bayesianinference.likelihoods import (
 )
 from parametricpinn.calibration.data import concatenate_calibration_data
 from parametricpinn.calibration.utility import load_model
-from parametricpinn.data.parameterssampling import sample_uniform_grid
+from parametricpinn.data.parameterssampling import sample_quasirandom_sobol
 from parametricpinn.data.simulation_2d import (
     SimulationDataset2D,
     SimulationDataset2DConfig,
@@ -94,23 +94,24 @@ min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
+activation = torch.nn.SiLU()  # torch.nn.Tanh()
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_samples_per_parameter = 32
+num_parameter_samples_pinn = 1024
 num_collocation_points = 64
-num_points_per_bc = 64
+num_points_per_bc = 32
 bcs_overlap_angle_distance_left = 1e-2
 bcs_overlap_distance_parallel_right = 1e-2
-training_batch_size = num_samples_per_parameter**2
+training_batch_size = num_parameter_samples_pinn
 use_simulation_data = True
 regenerate_train_data = True
-num_data_samples_per_parameter = 8
+num_parameter_samples_data = 128
 num_data_points = 128
-number_training_epochs = 30000
+number_training_epochs = 20000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
-weight_data_loss = 1e4
+weight_data_loss = 1e5
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
@@ -139,7 +140,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_samples_{num_samples_per_parameter}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_data_samples_per_parameter}_neurons_6_128"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_pinnsamples_{num_parameter_samples_pinn}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_parameter_samples_data}_neurons_6_128_SiLU"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
 save_metadata = True
@@ -207,10 +208,10 @@ def create_datasets() -> (
 ):
     def _create_pinn_training_dataset() -> SimplifiedDogBoneTrainingDataset2D:
         print("Generate training data ...")
-        parameters_samples = sample_uniform_grid(
+        parameters_samples = sample_quasirandom_sobol(
             min_parameters=[min_bulk_modulus, min_shear_modulus],
             max_parameters=[max_bulk_modulus, max_shear_modulus],
-            num_steps=[num_samples_per_parameter, num_samples_per_parameter],
+            num_samples=num_parameter_samples_pinn,
             device=device,
         )
 
@@ -228,17 +229,13 @@ def create_datasets() -> (
         return create_training_dataset(config_training_data)
 
     def _create_data_training_dataset() -> SimulationDataset2D:
-        num_data_samples = num_data_samples_per_parameter**2
         training_data_subdir = os.path.join(output_subdir_training, "training_data")
 
         def _generate_data() -> None:
-            parameters_samples = sample_uniform_grid(
+            parameters_samples = sample_quasirandom_sobol(
                 min_parameters=[min_bulk_modulus, min_shear_modulus],
                 max_parameters=[max_bulk_modulus, max_shear_modulus],
-                num_steps=[
-                    num_data_samples_per_parameter,
-                    num_data_samples_per_parameter,
-                ],
+                num_samples=num_parameter_samples_data,
                 device=device,
             )
             domain_config = create_fem_domain_config()
@@ -271,7 +268,7 @@ def create_datasets() -> (
         config_validation_data = SimulationDataset2DConfig(
             input_subdir=training_data_subdir,
             num_points=num_data_points,
-            num_samples=num_data_samples,
+            num_samples=num_parameter_samples_data,
             project_directory=project_directory,
             read_from_output_dir=True,
         )
@@ -463,7 +460,7 @@ def create_ansatz() -> StandardAnsatz:
         return normalization_values
 
     normalization_values = _determine_normalization_values()
-    network = FFNN(layer_sizes=layer_sizes)
+    network = FFNN(layer_sizes=layer_sizes, activation=activation)
     return create_standard_normalized_hbc_ansatz_clamped_left(
         coordinate_x_left=torch.tensor(
             [-geometry_config.left_half_box_length], device=device
