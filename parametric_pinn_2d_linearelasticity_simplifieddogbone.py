@@ -99,13 +99,13 @@ activation = torch.nn.SiLU()  # torch.nn.Tanh()
 distance_function = "normalized linear"
 # Training
 num_parameter_samples_pinn = 1024
-num_collocation_points = 64
+num_collocation_points = 32
 num_points_per_bc = 32
 bcs_overlap_angle_distance_left = 1e-2
 bcs_overlap_distance_parallel_right = 1e-2
 training_batch_size = num_parameter_samples_pinn
 use_simulation_data = True
-regenerate_train_data = True
+regenerate_train_data = False
 num_parameter_samples_data = 128
 num_data_points = 128
 number_training_epochs = 20000
@@ -199,13 +199,11 @@ def create_fem_domain_config() -> SimplifiedDogBoneDomainConfig:
     )
 
 
-def create_datasets() -> (
-    tuple[
-        SimplifiedDogBoneTrainingDataset2D,
-        SimulationDataset2D | None,
-        SimulationDataset2D,
-    ]
-):
+def create_datasets() -> tuple[
+    SimplifiedDogBoneTrainingDataset2D,
+    SimulationDataset2D | None,
+    SimulationDataset2D,
+]:
     def _create_pinn_training_dataset() -> SimplifiedDogBoneTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(
