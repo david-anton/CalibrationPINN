@@ -124,10 +124,10 @@ num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
 # calibration_method = "noise_only"
-calibration_method = "noise_and_q_likelihood"
+# calibration_method = "noise_and_q_likelihood"
 # calibration_method = "overestimated_error_stds"
 # calibration_method = "full_bayes_with_error_gps"
-# calibration_method = "empirical_bayes_with_error_gps"
+calibration_method = "empirical_bayes_with_error_gps"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -789,7 +789,7 @@ def calibration_step() -> None:
         num_rwmh_burn_in_iterations = int(2e5)
 
     elif calibration_method == "empirical_bayes_with_error_gps":
-        model_error_optimization_num_material_parameter_samples = 128
+        model_error_optimization_num_material_parameter_samples = 256
         model_error_optimization_num_iterations = 16
 
         likelihoods = tuple(
