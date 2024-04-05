@@ -649,7 +649,7 @@ def calibration_step() -> None:
         parameter_names: ParameterNames = material_parameter_names
         initial_parameters = initial_material_parameters
 
-        std_proposal_density_bulk_modulus = 200.0
+        std_proposal_density_bulk_modulus = 400.0
         std_proposal_density_shear_modulus = 100.0
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
