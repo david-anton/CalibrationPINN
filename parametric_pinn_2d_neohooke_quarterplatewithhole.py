@@ -633,8 +633,8 @@ def calibration_step() -> None:
             )
             ** 2
         )
-        num_rwmh_iterations = int(1e4)
-        num_rwmh_burn_in_iterations = int(5e3)
+        num_rwmh_iterations = int(2e4)
+        num_rwmh_burn_in_iterations = int(1e4)
 
     elif calibration_method == "noise_and_q_likelihood":
         likelihoods = tuple(
@@ -664,8 +664,8 @@ def calibration_step() -> None:
             )
             ** 2
         )
-        num_rwmh_iterations = int(1e4)
-        num_rwmh_burn_in_iterations = int(5e3)
+        num_rwmh_iterations = int(2e4)
+        num_rwmh_burn_in_iterations = int(1e4)
 
     elif calibration_method == "overestimated_error_stds":
         std_model_error = 5e-2
@@ -701,8 +701,8 @@ def calibration_step() -> None:
             )
             ** 2
         )
-        num_rwmh_iterations = int(1e4)
-        num_rwmh_burn_in_iterations = int(5e3)
+        num_rwmh_iterations = int(2e4)
+        num_rwmh_burn_in_iterations = int(1e4)
 
     elif calibration_method == "full_bayes_with_error_gps":
         prior_output_scale = create_gamma_distributed_prior(
@@ -799,8 +799,8 @@ def calibration_step() -> None:
             )
             ** 2
         )
-        num_rwmh_iterations = int(1e4)
-        num_rwmh_burn_in_iterations = int(5e3)
+        num_rwmh_iterations = int(2e4)
+        num_rwmh_burn_in_iterations = int(1e4)
 
     else:
         raise UnvalidMainConfigError(
