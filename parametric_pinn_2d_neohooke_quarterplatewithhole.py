@@ -70,7 +70,7 @@ from parametricpinn.training.training_standard_neohooke_quarterplatewithhole imp
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 num_material_parameters = 2
 edge_length = 100.0
@@ -96,7 +96,7 @@ bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_parameter_samples_pinn
 use_simulation_data = True
-regenerate_train_data = True
+regenerate_train_data = False
 num_parameter_samples_data = 128
 num_points_data = 128
 number_training_epochs = 10000
@@ -127,7 +127,7 @@ use_hamiltonian = False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = "20240404"
 output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_pinnsamples_{num_parameter_samples_pinn}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_parameter_samples_data}_neurons_6_128_SiLU"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
@@ -154,13 +154,11 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
     )
 
 
-def create_datasets() -> (
-    tuple[
-        QuarterPlateWithHoleTrainingDataset2D,
-        SimulationDataset2D | None,
-        SimulationDataset2D,
-    ]
-):
+def create_datasets() -> tuple[
+    QuarterPlateWithHoleTrainingDataset2D,
+    SimulationDataset2D | None,
+    SimulationDataset2D,
+]:
     def _create_pinn_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(
@@ -622,8 +620,8 @@ def calibration_step() -> None:
         parameter_names: ParameterNames = material_parameter_names
         initial_parameters = initial_material_parameters
 
-        std_proposal_density_bulk_modulus = 2.0
-        std_proposal_density_shear_modulus = 0.5
+        std_proposal_density_bulk_modulus = 1.0
+        std_proposal_density_shear_modulus = 0.2
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
@@ -653,8 +651,8 @@ def calibration_step() -> None:
         parameter_names = material_parameter_names
         initial_parameters = initial_material_parameters
 
-        std_proposal_density_bulk_modulus = 2.0
-        std_proposal_density_shear_modulus = 0.5
+        std_proposal_density_bulk_modulus = 1.0
+        std_proposal_density_shear_modulus = 0.2
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
@@ -690,8 +688,8 @@ def calibration_step() -> None:
         parameter_names = material_parameter_names
         initial_parameters = initial_material_parameters
 
-        std_proposal_density_bulk_modulus = 2.0
-        std_proposal_density_shear_modulus = 0.5
+        std_proposal_density_bulk_modulus = 1.0
+        std_proposal_density_shear_modulus = 0.2
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
@@ -739,8 +737,8 @@ def calibration_step() -> None:
             (initial_material_parameters, initial_model_error_gp_parameters)
         )
 
-        std_proposal_density_bulk_modulus = 2.0
-        std_proposal_density_shear_modulus = 0.5
+        std_proposal_density_bulk_modulus = 1.0
+        std_proposal_density_shear_modulus = 0.2
         std_gp_output_scale = 1e-5
         std_gp_length_scale = 1e-4
         covar_rwmh_proposal_density = torch.diag(
@@ -762,7 +760,7 @@ def calibration_step() -> None:
         num_rwmh_burn_in_iterations = int(2e5)
 
     elif calibration_method == "empirical_bayes_with_error_gps":
-        model_error_optimization_num_material_parameter_samples = 128
+        model_error_optimization_num_material_parameter_samples = 256
         model_error_optimization_num_iterations = 16
 
         likelihoods = tuple(
@@ -788,8 +786,8 @@ def calibration_step() -> None:
         parameter_names = material_parameter_names
         initial_parameters = initial_material_parameters
 
-        std_proposal_density_bulk_modulus = 2.0
-        std_proposal_density_shear_modulus = 0.5
+        std_proposal_density_bulk_modulus = 1.0
+        std_proposal_density_shear_modulus = 0.2
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
