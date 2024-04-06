@@ -93,7 +93,7 @@ max_youngs_modulus = 240000.0
 min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
 # Network
-layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
+layer_sizes = [4, 128, 128, 128, 128, 128, 128, 128, 128, 2]
 activation = torch.nn.SiLU()  # torch.nn.Tanh()
 # Ansatz
 distance_function = "normalized linear"
@@ -106,8 +106,8 @@ bcs_overlap_distance_parallel_right = 1e-2
 training_batch_size = num_parameter_samples_pinn
 use_simulation_data = True
 regenerate_train_data = False
-num_parameter_samples_data = 128
-num_data_points = 128
+num_parameter_samples_data = 64
+num_data_points = 64
 number_training_epochs = 30000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
@@ -140,7 +140,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_pinnsamples_{num_parameter_samples_pinn}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_parameter_samples_data}_neurons_6_128_SiLU"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_pinnsamples_{num_parameter_samples_pinn}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_parameter_samples_data}_neurons_8_128_SiLU"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
 save_metadata = True
@@ -199,13 +199,11 @@ def create_fem_domain_config() -> SimplifiedDogBoneDomainConfig:
     )
 
 
-def create_datasets() -> (
-    tuple[
-        SimplifiedDogBoneTrainingDataset2D,
-        SimulationDataset2D | None,
-        SimulationDataset2D,
-    ]
-):
+def create_datasets() -> tuple[
+    SimplifiedDogBoneTrainingDataset2D,
+    SimulationDataset2D | None,
+    SimulationDataset2D,
+]:
     def _create_pinn_training_dataset() -> SimplifiedDogBoneTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(
