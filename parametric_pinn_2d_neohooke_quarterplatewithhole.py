@@ -621,7 +621,7 @@ def calibration_step() -> None:
         initial_parameters = initial_material_parameters
 
         std_proposal_density_bulk_modulus = 1.0
-        std_proposal_density_shear_modulus = 0.2
+        std_proposal_density_shear_modulus = 0.1
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
@@ -634,7 +634,7 @@ def calibration_step() -> None:
             ** 2
         )
         num_rwmh_iterations = int(2e4)
-        num_rwmh_burn_in_iterations = int(1e4)
+        num_rwmh_burn_in_iterations = int(2e4)
 
     elif calibration_method == "noise_and_q_likelihood":
         likelihoods = tuple(
@@ -652,7 +652,7 @@ def calibration_step() -> None:
         initial_parameters = initial_material_parameters
 
         std_proposal_density_bulk_modulus = 1.0
-        std_proposal_density_shear_modulus = 0.2
+        std_proposal_density_shear_modulus = 0.1
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
@@ -665,7 +665,7 @@ def calibration_step() -> None:
             ** 2
         )
         num_rwmh_iterations = int(2e4)
-        num_rwmh_burn_in_iterations = int(1e4)
+        num_rwmh_burn_in_iterations = int(2e4)
 
     elif calibration_method == "overestimated_error_stds":
         std_model_error = 5e-2
@@ -689,7 +689,7 @@ def calibration_step() -> None:
         initial_parameters = initial_material_parameters
 
         std_proposal_density_bulk_modulus = 1.0
-        std_proposal_density_shear_modulus = 0.2
+        std_proposal_density_shear_modulus = 0.1
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
@@ -702,7 +702,7 @@ def calibration_step() -> None:
             ** 2
         )
         num_rwmh_iterations = int(2e4)
-        num_rwmh_burn_in_iterations = int(1e4)
+        num_rwmh_burn_in_iterations = int(2e4)
 
     elif calibration_method == "full_bayes_with_error_gps":
         prior_output_scale = create_gamma_distributed_prior(
@@ -787,7 +787,7 @@ def calibration_step() -> None:
         initial_parameters = initial_material_parameters
 
         std_proposal_density_bulk_modulus = 1.0
-        std_proposal_density_shear_modulus = 0.2
+        std_proposal_density_shear_modulus = 0.1
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
@@ -800,7 +800,7 @@ def calibration_step() -> None:
             ** 2
         )
         num_rwmh_iterations = int(2e4)
-        num_rwmh_burn_in_iterations = int(1e4)
+        num_rwmh_burn_in_iterations = int(2e4)
 
     else:
         raise UnvalidMainConfigError(
