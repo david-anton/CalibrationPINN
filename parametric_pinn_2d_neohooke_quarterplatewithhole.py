@@ -116,11 +116,11 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-# calibration_method = "noise_only"
+calibration_method = "noise_only"
 # calibration_method = "noise_and_q_likelihood"
 # calibration_method = "overestimated_error_stds"
 # calibration_method = "full_bayes_with_error_gps"
-calibration_method = "empirical_bayes_with_error_gps"
+# calibration_method = "empirical_bayes_with_error_gps"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
@@ -621,7 +621,7 @@ def calibration_step() -> None:
         initial_parameters = initial_material_parameters
 
         std_proposal_density_bulk_modulus = 1.0
-        std_proposal_density_shear_modulus = 0.1
+        std_proposal_density_shear_modulus = 0.05
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
@@ -652,7 +652,7 @@ def calibration_step() -> None:
         initial_parameters = initial_material_parameters
 
         std_proposal_density_bulk_modulus = 1.0
-        std_proposal_density_shear_modulus = 0.1
+        std_proposal_density_shear_modulus = 0.05
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
@@ -786,8 +786,8 @@ def calibration_step() -> None:
         parameter_names = material_parameter_names
         initial_parameters = initial_material_parameters
 
-        std_proposal_density_bulk_modulus = 1.0
-        std_proposal_density_shear_modulus = 0.1
+        std_proposal_density_bulk_modulus = 5.0
+        std_proposal_density_shear_modulus = 1.0
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
