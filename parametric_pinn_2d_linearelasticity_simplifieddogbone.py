@@ -107,11 +107,11 @@ training_batch_size = num_parameter_samples_pinn
 use_simulation_data = True
 regenerate_train_data = False
 num_parameter_samples_data = 64
-num_data_points = 128
+num_data_points = 64
 number_training_epochs = 30000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
-weight_data_loss = 1e5
+weight_data_loss = 1e6
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
