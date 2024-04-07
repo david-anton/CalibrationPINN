@@ -123,8 +123,8 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-calibration_method = "noise_only"
-# calibration_method = "noise_and_q_likelihood"
+# calibration_method = "noise_only"
+calibration_method = "noise_and_q_likelihood"
 # calibration_method = "overestimated_error_stds"
 # calibration_method = "full_bayes_with_error_gps"
 # calibration_method = "empirical_bayes_with_error_gps"
