@@ -219,7 +219,7 @@ def _create_noise_likelihood_strategy(
         data=preprocessed_data,
         num_model_parameters=num_model_parameters,
         device=device,
-    )
+    ).to(device)
     return likelihood_strategy, preprocessed_data
 
 
@@ -278,7 +278,7 @@ def _create_noise_and_model_error_likelihood_strategy_for_sampling(
         data=preprocessed_data,
         num_model_parameters=num_model_parameters,
         device=device,
-    )
+    ).to(device)
     return likelihood_strategy, preprocessed_data
 
 
@@ -308,7 +308,7 @@ def _create_optimized_noise_and_model_error_likelihood_strategy(
         data=preprocessed_data,
         num_model_parameters=num_model_parameters,
         device=device,
-    )
+    ).to(device)
     likelihood_strategy.train()
     if use_independent_model_error_standard_deviations:
         optimize_likelihood_hyperparameters_independently(
@@ -511,7 +511,7 @@ def _create_noise_and_model_error_gps_likelihood_strategy_for_sampling(
         num_model_parameters=num_model_parameters,
         model_error_gp=model_error_gp,
         device=device,
-    )
+    ).to(device)
     return likelihood_strategy, preprocessed_data
 
 
@@ -541,7 +541,7 @@ def _create_optimized_noise_and_model_error_gps_likelihood_strategy(
         residual_calculator=residual_calculator,
         num_model_parameters=num_model_parameters,
         device=device,
-    )
+    ).to(device)
     likelihood_strategy.train()
     if use_independent_model_error_gps:
         optimize_likelihood_hyperparameters_independently(
