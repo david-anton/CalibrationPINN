@@ -112,19 +112,19 @@ fem_element_size = 0.2
 # Validation
 regenerate_valid_data = False
 input_subdir_valid = f"20240305_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
-num_samples_valid = 10  # 100
+num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-# calibration_method = "noise_only"
-calibration_method = "noise_and_q_likelihood"
+calibration_method = "noise_only"
+# calibration_method = "noise_and_q_likelihood"
 # calibration_method = "overestimated_error_stds"
 # calibration_method = "full_bayes_with_error_gps"
 # calibration_method = "empirical_bayes_with_error_gps"
 use_least_squares = True
-use_random_walk_metropolis_hasting = False  # True
-use_hamiltonian = True  # False
+use_random_walk_metropolis_hasting = True
+use_hamiltonian = False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
@@ -628,7 +628,7 @@ def calibration_step() -> None:
         initial_parameters = initial_material_parameters
 
         std_proposal_density_bulk_modulus = 1.0
-        std_proposal_density_shear_modulus = 0.05
+        std_proposal_density_shear_modulus = 0.1
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
