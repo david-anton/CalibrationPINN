@@ -24,15 +24,13 @@ CalibrationAlgorithmClosure: TypeAlias = Callable[[], CalibrationOutput]
 
 
 @overload
-def calibrate(calibration_config: MCMCConfig, device: Device) -> MCMCOutput:
-    ...
+def calibrate(calibration_config: MCMCConfig, device: Device) -> MCMCOutput: ...
 
 
 @overload
 def calibrate(
     calibration_config: LeastSquaresConfig, device: Device
-) -> LeastSquaresOutput:
-    ...
+) -> LeastSquaresOutput: ...
 
 
 def calibrate(
@@ -71,7 +69,7 @@ def _create_calibration_algorithm(
             return mcmc_hamiltonian(
                 likelihood=config_h.likelihood,
                 prior=config_h.prior,
-                initial_parameters=config_h.initial_parameters,
+                initial_parameters=config_h.initial_parameters.requires_grad_(True),
                 num_leapfrog_steps=config_h.num_leabfrog_steps,
                 leapfrog_step_sizes=config_h.leapfrog_step_sizes,
                 num_iterations=config_h.num_iterations,
@@ -88,7 +86,7 @@ def _create_calibration_algorithm(
             return mcmc_efficientnuts(
                 likelihood=config_enuts.likelihood,
                 prior=config_enuts.prior,
-                initial_parameters=config_enuts.initial_parameters,
+                initial_parameters=config_enuts.initial_parameters.requires_grad_(True),
                 leapfrog_step_sizes=config_enuts.leapfrog_step_sizes,
                 num_iterations=config_enuts.num_iterations,
                 num_burn_in_iterations=config_enuts.num_burn_in_iterations,
