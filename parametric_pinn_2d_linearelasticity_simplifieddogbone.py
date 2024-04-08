@@ -94,7 +94,7 @@ min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 128, 128, 128, 128, 128, 128, 128, 128, 2]
-activation = torch.nn.SiLU()  # torch.nn.Tanh()
+activation = torch.nn.Tanh()  # torch.nn.SiLU()
 # Ansatz
 distance_function = "normalized linear"
 # Training
@@ -108,7 +108,7 @@ use_simulation_data = True
 regenerate_train_data = False
 num_parameter_samples_data = 128
 num_data_points = 128
-number_training_epochs = 30000
+number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_data_loss = 1e6
@@ -199,13 +199,11 @@ def create_fem_domain_config() -> SimplifiedDogBoneDomainConfig:
     )
 
 
-def create_datasets() -> (
-    tuple[
-        SimplifiedDogBoneTrainingDataset2D,
-        SimulationDataset2D | None,
-        SimulationDataset2D,
-    ]
-):
+def create_datasets() -> tuple[
+    SimplifiedDogBoneTrainingDataset2D,
+    SimulationDataset2D | None,
+    SimulationDataset2D,
+]:
     def _create_pinn_training_dataset() -> SimplifiedDogBoneTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(
