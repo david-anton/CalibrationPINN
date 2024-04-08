@@ -122,8 +122,8 @@ calibration_method = "noise_and_q_likelihood"
 # calibration_method = "full_bayes_with_error_gps"
 # calibration_method = "empirical_bayes_with_error_gps"
 use_least_squares = True
-use_random_walk_metropolis_hasting = True
-use_hamiltonian = False
+use_random_walk_metropolis_hasting = False  # True
+use_hamiltonian = True  # False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
