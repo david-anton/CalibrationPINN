@@ -15,6 +15,7 @@ from parametricpinn.bayesian.likelihood import Likelihood
 from parametricpinn.bayesian.prior import (
     create_gamma_distributed_prior,
     create_univariate_uniform_distributed_prior,
+    create_univariate_normal_distributed_prior,
     multiply_priors,
 )
 from parametricpinn.calibration import (
@@ -154,13 +155,11 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
     )
 
 
-def create_datasets() -> (
-    tuple[
-        QuarterPlateWithHoleTrainingDataset2D,
-        SimulationDataset2D | None,
-        SimulationDataset2D,
-    ]
-):
+def create_datasets() -> tuple[
+    QuarterPlateWithHoleTrainingDataset2D,
+    SimulationDataset2D | None,
+    SimulationDataset2D,
+]:
     def _create_pinn_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(
@@ -514,11 +513,17 @@ def calibration_step() -> None:
         device=device,
     )
 
-    prior_bulk_modulus = create_univariate_uniform_distributed_prior(
-        lower_limit=min_bulk_modulus, upper_limit=max_bulk_modulus, device=device
+    # prior_bulk_modulus = create_univariate_uniform_distributed_prior(
+    #     lower_limit=min_bulk_modulus, upper_limit=max_bulk_modulus, device=device
+    # )
+    # prior_shear_modulus = create_univariate_uniform_distributed_prior(
+    #     lower_limit=min_shear_modulus, upper_limit=max_shear_modulus, device=device
+    # )
+    prior_bulk_modulus = create_univariate_normal_distributed_prior(
+        mean=initial_bulk_modulus, standard_deviation=1000.0, device=device
     )
-    prior_shear_modulus = create_univariate_uniform_distributed_prior(
-        lower_limit=min_shear_modulus, upper_limit=max_shear_modulus, device=device
+    prior_shear_modulus = create_univariate_normal_distributed_prior(
+        mean=initial_shear_modulus, standard_deviation=250.0, device=device
     )
     prior_material_parameters = multiply_priors(
         [prior_bulk_modulus, prior_shear_modulus]
