@@ -111,7 +111,7 @@ fem_element_size = 0.2
 # Validation
 regenerate_valid_data = False
 input_subdir_valid = f"20240305_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
-num_samples_valid = 100
+num_samples_valid = 10  # 100
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
@@ -520,7 +520,7 @@ def calibration_step() -> None:
     )
     prior_material_parameters = multiply_priors(
         [prior_bulk_modulus, prior_shear_modulus]
-    )
+    ).to(device)
 
     def generate_calibration_data() -> tuple[tuple[CalibrationData, ...], NPArray]:
         calibration_data_loader = CalibrationDataLoader2D(
