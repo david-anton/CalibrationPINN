@@ -93,21 +93,21 @@ max_youngs_modulus = 240000.0
 min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
 # Network
-layer_sizes = [4, 128, 128, 128, 128, 128, 128, 128, 128, 2]
+layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 activation = torch.nn.Tanh()  # torch.nn.SiLU()
 # Ansatz
 distance_function = "normalized linear"
 # Training
 num_parameter_samples_pinn = 1024
 num_collocation_points = 64
-num_points_per_bc = 32
+num_points_per_bc = 64
 bcs_overlap_angle_distance_left = 1e-2
 bcs_overlap_distance_parallel_right = 1e-2
 training_batch_size = num_parameter_samples_pinn  # int(num_parameter_samples_pinn / 4)
 use_simulation_data = True
 regenerate_train_data = False
-num_parameter_samples_data = 64
-num_data_points = 32
+num_parameter_samples_data = 128
+num_data_points = 128
 number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
@@ -140,7 +140,7 @@ use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_pinnsamples_{num_parameter_samples_pinn}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_parameter_samples_data}_neurons_8_128"
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_pinnsamples_{num_parameter_samples_pinn}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_parameter_samples_data}_neurons_6_128"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
 save_metadata = True
