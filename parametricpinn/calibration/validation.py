@@ -263,7 +263,7 @@ def test_least_squares_calibration(
 
     def save_results_summary(relative_errors: NPArray) -> None:
         def compile_header() -> tuple[str, ...]:
-            return ("mean", "standard error")
+            return ("mean", "standard error", "minimum", "maximum")
 
         def compile_index() -> tuple[str, ...]:
             return tuple(f"abs. rel. error {p} [%]" for p in parameter_names)
@@ -273,9 +273,17 @@ def test_least_squares_calibration(
             std_errors = np.std(relative_errors, axis=0, ddof=0) / np.sqrt(
                 len(relative_errors)
             )
+            minimums = np.min(relative_errors, axis=0)
+            maximums = np.max(relative_errors, axis=0)
             shape = (-1, 1)
             return np.concatenate(
-                (np.reshape(means, shape), np.reshape(std_errors, shape)), axis=1
+                (
+                    np.reshape(means, shape),
+                    np.reshape(std_errors, shape),
+                    np.reshape(minimums, shape),
+                    np.reshape(maximums, shape),
+                ),
+                axis=1,
             )
 
         header = compile_header()
