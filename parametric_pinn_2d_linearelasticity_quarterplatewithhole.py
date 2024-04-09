@@ -76,7 +76,7 @@ from parametricpinn.training.training_standard_linearelasticity_quarterplatewith
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -92,13 +92,13 @@ min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
-activation = torch.nn.SiLU()  # torch.nn.Tanh()
+activation = torch.nn.Tanh()
 # Ansatz
 distance_function = "normalized linear"
 # Training
 num_parameter_samples_pinn = 1024
-num_collocation_points = 32
-num_points_per_bc = 32
+num_collocation_points = 64
+num_points_per_bc = 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_parameter_samples_pinn
@@ -110,32 +110,32 @@ number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
-weight_data_loss = 1e4
+weight_data_loss = 1e6
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size = 0.1
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = f"20240304_validation_data_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}_K_G"
+regenerate_valid_data = False  # True
+input_subdir_valid = f"20240304_validation_data_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}_K_G"  # f"20240409_validation_data_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}_K_G"
 num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-# calibration_method = "noise_only"
+calibration_method = "noise_only"
 # calibration_method = "noise_and_q_likelihood"
 # calibration_method = "overestimated_error_stds"
 # calibration_method = "full_bayes_with_error_gps"
-calibration_method = "empirical_bayes_with_error_gps"
+# calibration_method = "empirical_bayes_with_error_gps"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
 use_hamiltonian = False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = "20240404"
-output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_pinnsamples_{num_parameter_samples_pinn}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_parameter_samples_data}_neurons_6_128_SiLU"
+output_date = current_date
+output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_quarterplatewithhole_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_pinnsamples_{num_parameter_samples_pinn}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_parameter_samples_data}_neurons_6_128"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
 save_metadata = True
@@ -193,13 +193,11 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
     )
 
 
-def create_datasets() -> (
-    tuple[
-        QuarterPlateWithHoleTrainingDataset2D,
-        SimulationDataset2D | None,
-        SimulationDataset2D,
-    ]
-):
+def create_datasets() -> tuple[
+    QuarterPlateWithHoleTrainingDataset2D,
+    SimulationDataset2D | None,
+    SimulationDataset2D,
+]:
     def _create_pinn_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(
@@ -271,7 +269,7 @@ def create_datasets() -> (
 
     def _create_validation_dataset() -> SimulationDataset2D:
         def _generate_validation_data() -> None:
-            offset_training_range_bulk_modulus = 1000.0
+            offset_training_range_bulk_modulus = 2000.0
             offset_training_range_shear_modulus = 500.0
 
             def _generate_random_parameter_list(

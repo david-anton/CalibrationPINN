@@ -94,7 +94,7 @@ min_poissons_ratio = 0.2
 max_poissons_ratio = 0.4
 # Network
 layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
-activation = torch.nn.Tanh()  # torch.nn.SiLU()
+activation = torch.nn.Tanh()
 # Ansatz
 distance_function = "normalized linear"
 # Training
@@ -103,7 +103,7 @@ num_collocation_points = 64
 num_points_per_bc = 64
 bcs_overlap_angle_distance_left = 1e-2
 bcs_overlap_distance_parallel_right = 1e-2
-training_batch_size = num_parameter_samples_pinn  # int(num_parameter_samples_pinn / 4)
+training_batch_size = num_parameter_samples_pinn
 use_simulation_data = True
 regenerate_train_data = False
 num_parameter_samples_data = 128
