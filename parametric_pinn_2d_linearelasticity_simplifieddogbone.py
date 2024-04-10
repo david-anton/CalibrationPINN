@@ -80,7 +80,7 @@ from parametricpinn.training.training_standard_linearelasticity_simplifieddogbon
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -135,11 +135,11 @@ calibration_method = "noise_only"
 # calibration_method = "empirical_bayes_with_error_gps"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
-use_hamiltonian = False
+use_hamiltonian = True
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = "20240409"
 output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_E_{int(min_youngs_modulus)}_{int(max_youngs_modulus)}_nu_{min_poissons_ratio}_{max_poissons_ratio}_pinnsamples_{num_parameter_samples_pinn}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_parameter_samples_data}_neurons_6_128"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
@@ -199,13 +199,11 @@ def create_fem_domain_config() -> SimplifiedDogBoneDomainConfig:
     )
 
 
-def create_datasets() -> (
-    tuple[
-        SimplifiedDogBoneTrainingDataset2D,
-        SimulationDataset2D | None,
-        SimulationDataset2D,
-    ]
-):
+def create_datasets() -> tuple[
+    SimplifiedDogBoneTrainingDataset2D,
+    SimulationDataset2D | None,
+    SimulationDataset2D,
+]:
     def _create_pinn_training_dataset() -> SimplifiedDogBoneTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(
@@ -941,8 +939,8 @@ def calibration_step() -> None:
         parameter_names: ParameterNames = material_parameter_names
         initial_parameters = initial_material_parameters
 
-        std_proposal_density_bulk_modulus = 100.0
-        std_proposal_density_shear_modulus = 50.0
+        std_proposal_density_bulk_modulus = 20.0
+        std_proposal_density_shear_modulus = 10.0
         covar_rwmh_proposal_density = torch.diag(
             torch.tensor(
                 [
@@ -1159,7 +1157,7 @@ def calibration_step() -> None:
             num_iterations=int(1e4),
             num_burn_in_iterations=int(5e3),
             num_leabfrog_steps=256,
-            leapfrog_step_sizes=torch.tensor([1, 1], device=device),
+            leapfrog_step_sizes=torch.tensor([1, 0.5], device=device),
         )
 
     def set_up_efficient_nuts_configs_configs(
