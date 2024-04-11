@@ -90,7 +90,7 @@ min_shear_modulus = 60000.0
 max_shear_modulus = 100000.0
 # Network
 layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
-activation = torch.nn.Tanh()
+activation = torch.nn.SiLU()
 # Ansatz
 distance_function = "normalized linear"
 # Training
