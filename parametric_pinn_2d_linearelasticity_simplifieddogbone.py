@@ -78,7 +78,7 @@ from parametricpinn.training.training_standard_linearelasticity_simplifieddogbon
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -103,10 +103,10 @@ bcs_overlap_angle_distance_left = 1e-2
 bcs_overlap_distance_parallel_right = 1e-2
 training_batch_size = num_parameter_samples_pinn
 use_simulation_data = True
-regenerate_train_data = True
+regenerate_train_data = False
 num_parameter_samples_data = 128
 num_data_points = 128
-number_training_epochs = 10000
+number_training_epochs = 15000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
 weight_data_loss = 1e6
@@ -115,7 +115,7 @@ fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size = 0.1
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = f"20240410_validation_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
 num_samples_valid = 100
 validation_interval = 1
@@ -137,7 +137,7 @@ use_hamiltonian = False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = "20240410"
 output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_pinnsamples_{num_parameter_samples_pinn}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_parameter_samples_data}_neurons_6_128"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
