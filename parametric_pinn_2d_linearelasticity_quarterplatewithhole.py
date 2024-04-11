@@ -95,7 +95,7 @@ activation = torch.nn.SiLU()
 distance_function = "normalized linear"
 # Training
 num_parameter_samples_pinn = 1024
-num_collocation_points = 64
+num_collocation_points = 32
 num_points_per_bc = 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
@@ -103,7 +103,7 @@ training_batch_size = num_parameter_samples_pinn
 use_simulation_data = True
 regenerate_train_data = False
 num_parameter_samples_data = 128
-num_data_points = 32
+num_data_points = 128
 number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
