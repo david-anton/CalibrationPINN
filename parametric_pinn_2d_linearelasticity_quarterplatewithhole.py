@@ -90,11 +90,11 @@ min_shear_modulus = 60000.0
 max_shear_modulus = 100000.0
 # Network
 layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
-activation = torch.nn.SiLU()
+activation = torch.nn.Tanh()
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_parameter_samples_pinn = 1024
+num_parameter_samples_pinn = 2048
 num_collocation_points = 32
 num_points_per_bc = 32
 bcs_overlap_distance = 1e-2
