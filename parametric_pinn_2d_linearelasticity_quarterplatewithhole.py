@@ -96,7 +96,7 @@ distance_function = "normalized linear"
 # Training
 num_parameter_samples_pinn = 1024
 num_collocation_points = 32
-num_points_per_bc = 64
+num_points_per_bc = 32
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_parameter_samples_pinn
