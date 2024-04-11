@@ -108,7 +108,7 @@ number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
-weight_data_loss = 1e6
+weight_data_loss = 1e5
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
