@@ -94,9 +94,9 @@ activation = torch.nn.Tanh()
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_parameter_samples_pinn = 2048
-num_collocation_points = 32
-num_points_per_bc = 32
+num_parameter_samples_pinn = 1024
+num_collocation_points = 64
+num_points_per_bc = 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_parameter_samples_pinn
@@ -108,7 +108,7 @@ number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
-weight_data_loss = 1e5
+weight_data_loss = 1e6
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
