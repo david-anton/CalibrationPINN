@@ -122,10 +122,14 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
+use_interpolated_calibration_data = False
 input_subdir_calibration = os.path.join(
-    "Paper_PINNs", "20240123_experimental_dic_data_dogbone"
+    "Paper_PINNs", "20240415_experimental_dic_data_dogbone"
 )
-input_file_name_calibration = "displacements_dic.csv"
+if use_interpolated_calibration_data:
+    input_file_name_calibration = "displacements_dic_interpolated.csv"
+else:
+    input_file_name_calibration = "displacements_dic_raw.csv"
 calibration_method = "noise_only"
 # calibration_method = "noise_and_q_likelihood"
 # calibration_method = "overestimated_error_stds"
@@ -519,7 +523,10 @@ def training_step() -> None:
 
 def calibration_step() -> None:
     print("Start calibration ...")
-    num_total_data_points = 5240
+    if use_interpolated_calibration_data:
+        num_total_data_points = 1124
+    else:
+        num_total_data_points = 5240
     num_data_sets = 1
     num_data_points = num_total_data_points
     std_noise = 5 * 1e-4
@@ -546,9 +553,14 @@ def calibration_step() -> None:
         [prior_bulk_modulus, prior_shear_modulus]
     )
 
-    output_subdir_calibration = os.path.join(
-        output_subdirectory, "calibration", calibration_method
-    )
+    if use_interpolated_calibration_data:
+        output_subdir_calibration = os.path.join(
+            output_subdirectory, "calibration", "interpolated_data", calibration_method
+        )
+    else:
+        output_subdir_calibration = os.path.join(
+            output_subdirectory, "calibration", "raw_data", calibration_method
+        )
     output_subdir_likelihoods = os.path.join(output_subdir_calibration, "likelihoods")
 
     def generate_calibration_data() -> CalibrationData:
