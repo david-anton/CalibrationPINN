@@ -163,11 +163,13 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
     )
 
 
-def create_datasets() -> tuple[
-    QuarterPlateWithHoleTrainingDataset2D,
-    SimulationDataset2D | None,
-    SimulationDataset2D,
-]:
+def create_datasets() -> (
+    tuple[
+        QuarterPlateWithHoleTrainingDataset2D,
+        SimulationDataset2D | None,
+        SimulationDataset2D,
+    ]
+):
     def _create_pinn_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(

@@ -9,6 +9,8 @@ from parametricpinn.calibration.bayesianinference.mcmc import (
     mcmc_efficientnuts,
     mcmc_hamiltonian,
     mcmc_metropolishastings,
+    EMCEEConfig,
+    mcmc_emcee
 )
 from parametricpinn.calibration.config import CalibrationConfig
 from parametricpinn.calibration.leastsquares import (
@@ -63,6 +65,22 @@ def _create_calibration_algorithm(
             )
 
         return mcmc_mh_algorithm
+    if isinstance(calibration_config, EMCEEConfig):
+        config_emcee = cast(EMCEEConfig, calibration_config)
+        print("MCMC algorithm used: emcee")
+
+        def mcmc_emcee_algorithm() -> MCMCOutput:
+            return mcmc_emcee(
+                likelihood=config_emcee.likelihood,
+                prior=config_emcee.prior,
+                initial_parameters=config_emcee.initial_parameters,
+                num_walkers=config_emcee.num_walkers,
+                num_iterations=config_emcee.num_iterations,
+                num_burn_in_iterations=config_emcee.num_burn_in_iterations,
+                device=device,
+            )
+
+        return mcmc_emcee_algorithm
     elif isinstance(calibration_config, HamiltonianConfig):
         config_h = cast(HamiltonianConfig, calibration_config)
         print("MCMC algorithm used: Hamiltonian")

@@ -19,7 +19,7 @@ From: nvidia/cuda:12.2.2-cudnn8-devel-ubuntu22.04
     # Install miniconda3
     # From https://docs.conda.io/projects/miniconda/en/latest/
     export CONDA_DIR=/miniconda3
-    export SHA256SUM=d0643508fa49105552c94a523529f4474f91730d3e0d1f168f1700c43ae67595
+    export SHA256SUM=b978856ec3c826eb495b60e3fffe621f670c101150ebcbdeede4f961f22dc438
     
     mkdir -p ${CONDA_DIR}
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ${CONDA_DIR}/miniconda.sh -q
