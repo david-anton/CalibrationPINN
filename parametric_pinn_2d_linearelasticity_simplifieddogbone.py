@@ -24,6 +24,7 @@ from parametricpinn.bayesian.prior import (
 from parametricpinn.calibration import (
     CalibrationData,
     EfficientNUTSConfig,
+    EMCEEConfig,
     HamiltonianConfig,
     LeastSquaresConfig,
     MetropolisHastingsConfig,
@@ -122,7 +123,7 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_interpolated_calibration_data = True
+use_interpolated_calibration_data = False
 input_subdir_calibration = os.path.join(
     "Paper_PINNs", "20240415_experimental_dic_data_dogbone"
 )
@@ -136,7 +137,8 @@ calibration_method = "noise_only"
 # calibration_method = "full_bayes_with_error_gps"
 # calibration_method = "empirical_bayes_with_error_gps"
 use_least_squares = True
-use_random_walk_metropolis_hasting = True
+use_random_walk_metropolis_hasting = False
+use_emcee = True
 use_hamiltonian = False
 use_efficient_nuts = False
 # Output
@@ -173,13 +175,11 @@ def create_fem_domain_config() -> SimplifiedDogBoneDomainConfig:
     )
 
 
-def create_datasets() -> (
-    tuple[
-        SimplifiedDogBoneTrainingDataset2D,
-        SimulationDataset2D | None,
-        SimulationDataset2D,
-    ]
-):
+def create_datasets() -> tuple[
+    SimplifiedDogBoneTrainingDataset2D,
+    SimulationDataset2D | None,
+    SimulationDataset2D,
+]:
     def _create_pinn_training_dataset() -> SimplifiedDogBoneTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(
@@ -1141,6 +1141,24 @@ def calibration_step() -> None:
             cov_proposal_density=covar_rwmh_proposal_density,
         )
 
+    def set_up_emcee_config(likelihood: Likelihood) -> EMCEEConfig:
+        num_walkers = 100
+        min_material_parameters = torch.tensor([min_bulk_modulus, min_shear_modulus])
+        max_material_parameters = torch.tensor([max_bulk_modulus, max_shear_modulus])
+        range_material_parameters = max_material_parameters - min_material_parameters
+        initial_parameters = min_material_parameters + torch.rand(
+            (num_walkers, num_material_parameters)
+        ) * range_material_parameters.repeat((num_walkers, 1))
+        return EMCEEConfig(
+            likelihood=likelihood,
+            prior=prior,
+            initial_parameters=initial_parameters.to(device),
+            stretch_scale=4.0,
+            num_walkers=num_walkers,
+            num_iterations=100,
+            num_burn_in_iterations=50,
+        )
+
     def set_up_hamiltonian_configs(
         likelihood: Likelihood,
     ) -> HamiltonianConfig:
@@ -1198,6 +1216,21 @@ def calibration_step() -> None:
         end = perf_counter()
         time = end - start
         print(f"Run time Metropolis-Hasting coverage test: {time}")
+        print("############################################################")
+    if use_emcee:
+        configs_emcee = set_up_emcee_config(likelihood)
+        start = perf_counter()
+        test_coverage(
+            calibration_configs=(configs_emcee,),
+            parameter_names=parameter_names,
+            true_parameters=true_material_parameters,
+            output_subdir=os.path.join(output_subdir_calibration, "emcee"),
+            project_directory=project_directory,
+            device=device,
+        )
+        end = perf_counter()
+        time = end - start
+        print(f"Run time emcee coverage test: {time}")
         print("############################################################")
     if use_hamiltonian:
         configs_h = set_up_hamiltonian_configs(likelihood)

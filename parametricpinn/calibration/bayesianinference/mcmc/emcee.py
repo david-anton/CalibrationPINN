@@ -1,14 +1,20 @@
 from dataclasses import dataclass
+from typing import Callable, TypeAlias
 
 import emcee
-import torch
 
 from parametricpinn.bayesian.likelihood import Likelihood
 from parametricpinn.bayesian.prior import Prior
 from parametricpinn.calibration.bayesianinference.mcmc.base import (
     MCMCOutput,
     Parameters,
-    _log_unnormalized_posterior,
+)
+from parametricpinn.calibration.bayesianinference.mcmc.base_emcee import (
+    Samples,
+    State,
+    create_log_prob_func,
+    validate_initial_parameters,
+    validate_stretch_scale,
 )
 from parametricpinn.calibration.bayesianinference.mcmc.config import MCMCConfig
 from parametricpinn.statistics.utility import (
@@ -16,9 +22,24 @@ from parametricpinn.statistics.utility import (
 )
 from parametricpinn.types import Device, NPArray
 
+MCMCEMCEEFunc: TypeAlias = Callable[
+    [
+        Likelihood,
+        Prior,
+        Parameters,
+        float,
+        int,
+        int,
+        int,
+        Device,
+    ],
+    MCMCOutput,
+]
+
 
 @dataclass
 class EMCEEConfig(MCMCConfig):
+    stretch_scale: float
     num_walkers: int
     algorithm_name = "emcee"
 
@@ -27,35 +48,40 @@ def mcmc_emcee(
     likelihood: Likelihood,
     prior: Prior,
     initial_parameters: Parameters,
+    stretch_scale: float,
     num_walkers: int,
     num_iterations: int,
     num_burn_in_iterations: int,
     device: Device,
 ) -> MCMCOutput:
-    log_unnorm_posterior = _log_unnormalized_posterior(likelihood, prior)
-    num_parameters = len(initial_parameters)
-    populated_initial_parameters = initial_parameters.repeat((num_walkers, 1))
-
-    def log_prob_func(parameters: NPArray) -> float:
-        parameters_torch = torch.from_numpy(parameters).to(device)
-        log_prob = log_unnorm_posterior(parameters_torch)
-        return log_prob.detach().cpu().item()
+    validate_initial_parameters(initial_parameters, num_walkers)
+    validate_stretch_scale(stretch_scale)
+    num_parameters = initial_parameters.size()[1]
+    log_prob_func = create_log_prob_func(likelihood, prior, device)
 
     sampler = emcee.EnsembleSampler(
-        nwalkers=num_walkers, ndim=num_parameters, log_prob_fn=log_prob_func
+        nwalkers=num_walkers,
+        ndim=num_parameters,
+        log_prob_fn=log_prob_func,
+        moves=emcee.moves.StretchMove(a=stretch_scale),
     )
 
-    # Burn-in phase
-    state_burnin = sampler.run_mcmc(
-        initial_state=populated_initial_parameters, nsteps=num_burn_in_iterations
-    )
-    sampler.reset()
+    def _run_burn_in_phase() -> State:
+        state = sampler.run_mcmc(
+            initial_state=initial_parameters, nsteps=num_burn_in_iterations
+        )
+        sampler.reset()
+        return state
 
-    # Production phase
-    _ = sampler.run_mcmc(initial_state=state_burnin, nsteps=num_iterations)
-    samples = sampler.get_chain(flat=True)
+    def _run_production_phase(burn_in_state: State) -> Samples:
+        _ = sampler.run_mcmc(initial_state=burn_in_state, nsteps=num_iterations)
+        return sampler.get_chain(flat=True)
 
-    # Postprocessing
+    def run_mcmc() -> Samples:
+        burn_in_state = _run_burn_in_phase()
+        return _run_production_phase(burn_in_state)
+
+    samples = run_mcmc()
     moments = determine_moments_of_multivariate_normal_distribution(samples)
     acceptance_ratio = sampler.acceptance_fraction
     print(f"Acceptance ratio: {round(acceptance_ratio, 4)}")

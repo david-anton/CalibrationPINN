@@ -10,7 +10,7 @@ __all__ = [
     "MCMCConfig",
     "EfficientNUTSConfig",
     "mcmc_efficientnuts",
-    "EMCEEConfig", 
+    "EMCEEConfig",
     "mcmc_emcee",
     "HamiltonianConfig",
     "mcmc_hamiltonian",

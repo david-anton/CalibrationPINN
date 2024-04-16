@@ -1,5 +1,6 @@
 from .bayesianinference.mcmc import (
     EfficientNUTSConfig,
+    EMCEEConfig,
     HamiltonianConfig,
     MetropolisHastingsConfig,
 )
@@ -10,6 +11,7 @@ from .validation import test_coverage, test_least_squares_calibration
 
 __all__ = [
     "EfficientNUTSConfig",
+    "EMCEEConfig",
     "HamiltonianConfig",
     "MetropolisHastingsConfig",
     "calibrate",

@@ -137,16 +137,6 @@ class UnvalidGPPriorConfigError(Error):
         super().__init__(message)
 
 
-class ParameterSamplingError(Error):
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
-
-
-class OptimizedModelErrorGPLikelihoodStrategyError(Error):
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
-
-
 class GPMeanNotImplementedError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)
@@ -163,5 +153,20 @@ class GPMeanPriorNotImplementedError(Error):
 
 
 class GPKernelPriorNotImplementedError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
+class ParameterSamplingError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
+class OptimizedModelErrorGPLikelihoodStrategyError(Error):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
+class EMCEEConfigError(Error):
     def __init__(self, message: str) -> None:
         super().__init__(message)

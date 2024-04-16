@@ -2,15 +2,15 @@ from typing import Callable, TypeAlias, Union, cast, overload
 
 from parametricpinn.calibration.bayesianinference.mcmc import (
     EfficientNUTSConfig,
+    EMCEEConfig,
     HamiltonianConfig,
     MCMCConfig,
     MCMCOutput,
     MetropolisHastingsConfig,
     mcmc_efficientnuts,
+    mcmc_emcee,
     mcmc_hamiltonian,
     mcmc_metropolishastings,
-    EMCEEConfig,
-    mcmc_emcee
 )
 from parametricpinn.calibration.config import CalibrationConfig
 from parametricpinn.calibration.leastsquares import (
@@ -74,6 +74,7 @@ def _create_calibration_algorithm(
                 likelihood=config_emcee.likelihood,
                 prior=config_emcee.prior,
                 initial_parameters=config_emcee.initial_parameters,
+                stretch_scale=config_emcee.stretch_scale,
                 num_walkers=config_emcee.num_walkers,
                 num_iterations=config_emcee.num_iterations,
                 num_burn_in_iterations=config_emcee.num_burn_in_iterations,
