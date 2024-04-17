@@ -883,8 +883,8 @@ def calibration_step() -> None:
                 initial_parameters=initial_parameters.to(device),
                 stretch_scale=4.0,
                 num_walkers=num_walkers,
-                num_iterations=100,
-                num_burn_in_iterations=50,
+                num_iterations=200,
+                num_burn_in_iterations=100,
             )
             configs.append(config)
         return tuple(configs)

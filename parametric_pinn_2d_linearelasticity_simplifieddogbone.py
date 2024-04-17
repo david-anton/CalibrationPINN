@@ -123,7 +123,7 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_interpolated_calibration_data = True
+use_interpolated_calibration_data = False
 input_subdir_calibration = os.path.join(
     "Paper_PINNs", "20240415_experimental_dic_data_dogbone"
 )
@@ -1115,6 +1115,7 @@ def calibration_step() -> None:
         mean_displacements = torch.mean(
             torch.absolute(concatenated_data.outputs), dim=0
         )
+        print(f"Weights NLS: {1 / mean_displacements}")
         residual_weights = (
             (1 / mean_displacements)
             .to(device)
