@@ -85,6 +85,6 @@ def mcmc_emcee(
     samples = run_mcmc()
     moments = determine_moments_of_multivariate_normal_distribution(samples)
     acceptance_ratio = sampler.acceptance_fraction
-    print(f"Acceptance ratio: {round(acceptance_ratio, 4)}")
+    print(f"Acceptance ratio: {acceptance_ratio}")
 
     return moments, samples
