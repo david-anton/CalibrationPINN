@@ -68,7 +68,8 @@ def mcmc_emcee(
 
     def _run_burn_in_phase() -> State:
         state = sampler.run_mcmc(
-            initial_state=initial_parameters, nsteps=num_burn_in_iterations
+            initial_state=initial_parameters.detach().clone().cpu().numpy(),
+            nsteps=num_burn_in_iterations,
         )
         sampler.reset()
         return state
