@@ -2,6 +2,7 @@ from typing import Callable, TypeAlias
 
 import emcee
 import torch
+import numpy as np
 
 from parametricpinn.bayesian.likelihood import Likelihood
 from parametricpinn.bayesian.prior import Prior
@@ -13,6 +14,7 @@ from parametricpinn.errors import EMCEEConfigError
 from parametricpinn.types import Device, NPArray
 
 LogProbFunc: TypeAlias = Callable[[NPArray], float]
+Sampler: TypeAlias = emcee.EnsembleSampler
 State: TypeAlias = emcee.State
 Samples: TypeAlias = NPArray
 
@@ -44,3 +46,9 @@ def validate_initial_parameters(
 def validate_stretch_scale(stretch_scale: float) -> None:
     if stretch_scale <= 1.0:
         raise EMCEEConfigError(f"The stretch scale must be larger than 1.0.")
+
+
+def print_mean_acceptance_ratio(sampler: Sampler) -> None:
+    acceptance_ratio = sampler.acceptance_fraction
+    mean_acceptance_ratio = np.mean(acceptance_ratio)
+    print(f"Mean acceptance ratio: {round(mean_acceptance_ratio, 4)}")

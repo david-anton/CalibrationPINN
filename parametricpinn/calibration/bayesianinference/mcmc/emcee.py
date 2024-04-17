@@ -15,6 +15,7 @@ from parametricpinn.calibration.bayesianinference.mcmc.base_emcee import (
     create_log_prob_func,
     validate_initial_parameters,
     validate_stretch_scale,
+    print_mean_acceptance_ratio,
 )
 from parametricpinn.calibration.bayesianinference.mcmc.config import MCMCConfig
 from parametricpinn.statistics.utility import (
@@ -84,7 +85,6 @@ def mcmc_emcee(
 
     samples = run_mcmc()
     moments = determine_moments_of_multivariate_normal_distribution(samples)
-    acceptance_ratio = sampler.acceptance_fraction
-    print(f"Acceptance ratio: {acceptance_ratio}")
+    print_mean_acceptance_ratio(sampler)
 
     return moments, samples
