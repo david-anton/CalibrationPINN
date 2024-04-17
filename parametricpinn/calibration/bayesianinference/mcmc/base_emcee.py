@@ -1,8 +1,8 @@
 from typing import Callable, TypeAlias
 
 import emcee
-import torch
 import numpy as np
+import torch
 
 from parametricpinn.bayesian.likelihood import Likelihood
 from parametricpinn.bayesian.prior import Prior

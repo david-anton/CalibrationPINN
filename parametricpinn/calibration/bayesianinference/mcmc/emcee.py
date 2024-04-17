@@ -13,15 +13,15 @@ from parametricpinn.calibration.bayesianinference.mcmc.base_emcee import (
     Samples,
     State,
     create_log_prob_func,
+    print_mean_acceptance_ratio,
     validate_initial_parameters,
     validate_stretch_scale,
-    print_mean_acceptance_ratio,
 )
 from parametricpinn.calibration.bayesianinference.mcmc.config import MCMCConfig
 from parametricpinn.statistics.utility import (
     determine_moments_of_multivariate_normal_distribution,
 )
-from parametricpinn.types import Device, NPArray
+from parametricpinn.types import Device
 
 MCMCEMCEEFunc: TypeAlias = Callable[
     [
