@@ -123,7 +123,7 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_interpolated_calibration_data = True
+use_interpolated_calibration_data = False
 input_subdir_calibration = os.path.join(
     "Paper_PINNs", "20240415_experimental_dic_data_dogbone"
 )
@@ -1155,8 +1155,8 @@ def calibration_step() -> None:
             initial_parameters=initial_parameters.to(device),
             stretch_scale=4.0,
             num_walkers=num_walkers,
-            num_iterations=100,
-            num_burn_in_iterations=50,
+            num_iterations=200,
+            num_burn_in_iterations=100,
         )
 
     def set_up_hamiltonian_configs(
