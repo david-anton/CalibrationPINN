@@ -23,6 +23,7 @@ from parametricpinn.calibration import (
     EfficientNUTSConfig,
     HamiltonianConfig,
     LeastSquaresConfig,
+    EMCEEConfig,
     MetropolisHastingsConfig,
     test_coverage,
     test_least_squares_calibration,
@@ -70,7 +71,7 @@ from parametricpinn.training.training_standard_neohooke_quarterplatewithhole imp
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False
 # Set up
 num_material_parameters = 2
 edge_length = 100.0
@@ -109,7 +110,7 @@ fem_element_family = "Lagrange"
 fem_element_degree = 2
 fem_element_size = 0.2
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = f"20240409_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
 num_samples_valid = 100
 validation_interval = 1
@@ -123,11 +124,12 @@ calibration_method = "noise_only"
 # calibration_method = "empirical_bayes_with_error_gps"
 use_least_squares = True
 use_random_walk_metropolis_hasting = True
+use_emcee = True
 use_hamiltonian = False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = "20240409"
 output_subdirectory = f"{output_date}_parametric_pinn_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_pinnsamples_{num_parameter_samples_pinn}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_parameter_samples_data}_neurons_6_128"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
@@ -154,13 +156,11 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
     )
 
 
-def create_datasets() -> (
-    tuple[
-        QuarterPlateWithHoleTrainingDataset2D,
-        SimulationDataset2D | None,
-        SimulationDataset2D,
-    ]
-):
+def create_datasets() -> tuple[
+    QuarterPlateWithHoleTrainingDataset2D,
+    SimulationDataset2D | None,
+    SimulationDataset2D,
+]:
     def _create_pinn_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(
@@ -850,6 +850,30 @@ def calibration_step() -> None:
             configs.append(config)
         return tuple(configs)
 
+    def set_up_emcee_config(
+        likelihoods: tuple[Likelihood, ...]
+    ) -> tuple[EMCEEConfig, ...]:
+        num_walkers = 100
+        min_material_parameters = torch.tensor([min_bulk_modulus, min_shear_modulus])
+        max_material_parameters = torch.tensor([max_bulk_modulus, max_shear_modulus])
+        range_material_parameters = max_material_parameters - min_material_parameters
+        initial_parameters = min_material_parameters + torch.rand(
+            (num_walkers, num_material_parameters)
+        ) * range_material_parameters.repeat((num_walkers, 1))
+        configs = []
+        for likelihood in likelihoods:
+            config = EMCEEConfig(
+                likelihood=likelihood,
+                prior=prior,
+                initial_parameters=initial_parameters.to(device),
+                stretch_scale=4.0,
+                num_walkers=num_walkers,
+                num_iterations=100,
+                num_burn_in_iterations=50,
+            )
+            configs.append(config)
+        return tuple(configs)
+
     def set_up_hamiltonian_configs(
         likelihoods: tuple[Likelihood, ...],
     ) -> tuple[HamiltonianConfig, ...]:
@@ -915,6 +939,21 @@ def calibration_step() -> None:
         end = perf_counter()
         time = end - start
         print(f"Run time Metropolis-Hasting coverage test: {time}")
+        print("############################################################")
+    if use_emcee:
+        configs_emcee = set_up_emcee_config(likelihoods)
+        start = perf_counter()
+        test_coverage(
+            calibration_configs=configs_emcee,
+            parameter_names=parameter_names,
+            true_parameters=true_material_parameters,
+            output_subdir=os.path.join(output_subdir_calibration, "emcee"),
+            project_directory=project_directory,
+            device=device,
+        )
+        end = perf_counter()
+        time = end - start
+        print(f"Run time emcee coverage test: {time}")
         print("############################################################")
     if use_hamiltonian:
         configs_h = set_up_hamiltonian_configs(likelihoods)
