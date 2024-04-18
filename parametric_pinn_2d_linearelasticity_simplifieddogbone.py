@@ -136,8 +136,8 @@ calibration_method = "noise_only"
 # calibration_method = "overestimated_error_stds"
 # calibration_method = "full_bayes_with_error_gps"
 # calibration_method = "empirical_bayes_with_error_gps"
-use_least_squares = True
-use_random_walk_metropolis_hasting = True
+use_least_squares = False
+use_random_walk_metropolis_hasting = False
 use_emcee = True
 use_hamiltonian = False
 use_efficient_nuts = False
@@ -531,7 +531,7 @@ def calibration_step() -> None:
         num_total_data_points = 5240
     num_data_sets = 1
     num_data_points = num_total_data_points
-    std_noise = 5 * 1e-4
+    std_noise = 5e-2  # 5 * 1e-4
 
     material_parameter_names = ("bulk modulus", "shear modulus")
 
@@ -1123,6 +1123,13 @@ def calibration_step() -> None:
             .repeat((concatenated_data.num_data_points, 1))
             .ravel()
         )
+        ################################################################################
+        sigma = torch.inverse(torch.diag(residual_weights**2))
+        squareroot_mean_sigma_diagonal = torch.sqrt(torch.mean(torch.diagonal(sigma)))
+        print(
+            f"Square root of mean of covariance diagonal: {squareroot_mean_sigma_diagonal}"
+        )
+        ################################################################################
         return LeastSquaresConfig(
             ansatz=model,
             calibration_data=concatenated_data,
