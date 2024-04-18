@@ -225,7 +225,7 @@ def _plot_univariate_normal_distribution_histogram(
         x=mean,
         color=config.pdf_mean_color,
         linestyle=config.pdf_mean_linestyle,
-        label="mean" + r"$\mu$",
+        label="mean",
     )
     axes.axvline(
         x=mean - config.interval_num_stds * standard_deviation,
