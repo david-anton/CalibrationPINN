@@ -622,8 +622,8 @@ def calibration_step() -> None:
                     # label size
                     self.label_size = 16
                     # font size in legend
-                    self.font_size = 16
-                    self.font = {"size": self.label_size}
+                    self.font_size = self.label_size
+                    self.font = {"size": self.font_size}
                     # title pad
                     self.title_pad = 10
                     # labels
@@ -775,6 +775,7 @@ def calibration_step() -> None:
                 )
                 cbar = figure.colorbar(mappable=plot, ax=axes, ticks=color_bar_ticks)
                 cbar.ax.set_yticklabels(map(str, color_bar_ticks))
+                cbar.ax.tick_params(label_size=plot_config.label_size)
                 cbar.ax.minorticks_off()
 
                 # hole
