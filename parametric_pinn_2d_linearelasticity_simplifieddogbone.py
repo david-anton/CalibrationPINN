@@ -123,7 +123,7 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_interpolated_calibration_data = False
+use_interpolated_calibration_data = True
 input_subdir_calibration = os.path.join(
     "Paper_PINNs", "20240415_experimental_dic_data_dogbone"
 )
@@ -526,9 +526,9 @@ def training_step() -> None:
 def calibration_step() -> None:
     print("Start calibration ...")
     if use_interpolated_calibration_data:
-        num_total_data_points = 578
+        num_total_data_points = 1079
     else:
-        num_total_data_points = 3273
+        num_total_data_points = 5195
     num_data_sets = 1
     num_data_points = num_total_data_points
     std_noise = 5 * 1e-4
@@ -625,9 +625,9 @@ def calibration_step() -> None:
             ) -> tuple[Tensor, Tensor]:
                 raw_coordinates_x = raw_coordinates[:, 0]
                 raw_coordinates_y = raw_coordinates[:, 1]
-                distance_box_x = 2
-                distance_box_y = 2
-                distance_hole = 5
+                distance_box_x = 0
+                distance_box_y = 0
+                distance_hole = 0
 
                 mask_condition_box_x = torch.logical_and(
                     raw_coordinates_x >= -left_half_measurement_length + distance_box_x,
