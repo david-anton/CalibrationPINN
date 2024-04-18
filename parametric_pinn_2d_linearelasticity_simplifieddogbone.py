@@ -131,12 +131,12 @@ if use_interpolated_calibration_data:
     input_file_name_calibration = "displacements_dic_interpolated.csv"
 else:
     input_file_name_calibration = "displacements_dic_raw.csv"
-calibration_method = "noise_only"
+# calibration_method = "noise_only"
 # calibration_method = "noise_and_q_likelihood"
 # calibration_method = "overestimated_error_stds"
 # calibration_method = "full_bayes_with_error_gps"
-# calibration_method = "empirical_bayes_with_error_gps"
-use_least_squares = False
+calibration_method = "empirical_bayes_with_error_gps"
+use_least_squares = True
 use_random_walk_metropolis_hasting = False
 use_emcee = True
 use_hamiltonian = False
@@ -531,7 +531,7 @@ def calibration_step() -> None:
         num_total_data_points = 5240
     num_data_sets = 1
     num_data_points = num_total_data_points
-    std_noise = 10e-4  # 5 * 1e-4
+    std_noise = 5 * 1e-4
 
     material_parameter_names = ("bulk modulus", "shear modulus")
 
@@ -1065,7 +1065,7 @@ def calibration_step() -> None:
         num_rwmh_burn_in_iterations = int(2e5)
 
     elif calibration_method == "empirical_bayes_with_error_gps":
-        model_error_optimization_num_material_parameter_samples = 128
+        model_error_optimization_num_material_parameter_samples = 256
         model_error_optimization_num_iterations = 16
 
         likelihood = create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps(
@@ -1123,13 +1123,6 @@ def calibration_step() -> None:
             .repeat((concatenated_data.num_data_points, 1))
             .ravel()
         )
-        ################################################################################
-        sigma = torch.inverse(torch.diag(residual_weights**2))
-        squareroot_mean_sigma_diagonal = torch.sqrt(torch.mean(torch.diagonal(sigma)))
-        print(
-            f"Square root of mean of covariance diagonal: {squareroot_mean_sigma_diagonal}"
-        )
-        ################################################################################
         return LeastSquaresConfig(
             ansatz=model,
             calibration_data=concatenated_data,
