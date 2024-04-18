@@ -131,11 +131,11 @@ if use_interpolated_calibration_data:
     input_file_name_calibration = "displacements_dic_interpolated.csv"
 else:
     input_file_name_calibration = "displacements_dic_raw.csv"
-# calibration_method = "noise_only"
+calibration_method = "noise_only"
 # calibration_method = "noise_and_q_likelihood"
 # calibration_method = "overestimated_error_stds"
 # calibration_method = "full_bayes_with_error_gps"
-calibration_method = "empirical_bayes_with_error_gps"
+# calibration_method = "empirical_bayes_with_error_gps"
 use_least_squares = True
 use_random_walk_metropolis_hasting = False
 use_emcee = True
@@ -526,7 +526,7 @@ def training_step() -> None:
 def calibration_step() -> None:
     print("Start calibration ...")
     if use_interpolated_calibration_data:
-        num_total_data_points = 1124
+        num_total_data_points = 612  # 1124
     else:
         num_total_data_points = 5240
     num_data_sets = 1
@@ -589,30 +589,80 @@ def calibration_step() -> None:
                 [coordinate_shift_x, coordinate_shift_y], dtype=torch.float64
             )
 
-        def _filter_data_points_within_measurement_area(
+        def _filter_raw_data_points(
             full_raw_coordinates: Tensor, full_raw_displacements: Tensor
         ) -> tuple[Tensor, Tensor]:
-            full_raw_coordinates_x = full_raw_coordinates[:, 0]
-            full_raw_coordinates_y = full_raw_coordinates[:, 1]
             left_half_measurement_length = geometry_config.left_half_measurement_length
             right_half_measurement_length = (
                 geometry_config.right_half_measurement_length
             )
             half_measurement_height = geometry_config.half_measurement_height
-            mask_condition_x = torch.logical_and(
-                full_raw_coordinates_x >= -left_half_measurement_length,
-                full_raw_coordinates_x <= right_half_measurement_length,
-            )
+            hole_radius = geometry_config.plate_hole_radius
 
-            mask_condition_y = torch.logical_and(
-                full_raw_coordinates_y >= -half_measurement_height,
-                full_raw_coordinates_y <= half_measurement_height,
+            def _filter_points_within_measurement_area(
+                raw_coordinates: Tensor, raw_displacements: Tensor
+            ) -> tuple[Tensor, Tensor]:
+                raw_coordinates_x = raw_coordinates[:, 0]
+                raw_coordinates_y = raw_coordinates[:, 1]
+
+                mask_condition_x = torch.logical_and(
+                    raw_coordinates_x >= -left_half_measurement_length,
+                    raw_coordinates_x <= right_half_measurement_length,
+                )
+
+                mask_condition_y = torch.logical_and(
+                    raw_coordinates_y >= -half_measurement_height,
+                    raw_coordinates_y <= half_measurement_height,
+                )
+                mask_condition = torch.logical_and(mask_condition_x, mask_condition_y)
+                mask = torch.where(mask_condition, True, False)
+                coordinates = raw_coordinates[mask]
+                displacements = raw_displacements[mask]
+                return coordinates, displacements
+
+            def _exclude_points_close_to_boundary(
+                raw_coordinates: Tensor, raw_displacements: Tensor
+            ) -> tuple[Tensor, Tensor]:
+                raw_coordinates_x = raw_coordinates[:, 0]
+                raw_coordinates_y = raw_coordinates[:, 1]
+                distance_box_x = 2
+                distance_box_y = 2
+                distance_hole = 4
+
+                mask_condition_box_x = torch.logical_and(
+                    raw_coordinates_x >= -left_half_measurement_length + distance_box_x,
+                    raw_coordinates_x <= right_half_measurement_length - distance_box_x,
+                )
+
+                mask_condition_box_y = torch.logical_and(
+                    raw_coordinates_y >= -half_measurement_height + distance_box_y,
+                    raw_coordinates_y <= half_measurement_height - distance_box_y,
+                )
+                mask_condition_box = torch.logical_and(
+                    mask_condition_box_x, mask_condition_box_y
+                )
+
+                mask_condition_hole = (
+                    torch.sqrt(raw_coordinates_x**2 + raw_coordinates_y**2)
+                    >= hole_radius + distance_hole
+                )
+
+                mask_condition = torch.logical_and(
+                    mask_condition_box, mask_condition_hole
+                )
+
+                mask = torch.where(mask_condition, True, False)
+                coordinates = raw_coordinates[mask]
+                displacements = raw_displacements[mask]
+                return coordinates, displacements
+
+            coordinates, displacements = _filter_points_within_measurement_area(
+                full_raw_coordinates, full_raw_displacements
             )
-            mask_condition = torch.logical_and(mask_condition_x, mask_condition_y)
-            mask = torch.where(mask_condition, True, False)
-            full_coordinates = full_raw_coordinates[mask]
-            full_displacements = full_raw_displacements[mask]
-            return full_coordinates, full_displacements
+            coordinates, displacements = _exclude_points_close_to_boundary(
+                coordinates, displacements
+            )
+            return coordinates, displacements
 
         def _visualize_data(coordinates: Tensor, displacements: Tensor) -> None:
             class PlotterConfigData:
@@ -836,9 +886,7 @@ def calibration_step() -> None:
         (
             full_coordinates,
             full_displacements,
-        ) = _filter_data_points_within_measurement_area(
-            full_raw_coordinates, full_raw_displacements
-        )
+        ) = _filter_raw_data_points(full_raw_coordinates, full_raw_displacements)
         _visualize_data(full_coordinates, full_displacements)
         coordinates_sets, displacements_sets = _create_data_sets(
             full_coordinates, full_displacements
