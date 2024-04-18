@@ -773,7 +773,7 @@ def calibration_step() -> None:
                 )
                 cbar = figure.colorbar(mappable=plot, ax=axes, ticks=color_bar_ticks)
                 cbar.ax.set_yticklabels(map(str, color_bar_ticks))
-                cbar.ax.tick_params(label_size=plot_config.label_size)
+                cbar.ax.tick_params(labelsize=plot_config.label_size)
                 cbar.ax.minorticks_off()
 
                 # hole
