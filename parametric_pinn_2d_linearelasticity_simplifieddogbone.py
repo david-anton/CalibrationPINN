@@ -526,7 +526,7 @@ def training_step() -> None:
 def calibration_step() -> None:
     print("Start calibration ...")
     if use_interpolated_calibration_data:
-        num_total_data_points = 612  # 1124
+        num_total_data_points = 578
     else:
         num_total_data_points = 5240
     num_data_sets = 1
@@ -627,7 +627,7 @@ def calibration_step() -> None:
                 raw_coordinates_y = raw_coordinates[:, 1]
                 distance_box_x = 2
                 distance_box_y = 2
-                distance_hole = 4
+                distance_hole = 5
 
                 mask_condition_box_x = torch.logical_and(
                     raw_coordinates_x >= -left_half_measurement_length + distance_box_x,
