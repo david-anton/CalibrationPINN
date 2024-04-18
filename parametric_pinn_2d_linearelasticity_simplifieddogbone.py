@@ -531,7 +531,7 @@ def calibration_step() -> None:
         num_total_data_points = 5240
     num_data_sets = 1
     num_data_points = num_total_data_points
-    std_noise = 10e-2  # 5 * 1e-4
+    std_noise = 4e-2  # 5 * 1e-4
 
     material_parameter_names = ("bulk modulus", "shear modulus")
 
