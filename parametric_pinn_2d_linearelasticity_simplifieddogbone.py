@@ -526,7 +526,7 @@ def training_step() -> None:
 def calibration_step() -> None:
     print("Start calibration ...")
     if use_interpolated_calibration_data:
-        num_total_data_points = 1079
+        num_total_data_points = 1124  # 1079
     else:
         num_total_data_points = 5195
     num_data_sets = 1
@@ -659,9 +659,9 @@ def calibration_step() -> None:
             coordinates, displacements = _filter_points_within_measurement_area(
                 full_raw_coordinates, full_raw_displacements
             )
-            coordinates, displacements = _exclude_points_close_to_boundary(
-                coordinates, displacements
-            )
+            # coordinates, displacements = _exclude_points_close_to_boundary(
+            #     coordinates, displacements
+            # )
             return coordinates, displacements
 
         def _visualize_data(coordinates: Tensor, displacements: Tensor) -> None:
