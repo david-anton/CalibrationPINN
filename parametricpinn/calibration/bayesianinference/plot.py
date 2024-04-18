@@ -63,6 +63,7 @@ class UnivariateNormalPlotterConfig:
 
         # save options
         self.dpi = 300
+        self.file_format = "png"
 
 
 def plot_posterior_normal_distributions(
@@ -211,7 +212,7 @@ def _plot_univariate_normal_distribution_histogram(
         start=mean - range_hist, stop=mean + range_hist, num=10000, endpoint=True
     )
     y = scipy.stats.norm.pdf(x, loc=mean, scale=standard_deviation)
-    axes.plot(x, y, color=config.pdf_color, linestyle=config.pdf_linestyle, label="pdf")
+    axes.plot(x, y, color=config.pdf_color, linestyle=config.pdf_linestyle, label="PDF")
     x_ticks = [
         mean - (config.interval_num_stds * standard_deviation),
         mean,
@@ -224,7 +225,7 @@ def _plot_univariate_normal_distribution_histogram(
         x=mean,
         color=config.pdf_mean_color,
         linestyle=config.pdf_mean_linestyle,
-        label=r"$\mu$",
+        label="mean" + r"$\mu$",
     )
     axes.axvline(
         x=mean - config.interval_num_stds * standard_deviation,
@@ -244,11 +245,13 @@ def _plot_univariate_normal_distribution_histogram(
     axes.set_ylabel("probability density", **config.font)
     axes.tick_params(axis="both", which="minor", labelsize=config.minor_tick_label_size)
     axes.tick_params(axis="both", which="major", labelsize=config.major_tick_label_size)
-    file_name = f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.png"
+    file_name = f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.{config.file_format}"
     output_path = project_directory.create_output_file_path(
         file_name=file_name, subdir_name=output_subdir
     )
-    figure.savefig(output_path, bbox_inches="tight", dpi=config.dpi)
+    figure.savefig(
+        output_path, bbox_inches="tight", format=config.file_format, dpi=config.dpi
+    )
     plt.close()
 
 
@@ -332,9 +335,11 @@ def _plot_sampling_trace(
     axes.set_ylabel(parameter_name, **config.font)
     axes.tick_params(axis="both", which="minor", labelsize=config.minor_tick_label_size)
     axes.tick_params(axis="both", which="major", labelsize=config.major_tick_label_size)
-    file_name = f"sampling_trace_{parameter_name.lower()}_{mcmc_algorithm.lower()}.png"
+    file_name = f"sampling_trace_{parameter_name.lower()}_{mcmc_algorithm.lower()}.{config.file_format}"
     output_path = project_directory.create_output_file_path(
         file_name=file_name, subdir_name=output_subdir
     )
-    figure.savefig(output_path, bbox_inches="tight", dpi=config.dpi)
+    figure.savefig(
+        output_path, bbox_inches="tight", format=config.file_format, dpi=config.dpi
+    )
     plt.close()
