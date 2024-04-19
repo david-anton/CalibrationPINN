@@ -52,15 +52,27 @@ class NoiseLikelihoodDistribution:
         data: PreprocessedCalibrationData,
         device: Device,
     ) -> None:
-        self._noise_standard_deviation = torch.tensor(data.std_noise, device=device)
+        self._noise_standard_deviation = make_sure_it_is_a_tesnor(
+            data.std_noise, device
+        )
         self._device = device
 
     def initialize(
-        self,
-        num_flattened_outputs: int,
+        self, num_data_points: int, dim_outputs: int
     ) -> IndependentMultivariateNormalDistributon:
+        num_flattened_outputs = num_data_points * dim_outputs
         means = self._assemble_means(num_flattened_outputs)
-        standard_deviations = self._assemble_standard_deviations(num_flattened_outputs)
+        standard_deviations = assemble_noise_standard_deviations(
+            noise_standard_deviation=self._noise_standard_deviation,
+            num_data_points=num_data_points,
+            dim_outputs=dim_outputs,
+            device=self._device,
+        )
+        print("##########################################")
+        print(num_data_points)
+        print(dim_outputs)
+        print(standard_deviations)
+        print("##########################################")
         return create_independent_multivariate_normal_distribution(
             means=means,
             standard_deviations=standard_deviations,
@@ -70,13 +82,6 @@ class NoiseLikelihoodDistribution:
     def _assemble_means(self, num_flattened_outputs: int) -> Tensor:
         return torch.zeros(
             (num_flattened_outputs,), dtype=torch.float64, device=self._device
-        )
-
-    def _assemble_standard_deviations(self, num_flattened_outputs: int) -> Tensor:
-        return self._noise_standard_deviation * torch.ones(
-            (num_flattened_outputs,),
-            dtype=torch.float64,
-            device=self._device,
         )
 
 
@@ -168,8 +173,7 @@ class NoiseLikelihoodStrategy(torch.nn.Module):
     def _initialize_residuals_distribution(
         self, num_data_points: int
     ) -> IndependentMultivariateNormalDistributon:
-        num_flattened_outputs = num_data_points * self._dim_outputs
-        return self._distribution.initialize(num_flattened_outputs)
+        return self._distribution.initialize(num_data_points, self._dim_outputs)
 
 
 ### Noise and model error
@@ -179,20 +183,23 @@ class NoiseAndErrorLikelihoodDistribution:
         data: PreprocessedCalibrationData,
         device: Device,
     ) -> None:
-        self._noise_standard_deviation = torch.tensor(data.std_noise, device=device)
+        self._noise_standard_deviation = make_sure_it_is_a_tesnor(
+            data.std_noise, device
+        )
         self._device = device
 
     def initialize(
         self,
         model_error_standard_deviation_parameters: Tensor | Parameter,
         num_data_points: int,
-        num_flattened_outputs: int,
+        dim_outputs: int,
     ) -> IndependentMultivariateNormalDistributon:
+        num_flattened_outputs = num_data_points * dim_outputs
         means = self._assemble_means(num_flattened_outputs)
         standard_deviations = self._assemble_standard_deviations(
             model_error_standard_deviation_parameters,
             num_data_points,
-            num_flattened_outputs,
+            dim_outputs,
         )
         return create_independent_multivariate_normal_distribution(
             means=means,
@@ -209,23 +216,19 @@ class NoiseAndErrorLikelihoodDistribution:
         self,
         model_error_standard_deviation_parameters: Tensor | Parameter,
         num_data_points: int,
-        num_flattened_outputs: int,
+        dim_outputs: int,
     ) -> Tensor:
-        noise_standard_deviations = self._assemble_noise_standard_deviations(
-            num_flattened_outputs
+        noise_standard_deviations = assemble_noise_standard_deviations(
+            noise_standard_deviation=self._noise_standard_deviation,
+            num_data_points=num_data_points,
+            dim_outputs=dim_outputs,
+            device=self._device,
         )
         model_error_standard_deviations = self._assemble_error_standard_deviations(
             model_error_standard_deviation_parameters, num_data_points
         )
         return torch.sqrt(
             noise_standard_deviations**2 + model_error_standard_deviations**2
-        )
-
-    def _assemble_noise_standard_deviations(self, num_flattened_outputs: int) -> Tensor:
-        return self._noise_standard_deviation * torch.ones(
-            (num_flattened_outputs,),
-            dtype=torch.float64,
-            device=self._device,
         )
 
     def _assemble_error_standard_deviations(
@@ -372,11 +375,10 @@ class NoiseAndErrorSamplingLikelihoodStrategy(torch.nn.Module):
     def _initialize_residuals_distribution(
         self, model_error_standard_deviation_parameters: Tensor, num_data_points: int
     ) -> IndependentMultivariateNormalDistributon:
-        num_flattened_outputs = num_data_points * self._dim_outputs
         return self._distribution.initialize(
             model_error_standard_deviation_parameters,
             num_data_points,
-            num_flattened_outputs,
+            self._dim_outputs,
         )
 
 
@@ -544,11 +546,10 @@ class NoiseAndErrorOptimizedLikelihoodStrategy(torch.nn.Module):
         model_error_standard_deviation_parameters: Tensor,
         num_data_points: int,
     ) -> IndependentMultivariateNormalDistributon:
-        num_flattened_outputs = num_data_points * self._dim_outputs
         return self._distribution.initialize(
             model_error_standard_deviation_parameters,
             num_data_points,
-            num_flattened_outputs,
+            self._dim_outputs,
         )
 
 
@@ -559,18 +560,29 @@ class NoiseAndErrorGPsLikelihoodDistribution:
         data: PreprocessedCalibrationData,
         device: Device,
     ) -> None:
-        self._standard_deviation_noise = torch.tensor(data.std_noise, device=device)
+        self._noise_standard_deviation = make_sure_it_is_a_tesnor(
+            data.std_noise, device
+        )
         self._device = device
 
     def initialize(
         self,
         model_error_gp: GaussianProcess,
         inputs: Tensor,
-        num_flattened_outputs: int,
+        num_data_points: int,
+        dim_outputs: int,
     ) -> MultivariateNormalDistributon:
-        means = self._assemble_means(model_error_gp, inputs, num_flattened_outputs)
+        num_flattened_outputs = num_data_points * dim_outputs
+        means = self._assemble_means(
+            model_error_gp=model_error_gp,
+            inputs=inputs,
+            num_flattened_outputs=num_flattened_outputs,
+        )
         covariance_matrix = self._assemble_covariance_matrix(
-            model_error_gp, inputs, num_flattened_outputs
+            model_error_gp=model_error_gp,
+            inputs=inputs,
+            num_data_points=num_data_points,
+            dim_outputs=dim_outputs,
         )
         return create_multivariate_normal_distribution(
             means=means, covariance_matrix=covariance_matrix, device=self._device
@@ -600,17 +612,30 @@ class NoiseAndErrorGPsLikelihoodDistribution:
         self,
         model_error_gp: GaussianProcess,
         inputs: Tensor,
-        num_flattened_outputs: int,
+        num_data_points: int,
+        dim_outputs: int,
     ) -> Tensor:
-        noise_covariance = self._assemble_noise_covariance_matrix(num_flattened_outputs)
+        noise_covariance = self._assemble_noise_covariance_matrix(
+            num_data_points, dim_outputs
+        )
         error_covariance = self._assemble_error_covariance_matrix(
             model_error_gp, inputs
         )
         return noise_covariance + error_covariance
 
-    def _assemble_noise_covariance_matrix(self, num_flattened_outputs: int) -> Tensor:
-        return self._standard_deviation_noise**2 * torch.eye(
-            num_flattened_outputs, dtype=torch.float64, device=self._device
+    def _assemble_noise_covariance_matrix(
+        self, num_data_points: int, dim_outputs: int
+    ) -> Tensor:
+        noise_standard_deviations = assemble_noise_standard_deviations(
+            noise_standard_deviation=self._noise_standard_deviation,
+            num_data_points=num_data_points,
+            dim_outputs=dim_outputs,
+            device=self._device,
+        )
+        return (
+            torch.diag(noise_standard_deviations**2)
+            .type(torch.float64)
+            .to(self._device)
         )
 
     def _assemble_error_covariance_matrix(
@@ -625,18 +650,26 @@ class NoiseAndErrorGPsOptimizedLikelihoodDistribution:
         data: PreprocessedCalibrationData,
         device: Device,
     ) -> None:
-        self._standard_deviation_noise = torch.tensor(data.std_noise, device=device)
+        self._noise_standard_deviation = make_sure_it_is_a_tesnor(
+            data.std_noise, device
+        )
         self._device = device
 
     def initialize(
         self,
         error_mean: Tensor,
         error_covariance: Tensor,
-        num_flattened_outputs: int,
+        num_data_points: int,
+        dim_outputs: int,
     ) -> MultivariateNormalDistributon:
-        means = self._assemble_mean(error_mean, num_flattened_outputs)
+        num_flattened_outputs = num_data_points * dim_outputs
+        means = self._assemble_mean(
+            error_mean=error_mean, num_flattened_outputs=num_flattened_outputs
+        )
         covariance_matrix = self._assemble_covariance_matrix(
-            error_covariance, num_flattened_outputs
+            error_covariance=error_covariance,
+            num_data_points=num_data_points,
+            dim_outputs=dim_outputs,
         )
         return create_multivariate_normal_distribution(
             means=means, covariance_matrix=covariance_matrix, device=self._device
@@ -666,14 +699,27 @@ class NoiseAndErrorGPsOptimizedLikelihoodDistribution:
     def _assemble_covariance_matrix(
         self,
         error_covariance: Tensor,
-        num_flattened_outputs: int,
+        num_data_points: int,
+        dim_outputs: int,
     ) -> Tensor:
-        noise_covariance = self._assemble_noise_covariance_matrix(num_flattened_outputs)
+        noise_covariance = self._assemble_noise_covariance_matrix(
+            num_data_points, dim_outputs
+        )
         return noise_covariance + error_covariance
 
-    def _assemble_noise_covariance_matrix(self, num_flattened_outputs: int) -> Tensor:
-        return self._standard_deviation_noise**2 * torch.eye(
-            num_flattened_outputs, dtype=torch.float64, device=self._device
+    def _assemble_noise_covariance_matrix(
+        self, num_data_points: int, dim_outputs: int
+    ) -> Tensor:
+        noise_standard_deviations = assemble_noise_standard_deviations(
+            noise_standard_deviation=self._noise_standard_deviation,
+            num_data_points=num_data_points,
+            dim_outputs=dim_outputs,
+            device=self._device,
+        )
+        return (
+            torch.diag(noise_standard_deviations**2)
+            .type(torch.float64)
+            .to(self._device)
         )
 
 
@@ -748,9 +794,11 @@ class NoiseAndErrorGPsSamplingLikelihoodStrategy(torch.nn.Module):
         outputs: Tensor,
         num_data_points: int,
     ) -> Tensor:
-        num_flattened_outputs = num_data_points * self._dim_outputs
         distribution = self._distribution.initialize(
-            model_error_gp, inputs, num_flattened_outputs
+            model_error_gp=model_error_gp,
+            inputs=inputs,
+            num_data_points=num_data_points,
+            dim_outputs=self._dim_outputs,
         )
         residuals = self._residual_calculator.calculate_residuals(
             model_parameters, inputs, outputs
@@ -930,9 +978,11 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
         outputs: Tensor,
         num_data_points: int,
     ) -> Tensor:
-        num_flattened_outputs = num_data_points * self._dim_outputs
         distribution = self._distribution_training.initialize(
-            model_error_gp, inputs, num_flattened_outputs
+            model_error_gp=model_error_gp,
+            inputs=inputs,
+            num_data_points=num_data_points,
+            dim_outputs=self._dim_outputs,
         )
         residuals = self._residual_calculator.calculate_residuals(
             model_parameters, inputs, outputs
@@ -948,9 +998,11 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
         outputs: Tensor,
         num_data_points: int,
     ) -> Tensor:
-        num_flattened_outputs = num_data_points * self._dim_outputs
         distribution = self._distribution_prediction.initialize(
-            error_mean, error_covariance, num_flattened_outputs
+            error_mean=error_mean,
+            error_covariance=error_covariance,
+            num_data_points=num_data_points,
+            dim_outputs=self._dim_outputs,
         )
         residuals = self._residual_calculator.calculate_residuals(
             model_parameters, inputs, outputs
@@ -1001,3 +1053,29 @@ class NoiseAndErrorGPsOptimizedLikelihoodStrategy(torch.nn.Module):
             return self._distribution_prediction.assemble_error_covariance_matrices(
                 self._model_error_gps[0], self._inputs_sets
             )
+
+
+def make_sure_it_is_a_tesnor(value: float | Tensor, device: Device) -> Tensor:
+    return torch.tensor([value], device=device) if isinstance(value, float) else value
+
+
+def assemble_noise_standard_deviations(
+    noise_standard_deviation: Tensor,
+    dim_outputs: int,
+    num_data_points: int,
+    device: Device,
+) -> Tensor:
+    num_flattened_outputs = dim_outputs * num_data_points
+    if len(noise_standard_deviation) == 1:
+        return noise_standard_deviation * torch.ones(
+            (num_flattened_outputs,),
+            dtype=torch.float64,
+            device=device,
+        )
+    else:
+        return (
+            torch.transpose(noise_standard_deviation.repeat((num_data_points, 1)), 1, 0)
+            .ravel()
+            .type(torch.float64)
+            .to(device)
+        )

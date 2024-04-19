@@ -1,5 +1,4 @@
 import os
-import random
 from dataclasses import dataclass
 from typing import TypeAlias
 
@@ -14,6 +13,7 @@ from parametricpinn.io.readerswriters import CSVDataReader
 from parametricpinn.types import Device, Tensor
 
 Parameters: TypeAlias = Tensor
+StandardDeviationNoise: TypeAlias = float | Tensor
 
 
 @dataclass
@@ -21,7 +21,7 @@ class CalibrationData:
     num_data_sets: int
     inputs: tuple[Tensor, ...]
     outputs: tuple[Tensor, ...]
-    std_noise: float
+    std_noise: StandardDeviationNoise
 
 
 class CalibrationDataLoader2D:
@@ -31,7 +31,7 @@ class CalibrationDataLoader2D:
         num_cases: int,
         num_data_sets: int,
         num_data_points: int,
-        std_noise: float,
+        std_noise: StandardDeviationNoise,
         project_directory: ProjectDirectory,
         device: Device,
     ) -> None:
@@ -192,7 +192,7 @@ class PreprocessedCalibrationData:
     num_data_sets: int
     inputs: tuple[Tensor, ...]
     outputs: tuple[Tensor, ...]
-    std_noise: float
+    std_noise: StandardDeviationNoise
     num_data_points_per_set: tuple[int, ...]
     num_total_data_points: int
     dim_outputs: int
@@ -226,7 +226,7 @@ class ConcatenatedCalibrationData:
     outputs: Tensor
     num_data_points: int
     dim_outputs: int
-    std_noise: float
+    std_noise: StandardDeviationNoise
 
 
 def concatenate_calibration_data(
@@ -261,6 +261,7 @@ def concatenate_calibration_data(
 def _validate_calibration_data(calibration_data: CalibrationData) -> None:
     inputs_list = calibration_data.inputs
     outputs_list = calibration_data.outputs
+    std_noise = calibration_data.std_noise
     if not len(inputs_list) == len(outputs_list):
         raise UnvalidCalibrationDataError(
             "Size of input and output data sets does not match."
@@ -271,3 +272,8 @@ def _validate_calibration_data(calibration_data: CalibrationData) -> None:
         raise UnvalidCalibrationDataError(
             "Size of input and output data points does not match."
         )
+    if isinstance(std_noise, Tensor):
+        if torch.numel(std_noise) == num_outputs:
+            raise UnvalidCalibrationDataError(
+                "Size of standard deviation tensor for noise does not match number of outputs."
+            )

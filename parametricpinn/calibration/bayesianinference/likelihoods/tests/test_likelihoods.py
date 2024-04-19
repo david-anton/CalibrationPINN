@@ -37,6 +37,8 @@ from parametricpinn.network import BFFNN, FFNN
 from parametricpinn.settings import set_default_dtype
 from parametricpinn.types import Tensor
 
+StdNoiseData: TypeAlias = float | Tensor
+
 set_default_dtype(torch.float64)
 
 device = torch.device("cpu")
@@ -193,7 +195,13 @@ def test_standard_calibration_likelihood_for_noise_multiple_data_sets_single_dim
     torch.testing.assert_close(actual, expected)
 
 
-def test_standard_calibration_likelihood_for_noise_single_data_set_multiple_dimension():
+@pytest.mark.parametrize(
+    ("std_noise_data"),
+    [1 / math.sqrt(2), torch.tensor([1 / math.sqrt(2), 1 / math.sqrt(2)])],
+)
+def test_standard_calibration_likelihood_for_noise_single_data_set_multiple_dimension(
+    std_noise_data: StdNoiseData,
+):
     model = _create_fake_standard_ansatz_multiple_dimension()
     num_data_sets = 1
     data_points_per_set = 2
@@ -210,7 +218,7 @@ def test_standard_calibration_likelihood_for_noise_single_data_set_multiple_dime
         num_data_sets=num_data_sets,
         inputs=inputs,
         outputs=outputs,
-        std_noise=std_noise,
+        std_noise=std_noise_data,
         num_data_points_per_set=(data_points_per_set,),
         num_total_data_points=num_total_data_points,
         dim_outputs=dim_outputs,
@@ -242,7 +250,13 @@ def test_standard_calibration_likelihood_for_noise_single_data_set_multiple_dime
     torch.testing.assert_close(actual, expected)
 
 
-def test_standard_calibration_likelihood_for_noise_multiple_data_sets_multiple_dimension():
+@pytest.mark.parametrize(
+    ("std_noise_data"),
+    [1 / math.sqrt(2), torch.tensor([1 / math.sqrt(2), 1 / math.sqrt(2)])],
+)
+def test_standard_calibration_likelihood_for_noise_multiple_data_sets_multiple_dimension(
+    std_noise_data: StdNoiseData,
+):
     model = _create_fake_standard_ansatz_multiple_dimension()
     num_data_sets = 2
     data_points_per_set = 2
@@ -265,7 +279,7 @@ def test_standard_calibration_likelihood_for_noise_multiple_data_sets_multiple_d
         num_data_sets=num_data_sets,
         inputs=inputs,
         outputs=outputs,
-        std_noise=std_noise,
+        std_noise=std_noise_data,
         num_data_points_per_set=(data_points_per_set, data_points_per_set),
         num_total_data_points=num_total_data_points,
         dim_outputs=dim_outputs,
@@ -502,6 +516,10 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data
 
 
 @pytest.mark.parametrize(
+    ("std_noise_data"),
+    [1 / math.sqrt(4), torch.tensor([1 / math.sqrt(4), 1 / math.sqrt(4)])],
+)
+@pytest.mark.parametrize(
     ("likelihood_factory_func"),
     [
         _create_noise_and_model_error_likelihood_strategy_for_sampling,
@@ -510,6 +528,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data
     ],
 )
 def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_set_multiple_dimension(
+    std_noise_data: StdNoiseData,
     likelihood_factory_func: NoiseAndModelErrorLikelihoodFactoryFunc,
 ):
     model = _create_fake_standard_ansatz_multiple_dimension()
@@ -535,7 +554,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_s
         num_data_sets=num_data_sets,
         inputs=inputs,
         outputs=outputs,
-        std_noise=std_noise,
+        std_noise=std_noise_data,
         num_data_points_per_set=(data_points_per_set,),
         num_total_data_points=num_total_data_points,
         dim_outputs=dim_outputs,
@@ -568,6 +587,10 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_s
 
 
 @pytest.mark.parametrize(
+    ("std_noise_data"),
+    [1 / math.sqrt(4), torch.tensor([1 / math.sqrt(4), 1 / math.sqrt(4)])],
+)
+@pytest.mark.parametrize(
     ("likelihood_factory_func"),
     [
         _create_noise_and_model_error_likelihood_strategy_for_sampling,
@@ -576,6 +599,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_single_data_s
     ],
 )
 def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data_sets_multiple_dimension(
+    std_noise_data: StdNoiseData,
     likelihood_factory_func: NoiseAndModelErrorLikelihoodFactoryFunc,
 ):
     model = _create_fake_standard_ansatz_multiple_dimension()
@@ -607,7 +631,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_multiple_data
         num_data_sets=num_data_sets,
         inputs=inputs,
         outputs=outputs,
-        std_noise=std_noise,
+        std_noise=std_noise_data,
         num_data_points_per_set=(data_points_per_set, data_points_per_set),
         num_total_data_points=num_total_data_points,
         dim_outputs=dim_outputs,
@@ -951,6 +975,10 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_gps_multiple_
 
 
 @pytest.mark.parametrize(
+    ("std_noise_data"),
+    [1 / math.sqrt(4), torch.tensor([1 / math.sqrt(4), 1 / math.sqrt(4)])],
+)
+@pytest.mark.parametrize(
     ("likelihood_factory_func"),
     [
         _create_noise_and_model_error_gps_likelihood_strategy_for_sampling,
@@ -961,6 +989,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_gps_multiple_
     ],
 )
 def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_data_set_multiple_dimension(
+    std_noise_data: StdNoiseData,
     likelihood_factory_func: NoiseAndModelErrorGPsLikelihoodFactoryFunc,
 ):
     model = _create_fake_standard_ansatz_multiple_dimension()
@@ -983,7 +1012,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_da
         num_data_sets=num_data_sets,
         inputs=inputs,
         outputs=outputs,
-        std_noise=std_noise,
+        std_noise=std_noise_data,
         num_data_points_per_set=(data_points_per_set,),
         num_total_data_points=num_total_data_points,
         dim_outputs=dim_outputs,
@@ -1026,6 +1055,10 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_da
 
 
 @pytest.mark.parametrize(
+    ("std_noise_data"),
+    [1 / math.sqrt(4), torch.tensor([1 / math.sqrt(4), 1 / math.sqrt(4)])],
+)
+@pytest.mark.parametrize(
     ("likelihood_factory_func"),
     [
         _create_noise_and_model_error_gps_likelihood_strategy_for_sampling,
@@ -1036,6 +1069,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_gps_single_da
     ],
 )
 def test_standard_calibration_likelihood_for_noise_and_model_error_gps_multiple_data_sets_multiple_dimension(
+    std_noise_data: StdNoiseData,
     likelihood_factory_func: NoiseAndModelErrorGPsLikelihoodFactoryFunc,
 ):
     model = _create_fake_standard_ansatz_multiple_dimension()
@@ -1064,7 +1098,7 @@ def test_standard_calibration_likelihood_for_noise_and_model_error_gps_multiple_
         num_data_sets=num_data_sets,
         inputs=inputs,
         outputs=outputs,
-        std_noise=std_noise,
+        std_noise=std_noise_data,
         num_data_points_per_set=(data_points_per_set, data_points_per_set),
         num_total_data_points=num_total_data_points,
         dim_outputs=dim_outputs,
