@@ -137,7 +137,7 @@ calibration_method = "noise_only"
 # calibration_method = "full_bayes_with_error_gps"
 # calibration_method = "empirical_bayes_with_error_gps"
 use_least_squares = True
-use_random_walk_metropolis_hasting = True
+use_random_walk_metropolis_hasting = False
 use_emcee = True
 use_hamiltonian = False
 use_efficient_nuts = False
@@ -175,11 +175,13 @@ def create_fem_domain_config() -> SimplifiedDogBoneDomainConfig:
     )
 
 
-def create_datasets() -> tuple[
-    SimplifiedDogBoneTrainingDataset2D,
-    SimulationDataset2D | None,
-    SimulationDataset2D,
-]:
+def create_datasets() -> (
+    tuple[
+        SimplifiedDogBoneTrainingDataset2D,
+        SimulationDataset2D | None,
+        SimulationDataset2D,
+    ]
+):
     def _create_pinn_training_dataset() -> SimplifiedDogBoneTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(
@@ -1166,10 +1168,8 @@ def calibration_step() -> None:
         )
         residual_weights = 1 / mean_displacements
         print(f"Weights NLS: {residual_weights}")
-        residual_weights_vector = (
-            residual_weights.to(device)
-            .repeat((concatenated_data.num_data_points, 1))
-            .ravel()
+        residual_weights_tensor = residual_weights.to(device).repeat(
+            (concatenated_data.num_data_points, 1)
         )
         covariance_from_residual_weights = torch.inverse(
             torch.diag((residual_weights) ** 2)
@@ -1183,7 +1183,7 @@ def calibration_step() -> None:
             calibration_data=concatenated_data,
             initial_parameters=initial_material_parameters,
             num_iterations=1000,
-            resdiual_weights=residual_weights_vector,
+            resdiual_weights=residual_weights_tensor,
         )
 
     def set_up_metropolis_hastings_config(

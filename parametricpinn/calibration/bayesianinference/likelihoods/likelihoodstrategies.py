@@ -68,11 +68,6 @@ class NoiseLikelihoodDistribution:
             dim_outputs=dim_outputs,
             device=self._device,
         )
-        print("##########################################")
-        print(num_data_points)
-        print(dim_outputs)
-        print(standard_deviations)
-        print("##########################################")
         return create_independent_multivariate_normal_distribution(
             means=means,
             standard_deviations=standard_deviations,

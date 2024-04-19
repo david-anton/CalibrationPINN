@@ -82,8 +82,8 @@ def least_squares(
         calibration_data = concatenate_calibration_data(calibration_data)
     initial_parameters = initial_parameters.clone()
     model_closure = ModelClosure(ansatz, initial_parameters, calibration_data, device)
-    flattened_outputs = calibration_data.outputs.ravel().detach().to(device)
-    residual_weights = residual_weights.to(device)
+    flattened_outputs = flatten(calibration_data.outputs.detach().to(device))
+    flattened_residual_weights = flatten(residual_weights.to(device))
 
     optimizer = torch.optim.LBFGS(
         params=model_closure.parameters(),
@@ -97,9 +97,9 @@ def least_squares(
     )
 
     def loss_func() -> Tensor:
-        flattened_model_outputs = model_closure().ravel()
+        flattened_model_outputs = flatten(model_closure())
         residuals = flattened_model_outputs - flattened_outputs
-        weighted_residuals = residual_weights * residuals
+        weighted_residuals = flattened_residual_weights * residuals
         return (1 / 2) * torch.matmul(
             weighted_residuals,
             torch.transpose(torch.unsqueeze(weighted_residuals, dim=0), 0, 1),
@@ -122,3 +122,7 @@ def least_squares(
     )
 
     return identified_parameters, loss_hist
+
+
+def flatten(x: Tensor) -> Tensor:
+    return x.ravel()

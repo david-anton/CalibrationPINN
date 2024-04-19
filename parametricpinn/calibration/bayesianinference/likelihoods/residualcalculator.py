@@ -19,7 +19,7 @@ class StandardResidualCalculator:
         self, parameters: Tensor, inputs: Tensor, outputs: Tensor
     ) -> Tensor:
         inputs = inputs.detach().to(self._device)
-        flattened_data_outputs = outputs.detach().to(self._device).ravel()
+        flattened_data_outputs = self._flatten(outputs.detach().to(self._device))
         flattened_model_outputs = self._calculate_flattened_model_outputs(
             parameters, inputs
         )
@@ -36,4 +36,7 @@ class StandardResidualCalculator:
             ),
             dim=1,
         )
-        return self._model(model_inputs).ravel()
+        return self._flatten(self._model(model_inputs))
+
+    def _flatten(self, x: Tensor) -> Tensor:
+        return torch.transpose(x, 1, 0).ravel()

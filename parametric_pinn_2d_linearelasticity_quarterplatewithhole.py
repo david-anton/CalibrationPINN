@@ -839,7 +839,6 @@ def calibration_step() -> None:
                 (1 / mean_displacements)
                 .to(device)
                 .repeat((concatenated_data.num_data_points, 1))
-                .ravel()
             )
             config = LeastSquaresConfig(
                 ansatz=model,
