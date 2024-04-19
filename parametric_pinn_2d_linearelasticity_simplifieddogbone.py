@@ -79,7 +79,7 @@ from parametricpinn.training.training_standard_linearelasticity_simplifieddogbon
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = True  # False
+retrain_parametric_pinn = False
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -87,10 +87,10 @@ traction_right_x = 106.2629  # [N/mm^2]
 traction_right_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-min_bulk_modulus = 50000.0  # 100000.0
-max_bulk_modulus = 150000.0  # 200000.0
-min_shear_modulus = 50000.0  # 60000.0
-max_shear_modulus = 90000.0  # 100000.0
+min_bulk_modulus = 100000.0
+max_bulk_modulus = 200000.0
+min_shear_modulus = 60000.0
+max_shear_modulus = 100000.0
 # Network
 layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 activation = torch.nn.Tanh()
@@ -104,7 +104,7 @@ bcs_overlap_angle_distance_left = 1e-2
 bcs_overlap_distance_parallel_right = 1e-2
 training_batch_size = num_parameter_samples_pinn
 use_simulation_data = True
-regenerate_train_data = True  # False
+regenerate_train_data = False
 num_parameter_samples_data = 128
 num_data_points = 128
 number_training_epochs = 15000
@@ -116,8 +116,8 @@ fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size = 0.1
 # Validation
-regenerate_valid_data = True  # False
-input_subdir_valid = f"20240418_validation_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"  # f"20240410_validation_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
+regenerate_valid_data = False
+input_subdir_valid = f"20240410_validation_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
 num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
@@ -137,13 +137,13 @@ calibration_method = "noise_only"
 # calibration_method = "full_bayes_with_error_gps"
 # calibration_method = "empirical_bayes_with_error_gps"
 use_least_squares = True
-use_random_walk_metropolis_hasting = False
+use_random_walk_metropolis_hasting = True
 use_emcee = True
 use_hamiltonian = False
 use_efficient_nuts = False
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date  # "20240410"
+output_date = "20240410"
 output_subdirectory = f"{output_date}_parametric_pinn_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_pinnsamples_{num_parameter_samples_pinn}_col_{num_collocation_points}_bc_{num_points_per_bc}_datasamples_{num_parameter_samples_data}_neurons_6_128"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
@@ -528,15 +528,15 @@ def calibration_step() -> None:
     if use_interpolated_calibration_data:
         num_total_data_points = 1124
     else:
-        num_total_data_points = 5476
+        num_total_data_points = 5240
     num_data_sets = 1
     num_data_points = num_total_data_points
-    std_noise = 5 * 1e-4
+    std_noise = torch.tensor([0.0408, 0.0016], device=device)  # 5 * 1e-4
 
     material_parameter_names = ("bulk modulus", "shear modulus")
 
-    exact_bulk_modulus = 132242.0
-    exact_shear_modulus = 77931.0
+    exact_bulk_modulus = 121633.0
+    exact_shear_modulus = 75945.0
     true_material_parameters = np.array([[exact_bulk_modulus, exact_shear_modulus]])
 
     initial_bulk_modulus = 160000.0
@@ -1164,19 +1164,26 @@ def calibration_step() -> None:
         mean_displacements = torch.mean(
             torch.absolute(concatenated_data.outputs), dim=0
         )
-        print(f"Weights NLS: {1 / mean_displacements}")
-        residual_weights = (
-            (1 / mean_displacements)
-            .to(device)
+        residual_weights = 1 / mean_displacements
+        print(f"Weights NLS: {residual_weights}")
+        residual_weights_vector = (
+            residual_weights.to(device)
             .repeat((concatenated_data.num_data_points, 1))
             .ravel()
         )
+        covariance_from_residual_weights = torch.inverse(
+            torch.diag((residual_weights) ** 2)
+        )
+        noise_from_resisual_weights = torch.sqrt(
+            torch.diagonal(covariance_from_residual_weights)
+        )
+        print(f"Noise from residual weights: {noise_from_resisual_weights}")
         return LeastSquaresConfig(
             ansatz=model,
             calibration_data=concatenated_data,
             initial_parameters=initial_material_parameters,
             num_iterations=1000,
-            resdiual_weights=residual_weights,
+            resdiual_weights=residual_weights_vector,
         )
 
     def set_up_metropolis_hastings_config(
