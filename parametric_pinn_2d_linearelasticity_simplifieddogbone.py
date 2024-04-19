@@ -175,13 +175,11 @@ def create_fem_domain_config() -> SimplifiedDogBoneDomainConfig:
     )
 
 
-def create_datasets() -> (
-    tuple[
-        SimplifiedDogBoneTrainingDataset2D,
-        SimulationDataset2D | None,
-        SimulationDataset2D,
-    ]
-):
+def create_datasets() -> tuple[
+    SimplifiedDogBoneTrainingDataset2D,
+    SimulationDataset2D | None,
+    SimulationDataset2D,
+]:
     def _create_pinn_training_dataset() -> SimplifiedDogBoneTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(
@@ -1210,7 +1208,7 @@ def calibration_step() -> None:
             likelihood=likelihood,
             prior=prior,
             initial_parameters=initial_parameters.to(device),
-            stretch_scale=4.0,
+            stretch_scale=6.0,
             num_walkers=num_walkers,
             num_iterations=200,
             num_burn_in_iterations=100,
