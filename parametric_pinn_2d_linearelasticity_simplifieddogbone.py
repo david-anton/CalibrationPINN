@@ -32,10 +32,10 @@ from parametricpinn.calibration import (
     test_least_squares_calibration,
 )
 from parametricpinn.calibration.bayesianinference.likelihoods import (
+    create_optimized_standard_ppinn_likelihood_for_noise_and_model_error,
     create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps,
     create_standard_ppinn_likelihood_for_noise,
     create_standard_ppinn_likelihood_for_noise_and_model_error_gps_sampling,
-    create_standard_ppinn_q_likelihood_for_noise,
 )
 from parametricpinn.calibration.data import concatenate_calibration_data
 from parametricpinn.calibration.utility import load_model
@@ -131,9 +131,8 @@ if use_interpolated_calibration_data:
     input_file_name_calibration = "displacements_dic_interpolated.csv"
 else:
     input_file_name_calibration = "displacements_dic_raw.csv"
-calibration_method = "noise_only"
-# calibration_method = "noise_and_q_likelihood"
-# calibration_method = "overestimated_error_stds"
+# calibration_method = "noise_only"
+calibration_method = "empirical_bayes_with_error_normaldistribution"
 # calibration_method = "full_bayes_with_error_gps"
 # calibration_method = "empirical_bayes_with_error_gps"
 use_least_squares = True
@@ -531,7 +530,7 @@ def calibration_step() -> None:
         num_total_data_points = 5240
     num_data_sets = 1
     num_data_points = num_total_data_points
-    std_noise = torch.tensor([0.0408, 0.0016], device=device)  # 5 * 1e-4
+    std_noise = 5 * 1e-4  # torch.tensor([0.0408, 0.0016], device=device)
 
     material_parameter_names = ("bulk modulus", "shear modulus")
 
@@ -998,43 +997,25 @@ def calibration_step() -> None:
         num_rwmh_iterations = int(1e5)
         num_rwmh_burn_in_iterations = int(5e4)
 
-    elif calibration_method == "noise_and_q_likelihood":
-        likelihood = create_standard_ppinn_q_likelihood_for_noise(
+    elif calibration_method == "empirical_bayes_with_error_normaldistribution":
+        initial_model_error_standard_deviations = torch.tensor(
+            [0.0, 0.0], device=device
+        )
+        model_error_optimization_num_material_parameter_samples = 256
+        model_error_optimization_num_iterations = 16
+
+        likelihood = create_optimized_standard_ppinn_likelihood_for_noise_and_model_error(
             model=model,
             num_model_parameters=num_material_parameters,
+            initial_model_error_standard_deviations=initial_model_error_standard_deviations,
+            use_independent_model_error_standard_deviations=True,
             data=calibration_data,
-            device=device,
-        )
-        prior = prior_material_parameters
-        parameter_names = material_parameter_names
-        initial_parameters = initial_material_parameters
-
-        std_proposal_density_bulk_modulus = 100.0
-        std_proposal_density_shear_modulus = 50.0
-        covar_rwmh_proposal_density = torch.diag(
-            torch.tensor(
-                [
-                    std_proposal_density_bulk_modulus,
-                    std_proposal_density_shear_modulus,
-                ],
-                dtype=torch.float64,
-                device=device,
-            )
-            ** 2
-        )
-        num_rwmh_iterations = int(1e5)
-        num_rwmh_burn_in_iterations = int(5e4)
-
-    elif calibration_method == "overestimated_error_stds":
-        std_model_error = 1e-2
-        std_noise_and_model_error = std_noise + std_model_error
-
-        calibration_data.std_noise = std_noise_and_model_error
-
-        likelihood = create_standard_ppinn_likelihood_for_noise(
-            model=model,
-            num_model_parameters=num_material_parameters,
-            data=calibration_data,
+            prior_material_parameters=prior_material_parameters,
+            num_material_parameter_samples=model_error_optimization_num_material_parameter_samples,
+            num_iterations=model_error_optimization_num_iterations,
+            test_case_index=0,
+            output_subdirectory=output_subdir_likelihoods,
+            project_directory=project_directory,
             device=device,
         )
 
