@@ -1001,7 +1001,7 @@ def calibration_step() -> None:
         initial_model_error_standard_deviations = torch.tensor(
             [1e-6, 1e-6], device=device
         )
-        model_error_optimization_num_material_parameter_samples = 512
+        model_error_optimization_num_material_parameter_samples = 1024
         model_error_optimization_num_iterations = 16
 
         likelihood = create_optimized_standard_ppinn_likelihood_for_noise_and_model_error(
