@@ -123,7 +123,7 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_interpolated_calibration_data = False
+use_interpolated_calibration_data = True
 input_subdir_calibration = os.path.join(
     "Paper_PINNs", "20240415_experimental_dic_data_dogbone"
 )
@@ -999,7 +999,7 @@ def calibration_step() -> None:
 
     elif calibration_method == "empirical_bayes_with_error_normaldistribution":
         initial_model_error_standard_deviations = torch.tensor(
-            [0.0, 0.0], device=device
+            [1e-6, 1e-6], device=device
         )
         model_error_optimization_num_material_parameter_samples = 256
         model_error_optimization_num_iterations = 16
