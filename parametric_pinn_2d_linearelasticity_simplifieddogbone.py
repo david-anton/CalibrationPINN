@@ -123,7 +123,7 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_interpolated_calibration_data = True
+use_interpolated_calibration_data = False
 input_subdir_calibration = os.path.join(
     "Paper_PINNs", "20240415_experimental_dic_data_dogbone"
 )
@@ -753,7 +753,7 @@ def calibration_step() -> None:
                 figure.set_figwidth((box_length / box_height) * fig_height + 1)
 
                 # title and labels
-                title = f"Displacements {dimension}"
+                title = f"Displacements in {dimension}-dimension"
                 axes.set_title(title, pad=plot_config.title_pad, **plot_config.font)
                 axes.set_xlabel(plot_config.x_label, **plot_config.font)
                 axes.set_ylabel(plot_config.y_label, **plot_config.font)
@@ -837,7 +837,7 @@ def calibration_step() -> None:
                 axes.add_patch(plate_hole)
 
                 # save
-                file_name = f"measurement_data_displacements_{dimension}.{plot_config.file_format}"
+                file_name = f"dic_measurement_displacements_{dimension}.{plot_config.file_format}"
                 save_path = project_directory.create_output_file_path(
                     file_name, output_subdir_calibration
                 )
