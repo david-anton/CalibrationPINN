@@ -531,7 +531,7 @@ def calibration_step() -> None:
     num_data_sets = 1
     num_data_points = num_total_data_points
     std_noise = torch.tensor(
-        [1 * 1e-2, 1 * 1e-3]
+        [5 * 1e-2, 1 * 1e-3]
     )  # torch.tensor([0.0408, 0.0016], device=device)  # 5 * 1e-4
 
     material_parameter_names = ("bulk modulus", "shear modulus")
