@@ -530,7 +530,9 @@ def calibration_step() -> None:
         num_total_data_points = 5240
     num_data_sets = 1
     num_data_points = num_total_data_points
-    std_noise = torch.tensor([0.0408, 0.0016], device=device)  # 5 * 1e-4
+    std_noise = torch.tensor(
+        [10 * 1e-4, 5 * 1e-4]
+    )  # torch.tensor([0.0408, 0.0016], device=device)  # 5 * 1e-4
 
     material_parameter_names = ("bulk modulus", "shear modulus")
 
@@ -1189,7 +1191,7 @@ def calibration_step() -> None:
             likelihood=likelihood,
             prior=prior,
             initial_parameters=initial_parameters.to(device),
-            stretch_scale=4.0,
+            stretch_scale=6.0,
             num_walkers=num_walkers,
             num_iterations=200,
             num_burn_in_iterations=100,
