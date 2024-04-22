@@ -530,9 +530,7 @@ def calibration_step() -> None:
         num_total_data_points = 5240
     num_data_sets = 1
     num_data_points = num_total_data_points
-    std_noise = torch.tensor(
-        [5 * 1e-2, 1 * 1e-3]
-    )  # torch.tensor([0.0408, 0.0016], device=device)  # 5 * 1e-4
+    std_noise = torch.tensor([0.0408, 0.0016], device=device)  # 5 * 1e-4
 
     material_parameter_names = ("bulk modulus", "shear modulus")
 
@@ -546,11 +544,17 @@ def calibration_step() -> None:
         [initial_bulk_modulus, initial_shear_modulus], device=device
     )
 
+    # prior_bulk_modulus = create_univariate_uniform_distributed_prior(
+    #     lower_limit=min_bulk_modulus, upper_limit=max_bulk_modulus, device=device
+    # )
+    # prior_shear_modulus = create_univariate_uniform_distributed_prior(
+    #     lower_limit=min_shear_modulus, upper_limit=max_shear_modulus, device=device
+    # )
     prior_bulk_modulus = create_univariate_uniform_distributed_prior(
-        lower_limit=min_bulk_modulus, upper_limit=max_bulk_modulus, device=device
+        lower_limit=0.0, upper_limit=torch.finfo().max, device=device
     )
     prior_shear_modulus = create_univariate_uniform_distributed_prior(
-        lower_limit=min_shear_modulus, upper_limit=max_shear_modulus, device=device
+        lower_limit=0.0, upper_limit=torch.finfo().max, device=device
     )
     prior_material_parameters = multiply_priors(
         [prior_bulk_modulus, prior_shear_modulus]
