@@ -123,7 +123,7 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_interpolated_calibration_data = True
+use_interpolated_calibration_data = False
 input_subdir_calibration = os.path.join(
     "Paper_PINNs", "20240415_experimental_dic_data_dogbone"
 )
@@ -131,8 +131,8 @@ if use_interpolated_calibration_data:
     input_file_name_calibration = "displacements_dic_interpolated.csv"
 else:
     input_file_name_calibration = "displacements_dic_raw.csv"
-# calibration_method = "noise_only"
-calibration_method = "empirical_bayes_with_error_normaldistribution"
+calibration_method = "noise_only"
+# calibration_method = "empirical_bayes_with_error_normaldistribution"
 # calibration_method = "full_bayes_with_error_gps"
 # calibration_method = "empirical_bayes_with_error_gps"
 use_least_squares = True
@@ -530,7 +530,7 @@ def calibration_step() -> None:
         num_total_data_points = 5240
     num_data_sets = 1
     num_data_points = num_total_data_points
-    std_noise = 5 * 1e-4  # torch.tensor([0.0408, 0.0016], device=device)
+    std_noise = torch.tensor([0.0408, 0.0016], device=device)  # 5 * 1e-4
 
     material_parameter_names = ("bulk modulus", "shear modulus")
 
@@ -697,7 +697,7 @@ def calibration_step() -> None:
                     self.interpolation_method = "nearest"
                     # save options
                     self.dpi = 300
-                    self.file_format = "png"
+                    self.file_format = "pdf"
 
             plot_config = PlotterConfigData()
 
