@@ -1320,21 +1320,23 @@ def calibration_step() -> None:
                 read_from_output_dir=False,
             )
             pandas_data_writer.write(
-                data=samples,
+                data=pd.DataFrame(samples),
                 file_name=input_file_name_mcmc_samples_fem,
                 subdir_name=input_subdir_calibration,
                 header=["bulk modulus samples", "shear modulus samples"],
                 index=False,
-                save_to_input_dir=False,
+                save_to_input_dir=True,
             )
 
         def read_samples() -> NPArray:
             csv_data_reader = CSVDataReader(project_directory)
             return csv_data_reader.read(
-                file_name=input_file_name_mcmc_samples_fem, read_from_output_dir=False
+                file_name=input_file_name_mcmc_samples_fem,
+                subdir_name=input_subdir_calibration,
+                read_from_output_dir=False,
             )
 
-        convert_dat_to_csv_file()
+        #convert_dat_to_csv_file()
         samples = read_samples()
         moments = determine_moments_of_multivariate_normal_distribution(samples)
         plot_multivariate_normal_distribution(

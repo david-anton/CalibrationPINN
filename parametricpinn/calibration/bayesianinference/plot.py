@@ -21,7 +21,7 @@ cm_in_inches = 1 / 2.54  # centimeters in inches
 class UnivariateNormalPlotterConfig:
     def __init__(self) -> None:
         # font sizes
-        self.label_size = 16
+        self.label_size = 14
         # font size in legend
         self.font_size = 14
         self.font = {"size": self.label_size}
@@ -65,7 +65,7 @@ class UnivariateNormalPlotterConfig:
 
         # save options
         self.dpi = 300
-        self.figure_size = (8 * cm_in_inches, 8 * cm_in_inches)
+        self.figure_size = (16 * cm_in_inches, 16 * cm_in_inches)
         self.file_format = "pdf"
 
 
@@ -248,7 +248,13 @@ def _plot_univariate_normal_distribution_histogram(
     axes.set_ylabel("probability density", **config.font)
     axes.tick_params(axis="both", which="minor", labelsize=config.minor_tick_label_size)
     axes.tick_params(axis="both", which="major", labelsize=config.major_tick_label_size)
-    axes.ticklabel_format("y", style="scientific", useOffset=False, useMathText=True)
+    axes.ticklabel_format(
+        axis="y",
+        style="scientific",
+        scilimits=(0, 0),
+        useOffset=False,
+        useMathText=True,
+    )
     file_name = f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.{config.file_format}"
     output_path = project_directory.create_output_file_path(
         file_name=file_name, subdir_name=output_subdir
@@ -351,8 +357,8 @@ def _plot_sampling_trace(
 
 def infer_parameter_label(parameter_name: str) -> str:
     if parameter_name == "bulk modulus":
-        return parameter_name + r"$Nmm^{-2}$"
+        return parameter_name + " " + r"$[Nmm^{-2}]$"
     elif parameter_name == "shear modulus":
-        return parameter_name + r"$Nmm^{-2}$"
+        return parameter_name + " " + r"$[Nmm^{-2}]$"
     else:
         return parameter_name
