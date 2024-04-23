@@ -65,7 +65,7 @@ class UnivariateNormalPlotterConfig:
 
         # save options
         self.dpi = 300
-        self.figure_size = (16 * cm_in_inches, 16 * cm_in_inches)
+        self.figure_size = (16 * cm_in_inches, 12 * cm_in_inches)
         self.file_format = "pdf"
 
 
