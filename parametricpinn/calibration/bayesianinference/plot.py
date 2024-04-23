@@ -15,6 +15,8 @@ from parametricpinn.types import NPArray
 TrueParameter: TypeAlias = Union[float, None]
 TrueParametersTuple: TypeAlias = tuple[TrueParameter, ...]
 
+cm_in_inches = 1 / 2.54  # centimeters in inches
+
 
 class UnivariateNormalPlotterConfig:
     def __init__(self) -> None:
@@ -63,7 +65,8 @@ class UnivariateNormalPlotterConfig:
 
         # save options
         self.dpi = 300
-        self.file_format = "png"
+        self.figure_size = (8 * cm_in_inches, 8 * cm_in_inches)
+        self.file_format = "pdf"
 
 
 def plot_posterior_normal_distributions(
@@ -188,7 +191,7 @@ def _plot_univariate_normal_distribution_histogram(
 ) -> None:
     mean = moments.mean
     standard_deviation = moments.standard_deviation
-    figure, axes = plt.subplots()
+    figure, axes = plt.subplots(figsize=config.figure_size)
     # Truth
     if true_parameter is not None:
         axes.axvline(
@@ -241,10 +244,11 @@ def _plot_univariate_normal_distribution_histogram(
     axes.set_xticks(x_ticks)
     axes.set_xticklabels(x_tick_labels)
     axes.legend(fontsize=config.font_size, loc="best")
-    axes.set_xlabel(parameter_name, **config.font)
+    axes.set_xlabel(infer_parameter_label(parameter_name), **config.font)
     axes.set_ylabel("probability density", **config.font)
     axes.tick_params(axis="both", which="minor", labelsize=config.minor_tick_label_size)
     axes.tick_params(axis="both", which="major", labelsize=config.major_tick_label_size)
+    axes.ticklabel_format("y", style="scientific", useOffset=False, useMathText=True)
     file_name = f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.{config.file_format}"
     output_path = project_directory.create_output_file_path(
         file_name=file_name, subdir_name=output_subdir
@@ -332,7 +336,7 @@ def _plot_sampling_trace(
     axes.set_xticklabels(x_tick_labels)
     axes.legend(fontsize=config.font_size, loc="best")
     axes.set_xlabel("samples", **config.font)
-    axes.set_ylabel(parameter_name, **config.font)
+    axes.set_ylabel(infer_parameter_label(parameter_name), **config.font)
     axes.tick_params(axis="both", which="minor", labelsize=config.minor_tick_label_size)
     axes.tick_params(axis="both", which="major", labelsize=config.major_tick_label_size)
     file_name = f"sampling_trace_{parameter_name.lower()}_{mcmc_algorithm.lower()}.{config.file_format}"
@@ -343,3 +347,12 @@ def _plot_sampling_trace(
         output_path, bbox_inches="tight", format=config.file_format, dpi=config.dpi
     )
     plt.close()
+
+
+def infer_parameter_label(parameter_name: str) -> str:
+    if parameter_name == "bulk modulus":
+        return parameter_name + r"$Nmm^{-2}$"
+    elif parameter_name == "shear modulus":
+        return parameter_name + r"$Nmm^{-2}$"
+    else:
+        return parameter_name

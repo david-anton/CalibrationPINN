@@ -37,6 +37,9 @@ from parametricpinn.calibration.bayesianinference.likelihoods import (
     create_standard_ppinn_likelihood_for_noise,
     create_standard_ppinn_likelihood_for_noise_and_model_error_gps_sampling,
 )
+from parametricpinn.calibration.bayesianinference.plot import (
+    plot_multivariate_normal_distribution,
+)
 from parametricpinn.calibration.data import concatenate_calibration_data
 from parametricpinn.calibration.utility import load_model
 from parametricpinn.data.parameterssampling import sample_quasirandom_sobol
@@ -61,13 +64,20 @@ from parametricpinn.fem import (
 )
 from parametricpinn.gps import IndependentMultiOutputGP, create_gaussian_process
 from parametricpinn.io import ProjectDirectory
-from parametricpinn.io.readerswriters import CSVDataReader, PandasDataWriter
+from parametricpinn.io.readerswriters import (
+    CSVDataReader,
+    DATDataReader,
+    PandasDataWriter,
+)
 from parametricpinn.network import FFNN
 from parametricpinn.postprocessing.plot import (
     DisplacementsPlotterConfig2D,
     plot_displacements_2d,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
+from parametricpinn.statistics.utility import (
+    determine_moments_of_multivariate_normal_distribution,
+)
 from parametricpinn.training.loss_2d.momentum_linearelasticity_K_G import (
     calculate_G_from_E_and_nu,
     calculate_K_from_E_and_nu_factory,
@@ -131,6 +141,7 @@ if use_interpolated_calibration_data:
     input_file_name_calibration = "displacements_dic_interpolated.csv"
 else:
     input_file_name_calibration = "displacements_dic_raw.csv"
+input_file_name_mcmc_samples_fem = "mcmc_samples_fem.csv"
 calibration_method = "noise_only"
 # calibration_method = "empirical_bayes_with_error_normaldistribution"
 # calibration_method = "full_bayes_with_error_gps"
@@ -543,13 +554,6 @@ def calibration_step() -> None:
     initial_material_parameters = torch.tensor(
         [initial_bulk_modulus, initial_shear_modulus], device=device
     )
-
-    # prior_bulk_modulus = create_univariate_uniform_distributed_prior(
-    #     lower_limit=min_bulk_modulus, upper_limit=max_bulk_modulus, device=device
-    # )
-    # prior_shear_modulus = create_univariate_uniform_distributed_prior(
-    #     lower_limit=min_shear_modulus, upper_limit=max_shear_modulus, device=device
-    # )
     prior_bulk_modulus = create_univariate_uniform_distributed_prior(
         lower_limit=0.0, upper_limit=torch.finfo().max, device=device
     )
@@ -1305,6 +1309,45 @@ def calibration_step() -> None:
         print(f"Run time efficient NUTS coverage test: {time}")
         print("############################################################")
     print("Calibration finished.")
+
+    def plot_fem_mcmc_samples() -> None:
+        def convert_dat_to_csv_file() -> None:
+            dat_data_reader = DATDataReader(project_directory)
+            pandas_data_writer = PandasDataWriter(project_directory)
+            samples = dat_data_reader.read(
+                file_name=input_file_name_mcmc_samples_fem.split(".")[0] + ".dat",
+                subdir_name=input_subdir_calibration,
+                read_from_output_dir=False,
+            )
+            pandas_data_writer.write(
+                data=samples,
+                file_name=input_file_name_mcmc_samples_fem,
+                subdir_name=input_subdir_calibration,
+                header=["bulk modulus samples", "shear modulus samples"],
+                index=False,
+                save_to_input_dir=False,
+            )
+
+        def read_samples() -> NPArray:
+            csv_data_reader = CSVDataReader(project_directory)
+            return csv_data_reader.read(
+                file_name=input_file_name_mcmc_samples_fem, read_from_output_dir=False
+            )
+
+        convert_dat_to_csv_file()
+        samples = read_samples()
+        moments = determine_moments_of_multivariate_normal_distribution(samples)
+        plot_multivariate_normal_distribution(
+            parameter_names=material_parameter_names,
+            true_parameters=(exact_bulk_modulus, exact_shear_modulus),
+            moments=moments,
+            samples=samples,
+            mcmc_algorithm="fem_emcee",
+            output_subdir=output_subdir_calibration,
+            project_directory=project_directory,
+        )
+
+    plot_fem_mcmc_samples()
 
 
 if retrain_parametric_pinn:
