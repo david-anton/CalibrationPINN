@@ -844,7 +844,7 @@ def calibration_step() -> None:
                 ansatz=model,
                 calibration_data=concatenated_data,
                 initial_parameters=initial_material_parameters,
-                num_iterations=1000,
+                num_iterations=100,
                 resdiual_weights=residual_weights,
             )
             configs.append(config)
