@@ -147,7 +147,7 @@ def create_datasets() -> tuple[
             )
             generate_simulation_data(
                 domain_config=domain_config,
-                problem_configs=(problem_config,),
+                problem_configs=[problem_config],
                 volume_force_x=volume_force_x,
                 volume_force_y=volume_force_y,
                 save_metadata=save_metadata,
@@ -289,7 +289,7 @@ def training_step() -> None:
         weight_data_loss=0.0,
         training_dataset_pinn=training_dataset_pinn,
         number_training_epochs=number_training_epochs,
-        training_batch_size=training_batch_size,
+        training_batch_size=1,
         validation_dataset=validation_dataset,
         validation_interval=validation_interval,
         output_subdirectory=output_subdir_training,
