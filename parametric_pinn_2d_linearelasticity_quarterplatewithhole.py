@@ -129,7 +129,7 @@ calibration_method = "noise_only"
 # calibration_method = "empirical_bayes_with_error_gps"
 use_least_squares = True
 use_random_walk_metropolis_hasting = False
-use_emcee = True
+use_emcee = False
 use_hamiltonian = False
 use_efficient_nuts = False
 # Output
@@ -165,13 +165,11 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
     )
 
 
-def create_datasets() -> (
-    tuple[
-        QuarterPlateWithHoleTrainingDataset2D,
-        SimulationDataset2D | None,
-        SimulationDataset2D,
-    ]
-):
+def create_datasets() -> tuple[
+    QuarterPlateWithHoleTrainingDataset2D,
+    SimulationDataset2D | None,
+    SimulationDataset2D,
+]:
     def _create_pinn_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(
