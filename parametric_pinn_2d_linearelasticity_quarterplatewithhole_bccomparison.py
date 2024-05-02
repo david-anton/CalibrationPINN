@@ -122,7 +122,9 @@ def create_datasets() -> tuple[
 ]:
     def _create_pinn_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
-        parameters_samples = torch.tensor([bulk_modulus, shear_modulus], device=device)
+        parameters_samples = torch.tensor(
+            [[bulk_modulus, shear_modulus]], device=device
+        )
         traction_left = torch.tensor([traction_left_x, traction_left_y])
         volume_force = torch.tensor([volume_force_x, volume_force_y])
         config_training_data = QuarterPlateWithHoleTrainingDataset2DConfig(
