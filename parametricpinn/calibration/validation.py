@@ -235,7 +235,7 @@ def test_least_squares_calibration(
         calibration_results = np.stack(
             tuple(calibrate_once(config) for config in calibration_configs), axis=0
         )
-        identified_parameters = calibration_results[:, -1]
+        identified_parameters = calibration_results[:, :-1]
         num_loss_function_calls = calibration_results[:, -1]
         return identified_parameters, num_loss_function_calls
 
