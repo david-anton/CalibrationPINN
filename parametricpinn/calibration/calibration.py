@@ -26,13 +26,15 @@ CalibrationAlgorithmClosure: TypeAlias = Callable[[], CalibrationOutput]
 
 
 @overload
-def calibrate(calibration_config: MCMCConfig, device: Device) -> MCMCOutput: ...
+def calibrate(calibration_config: MCMCConfig, device: Device) -> MCMCOutput:
+    ...
 
 
 @overload
 def calibrate(
     calibration_config: LeastSquaresConfig, device: Device
-) -> LeastSquaresOutput: ...
+) -> LeastSquaresOutput:
+    ...
 
 
 def calibrate(
