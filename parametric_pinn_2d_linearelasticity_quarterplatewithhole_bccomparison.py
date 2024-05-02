@@ -42,7 +42,7 @@ from parametricpinn.types import Tensor
 
 ### Configuration
 # Set up
-use_stress_bc = True
+use_stress_bc = False
 material_model = "plane stress"
 num_material_parameters = 2
 edge_length = 100.0
@@ -75,7 +75,7 @@ fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size = 0.1
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 input_subdir_valid = f"20240502_validation_data_linearelasticity_quarterplatewithhole_K_{bulk_modulus}_G_{shear_modulus}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
 validation_interval = 1
 num_points_valid = 2048
