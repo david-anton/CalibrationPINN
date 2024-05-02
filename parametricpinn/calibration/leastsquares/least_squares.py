@@ -15,7 +15,7 @@ from parametricpinn.calibration.data import (
 from parametricpinn.calibration.utility import freeze_model
 from parametricpinn.types import Device, NPArray, Tensor
 
-LeastSquaresOutput: TypeAlias = tuple[NPArray, list[float]]
+LeastSquaresOutput: TypeAlias = tuple[NPArray, list[float], int]
 LeastSquaresFunc: TypeAlias = Callable[
     [
         StandardAnsatz,
@@ -96,6 +96,15 @@ def least_squares(
         line_search_fn="strong_wolfe",
     )
 
+    class FunctionCallCounter:
+        def __init__(self):
+            self.num_function_calls = 0
+
+        def increment(self):
+            self.num_function_calls += 1
+
+    loss_function_call_counter = FunctionCallCounter()
+
     def loss_func() -> Tensor:
         flattened_model_outputs = flatten(model_closure())
         residuals = flattened_model_outputs - flattened_outputs
@@ -106,6 +115,7 @@ def least_squares(
         )
 
     def loss_func_closure() -> float:
+        loss_function_call_counter.increment()
         optimizer.zero_grad()
         loss = loss_func()
         loss.backward()
@@ -120,8 +130,9 @@ def least_squares(
     identified_parameters = (
         model_closure.get_parameters_as_tensor().detach().cpu().numpy()
     )
+    num_loss_function_calls = loss_function_call_counter.num_function_calls
 
-    return identified_parameters, loss_hist
+    return identified_parameters, loss_hist, num_loss_function_calls
 
 
 def flatten(x: Tensor) -> Tensor:

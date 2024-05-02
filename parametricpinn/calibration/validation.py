@@ -221,32 +221,55 @@ def test_least_squares_calibration(
     project_directory: ProjectDirectory,
     device: Device,
 ) -> None:
-    def calibrate_model() -> NPArray:
-        def calibrate_once(calibration_config: LeastSquaresConfig) -> NPArray:
-            identified_parameters, _ = calibrate(calibration_config, device)
-            return identified_parameters
+    def calibrate_model() -> tuple[NPArray, NPArray]:
+        def calibrate_once(
+            calibration_config: LeastSquaresConfig,
+        ) -> NPArray:
+            identified_parameters, _, num_loss_function_calls = calibrate(
+                calibration_config, device
+            )
+            return np.concatenate(
+                (identified_parameters, np.array([num_loss_function_calls])), axis=0
+            )
 
-        return np.stack(
+        calibration_results = np.stack(
             tuple(calibrate_once(config) for config in calibration_configs), axis=0
         )
+        identified_parameters = calibration_results[:, -1]
+        num_loss_function_calls = calibration_results[:, -1]
+        return identified_parameters, num_loss_function_calls
 
     def calculate_absolute_relative_errors(identified_parameters: NPArray) -> NPArray:
         return (
             np.absolute(identified_parameters - true_parameters) / true_parameters
         ) * 100.0
 
-    def save_results(identified_parameters: NPArray, relative_errors: NPArray) -> None:
+    def save_results(
+        identified_parameters: NPArray,
+        relative_errors: NPArray,
+        num_loss_function_calls: NPArray,
+    ) -> None:
         def compile_header() -> tuple[str, ...]:
             true_parameter_names = [f"true {p}" for p in parameter_names]
             identified_parameter_names = [f"identified {p}" for p in parameter_names]
             relative_error_names = [f"abs. rel. error {p} [%]" for p in parameter_names]
+            num_loss_function_call_names = ["number loss function calls"]
             return tuple(
-                true_parameter_names + identified_parameter_names + relative_error_names
+                true_parameter_names
+                + identified_parameter_names
+                + relative_error_names
+                + num_loss_function_call_names
             )
 
         def compile_results() -> NPArray:
             return np.concatenate(
-                (true_parameters, identified_parameters, relative_errors), axis=1
+                (
+                    true_parameters,
+                    identified_parameters,
+                    relative_errors,
+                    num_loss_function_calls,
+                ),
+                axis=1,
             )
 
         header = compile_header()
@@ -291,7 +314,7 @@ def test_least_squares_calibration(
         results = compile_results()
         data = pd.DataFrame(results, index=index, columns=header)
         data_writer = PandasDataWriter(project_directory)
-        file_name = "summary.csv"
+        file_name = "summary_results.csv"
         data_writer.write(
             data=data,
             file_name=file_name,
@@ -300,7 +323,49 @@ def test_least_squares_calibration(
             index=True,
         )
 
-    identified_parameters = calibrate_model()
+    def save_number_loss_function_calls_summary(
+        num_loss_function_calls: NPArray,
+    ) -> None:
+        def compile_header() -> tuple[str, ...]:
+            return ("mean", "standard error", "minimum", "maximum")
+
+        def compile_index() -> tuple[str]:
+            return ("number loss function calls",)
+
+        def compile_results() -> NPArray:
+            means = np.mean(num_loss_function_calls, axis=0)
+            std_errors = np.std(num_loss_function_calls, axis=0, ddof=0) / np.sqrt(
+                len(num_loss_function_calls)
+            )
+            minimums = np.min(num_loss_function_calls, axis=0)
+            maximums = np.max(num_loss_function_calls, axis=0)
+            shape = (-1, 1)
+            return np.concatenate(
+                (
+                    np.reshape(means, shape),
+                    np.reshape(std_errors, shape),
+                    np.reshape(minimums, shape),
+                    np.reshape(maximums, shape),
+                ),
+                axis=1,
+            )
+
+        header = compile_header()
+        index = compile_index()
+        results = compile_results()
+        data = pd.DataFrame(results, index=index, columns=header)
+        data_writer = PandasDataWriter(project_directory)
+        file_name = "summary_number_loss_function_calls.csv"
+        data_writer.write(
+            data=data,
+            file_name=file_name,
+            subdir_name=output_subdir,
+            header=header,
+            index=True,
+        )
+
+    identified_parameters, num_loss_function_calls = calibrate_model()
     abs_rel_errors = calculate_absolute_relative_errors(identified_parameters)
-    save_results(identified_parameters, abs_rel_errors)
+    save_results(identified_parameters, abs_rel_errors, num_loss_function_calls)
     save_results_summary(abs_rel_errors)
+    save_number_loss_function_calls_summary(num_loss_function_calls)
