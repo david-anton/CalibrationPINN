@@ -2,7 +2,7 @@
 #SBATCH --partition=gpu_irmb
 #SBATCH --nodes=1
 #SBATCH --time=96:00:00
-#SBATCH --job-name=QPWHLE
+#SBATCH --job-name=QPWBC
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:ampere:1
 
