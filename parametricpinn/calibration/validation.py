@@ -236,7 +236,7 @@ def test_least_squares_calibration(
             tuple(calibrate_once(config) for config in calibration_configs), axis=0
         )
         identified_parameters = calibration_results[:, :-1]
-        num_loss_function_calls = calibration_results[:, -1]
+        num_loss_function_calls = calibration_results[:, -1].reshape((-1, 1))
         return identified_parameters, num_loss_function_calls
 
     def calculate_absolute_relative_errors(identified_parameters: NPArray) -> NPArray:
