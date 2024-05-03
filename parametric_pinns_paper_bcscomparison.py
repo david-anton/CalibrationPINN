@@ -42,7 +42,7 @@ from parametricpinn.types import Tensor
 
 ### Configuration
 # Set up
-use_stress_bc = False
+use_stress_bc = True
 material_model = "plane stress"
 num_material_parameters = 2
 edge_length = 100.0
@@ -75,14 +75,14 @@ fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size = 0.1
 # Validation
-regenerate_valid_data = False
-input_subdir_valid = f"20240502_validation_data_linearelasticity_quarterplatewithhole_K_{bulk_modulus}_G_{shear_modulus}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
+regenerate_valid_data = True
+input_subdir_valid = f"20240503_validation_data_linearelasticity_quarterplatewithhole_K_{bulk_modulus}_G_{shear_modulus}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
 validation_interval = 1
 num_points_valid = 2048
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_pinn_linearelasticity_quarterplatewithhole_K_{bulk_modulus}_G_{shear_modulus}_col_{num_collocation_points}_bc_{num_points_per_bc}_neurons_6_64"
+output_subdirectory = f"{output_date}_parametric_pinn_paper_bcscomparison_linearelasticity_quarterplatewithhole"
 if use_stress_bc:
     output_subdir_training = os.path.join(
         output_subdirectory, "training", "with_stress_bc"
