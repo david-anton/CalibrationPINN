@@ -9,7 +9,7 @@
 ## Build command
 ## singularity build --fakeroot --force parametricpinn.sif app/.devcontainer/container_conda.def
 
-SCRIPT=parametric_pinn_2d_neohooke_quarterplatewithhole.py
+SCRIPT=parametric_pinns_calibration_paper_synthetic_neohooke.py
 
 srun singularity run \
  --cleanenv \

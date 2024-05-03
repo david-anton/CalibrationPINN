@@ -89,7 +89,7 @@ use_simulation_data = True
 regenerate_train_data = True
 num_parameter_samples_data = 128
 num_points_data = 128
-number_training_epochs = 10000
+number_training_epochs = 15000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
@@ -610,7 +610,7 @@ def calibration_step() -> None:
             calibration_configs=configs_emcee,
             parameter_names=material_parameter_names,
             true_parameters=true_material_parameters,
-            output_subdir=os.path.join(output_subdir_calibration, "emcee"),
+            output_subdir=os.path.join(output_subdir_calibration, "mcmc_emcee"),
             project_directory=project_directory,
             device=device,
         )
