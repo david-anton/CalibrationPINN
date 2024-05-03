@@ -39,7 +39,7 @@ from parametricpinn.data.trainingdata_2d import (
     create_training_dataset,
 )
 from parametricpinn.fem import (
-    LinearElasticityProblemConfig_K_G,
+    NeoHookeProblemConfig,
     QuarterPlateWithHoleDomainConfig,
     SimulationConfig,
     generate_simulation_data,
@@ -53,11 +53,7 @@ from parametricpinn.postprocessing.plot import (
     plot_displacements_2d,
 )
 from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.loss_2d.momentum_linearelasticity_K_G import (
-    calculate_G_from_E_and_nu,
-    calculate_K_from_E_and_nu_factory,
-)
-from parametricpinn.training.training_standard_linearelasticity_quarterplatewithhole import (
+from parametricpinn.training.training_standard_neohooke_quarterplatewithhole import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
@@ -66,7 +62,6 @@ from parametricpinn.types import NPArray, Tensor
 ### Configuration
 retrain_parametric_pinn = True
 # Set up
-material_model = "plane stress"
 num_material_parameters = 2
 edge_length = 100.0
 radius = 10.0
@@ -74,10 +69,10 @@ traction_left_x = -100.0
 traction_left_y = 0.0
 volume_force_x = 0.0
 volume_force_y = 0.0
-min_bulk_modulus = 100000.0
-max_bulk_modulus = 200000.0
-min_shear_modulus = 60000.0
-max_shear_modulus = 100000.0
+min_bulk_modulus = 4000.0
+max_bulk_modulus = 8000.0
+min_shear_modulus = 500.0
+max_shear_modulus = 1500.0
 # Network
 layer_sizes = [4, 128, 128, 128, 128, 128, 128, 2]
 activation = torch.nn.Tanh()
@@ -93,16 +88,16 @@ training_batch_size = num_parameter_samples_pinn
 use_simulation_data = True
 regenerate_train_data = True
 num_parameter_samples_data = 128
-num_data_points = 128
+num_points_data = 128
 number_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
-weight_data_loss = 1e6
+weight_data_loss = 1e4
 # FEM
 fem_element_family = "Lagrange"
-fem_element_degree = 1
-fem_element_size = 0.1
+fem_element_degree = 2
+fem_element_size = 0.2
 # Validation
 regenerate_valid_data = True
 num_samples_valid = 100
@@ -113,12 +108,12 @@ batch_size_valid = num_samples_valid
 use_least_squares = True
 use_mcmc_emcee = True
 # Input/output
-input_subdir_training = f"20240503_training_data_linearelasticity_quarterplatewithhole_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
-input_subdir_validation = f"20240503_validation_data_linearelasticity_quarterplatewithhole_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
+input_subdir_training = f"20240503_training_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
+input_subdir_validation = f"20240503_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
 output_subdirectory = (
-    f"{output_date}_parametric_pinns_calibration_paper_synthetic_linearelasticity"
+    f"{output_date}_parametric_pinns_calibration_paper_synthetic_neohooke"
 )
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
@@ -185,8 +180,7 @@ def create_datasets() -> tuple[
             )
             domain_config = create_fem_domain_config()
             problem_configs = [
-                LinearElasticityProblemConfig_K_G(
-                    model=material_model,
+                NeoHookeProblemConfig(
                     material_parameters=(
                         parameters_sample[0].item(),
                         parameters_sample[1].item(),
@@ -212,7 +206,7 @@ def create_datasets() -> tuple[
         print("Load training data ...")
         config_validation_data = SimulationDataset2DConfig(
             input_subdir=input_subdir_training,
-            num_points=num_data_points,
+            num_points=num_points_data,
             num_samples=num_parameter_samples_data,
             project_directory=project_directory,
             read_from_output_dir=False,
@@ -221,8 +215,8 @@ def create_datasets() -> tuple[
 
     def _create_validation_dataset() -> SimulationDataset2D:
         def _generate_validation_data() -> None:
-            offset_training_range_bulk_modulus = 1000.0
-            offset_training_range_shear_modulus = 500.0
+            offset_training_range_bulk_modulus = 20.0
+            offset_training_range_shear_modulus = 5.0
 
             def _generate_random_parameter_list(
                 size: int, min_value: float, max_value: float
@@ -242,14 +236,14 @@ def create_datasets() -> tuple[
             )
             domain_config = create_fem_domain_config()
             problem_configs = [
-                LinearElasticityProblemConfig_K_G(
-                    model=material_model,
+                NeoHookeProblemConfig(
                     material_parameters=(bulk_modulus, shear_modulus),
                 )
                 for bulk_modulus, shear_modulus in zip(
                     bulk_moduli_list, shear_moduli_list
                 )
             ]
+
             generate_simulation_data(
                 domain_config=domain_config,
                 problem_configs=problem_configs,
@@ -357,9 +351,8 @@ def create_ansatz() -> StandardAnsatz:
                 "Run FE simulations to determine normalization values in x-direction ..."
             )
             domain_config = create_fem_domain_config()
-            problem_config_x = LinearElasticityProblemConfig_K_G(
-                model=material_model,
-                material_parameters=(min_bulk_modulus, min_shear_modulus),
+            problem_config_x = NeoHookeProblemConfig(
+                material_parameters=(min_bulk_modulus, min_shear_modulus)
             )
             simulation_config_x = SimulationConfig(
                 domain_config=domain_config,
@@ -381,9 +374,8 @@ def create_ansatz() -> StandardAnsatz:
             print(
                 "Run FE simulations to determine normalization values in y-direction ..."
             )
-            problem_config_y = LinearElasticityProblemConfig_K_G(
-                model=material_model,
-                material_parameters=(max_bulk_modulus, min_shear_modulus),
+            problem_config_y = NeoHookeProblemConfig(
+                material_parameters=(max_bulk_modulus, min_shear_modulus)
             )
             simulation_config_y = SimulationConfig(
                 domain_config=domain_config,
@@ -439,7 +431,6 @@ ansatz = create_ansatz()
 def training_step() -> None:
     train_config = TrainingConfiguration(
         ansatz=ansatz,
-        material_model=material_model,
         number_points_per_bc=num_points_per_bc,
         weight_pde_loss=weight_pde_loss,
         weight_stress_bc_loss=weight_stress_bc_loss,
@@ -458,25 +449,22 @@ def training_step() -> None:
 
     def _plot_exemplary_displacement_fields() -> None:
         displacements_plotter_config = DisplacementsPlotterConfig2D()
-        calculate_K_from_E_and_nu = calculate_K_from_E_and_nu_factory(material_model)
-        material_parameters_list = [
+        parameters_list = [
             (min_bulk_modulus, min_shear_modulus),
             (min_bulk_modulus, max_shear_modulus),
             (max_bulk_modulus, min_shear_modulus),
             (max_bulk_modulus, max_shear_modulus),
-            (
-                calculate_K_from_E_and_nu(E=210000.0, nu=0.3),
-                calculate_G_from_E_and_nu(E=210000.0, nu=0.3),
-            ),
         ]
+        bulk_moduli, shear_moduli = zip(*parameters_list)
 
         domain_config = create_fem_domain_config()
-        problem_configs = [
-            LinearElasticityProblemConfig_K_G(
-                model=material_model, material_parameters=(bulk_modulus, shear_modulus)
+        problem_configs = []
+        for i in range(len(parameters_list)):
+            problem_configs.append(
+                NeoHookeProblemConfig(
+                    material_parameters=(bulk_moduli[i], shear_moduli[i])
+                )
             )
-            for bulk_modulus, shear_modulus in material_parameters_list
-        ]
 
         plot_displacements_2d(
             ansatz=ansatz,
@@ -529,8 +517,8 @@ def calibration_step() -> None:
     def set_up_least_squares_configs(
         calibration_data: tuple[CalibrationData, ...],
     ) -> tuple[LeastSquaresConfig, ...]:
-        initial_bulk_modulus = 150000.0
-        initial_shear_modulus = 80000.0
+        initial_bulk_modulus = 6000.0
+        initial_shear_modulus = 1000.0
         initial_material_parameters = torch.tensor(
             [initial_bulk_modulus, initial_shear_modulus],
             device=device,
@@ -622,7 +610,7 @@ def calibration_step() -> None:
             calibration_configs=configs_emcee,
             parameter_names=material_parameter_names,
             true_parameters=true_material_parameters,
-            output_subdir=os.path.join(output_subdir_calibration, "mcmc_emcee"),
+            output_subdir=os.path.join(output_subdir_calibration, "emcee"),
             project_directory=project_directory,
             device=device,
         )

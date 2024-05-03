@@ -76,10 +76,10 @@ fem_element_degree = 1
 fem_element_size = 0.1
 # Validation
 regenerate_valid_data = True
-input_subdir_valid = f"20240503_validation_data_linearelasticity_quarterplatewithhole_K_{bulk_modulus}_G_{shear_modulus}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
 validation_interval = 1
 num_points_valid = 2048
-# Output
+# Input/output
+input_subdir_valid = f"20240503_validation_data_linearelasticity_quarterplatewithhole_K_{bulk_modulus}_G_{shear_modulus}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
 output_subdirectory = f"{output_date}_parametric_pinns_calibration_paper_bcscomparison"
@@ -95,7 +95,7 @@ output_subdir_normalization = os.path.join(output_subdir_training, "normalizatio
 save_metadata = True
 
 
-# Set up simulation
+### Set up simulation
 settings = Settings()
 project_directory = ProjectDirectory(settings)
 device = get_device()
