@@ -89,7 +89,7 @@ use_simulation_data = True
 regenerate_train_data = True
 num_parameter_samples_data = 128
 num_points_data = 128
-number_training_epochs = 15000
+num_training_epochs = 15000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
@@ -141,11 +141,13 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
     )
 
 
-def create_datasets() -> tuple[
-    QuarterPlateWithHoleTrainingDataset2D,
-    SimulationDataset2D | None,
-    SimulationDataset2D,
-]:
+def create_datasets() -> (
+    tuple[
+        QuarterPlateWithHoleTrainingDataset2D,
+        SimulationDataset2D | None,
+        SimulationDataset2D,
+    ]
+):
     def _create_pinn_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(
@@ -170,7 +172,6 @@ def create_datasets() -> tuple[
         return create_training_dataset(config_training_data)
 
     def _create_data_training_dataset() -> SimulationDataset2D:
-
         def _generate_data() -> None:
             parameters_samples = sample_quasirandom_sobol(
                 min_parameters=[min_bulk_modulus, min_shear_modulus],
@@ -437,7 +438,7 @@ def training_step() -> None:
         weight_traction_bc_loss=weight_traction_bc_loss,
         weight_data_loss=weight_data_loss,
         training_dataset_pinn=training_dataset_pinn,
-        number_training_epochs=number_training_epochs,
+        number_training_epochs=num_training_epochs,
         training_batch_size=training_batch_size,
         validation_dataset=validation_dataset,
         validation_interval=validation_interval,
