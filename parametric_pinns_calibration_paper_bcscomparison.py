@@ -82,7 +82,7 @@ num_points_valid = 2048
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = f"{output_date}_parametric_pinn_paper_bcscomparison_linearelasticity_quarterplatewithhole"
+output_subdirectory = f"{output_date}_parametric_pinns_calibration_paper_bcscomparison"
 if use_stress_bc:
     output_subdir_training = os.path.join(
         output_subdirectory, "training", "with_stress_bc"
