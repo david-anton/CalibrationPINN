@@ -91,20 +91,20 @@ bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_parameter_samples_pinn
 use_simulation_data = True
-regenerate_train_data = True
+regenerate_train_data = False
 num_parameter_samples_data = 128
 num_data_points = 128
 num_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
-weight_data_loss = 1e6
+weight_data_loss = 1e4
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size = 0.1
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
@@ -146,13 +146,11 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
     )
 
 
-def create_datasets() -> (
-    tuple[
-        QuarterPlateWithHoleTrainingDataset2D,
-        SimulationDataset2D | None,
-        SimulationDataset2D,
-    ]
-):
+def create_datasets() -> tuple[
+    QuarterPlateWithHoleTrainingDataset2D,
+    SimulationDataset2D | None,
+    SimulationDataset2D,
+]:
     def _create_pinn_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(
