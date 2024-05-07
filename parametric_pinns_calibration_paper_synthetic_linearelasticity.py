@@ -84,9 +84,9 @@ activation = torch.nn.Tanh()
 # Ansatz
 distance_function = "normalized linear"
 # Training
-num_parameter_samples_pinn = 1024
-num_collocation_points = 64
-num_points_per_bc = 64
+num_parameter_samples_pinn = 2048  # 1024
+num_collocation_points = 32  # 64
+num_points_per_bc = 32  # 64
 bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_parameter_samples_pinn
@@ -98,7 +98,7 @@ num_training_epochs = 10000
 weight_pde_loss = 1.0
 weight_stress_bc_loss = 1.0
 weight_traction_bc_loss = 1.0
-weight_data_loss = 1e4
+weight_data_loss = 1e6
 # FEM
 fem_element_family = "Lagrange"
 fem_element_degree = 1
@@ -117,9 +117,10 @@ input_subdir_training = f"20240503_training_data_linearelasticity_quarterplatewi
 input_subdir_validation = f"20240503_validation_data_linearelasticity_quarterplatewithhole_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-output_subdirectory = (
-    f"{output_date}_parametric_pinns_calibration_paper_synthetic_linearelasticity"
-)
+# output_subdirectory = (
+#     f"{output_date}_parametric_pinns_calibration_paper_synthetic_linearelasticity"
+# )
+output_subdirectory = f"{output_date}_parametric_pinns_calibration_paper_synthetic_linearelasticity_2048_32_32"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
 output_subdir_calibration = os.path.join(output_subdirectory, "calibration")
