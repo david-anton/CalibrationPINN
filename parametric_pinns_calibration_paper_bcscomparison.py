@@ -42,7 +42,7 @@ from parametricpinn.types import Tensor
 
 ### Configuration
 # Set up
-use_stress_bc = True
+use_stress_bc = False
 material_model = "plane stress"
 num_material_parameters = 2
 edge_length = 100.0
@@ -75,7 +75,7 @@ fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size = 0.1
 # Validation
-regenerate_valid_data = True
+regenerate_valid_data = False
 validation_interval = 1
 num_points_valid = 2048
 # Input/output
@@ -115,13 +115,11 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
     )
 
 
-def create_datasets() -> (
-    tuple[
-        QuarterPlateWithHoleTrainingDataset2D,
-        SimulationDataset2D | None,
-        SimulationDataset2D,
-    ]
-):
+def create_datasets() -> tuple[
+    QuarterPlateWithHoleTrainingDataset2D,
+    SimulationDataset2D | None,
+    SimulationDataset2D,
+]:
     def _create_pinn_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = torch.tensor(
