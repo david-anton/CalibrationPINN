@@ -137,7 +137,7 @@ else:
     input_file_name_calibration = "displacements_dic_raw.csv"
 input_file_name_mcmc_samples_fem = "mcmc_samples_fem.csv"
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = "20240503"
 output_subdirectory = (
     f"{output_date}_parametric_pinns_calibration_paper_experimental_linearelasticity"
 )
