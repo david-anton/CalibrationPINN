@@ -891,10 +891,10 @@ def calibration_step() -> None:
             likelihood=likelihood,
             prior=prior_material_parameters,
             initial_parameters=initial_material_parameters.to(device),
-            stretch_scale=6.0,
+            stretch_scale=4.0,
             num_walkers=num_walkers,
             num_iterations=200,
-            num_burn_in_iterations=200,
+            num_burn_in_iterations=100,
         )
 
     if use_least_squares:
