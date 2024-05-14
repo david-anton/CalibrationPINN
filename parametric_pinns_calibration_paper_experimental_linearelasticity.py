@@ -122,7 +122,7 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_interpolated_calibration_data = False
+use_interpolated_calibration_data = True
 use_least_squares = True
 use_mcmc_emcee = True
 # Output
@@ -894,7 +894,7 @@ def calibration_step() -> None:
             stretch_scale=6.0,
             num_walkers=num_walkers,
             num_iterations=200,
-            num_burn_in_iterations=100,
+            num_burn_in_iterations=200,
         )
 
     if use_least_squares:
