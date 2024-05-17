@@ -79,7 +79,7 @@ from parametricpinn.training.training_standard_linearelasticity_simplifieddogbon
 from parametricpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -104,7 +104,7 @@ bcs_overlap_angle_distance_left = 1e-2
 bcs_overlap_distance_parallel_right = 1e-2
 training_batch_size = num_parameter_samples_pinn
 use_simulation_data = True
-regenerate_train_data = False
+regenerate_train_data = True
 num_parameter_samples_data = 128
 num_data_points = 128
 num_training_epochs = 15000
@@ -116,18 +116,18 @@ fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size = 0.1
 # Validation
-regenerate_valid_data = False
+regenerate_valid_data = True
 num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_interpolated_calibration_data = True
+use_interpolated_calibration_data = False
 use_least_squares = True
 use_mcmc_emcee = True
 # Output
-input_subdir_validation = f"20240503_validation_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
-input_subdir_training = f"20240503_training_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
+input_subdir_validation = f"20240517_validation_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
+input_subdir_training = f"20240517_training_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
 input_subdir_calibration = os.path.join(
     "Paper_PINNs", "20240415_experimental_dic_data_dogbone"
 )
@@ -137,7 +137,7 @@ else:
     input_file_name_calibration = "displacements_dic_raw.csv"
 input_file_name_mcmc_samples_fem = "mcmc_samples_fem.csv"
 current_date = date.today().strftime("%Y%m%d")
-output_date = "20240503"
+output_date = "20240517"
 output_subdirectory = (
     f"{output_date}_parametric_pinns_calibration_paper_experimental_linearelasticity"
 )
@@ -175,11 +175,13 @@ def create_fem_domain_config() -> SimplifiedDogBoneDomainConfig:
     )
 
 
-def create_datasets() -> tuple[
-    SimplifiedDogBoneTrainingDataset2D,
-    SimulationDataset2D | None,
-    SimulationDataset2D,
-]:
+def create_datasets() -> (
+    tuple[
+        SimplifiedDogBoneTrainingDataset2D,
+        SimulationDataset2D | None,
+        SimulationDataset2D,
+    ]
+):
     def _create_pinn_training_dataset() -> SimplifiedDogBoneTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(
