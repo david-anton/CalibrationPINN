@@ -42,7 +42,7 @@ from parametricpinn.types import Tensor
 
 ### Configuration
 # Set up
-use_stress_bc = False
+use_stress_symmetry_bcs = True
 material_model = "plane stress"
 num_material_parameters = 2
 edge_length = 100.0
@@ -66,7 +66,7 @@ bcs_overlap_angle_distance = 1e-2
 number_training_epochs = 5000
 weight_pde_loss = 1.0
 weight_traction_bc_loss = 1.0
-if use_stress_bc:
+if use_stress_symmetry_bcs:
     weight_stress_bc_loss = 1.0
 else:
     weight_stress_bc_loss = 0.0
@@ -83,7 +83,7 @@ input_subdir_valid = f"20240517_validation_data_linearelasticity_quarterplatewit
 current_date = date.today().strftime("%Y%m%d")
 output_date = "20240517"
 output_subdirectory = f"{output_date}_parametric_pinns_calibration_paper_bcscomparison"
-if use_stress_bc:
+if use_stress_symmetry_bcs:
     output_subdir_training = os.path.join(
         output_subdirectory, "training", "with_stress_bc"
     )
@@ -115,13 +115,11 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
     )
 
 
-def create_datasets() -> (
-    tuple[
-        QuarterPlateWithHoleTrainingDataset2D,
-        SimulationDataset2D | None,
-        SimulationDataset2D,
-    ]
-):
+def create_datasets() -> tuple[
+    QuarterPlateWithHoleTrainingDataset2D,
+    SimulationDataset2D | None,
+    SimulationDataset2D,
+]:
     def _create_pinn_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = torch.tensor(
