@@ -881,25 +881,17 @@ def calibration_step() -> None:
         )
 
         num_walkers = 100
-        # min_material_parameters = torch.tensor([min_bulk_modulus, min_shear_modulus])
-        # max_material_parameters = torch.tensor([max_bulk_modulus, max_shear_modulus])
-        # range_material_parameters = max_material_parameters - min_material_parameters
-        # initial_material_parameters = min_material_parameters + torch.rand(
-        #     (num_walkers, num_material_parameters)
-        # ) * range_material_parameters.repeat((num_walkers, 1))
-        min_material_parameters_init = torch.tensor([130000.0, 170000.0])
-        max_material_parameters_init = torch.tensor([70000.0, 90000.0])
-        range_material_parameters_init = (
-            max_material_parameters_init - min_material_parameters_init
-        )
-        initial_material_parameters = min_material_parameters_init + torch.rand(
+        min_material_parameters = torch.tensor([min_bulk_modulus, min_shear_modulus])
+        max_material_parameters = torch.tensor([max_bulk_modulus, max_shear_modulus])
+        range_material_parameters = max_material_parameters - min_material_parameters
+        initial_material_parameters = min_material_parameters + torch.rand(
             (num_walkers, num_material_parameters)
-        ) * range_material_parameters_init.repeat((num_walkers, 1))
+        ) * range_material_parameters.repeat((num_walkers, 1))
         return EMCEEConfig(
             likelihood=likelihood,
             prior=prior_material_parameters,
             initial_parameters=initial_material_parameters.to(device),
-            stretch_scale=4.0,
+            stretch_scale=2.0,
             num_walkers=num_walkers,
             num_iterations=200,
             num_burn_in_iterations=100,
