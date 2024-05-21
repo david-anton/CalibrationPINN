@@ -1853,14 +1853,15 @@ def calibration_step() -> None:
             )
         )
 
+        min_error_standard_deviation = 1e-6
+        max_error_standard_deviation = 1e-1
+
         prior_bulk_modulus = create_univariate_uniform_distributed_prior(
             lower_limit=min_bulk_modulus, upper_limit=max_bulk_modulus, device=device
         )
         prior_shear_modulus = create_univariate_uniform_distributed_prior(
             lower_limit=min_shear_modulus, upper_limit=max_shear_modulus, device=device
         )
-        min_error_standard_deviation = 1e-6
-        max_error_standard_deviation = 1e-1
         prior_error_standard_deviations = create_multivariate_uniform_distributed_prior(
             lower_limits=torch.tensor(
                 [min_error_standard_deviation, min_error_standard_deviation]
@@ -1874,20 +1875,29 @@ def calibration_step() -> None:
             [prior_bulk_modulus, prior_shear_modulus, prior_error_standard_deviations]
         )
 
+        num_parameters = num_material_parameters + 2
         num_walkers = 100
-        min_material_parameters = torch.tensor([min_bulk_modulus, min_shear_modulus])
-        max_material_parameters = torch.tensor([max_bulk_modulus, max_shear_modulus])
-        range_material_parameters = max_material_parameters - min_material_parameters
-        initial_material_parameters = min_material_parameters + torch.rand(
-            (num_walkers, num_material_parameters)
-        ) * range_material_parameters.repeat((num_walkers, 1))
-        initial_error_standard_deviation = 5e-4
-        initial_error_standard_deviations = torch.tensor(
-            [initial_error_standard_deviation, initial_error_standard_deviation]
+        min_parameters = torch.tensor(
+            [
+                min_bulk_modulus,
+                min_shear_modulus,
+                min_error_standard_deviation,
+                min_error_standard_deviation,
+            ]
         )
-        initial_parameters = torch.concat(
-            [initial_material_parameters, initial_error_standard_deviations]
+        max_parameters = torch.tensor(
+            [
+                max_bulk_modulus,
+                max_shear_modulus,
+                max_error_standard_deviation,
+                max_error_standard_deviation,
+            ]
         )
+        range_parameters = max_parameters - min_parameters
+        initial_parameters = min_parameters.repeat((num_walkers, 1)) + torch.rand(
+            (num_walkers, num_parameters)
+        ) * range_parameters.repeat((num_walkers, 1))
+
         return EMCEEConfig(
             likelihood=likelihood,
             prior=prior,
