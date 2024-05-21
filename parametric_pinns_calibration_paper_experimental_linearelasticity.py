@@ -1008,6 +1008,7 @@ from parametricpinn.calibration import (
 )
 from parametricpinn.calibration.bayesianinference.likelihoods import (
     create_standard_ppinn_likelihood_for_noise_and_model_error_sampling,
+    create_standard_ppinn_likelihood_for_noise_and_model_error_gps_sampling,
 )
 from parametricpinn.calibration.bayesianinference.plot import (
     plot_multivariate_normal_distribution,
@@ -1058,6 +1059,7 @@ from parametricpinn.training.training_standard_linearelasticity_simplifieddogbon
     train_parametric_pinn,
 )
 from parametricpinn.types import NPArray, Tensor
+from parametricpinn.gps import IndependentMultiOutputGP, create_gaussian_process
 
 ### Configuration
 retrain_parametric_pinn = False
@@ -1506,9 +1508,18 @@ def training_step() -> None:
 def calibration_step() -> None:
     print("Start calibration ...")
 
+    # material_parameter_names = ("bulk modulus", "shear modulus")
+    # error_standard_deviation_names = ("error_stdvev_x", "error_stdvev_y")
+    # parameter_names = material_parameter_names + error_standard_deviation_names
+
     material_parameter_names = ("bulk modulus", "shear modulus")
-    error_standard_deviation_names = ("error_stdvev_x", "error_stdvev_y")
-    parameter_names = material_parameter_names + error_standard_deviation_names
+    gp_parameter_names = (
+        "output_scale_0",
+        "length_scale_0",
+        "output_scale_1",
+        "length_scale_1",
+    )
+    parameter_names = material_parameter_names + gp_parameter_names
 
     lsfem_bulk_modulus = 128085.11
     lsfem_shear_modulus = 73541.11
@@ -1848,17 +1859,102 @@ def calibration_step() -> None:
         )
 
     def set_up_emcee_config(data: CalibrationData) -> EMCEEConfig:
+        # likelihood = (
+        #     create_standard_ppinn_likelihood_for_noise_and_model_error_sampling(
+        #         model=model,
+        #         num_model_parameters=num_material_parameters,
+        #         data=calibration_data,
+        #         device=device,
+        #     )
+        # )
+
+        # min_error_standard_deviation = 1e-3
+        # max_error_standard_deviation = 1e-1
+
+        # prior_bulk_modulus = create_univariate_uniform_distributed_prior(
+        #     lower_limit=min_bulk_modulus, upper_limit=max_bulk_modulus, device=device
+        # )
+        # prior_shear_modulus = create_univariate_uniform_distributed_prior(
+        #     lower_limit=min_shear_modulus, upper_limit=max_shear_modulus, device=device
+        # )
+        # prior_error_standard_deviations = create_multivariate_uniform_distributed_prior(
+        #     lower_limits=torch.tensor(
+        #         [min_error_standard_deviation, min_error_standard_deviation]
+        #     ),
+        #     upper_limits=torch.tensor(
+        #         [max_error_standard_deviation, max_error_standard_deviation]
+        #     ),
+        #     device=device,
+        # )
+        # prior = multiply_priors(
+        #     [
+        #         prior_bulk_modulus,
+        #         prior_shear_modulus,
+        #         prior_error_standard_deviations,
+        #     ]
+        # )
+        # # prior_error_standard_deviations_x = create_gamma_distributed_prior(
+        # #     concentration=1.1, rate=10.0, device=device
+        # # )
+        # # prior_error_standard_deviations_y = create_gamma_distributed_prior(
+        # #     concentration=1.1, rate=10.0, device=device
+        # # )
+        # # prior = multiply_priors(
+        # #     [
+        # #         prior_bulk_modulus,
+        # #         prior_shear_modulus,
+        # #         prior_error_standard_deviations_x,
+        # #         prior_error_standard_deviations_y,
+        # #     ]
+        # # )
+        def create_model_error_gp() -> IndependentMultiOutputGP:
+            min_inputs = torch.tensor(
+                [
+                    -geometry_config.left_half_measurement_length,
+                    -geometry_config.half_measurement_height,
+                ],
+                dtype=torch.float64,
+                device=device,
+            )
+            max_inputs = torch.tensor(
+                [
+                    geometry_config.right_half_measurement_length,
+                    geometry_config.half_measurement_height,
+                ],
+                dtype=torch.float64,
+                device=device,
+            )
+            return IndependentMultiOutputGP(
+                gps=[
+                    create_gaussian_process(
+                        mean="zero",
+                        kernel="scaled_rbf",
+                        min_inputs=min_inputs,
+                        max_inputs=max_inputs,
+                        device=device,
+                    ),
+                    create_gaussian_process(
+                        mean="zero",
+                        kernel="scaled_rbf",
+                        min_inputs=min_inputs,
+                        max_inputs=max_inputs,
+                        device=device,
+                    ),
+                ],
+                device=device,
+            ).to(device)
+
+        model_error_gp = create_model_error_gp()
+
         likelihood = (
-            create_standard_ppinn_likelihood_for_noise_and_model_error_sampling(
+            create_standard_ppinn_likelihood_for_noise_and_model_error_gps_sampling(
                 model=model,
                 num_model_parameters=num_material_parameters,
+                model_error_gp=model_error_gp,
                 data=calibration_data,
                 device=device,
             )
         )
-
-        min_error_standard_deviation = 1e-3
-        max_error_standard_deviation = 1e-1
 
         prior_bulk_modulus = create_univariate_uniform_distributed_prior(
             lower_limit=min_bulk_modulus, upper_limit=max_bulk_modulus, device=device
@@ -1866,53 +1962,43 @@ def calibration_step() -> None:
         prior_shear_modulus = create_univariate_uniform_distributed_prior(
             lower_limit=min_shear_modulus, upper_limit=max_shear_modulus, device=device
         )
-        prior_error_standard_deviations = create_multivariate_uniform_distributed_prior(
+        min_output_scale = 1e-6
+        max_output_scale = 1.0
+        min_length_scale = 1e-6
+        max_length_scale = 1.0
+        prior_gp_parameters = create_multivariate_uniform_distributed_prior(
             lower_limits=torch.tensor(
-                [min_error_standard_deviation, min_error_standard_deviation]
+                [min_output_scale, min_length_scale, min_output_scale, min_length_scale]
             ),
             upper_limits=torch.tensor(
-                [max_error_standard_deviation, max_error_standard_deviation]
+                [max_output_scale, max_length_scale, max_output_scale, max_length_scale]
             ),
             device=device,
         )
         prior = multiply_priors(
-            [
-                prior_bulk_modulus,
-                prior_shear_modulus,
-                prior_error_standard_deviations,
-            ]
+            [prior_bulk_modulus, prior_shear_modulus, prior_gp_parameters]
         )
-        # prior_error_standard_deviations_x = create_gamma_distributed_prior(
-        #     concentration=1.1, rate=10.0, device=device
-        # )
-        # prior_error_standard_deviations_y = create_gamma_distributed_prior(
-        #     concentration=1.1, rate=10.0, device=device
-        # )
-        # prior = multiply_priors(
-        #     [
-        #         prior_bulk_modulus,
-        #         prior_shear_modulus,
-        #         prior_error_standard_deviations_x,
-        #         prior_error_standard_deviations_y,
-        #     ]
-        # )
 
-        num_parameters = num_material_parameters + 2
+        num_parameters = num_material_parameters + 4
         num_walkers = 100
         min_parameters = torch.tensor(
             [
                 min_bulk_modulus,
                 min_shear_modulus,
-                min_error_standard_deviation,
-                min_error_standard_deviation,
+                min_output_scale,
+                min_length_scale,
+                min_output_scale,
+                min_length_scale,
             ]
         )
         max_parameters = torch.tensor(
             [
                 max_bulk_modulus,
                 max_shear_modulus,
-                max_error_standard_deviation,
-                max_error_standard_deviation,
+                max_output_scale,
+                max_length_scale,
+                max_output_scale,
+                max_length_scale,
             ]
         )
         range_parameters = max_parameters - min_parameters
@@ -1924,7 +2010,7 @@ def calibration_step() -> None:
             likelihood=likelihood,
             prior=prior,
             initial_parameters=initial_parameters.to(device),
-            stretch_scale=2.0,
+            stretch_scale=4.0,
             num_walkers=num_walkers,
             num_iterations=200,
             num_burn_in_iterations=200,
