@@ -1506,6 +1506,8 @@ def calibration_step() -> None:
     print("Start calibration ...")
 
     material_parameter_names = ("bulk modulus", "shear modulus")
+    error_standard_deviation_names = ("error_stdvev_x", "error_stdvev_y")
+    parameter_names = material_parameter_names + error_standard_deviation_names
 
     lsfem_bulk_modulus = 128085.11
     lsfem_shear_modulus = 73541.11
@@ -1928,7 +1930,7 @@ def calibration_step() -> None:
         start = perf_counter()
         test_coverage(
             calibration_configs=(configs_emcee,),
-            parameter_names=material_parameter_names,
+            parameter_names=parameter_names,
             true_parameters=lsfem_material_parameters,
             output_subdir=os.path.join(output_subdir_calibration, "mcmc_emcee"),
             project_directory=project_directory,
