@@ -1,4 +1,4 @@
-name: venv
+name: venv-calibrationpinn
 channels:
   - defaults
   - conda-forge
