@@ -527,8 +527,8 @@ def calibration_step() -> None:
 
     material_parameter_names = ("bulk modulus", "shear modulus")
 
-    lsfem_bulk_modulus = 121633.0
-    lsfem_shear_modulus = 75945.0
+    lsfem_bulk_modulus = 128085.11
+    lsfem_shear_modulus = 73541.11
     lsfem_material_parameters = np.array([[lsfem_bulk_modulus, lsfem_shear_modulus]])
 
     def determine_ls_residual_weights(displacements: Tensor) -> Tensor:
