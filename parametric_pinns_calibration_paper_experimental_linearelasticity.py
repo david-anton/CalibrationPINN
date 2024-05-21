@@ -880,7 +880,7 @@ def calibration_step() -> None:
             lower_limit=min_bulk_modulus, upper_limit=max_bulk_modulus, device=device
         )
         prior_shear_modulus = create_univariate_uniform_distributed_prior(
-            lower_limit=min_bulk_modulus, upper_limit=max_bulk_modulus, device=device
+            lower_limit=min_shear_modulus, upper_limit=max_shear_modulus, device=device
         )
         prior_material_parameters = multiply_priors(
             [prior_bulk_modulus, prior_shear_modulus]
