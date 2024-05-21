@@ -1,14 +1,14 @@
-### Directories
+### directories
 input
 output
 
-### Python
-*.py[cod]
-
-### output files
+### files
 *.csv
 *.pdf
 *.png
+
+### Python
+*.py[cod]
 
 ### Singularity 
 *.sif
@@ -38,6 +38,15 @@ ipython_config.py
 
 ### Rope project settings
 .ropeproject
+
+# isort
+.isort.cfg
+
+# mypy
+.mypy_cache
+
+# pytest
+.pytest_cache
 
 ### OS related files
 # MacOS

@@ -7,7 +7,7 @@
 #SBATCH --gres=gpu:ampere:1
 
 ## Build command
-## singularity build --fakeroot --force parametricpinn.sif app/.devcontainer/container_conda.def
+## singularity build --fakeroot --force parametricpinn.sif app/.devcontainer/container.def
 
 SCRIPT=parametric_pinns_calibration_paper_synthetic_neohooke.py
 

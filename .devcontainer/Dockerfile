@@ -5,8 +5,8 @@ FROM dolfinx/dolfinx:stable
 # Are overwritten by build arguments (if supplied while building the container)
 ARG uid=1000
 ARG gid=1000
-ARG requirements=requirements.txt
-ARG dev_requirements=dev-requirements.txt
+ARG requirements=requirements-docker.txt
+ARG dev_requirements=requirements-docker-dev.txt
 
 
 ### Change default shell
@@ -63,5 +63,3 @@ RUN apt-get clean && \
 
 ### Change to non-root user 
 USER $USER_NAME
-# ### Set working directory
-# WORKDIR $APP_DIR

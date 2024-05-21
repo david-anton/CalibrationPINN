@@ -12,7 +12,7 @@
 			"uid": "1000",
 			"gid": "1000",
 			"requirements": "requirements-docker.txt",
-			"dev_requirements": "requirements-dev-docker.txt"
+			"dev_requirements": "requirements-docker-dev.txt"
 		}
     },
 
