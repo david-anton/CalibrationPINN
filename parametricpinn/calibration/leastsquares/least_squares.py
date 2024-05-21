@@ -136,4 +136,4 @@ def least_squares(
 
 
 def flatten(x: Tensor) -> Tensor:
-    return x.ravel()
+    return torch.transpose(x, 1, 0).ravel()
