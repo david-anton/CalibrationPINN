@@ -1857,7 +1857,7 @@ def calibration_step() -> None:
             )
         )
 
-        min_error_standard_deviation = 1e-4
+        min_error_standard_deviation = 1e-3
         max_error_standard_deviation = 1e-1
 
         prior_bulk_modulus = create_univariate_uniform_distributed_prior(
