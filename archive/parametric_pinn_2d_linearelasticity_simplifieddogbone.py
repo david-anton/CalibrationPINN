@@ -11,17 +11,17 @@ from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
 from scipy.interpolate import griddata
 
-from parametricpinn.ansatz import (
+from calibrationpinn.ansatz import (
     StandardAnsatz,
     create_standard_normalized_hbc_ansatz_clamped_left,
 )
-from parametricpinn.bayesian.likelihood import Likelihood
-from parametricpinn.bayesian.prior import (
+from calibrationpinn.bayesian.likelihood import Likelihood
+from calibrationpinn.bayesian.prior import (
     create_gamma_distributed_prior,
     create_univariate_uniform_distributed_prior,
     multiply_priors,
 )
-from parametricpinn.calibration import (
+from calibrationpinn.calibration import (
     CalibrationData,
     EfficientNUTSConfig,
     EMCEEConfig,
@@ -31,62 +31,62 @@ from parametricpinn.calibration import (
     test_coverage,
     test_least_squares_calibration,
 )
-from parametricpinn.calibration.bayesianinference.likelihoods import (
+from calibrationpinn.calibration.bayesianinference.likelihoods import (
     create_optimized_standard_ppinn_likelihood_for_noise_and_model_error,
     create_optimized_standard_ppinn_likelihood_for_noise_and_model_error_gps,
     create_standard_ppinn_likelihood_for_noise,
     create_standard_ppinn_likelihood_for_noise_and_model_error_gps_sampling,
 )
-from parametricpinn.calibration.bayesianinference.plot import (
+from calibrationpinn.calibration.bayesianinference.plot import (
     plot_multivariate_normal_distribution,
 )
-from parametricpinn.calibration.data import concatenate_calibration_data
-from parametricpinn.calibration.utility import load_model
-from parametricpinn.data.parameterssampling import sample_quasirandom_sobol
-from parametricpinn.data.simulation_2d import (
+from calibrationpinn.calibration.data import concatenate_calibration_data
+from calibrationpinn.calibration.utility import load_model
+from calibrationpinn.data.parameterssampling import sample_quasirandom_sobol
+from calibrationpinn.data.simulation_2d import (
     SimulationDataset2D,
     SimulationDataset2DConfig,
     create_simulation_dataset,
 )
-from parametricpinn.data.trainingdata_2d import (
+from calibrationpinn.data.trainingdata_2d import (
     SimplifiedDogBoneGeometryConfig,
     SimplifiedDogBoneTrainingDataset2D,
     SimplifiedDogBoneTrainingDataset2DConfig,
     create_training_dataset,
 )
-from parametricpinn.errors import CalibrationDataConfigError, UnvalidMainConfigError
-from parametricpinn.fem import (
+from calibrationpinn.errors import CalibrationDataConfigError, UnvalidMainConfigError
+from calibrationpinn.fem import (
     LinearElasticityProblemConfig_K_G,
     SimplifiedDogBoneDomainConfig,
     SimulationConfig,
     generate_simulation_data,
     run_simulation,
 )
-from parametricpinn.gps import IndependentMultiOutputGP, create_gaussian_process
-from parametricpinn.io import ProjectDirectory
-from parametricpinn.io.readerswriters import (
+from calibrationpinn.gps import IndependentMultiOutputGP, create_gaussian_process
+from calibrationpinn.io import ProjectDirectory
+from calibrationpinn.io.readerswriters import (
     CSVDataReader,
     DATDataReader,
     PandasDataWriter,
 )
-from parametricpinn.network import FFNN
-from parametricpinn.postprocessing.plot import (
+from calibrationpinn.network import FFNN
+from calibrationpinn.postprocessing.plot import (
     DisplacementsPlotterConfig2D,
     plot_displacements_2d,
 )
-from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.statistics.utility import (
+from calibrationpinn.settings import Settings, get_device, set_default_dtype, set_seed
+from calibrationpinn.statistics.utility import (
     determine_moments_of_multivariate_normal_distribution,
 )
-from parametricpinn.training.loss_2d.momentum_linearelasticity_K_G import (
+from calibrationpinn.training.loss_2d.momentum_linearelasticity_K_G import (
     calculate_G_from_E_and_nu,
     calculate_K_from_E_and_nu_factory,
 )
-from parametricpinn.training.training_standard_linearelasticity_simplifieddogbone import (
+from calibrationpinn.training.training_standard_linearelasticity_simplifieddogbone import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
-from parametricpinn.types import NPArray, Tensor
+from calibrationpinn.types import NPArray, Tensor
 
 ### Configuration
 retrain_parametric_pinn = False

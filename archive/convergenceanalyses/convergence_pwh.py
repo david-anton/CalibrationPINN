@@ -20,14 +20,14 @@ from matplotlib.ticker import MaxNLocator
 from mpi4py import MPI
 from scipy.interpolate import griddata
 
-from parametricpinn.fem.base import (
+from calibrationpinn.fem.base import (
     DFunction,
     DMesh,
     UFLExpression,
     UFLOperator,
     UFLTrialFunction,
 )
-from parametricpinn.fem.convergenceanalysis import (
+from calibrationpinn.fem.convergenceanalysis import (
     calculate_empirical_convegrence_order,
     h01_error,
     infinity_error,
@@ -35,11 +35,11 @@ from parametricpinn.fem.convergenceanalysis import (
     plot_error_convergence_analysis,
     relative_l2_error,
 )
-from parametricpinn.fem.utility import evaluate_function
-from parametricpinn.io import ProjectDirectory
-from parametricpinn.io.readerswriters import PandasDataWriter
-from parametricpinn.settings import Settings, set_default_dtype
-from parametricpinn.types import NPArray, PLTAxes
+from calibrationpinn.fem.utility import evaluate_function
+from calibrationpinn.io import ProjectDirectory
+from calibrationpinn.io.readerswriters import PandasDataWriter
+from calibrationpinn.settings import Settings, set_default_dtype
+from calibrationpinn.types import NPArray, PLTAxes
 
 # Set up simulation
 settings = Settings()

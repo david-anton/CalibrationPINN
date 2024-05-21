@@ -12,17 +12,17 @@ from dolfinx.mesh import create_unit_square, locate_entities_boundary
 from mpi4py import MPI
 from ufl import SpatialCoordinate, TestFunction, TrialFunction, div, dx, grad, inner
 
-from parametricpinn.fem.base import DFunction, UFLExpression
-from parametricpinn.fem.convergenceanalysis import (
+from calibrationpinn.fem.base import DFunction, UFLExpression
+from calibrationpinn.fem.convergenceanalysis import (
     infinity_error,
     l2_error,
     plot_error_convergence_analysis,
     relative_l2_error,
 )
-from parametricpinn.io import ProjectDirectory
-from parametricpinn.io.readerswriters import PandasDataWriter
-from parametricpinn.settings import Settings, set_default_dtype
-from parametricpinn.types import NPArray
+from calibrationpinn.io import ProjectDirectory
+from calibrationpinn.io.readerswriters import PandasDataWriter
+from calibrationpinn.settings import Settings, set_default_dtype
+from calibrationpinn.types import NPArray
 
 # Set up simulation
 settings = Settings()

@@ -6,15 +6,15 @@ import numpy as np
 import pandas as pd
 import torch
 
-from parametricpinn.ansatz import (
+from calibrationpinn.ansatz import (
     StandardAnsatz,
     create_standard_normalized_hbc_ansatz_quarter_plate_with_hole,
 )
-from parametricpinn.bayesian.prior import (
+from calibrationpinn.bayesian.prior import (
     create_univariate_uniform_distributed_prior,
     multiply_priors,
 )
-from parametricpinn.calibration import (
+from calibrationpinn.calibration import (
     CalibrationData,
     CalibrationDataLoader2D,
     EMCEEConfig,
@@ -22,42 +22,42 @@ from parametricpinn.calibration import (
     test_coverage,
     test_least_squares_calibration,
 )
-from parametricpinn.calibration.bayesianinference.likelihoods import (
+from calibrationpinn.calibration.bayesianinference.likelihoods import (
     create_standard_ppinn_likelihood_for_noise,
 )
-from parametricpinn.calibration.data import concatenate_calibration_data
-from parametricpinn.calibration.utility import load_model
-from parametricpinn.data.parameterssampling import sample_quasirandom_sobol
-from parametricpinn.data.simulation_2d import (
+from calibrationpinn.calibration.data import concatenate_calibration_data
+from calibrationpinn.calibration.utility import load_model
+from calibrationpinn.data.parameterssampling import sample_quasirandom_sobol
+from calibrationpinn.data.simulation_2d import (
     SimulationDataset2D,
     SimulationDataset2DConfig,
     create_simulation_dataset,
 )
-from parametricpinn.data.trainingdata_2d import (
+from calibrationpinn.data.trainingdata_2d import (
     QuarterPlateWithHoleTrainingDataset2D,
     QuarterPlateWithHoleTrainingDataset2DConfig,
     create_training_dataset,
 )
-from parametricpinn.fem import (
+from calibrationpinn.fem import (
     NeoHookeProblemConfig,
     QuarterPlateWithHoleDomainConfig,
     SimulationConfig,
     generate_simulation_data,
     run_simulation,
 )
-from parametricpinn.io import ProjectDirectory
-from parametricpinn.io.readerswriters import CSVDataReader, PandasDataWriter
-from parametricpinn.network import FFNN
-from parametricpinn.postprocessing.plot import (
+from calibrationpinn.io import ProjectDirectory
+from calibrationpinn.io.readerswriters import CSVDataReader, PandasDataWriter
+from calibrationpinn.network import FFNN
+from calibrationpinn.postprocessing.plot import (
     DisplacementsPlotterConfig2D,
     plot_displacements_2d,
 )
-from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.training_standard_neohooke_quarterplatewithhole import (
+from calibrationpinn.settings import Settings, get_device, set_default_dtype, set_seed
+from calibrationpinn.training.training_standard_neohooke_quarterplatewithhole import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
-from parametricpinn.types import NPArray, Tensor
+from calibrationpinn.types import NPArray, Tensor
 
 ### Configuration
 retrain_parametric_pinn = False
@@ -141,11 +141,13 @@ def create_fem_domain_config() -> QuarterPlateWithHoleDomainConfig:
     )
 
 
-def create_datasets() -> tuple[
-    QuarterPlateWithHoleTrainingDataset2D,
-    SimulationDataset2D | None,
-    SimulationDataset2D,
-]:
+def create_datasets() -> (
+    tuple[
+        QuarterPlateWithHoleTrainingDataset2D,
+        SimulationDataset2D | None,
+        SimulationDataset2D,
+    ]
+):
     def _create_pinn_training_dataset() -> QuarterPlateWithHoleTrainingDataset2D:
         print("Generate training data ...")
         parameters_samples = sample_quasirandom_sobol(

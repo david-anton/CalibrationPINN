@@ -4,13 +4,13 @@ from time import perf_counter
 
 import torch
 
-from parametricpinn.ansatz import (
+from calibrationpinn.ansatz import (
     StandardAnsatz,
     create_standard_normalized_hbc_ansatz_stretched_rod,
 )
-from parametricpinn.bayesian.likelihood import Likelihood
-from parametricpinn.bayesian.prior import create_univariate_uniform_distributed_prior
-from parametricpinn.calibration import (
+from calibrationpinn.bayesian.likelihood import Likelihood
+from calibrationpinn.bayesian.prior import create_univariate_uniform_distributed_prior
+from calibrationpinn.calibration import (
     CalibrationData,
     CalibrationDataGenerator1D,
     EfficientNUTSConfig,
@@ -20,36 +20,36 @@ from parametricpinn.calibration import (
     test_coverage,
     test_least_squares_calibration,
 )
-from parametricpinn.calibration.bayesianinference.likelihoods import (
+from calibrationpinn.calibration.bayesianinference.likelihoods import (
     create_standard_ppinn_likelihood_for_noise,
     create_standard_ppinn_q_likelihood_for_noise,
 )
-from parametricpinn.calibration.data import concatenate_calibration_data
-from parametricpinn.calibration.utility import load_model
-from parametricpinn.data.parameterssampling import sample_random, sample_uniform_grid
-from parametricpinn.data.simulationdata_linearelasticity_1d import (
+from calibrationpinn.calibration.data import concatenate_calibration_data
+from calibrationpinn.calibration.utility import load_model
+from calibrationpinn.data.parameterssampling import sample_random, sample_uniform_grid
+from calibrationpinn.data.simulationdata_linearelasticity_1d import (
     StretchedRodSimulationDatasetLinearElasticity1D,
     StretchedRodSimulationDatasetLinearElasticity1DConfig,
     calculate_linear_elastic_displacements_solution,
     create_simulation_dataset,
 )
-from parametricpinn.data.trainingdata_1d import (
+from calibrationpinn.data.trainingdata_1d import (
     StretchedRodTrainingDataset1D,
     StretchedRodTrainingDataset1DConfig,
     create_training_dataset,
 )
-from parametricpinn.io import ProjectDirectory
-from parametricpinn.network import FFNN
-from parametricpinn.postprocessing.plot import (
+from calibrationpinn.io import ProjectDirectory
+from calibrationpinn.network import FFNN
+from calibrationpinn.postprocessing.plot import (
     DisplacementsPlotterConfig1D,
     plot_displacements_1d,
 )
-from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.training_standard_linearelasticity_stretchedrod import (
+from calibrationpinn.settings import Settings, get_device, set_default_dtype, set_seed
+from calibrationpinn.training.training_standard_linearelasticity_stretchedrod import (
     StandardTrainingConfiguration,
     train_parametric_pinn,
 )
-from parametricpinn.types import NPArray, Tensor
+from calibrationpinn.types import NPArray, Tensor
 
 ### Configuration
 retrain_parametric_pinn = True

@@ -5,14 +5,14 @@ from time import perf_counter
 import numpy as np
 import torch
 
-from parametricpinn.ansatz import (
+from calibrationpinn.ansatz import (
     StandardAnsatz,
     create_standard_normalized_hbc_ansatz_quarter_plate_with_hole,
 )
-from parametricpinn.bayesian.prior import (
+from calibrationpinn.bayesian.prior import (
     create_independent_multivariate_normal_distributed_prior,
 )
-from parametricpinn.calibration import (
+from calibrationpinn.calibration import (
     CalibrationData,
     EfficientNUTSConfig,
     HamiltonianConfig,
@@ -20,44 +20,44 @@ from parametricpinn.calibration import (
     MetropolisHastingsConfig,
     calibrate,
 )
-from parametricpinn.calibration.bayesianinference.likelihoods import (
+from calibrationpinn.calibration.bayesianinference.likelihoods import (
     create_standard_ppinn_likelihood_for_noise,
 )
-from parametricpinn.calibration.bayesianinference.plot import (
+from calibrationpinn.calibration.bayesianinference.plot import (
     plot_posterior_normal_distributions,
 )
-from parametricpinn.calibration.utility import load_model
-from parametricpinn.data.parameterssampling import sample_uniform_grid
-from parametricpinn.data.simulation_2d import (
+from calibrationpinn.calibration.utility import load_model
+from calibrationpinn.data.parameterssampling import sample_uniform_grid
+from calibrationpinn.data.simulation_2d import (
     SimulationDataset2D,
     SimulationDataset2DConfig,
     create_simulation_dataset,
 )
-from parametricpinn.data.trainingdata_2d import (
+from calibrationpinn.data.trainingdata_2d import (
     QuarterPlateWithHoleTrainingDataset2D,
     QuarterPlateWithHoleTrainingDataset2DConfig,
     create_training_dataset,
 )
-from parametricpinn.fem import (
+from calibrationpinn.fem import (
     LinearElasticityProblemConfig_E_nu,
     QuarterPlateWithHoleDomainConfig,
     SimulationConfig,
     generate_simulation_data,
     run_simulation,
 )
-from parametricpinn.io import ProjectDirectory
-from parametricpinn.io.readerswriters import CSVDataReader
-from parametricpinn.network import FFNN
-from parametricpinn.postprocessing.plot import (
+from calibrationpinn.io import ProjectDirectory
+from calibrationpinn.io.readerswriters import CSVDataReader
+from calibrationpinn.network import FFNN
+from calibrationpinn.postprocessing.plot import (
     DisplacementsPlotterConfig2D,
     plot_displacements_2d,
 )
-from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.training.training_standard_linearelasticity_quarterplatewithhole_E_nu import (
+from calibrationpinn.settings import Settings, get_device, set_default_dtype, set_seed
+from calibrationpinn.training.training_standard_linearelasticity_quarterplatewithhole_E_nu import (
     TrainingConfiguration,
     train_parametric_pinn,
 )
-from parametricpinn.types import Tensor
+from calibrationpinn.types import Tensor
 
 ### Configuration
 retrain_parametric_pinn = False

@@ -1,6 +1,6 @@
 import torch
 
-from parametricpinn.training.loss_2d.momentum_linearelasticity_K_G import (
+from calibrationpinn.training.loss_2d.momentum_linearelasticity_K_G import (
     calculate_E_from_K_and_G_factory,
     calculate_nu_from_K_and_G_factory,
 )

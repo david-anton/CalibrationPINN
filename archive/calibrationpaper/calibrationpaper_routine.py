@@ -13,15 +13,15 @@ from pathlib import Path
 import pandas as pd
 import torch
 
-from parametricpinn.ansatz import (
+from calibrationpinn.ansatz import (
     create_standard_normalized_hbc_ansatz_quarter_plate_with_hole,
 )
-from parametricpinn.calibration.utility import load_model
-from parametricpinn.io import ProjectDirectory
-from parametricpinn.io.readerswriters import CSVDataReader, PandasDataWriter
-from parametricpinn.network import FFNN
-from parametricpinn.settings import Settings, get_device, set_default_dtype, set_seed
-from parametricpinn.types import Module, Tensor
+from calibrationpinn.calibration.utility import load_model
+from calibrationpinn.io import ProjectDirectory
+from calibrationpinn.io.readerswriters import CSVDataReader, PandasDataWriter
+from calibrationpinn.network import FFNN
+from calibrationpinn.settings import Settings, get_device, set_default_dtype, set_seed
+from calibrationpinn.types import Module, Tensor
 
 ### Configuration
 # Set up

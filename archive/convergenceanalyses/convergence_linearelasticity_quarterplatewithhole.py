@@ -8,14 +8,14 @@ from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
 from scipy.interpolate import griddata
 
-from parametricpinn.fem import (
+from calibrationpinn.fem import (
     LinearElasticityProblemConfig,
     QuarterPlateWithHoleDomainConfig,
     SimulationConfig,
     run_simulation,
 )
-from parametricpinn.fem.base import DFunction
-from parametricpinn.fem.convergenceanalysis import (
+from calibrationpinn.fem.base import DFunction
+from calibrationpinn.fem.convergenceanalysis import (
     calculate_empirical_convegrence_order,
     h01_error,
     infinity_error,
@@ -23,11 +23,11 @@ from parametricpinn.fem.convergenceanalysis import (
     plot_error_convergence_analysis,
     relative_l2_error,
 )
-from parametricpinn.fem.utility import evaluate_function
-from parametricpinn.io import ProjectDirectory
-from parametricpinn.io.readerswriters import PandasDataWriter
-from parametricpinn.settings import Settings, set_default_dtype
-from parametricpinn.types import NPArray, PLTAxes
+from calibrationpinn.fem.utility import evaluate_function
+from calibrationpinn.io import ProjectDirectory
+from calibrationpinn.io.readerswriters import PandasDataWriter
+from calibrationpinn.settings import Settings, set_default_dtype
+from calibrationpinn.types import NPArray, PLTAxes
 
 ### Configuration
 # Set up
