@@ -996,6 +996,7 @@ from parametricpinn.ansatz import (
 from parametricpinn.bayesian.prior import (
     create_univariate_uniform_distributed_prior,
     create_multivariate_uniform_distributed_prior,
+    create_gamma_distributed_prior,
     multiply_priors,
 )
 from parametricpinn.calibration import (
@@ -1865,17 +1866,28 @@ def calibration_step() -> None:
         prior_shear_modulus = create_univariate_uniform_distributed_prior(
             lower_limit=min_shear_modulus, upper_limit=max_shear_modulus, device=device
         )
-        prior_error_standard_deviations = create_multivariate_uniform_distributed_prior(
-            lower_limits=torch.tensor(
-                [min_error_standard_deviation, min_error_standard_deviation]
-            ),
-            upper_limits=torch.tensor(
-                [max_error_standard_deviation, max_error_standard_deviation]
-            ),
-            device=device,
+        # prior_error_standard_deviations = create_multivariate_uniform_distributed_prior(
+        #     lower_limits=torch.tensor(
+        #         [min_error_standard_deviation, min_error_standard_deviation]
+        #     ),
+        #     upper_limits=torch.tensor(
+        #         [max_error_standard_deviation, max_error_standard_deviation]
+        #     ),
+        #     device=device,
+        # )
+        prior_error_standard_deviations_x = create_gamma_distributed_prior(
+            concentration=1.1, rate=10.0, device=device
+        )
+        prior_error_standard_deviations_y = create_gamma_distributed_prior(
+            concentration=1.1, rate=10.0, device=device
         )
         prior = multiply_priors(
-            [prior_bulk_modulus, prior_shear_modulus, prior_error_standard_deviations]
+            [
+                prior_bulk_modulus,
+                prior_shear_modulus,
+                prior_error_standard_deviations_x,
+                prior_error_standard_deviations_y,
+            ]
         )
 
         num_parameters = num_material_parameters + 2
