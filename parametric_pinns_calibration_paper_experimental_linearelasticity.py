@@ -1804,7 +1804,8 @@ def calibration_step() -> None:
         num_data_points = len(full_coordinates)
         print(f"Number of data points for calibration: {num_data_points}")
 
-        std_noise = determine_noise_stds_from_ls_residual_weights(full_displacements)
+        # std_noise = determine_noise_stds_from_ls_residual_weights(full_displacements)
+        std_noise = torch.tensor([0.0, 0.0], device=device)
 
         return CalibrationData(
             num_data_sets=1,
