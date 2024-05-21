@@ -1,0 +1,31 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  CalibrationPINN: Physics-informed neural networks for
+  model calibration
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: David
+    family-names: Anton
+    email: d.anton@tu-braunschweig.de
+    affiliation: Technische Universität Braunschweig
+    orcid: 'https://orcid.org/0000-0002-0888-0220'
+repository-code: 'https://github.com/david-anton/CalibrationPINN'
+abstract: >-
+  The research code CalibrationPINN provides a framework for
+  the calibration of constitutive models from full-field
+  displacement data. This code repository also provides the
+  software for the corresponding scientific publications
+  (see README.md file for more information).
+keywords:
+  - model calibration
+  - physics-informed neural networks
+  - deterministic calibration
+  - Bayesian statistical inference
+  - full-field data
+license: GPL-3.0
