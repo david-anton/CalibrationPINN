@@ -2,30 +2,532 @@
 # Visit https://bit.ly/cffinit to generate yours today!
 
 cff-version: 1.2.0
+
 title: >-
-  CalibrationPINN: Physics-informed neural networks for
-  model calibration
+  "CalibrationPINN: Physics-informed neural networks for
+  model calibration"
+
 message: >-
-  If you use this software, please cite it using the
-  metadata from this file.
+  "If you use this software, please cite it using the
+  metadata from this file.""
+
 type: software
+
 authors:
   - given-names: David
     family-names: Anton
-    email: d.anton@tu-braunschweig.de
-    affiliation: Technische Universität Braunschweig
-    orcid: 'https://orcid.org/0000-0002-0888-0220'
-repository-code: 'https://github.com/david-anton/CalibrationPINN'
+    email: "d.anton@tu-braunschweig.de"
+    affiliation: "Technische Universität Braunschweig"
+    orcid: "https://orcid.org/0000-0002-0888-0220"
+
+repository-code: "https://github.com/david-anton/CalibrationPINN"
+
 abstract: >-
-  The research code CalibrationPINN provides a framework for
+  "The research code CalibrationPINN provides a framework for
   the calibration of constitutive models from full-field
   displacement data. This code repository also provides the
   software for the corresponding scientific publications
-  (see README.md file for more information).
+  (see README.md file for more information)."
+
 keywords:
-  - model calibration
-  - physics-informed neural networks
-  - deterministic calibration
-  - Bayesian statistical inference
-  - full-field data
+  - "model calibration"
+  - "physics-informed neural networks"
+  - "deterministic calibration"
+  - "Bayesian statistical inference"
+  - "full-field data"
+
 license: GPL-3.0
+
+references:
+  - title: "PyTorch 2: Faster Machine Learning Through Dynamic Python Bytecode Transformation and Graph Compilation"
+    authors:
+      - family-names: Ansel
+        given-names: Jason
+      - family-names: Yang
+        given-names: Edward
+      - family-names: He
+        given-names: Horace
+      - family-names: Gimelshein
+        given-names: Natalia
+      - family-names: Jain
+        given-names: Animesh
+      - family-names: Voznesensky
+        given-names: Michael
+      - family-names: Bao
+        given-names: Bin
+      - family-names: Bell
+        given-names: Peter
+      - family-names: Berard
+        given-names: David
+      - family-names: Burovski
+        given-names: Evgeni
+      - family-names: Chauhan
+        given-names: Geeta
+      - family-names: Chourdia
+        given-names: Anjali
+      - family-names: Constable
+        given-names: Will
+      - family-names: Desmaison
+        given-names: Alban
+      - family-names: DeVito
+        given-names: Zachary
+      - family-names: Ellison
+        given-names: Elias
+      - family-names: Feng
+        given-names: Will
+      - family-names: Gong
+        given-names: Jiong
+      - family-names: Gschwind
+        given-names: Michael
+      - family-names: Hirsh
+        given-names: Brian
+      - family-names: Huang
+        given-names: Sherlock
+      - family-names: Kalambarkar
+        given-names: Kshiteej
+      - family-names: Kirsch
+        given-names: Laurent
+      - family-names: Lazos
+        given-names: Michael
+      - family-names: Lezcano
+        given-names: Mario
+      - family-names: Liang
+        given-names: Yanbo
+      - family-names: Liang
+        given-names: Jason
+      - family-names: Lu
+        given-names: Yinghai
+      - family-names: Luk
+        given-names: CK
+      - family-names: Maher
+        given-names: Bert
+      - family-names: Pan
+        given-names: Yunjie
+      - family-names: Puhrsch
+        given-names: Christian
+      - family-names: Reso
+        given-names: Matthias
+      - family-names: Saroufim
+        given-names: Mark
+      - family-names: Siraichi
+        given-names: "Marcos Yukio"
+      - family-names: Suk
+        given-names: Helen
+      - family-names: Suo
+        given-names: Michael
+      - family-names: Tillet
+        given-names: Phil
+      - family-names: Wang
+        given-names: Eikan
+      - family-names: Wang
+        given-names: Xiaodong
+      - family-names: Wen
+        given-names: William
+      - family-names: Zhang
+        given-names: Shunting
+      - family-names: Zhao
+        given-names: Xu
+      - family-names: Zhou
+        given-names: Keren
+      - family-names: Zou
+        given-names: Richard
+      - family-names: Mathews
+        given-names: Ajit
+      - family-names: Chanan
+        given-names: Gregory
+      - family-names: Wu
+        given-names: Peng
+      - family-names: Chintala
+        given-names: Soumith
+    type: conference-paper
+    collection-title: "29th ACM International Conference on Architectural Support for Programming Languages and Operating Systems, Volume 2 (ASPLOS '24)"
+    collection-type: proceedings
+    year: "2024"
+    month: "4"
+    publisher:
+      name: ACM
+    version: "2.1.2"
+    doi: "10.1145/3620665.3640366"
+    url: "https://pytorch.org/assets/pytorch2-2.pdf"
+
+  - title: "GPyTorch: Blackbox Matrix-Matrix Gaussian Process Inference with GPU Acceleration" 
+    authors:
+      - family-names: Gardner
+        given-names: Jacob R
+      - family-names: Pleiss
+        given-names: Geoff
+      - family-names: Bindel
+        given-names: David
+      - family-names: Weinberger
+        given-names: "Kilian Q"
+      - family-names: Wilson
+        given-names: "Andrew Gordon"
+    type: conference-paper
+    collection-title: "Advances in Neural Information Processing Systems"
+    year: "2018"
+    version: "1.11"
+    repository-code: "https://github.com/cornellius-gp/gpytorch"
+
+  - title: "DOLFINx: the next generation FEniCS problem solving environment" 
+    authors:
+      - family-names: Baratta
+        given-names: "Igor A."
+        orcid: "https://orcid.org/0000-0003-4298-2973"
+      - family-names: Dean
+        given-names: "Joseph P."
+        orcid: "https://orcid.org/0000-0001-7499-3373"
+      - family-names: Dokken
+        given-names: "Jørgen S."
+        orcid: "https://orcid.org/0000-0001-6489-8858"
+      - family-names: Habera
+        given-names: Michal
+        orcid: "https://orcid.org/0000-0003-0604-8884"
+      - family-names: Hale
+        given-names: "Jack S."
+        orcid: "https://orcid.org/0000-0001-7216-861X"
+      - family-names: Richardson
+        given-names: "Chris N."
+        orcid: "https://orcid.org/0000-0003-3137-1392"
+      - family-names: Rognes
+        given-names: "Marie E."
+        orcid: "https://orcid.org/0000-0002-6872-3710"
+      - family-names: Scroggs
+        given-names: "Matthew W."
+        orcid: "https://orcid.org/0000-0002-4658-2443"
+      - family-names: Sime
+        given-names: Nathan
+        orcid: "https://orcid.org/0000-0002-2319-048X"
+      - family-names: Wells
+        given-names: "Garth N."
+        orcid: "https://orcid.org/0000-0001-5291-7951"
+    type: article
+    year: "2023"
+    journal: preprint
+    version: "0.7.0"
+    doi: "10.5281/zenodo.10447666"
+    repository-code: "https://github.com/FEniCS/dolfinx"
+
+  - title: "Gmsh: a three-dimensional finite element mesh generator with built-in pre- and post-processing facilities" 
+    authors:
+      - family-names: Geuzaine
+        given-names: C.
+      - family-names: Remacle
+        given-names: "J.-F."
+    type: article
+    journal: "International Journal for Numerical Methods in Engineering"
+    year: "2009"
+    volume: "79"
+    issue: "11"
+    start: "1309"
+    end: "1331"
+    version: "4.11.1"
+    url: "https://gmsh.info"
+
+  - title: "Array programming with NumPy"
+    authors: 
+      - family-names: Harris
+        given-names: "Charles R."
+      - family-names: Millman
+        given-names: "K. Jarrod"
+      - family-names: Walt
+        name-particle: "van der"
+        given-names: "Stéfan J"
+      - family-names: Gommers
+        given-names: Ralf
+      - family-names: Virtanen
+        given-names: Pauli
+      - family-names: Cournapeau
+        given-names: David
+      - family-names: Wieser
+        given-names: Eric
+      - family-names: Taylor
+        given-names: Julian
+      - family-names: Berg
+        given-names: Sebastian
+      - family-names: Smith
+        given-names: "Nathaniel J."
+      - family-names: Kern
+        given-names: Robert
+      - family-names: Picus
+        given-names: Matti
+      - family-names: Hoyer
+        given-names: Stephan
+      - family-names: "van Kerkwijk"
+        given-names: "Marten H."
+      - family-names: Brett
+        given-names: Matthew
+      - family-names: Haldane
+        given-names: Allan
+      - family-names: "Fernández del Río"
+        given-names: Jaime
+      - family-names: Wiebe
+        given-names: Mark
+      - family-names: Peterson
+        given-names: Pearu
+      - family-names: "Gérard-Marchant"
+        given-names: Pierre
+      - family-names: Sheppard
+        given-names: Kevin
+      - family-names: Reddy
+        given-names: Tyler
+      - family-names: Weckesser
+        given-names: Warren
+      - family-names: Abbasi
+        given-names: Hameer
+      - family-names: Gohlke
+        given-names: Christoph
+      - family-names: Oliphant
+        given-names: "Travis E."
+    type: article
+    journal: Nature
+    year: "2020"
+    volume: "585"
+    start: "357"
+    end: "362"
+    version: "1.24.2"
+    repository-code: "https://github.com/numpy/numpy"
+    doi: "10.1038/s41586-020-2649-2"
+
+  - title: "pandas-dev/pandas: Pandas"
+    authors:
+      - name: "The pandas development team"
+        website: "https://pandas.pydata.org/about/team.html"
+    type: software
+    year: "2020"
+    month: "2"
+    publisher: 
+      name: Zenodo
+    version: "2.0.1"
+    doi: "10.5281/zenodo.3509134"
+    url: "https://doi.org/10.5281/zenodo.3509134"
+    repository-code: "https://github.com/pandas-dev/pandas"
+
+  - title: "Matplotlib: A 2D graphics environment"
+    authors:
+      - family-names: Hunter
+        given-names: John D.
+    type: article 
+    journal: "Computing in Science & Engineering"
+    year: "2007"
+    volume: "9"
+    issue: "3"
+    start: "90"
+    end: "95"
+    publisher:
+      name: "IEEE Computer Society"
+      website: "https://www.computer.org/"
+    version: "3.7.0"
+    doi: "10.1109/MCSE.2007.55"
+    repository-code: "https://github.com/matplotlib/matplotlib"
+
+  - title: "SciPy 1.0: Fundamental Algorithms for Scientific Computing in Python" 
+    authors:
+      - family-names: Virtanen
+        given-names: Pauli
+      - family-names: Gommers
+        given-names: Ralf
+      - family-names: Oliphant
+        given-names: "Travis E."
+      - family-names: Haberland
+        given-names: Matt
+      - family-names: Reddy
+        given-names: Taylor
+      - family-names: Cournapeau
+        given-names: David
+      - family-names: Burovski
+        given-names: Evgeni
+      - family-names: Peterson
+        given-names: Pearu
+      - family-names: Weckesser
+        given-names: Warren
+      - family-names: Bright
+        given-names: Jonathan
+      - family-names: Walt
+        name-particle: "van der"
+        given-names: "Stéfan J."
+      - family-names: Brett
+        given-names: Matthew
+      - family-names: Wilson
+        given-names: Joshua
+      - family-names: Millman
+        given-names: "K. Jarrod"
+      - family-names: Mayorov
+        given-names: Nikolay
+      - family-names: Nelson
+        given-names: "Andrew R. J."
+      - family-names: Jones
+        given-names: Eric
+      - family-names: Kern
+        given-names: Robert
+      - family-names: Larson
+        given-names: Eric
+      - family-names: Carey
+        given-names: "C J"
+      - family-names: Polat
+        given-names: "İlhan"
+      - family-names: Feng
+        given-names: Yu
+      - family-names: Moore
+        given-names: "Eric W."
+      - family-names: "VanderPlas"
+        given-names: Jake
+      - family-names: Laxalde
+        given-names: Denis
+      - family-names: Perktold
+        given-names: Josef
+      - family-names: Cimrman
+        given-names: Robert
+      - family-names: Henriksen
+        given-names: Ian
+      - family-names: Quintero
+        given-names: "E. A."
+      - family-names: Harris
+        given-names: "Charles R."
+      - family-names: Archibald
+        given-names: "Anne M."
+      - family-names: Ribeiro
+        given-names: "Antônio H."
+      - family-names: Pedregosa
+        given-names: Fabian
+      - family-names: Mulbregt
+        name-particle: van
+        given-names: Paul
+      - alias: "SciPy 1.0 Contributors "
+    type: article
+    journal: "Nature Methods"
+    year: "2020"
+    volume: "17"
+    start: "261"
+    end: "272"
+    version: "1.10.1"
+    url: "https://doi.org/10.1038/s41592-019-0686-2"
+    doi: "10.1038/s41592-019-0686-2"
+    repository-code: "https://github.com/scipy/scipy"
+
+  - title: Shapely 
+    authors:
+      - given-names: Sean
+        family-names: Gillies
+        orcid: "https://orcid.org/0000-0002-8401-9184"
+      - given-names: Casper
+        family-names: "van der Wel"
+        orcid: "https://orcid.org/0000-0002-0488-2237"
+      - given-names: Joris
+        family-names: "Van den Bossche"
+        orcid: "https://orcid.org/0000-0003-3284-2977"
+      - given-names: "Mike W."
+        family-names: Taves
+        orcid: "https://orcid.org/0000-0003-3657-7963"
+      - given-names: Joshua
+        family-names: Arnott
+      - given-names: "Brendan C."
+        family-names: Ward
+        orcid: "https://orcid.org/0000-0002-0813-9774"
+      - name: others
+    type: software
+    version: "2.0.1"
+    doi: "10.5281/zenodo.5597138"
+    repository-code: "https://github.com/shapely/shapely"
+
+  - title: "emcee: The MCMC Hammer"
+    authors:
+      - given-names: "Foreman-Mackey"
+        family-names: D.
+      - given-names: Hogg
+        family-names: "D. W."
+      - given-names: Lang
+        family-names: D.
+      - given-names: Goodman
+        family-names: J.
+    type: article
+    journal: "Publications of the Astronomical Society of the Pacific"
+    year: "2013"
+    volume: "125"
+    start: "306"
+    end: "312"
+    version: "3.1.2"
+    doi: "10.1086/670067"
+    repository-code: "https://github.com/dfm/emcee"
+
+  - title: pytest 
+    authors:
+      - given-names: Krekel
+        family-names: Holger
+      - given-names: Oliveira
+        family-names: Bruno
+      - given-names: Pfannschmidt
+        family-names: Ronny
+      - given-names: Bruynooghe
+        family-names: Floris
+      - given-names: Laugher
+        family-names: Brianna
+      - given-names: Bruhin
+        family-names: Florian
+    type: software
+    year: "2004"
+    version: "7.2.2"
+    repository-code: "https://github.com/pytest-dev/pytest"
+
+  - title: mypy
+    authors:
+      - alias: "mypy contributors"
+    type: software
+    version: "1.0.1"
+    repository-code: "https://github.com/python/mypy"
+
+  - title: isort
+    authors:
+      - family-names: Timothy 
+        given-names: Crosley
+    type: software
+    version: "5.12.0"
+    repository-code: "https://github.com/PyCQA/isort"
+
+  - title: cffconvert
+    authors:
+      - affiliation: "Netherlands eScience Center"
+        alias: jspaaks
+        family-names: Spaaks
+        given-names: "Jurriaan H."
+        orcid: "https://orcid.org/0000-0002-7064-4069"
+    # contributors:
+      - affiliation: "University of Oslo"
+        alias: wleoncio
+        family-names: Leoncio
+        given-names: Waldir
+        name-suffix: Netto
+      - affiliation: "Humboldt-Universität zu Berlin"
+        alias: sdruskat
+        family-names: Druskat
+        given-names: Stephan
+        orcid: "https://orcid.org/0000-0003-4925-7248"
+      - affiliation: "Netherlands eScience Center"
+        alias: "Tommos0"
+        family-names: Klaver
+        given-names: Tom
+      - alias: zmoon
+        family-names: Moon
+        given-names: Zachary
+      - alias: nialov
+        family-names: Ovaskainen
+        given-names: Nikolas
+      - alias: musicinmybrain
+        family-names: Beasley
+        given-names: Ben
+      - alias: abelsiqueira
+        family-names: "Soares Siqueira"
+        given-names: Abel
+        orcid: "https://orcid.org/0000-0003-4451-281X"
+      - alias: monperrus
+        family-names: Monperrus
+        given-names: Martin
+      - alias: "ots22"
+      - affiliation: "Netherlands eScience Center"
+        alias: sverhoeven
+        family-names: Verhoeven
+        given-names: Stefan
+        orcid: "https://orcid.org/0000-0002-5821-2060"
+    type: software
+    version: "2.0.0"
+    repository-code: "https://github.com/citation-file-format/cffconvert"
+    doi: "10.5281/zenodo.5521767"
