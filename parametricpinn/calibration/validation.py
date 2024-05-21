@@ -40,10 +40,10 @@ def test_coverage(
         ) -> tuple[NPArray, NPArray]:
             moments, samples = calibrate(calibration_config, device)
             postprocess_one_mcmc_result(
-                calibration_config=calibration_config,
+                true_parameters_tuple=true_parameters_tuple,
                 moments=moments,
                 samples=samples,
-                true_parameters_tuple=true_parameters_tuple,
+                calibration_config=calibration_config,
                 output_subdir=output_subdir_case,
             )
             means = moments.mean
