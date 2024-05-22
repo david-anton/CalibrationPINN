@@ -36,8 +36,7 @@ The results in this publication can be reproduced with the following **scripts**
 - *parametric_pinns_calibration_paper_synthetic_neohooke.py*
 - *parametric_pinns_calibration_paper_experimental_linearelasticity.py*
     -   Before simulation, the experimental data must be copied to the directory *input/parametric_pinns_calibration_paper*. The experimental data set is published on [Zenodo.org](https://zenodo.org) with the DOI 
-    <!-- Add DOI -->
-    Please note that the input directories may need to be created first if they do not already exist.
+    <!-- Add DOI --> Please note that the input directories may need to be created first if they do not already exist.
     -   `use_interpolated_calibration_data`: Determines whether the raw or interpolated measurement data is used for calibration.
 - *parametric_pinns_calibration_paper_bcscomparison.py*
     -   `use_stress_symmetry_bcs`: Determines whether the stress symmetry boundary conditions are used.
@@ -52,10 +51,10 @@ The results in this publication can be reproduced with the following **scripts**
 
 1. For strict separation of input/output data and the source code, the project requires the following file structure:
 
-|- *project directory* \
-| &emsp;  |- *app*\
-| &emsp;  |- *input* \
-| &emsp;  |- *output* 
+project_directory
+├── app
+├── input
+└── output
 
 > [!NOTE]
 > The output folder is normally created automatically, if it does not already exist. If you are not using any experimental data that needs to be saved in the input folder before the simulation, the input folder is also created automatically.
@@ -70,7 +69,7 @@ The results in this publication can be reproduced with the following **scripts**
 
 
 ### Singularity
-You can find the singularity definition file in the *.devcontainer* directory. To build the image, navigate to your *project directory* (see directory tree above) and run:
+You can find the singularity definition file in the *.devcontainer* directory. To build the image, navigate to your *project_directory* (see directory tree above) and run:
 
     singularity build calibrationpinn.sif app/.devcontainer/container.def
 
