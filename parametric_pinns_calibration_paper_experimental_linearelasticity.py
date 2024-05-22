@@ -127,7 +127,7 @@ use_least_squares = True
 use_mcmc_emcee = True
 # Output
 current_date = date.today().strftime("%Y%m%d")
-output_date = current_date
+output_date = "20240517"
 input_subdir_validation = f"{output_date}_validation_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
 input_subdir_training = f"{output_date}_training_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
 input_subdir_calibration = "parametric_pinns_calibration_paper"
