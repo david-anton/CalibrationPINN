@@ -126,18 +126,16 @@ use_interpolated_calibration_data = True
 use_least_squares = True
 use_mcmc_emcee = True
 # Output
-input_subdir_validation = f"20240517_validation_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
-input_subdir_training = f"20240517_training_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
-input_subdir_calibration = os.path.join(
-    "Paper_PINNs", "20240521_experimental_dic_data_dogbone"
-)
-if use_interpolated_calibration_data:
-    input_file_name_calibration = "displacements_dic_interpolated.csv"
-else:
-    input_file_name_calibration = "displacements_dic_raw.csv"
-input_file_name_mcmc_samples_fem = "mcmc_samples_fem.csv"
 current_date = date.today().strftime("%Y%m%d")
-output_date = "20240517"
+output_date = current_date
+input_subdir_validation = f"{output_date}_validation_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
+input_subdir_training = f"{output_date}_training_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
+input_subdir_calibration = "parametric_pinns_calibration_paper"
+if use_interpolated_calibration_data:
+    input_file_name_calibration = "20231116_displacements_interpolated.csv"
+else:
+    input_file_name_calibration = "20231116_displacements_raw.csv"
+input_file_name_mcmc_samples_fem = "20231116_mcmc_samples_fem.csv"
 output_subdirectory = (
     f"{output_date}_parametric_pinns_calibration_paper_experimental_linearelasticity"
 )
@@ -872,12 +870,6 @@ def calibration_step() -> None:
             data=calibration_data,
             device=device,
         )
-        # prior_bulk_modulus = create_univariate_uniform_distributed_prior(
-        #     lower_limit=0.0, upper_limit=torch.finfo().max, device=device
-        # )
-        # prior_shear_modulus = create_univariate_uniform_distributed_prior(
-        #     lower_limit=0.0, upper_limit=torch.finfo().max, device=device
-        # )
         prior_bulk_modulus = create_univariate_uniform_distributed_prior(
             lower_limit=min_bulk_modulus, upper_limit=max_bulk_modulus, device=device
         )

@@ -79,9 +79,9 @@ regenerate_valid_data = True
 validation_interval = 1
 num_points_valid = 2048
 # Input/output
-input_subdir_valid = f"20240517_validation_data_linearelasticity_quarterplatewithhole_K_{bulk_modulus}_G_{shear_modulus}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
 current_date = date.today().strftime("%Y%m%d")
-output_date = "20240517"
+output_date = current_date
+input_subdir_valid = f"{output_date}_validation_data_linearelasticity_quarterplatewithhole_K_{bulk_modulus}_G_{shear_modulus}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
 output_subdirectory = f"{output_date}_parametric_pinns_calibration_paper_bcscomparison"
 if use_stress_symmetry_bcs:
     output_subdir_training = os.path.join(
