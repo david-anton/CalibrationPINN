@@ -33,7 +33,9 @@
 				"ms-python.isort",
 				"ms-azuretools.vscode-docker",
 				"mhutchie.git-graph",
-				"eamodio.gitlens"
+				"eamodio.gitlens",
+				"bierner.markdown-preview-github-styles",
+				"bierner.github-markdown-preview"
 			]
 		}
 	}
