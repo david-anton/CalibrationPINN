@@ -51,9 +51,9 @@ The results in this publication can be reproduced with the following **scripts**
 
 1. For strict separation of input/output data and the source code, the project requires the following file structure:
 
-project_directory
-├── app
-├── input
+project_directory \
+├── app \
+├── input \
 └── output
 
 > [!NOTE]
