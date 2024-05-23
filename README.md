@@ -35,8 +35,7 @@ The results in this publication can be reproduced with the following **scripts**
 - *parametric_pinns_calibration_paper_synthetic_linearelasticity.py* 
 - *parametric_pinns_calibration_paper_synthetic_neohooke.py*
 - *parametric_pinns_calibration_paper_experimental_linearelasticity.py*
-    -   Before simulation, the experimental data must be copied to the directory *input/parametric_pinns_calibration_paper*. The experimental data set is published on [Zenodo.org](https://zenodo.org) with the DOI 
-    <!-- Add DOI --> Please note that the input directories may need to be created first if they do not already exist.
+    -   Before simulation, the experimental data must be copied to the directory *input/parametric_pinns_calibration_paper*. The experimental data set is published on [Zenodo](https://zenodo.org) with the DOI: [10.5281/zenodo.11257192](https://doi.org/10.5281/zenodo.11257192). Please note that the input directories may need to be created first if they do not already exist.
     -   `use_interpolated_calibration_data`: Determines whether the raw or interpolated measurement data is used for calibration.
 - *parametric_pinns_calibration_paper_bcscomparison.py*
     -   `use_stress_symmetry_bcs`: Determines whether the stress symmetry boundary conditions are used.
@@ -80,7 +79,7 @@ Once the image is built, you can run the scripts via:
 Please replace `<full-path-to-script>` and `<script-name>` in the above command according to your file structure and the script you want to execute.
 
 > [!NOTE]
-> Please note that you may have to use the fakreroot option of singularity if you do not have root rights on your system.
+> Please note that you may have to use the fakreroot option of singularity if you do not have root rights on your system. In this case, you can try building the image by running the command `singularity build --fakeroot calibrationpinn.sif app/.devcontainer/container.def`. However, the fakeroot option must be enabled by your system administrator. For further information, please refer to the [Singularity documentation](https://sylabs.io/docs/).
 
 
 ### Miniconda
