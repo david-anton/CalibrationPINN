@@ -16,12 +16,11 @@ From: nvidia/cuda:12.2.2-cudnn8-devel-ubuntu22.04
     wget
 
     # Install miniconda3
-    # From https://docs.conda.io/projects/miniconda/en/latest/
     export CONDA_DIR=/miniconda3
-    export SHA256SUM=96a44849ff17e960eeb8877ecd9055246381c4d4f2d031263b63fa7e2e930af1
+    export SHA256SUM=7cb030a12d1da35e1c548344a895b108e0d2fbdc4f6b67d5180b2ac8539cc473
     
     mkdir -p ${CONDA_DIR}
-    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ${CONDA_DIR}/miniconda.sh -q
+    wget https://repo.anaconda.com/miniconda/Miniconda3-py311_24.4.0-0-Linux-x86_64.sh -O ${CONDA_DIR}/miniconda.sh -q
     echo "${SHA256SUM} ${CONDA_DIR}/miniconda.sh" > shasum
     sha256sum --check --status shasum
     bash ${CONDA_DIR}/miniconda.sh -b -u -p ${CONDA_DIR}
