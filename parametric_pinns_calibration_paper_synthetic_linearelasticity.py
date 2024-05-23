@@ -64,7 +64,7 @@ from calibrationpinn.training.training_standard_linearelasticity_quarterplatewit
 from calibrationpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = False
+retrain_parametric_pinn = True
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -91,7 +91,7 @@ bcs_overlap_distance = 1e-2
 bcs_overlap_angle_distance = 1e-2
 training_batch_size = num_parameter_samples_pinn
 use_simulation_data = True
-regenerate_train_data = False
+regenerate_train_data = True
 num_parameter_samples_data = 128
 num_data_points = 128
 num_training_epochs = 10000
@@ -104,7 +104,7 @@ fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size = 0.1
 # Validation
-regenerate_valid_data = False
+regenerate_valid_data = True
 num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
@@ -551,7 +551,7 @@ def calibration_step() -> None:
                 ansatz=model,
                 calibration_data=concatenated_data,
                 initial_parameters=initial_material_parameters,
-                num_iterations=20,
+                num_iterations=50,
                 resdiual_weights=residual_weights,
             )
             configs.append(config)

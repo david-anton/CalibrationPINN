@@ -42,7 +42,7 @@ from calibrationpinn.types import Tensor
 
 ### Configuration
 # Set up
-use_stress_symmetry_bcs = True
+use_stress_symmetry_bcs = False
 material_model = "plane stress"
 num_material_parameters = 2
 edge_length = 100.0
