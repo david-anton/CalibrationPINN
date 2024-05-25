@@ -623,7 +623,7 @@ def calibration_step() -> None:
             class PlotterConfigData:
                 def __init__(self) -> None:
                     # label size
-                    self.label_size = 16
+                    self.label_size = 18
                     # font size in legend
                     self.font_size = self.label_size
                     self.font = {"size": self.font_size}
@@ -633,12 +633,12 @@ def calibration_step() -> None:
                     self.x_label = "x [mm]"
                     self.y_label = "y [mm]"
                     # major ticks
-                    self.major_tick_label_size = 16
+                    self.major_tick_label_size = 18
                     self.major_ticks_size = self.font_size
                     self.major_ticks_width = 2
                     # minor ticks
                     self.minor_tick_label_size = 14
-                    self.minor_ticks_size = 12
+                    self.minor_ticks_size = 14
                     self.minor_ticks_width = 1
                     # scientific notation
                     self.scientific_notation_size = self.font_size

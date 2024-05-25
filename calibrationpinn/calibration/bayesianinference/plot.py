@@ -21,10 +21,13 @@ cm_in_inches = 1 / 2.54  # centimeters in inches
 class UnivariateNormalPlotterConfig:
     def __init__(self) -> None:
         # font sizes
-        self.label_size = 14
+        self.label_size = 16
         # font size in legend
-        self.font_size = 14
+        self.font_size = 16
         self.font = {"size": self.label_size}
+
+        # title pad
+        self.title_pad = 10
 
         # truth
         self.truth_color = "tab:orange"
@@ -189,6 +192,7 @@ def _plot_univariate_normal_distribution_histogram(
     project_directory: ProjectDirectory,
     config: UnivariateNormalPlotterConfig,
 ) -> None:
+    title = "Posterior probability density"
     mean = moments.mean
     standard_deviation = moments.standard_deviation
     figure, axes = plt.subplots(figsize=config.figure_size)
@@ -234,7 +238,7 @@ def _plot_univariate_normal_distribution_histogram(
         x=mean - config.interval_num_stds * standard_deviation,
         color=config.pdf_interval_color,
         linestyle=config.pdf_interval_linestyle,
-        label=r"$95\%$" + " interval",
+        label=r"$95\%$" + "-interval",
     )
     axes.axvline(
         x=mean + config.interval_num_stds * standard_deviation,
@@ -243,6 +247,7 @@ def _plot_univariate_normal_distribution_histogram(
     )
     axes.set_xticks(x_ticks)
     axes.set_xticklabels(x_tick_labels)
+    axes.set_title(title, pad=config.title_pad, **config.font)
     axes.legend(fontsize=config.font_size, loc="best")
     axes.set_xlabel(infer_parameter_label(parameter_name), **config.font)
     axes.set_ylabel("probability density", **config.font)
@@ -275,6 +280,7 @@ def _plot_sampling_trace(
     project_directory: ProjectDirectory,
     config: UnivariateNormalPlotterConfig,
 ) -> None:
+    title = "MCMC trace"
     mean = moments.mean
     standard_deviation = moments.standard_deviation
     figure, axes = plt.subplots()
@@ -340,6 +346,7 @@ def _plot_sampling_trace(
     x_tick_labels = [str(tick) for tick in x_ticks]
     axes.set_xticks(x_ticks)
     axes.set_xticklabels(x_tick_labels)
+    axes.set_title(title, pad=config.title_pad, **config.font)
     axes.legend(fontsize=config.font_size, loc="best")
     axes.set_xlabel("samples", **config.font)
     axes.set_ylabel(infer_parameter_label(parameter_name), **config.font)
