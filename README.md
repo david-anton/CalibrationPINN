@@ -6,7 +6,7 @@ The research code **CalibrationPINN** provides a framework for the calibration o
 
 1. [*"Deterministic and statistical calibration of constitutive models from full-field data with parametric physics-informed neural networks"*](#deterministic-and-statistical-calibration-of-constitutive-models-from-full-field-data-with-parametric-physics-informed-neural-networks)
 
-This code is supposed to be executed in a [*Singularity container*](https://sylabs.io). Alternatively, this code can also be executed in a virtual environment created with [*Miniconda*](https://docs.anaconda.com/free/miniconda/index.html). You can find the [installation instructions](#installation) below.
+This code is supposed to be executed in a [*Singularity container*](https://sylabs.io). You can find the [installation instructions](#installation) below.
 
 
 
@@ -62,12 +62,13 @@ project_directory \
 
         git clone https://github.com/david-anton/CalibrationPINN.git .
 
-3. Install the software dependencies. This code is supposed to be executed in a [*Singularity container*](#singularity) but can also be executed in a virtual environment created with [*Miniconda*](#miniconda). Click on the corresponding links for detailed installation instructions. Due to the high computational costs, we recommend running the simulations on a GPU. 
+3. Install the software dependencies. This code is supposed to be executed in a [*Singularity container*](#singularity).In addition, due to the high computational costs, we recommend running the simulations on a GPU. 
 
 4. Run the code.
 
 
 ### Singularity
+
 You can find the singularity definition file in the *.devcontainer* directory. To build the image, navigate to your *project_directory* (see directory tree above) and run:
 
     singularity build calibrationpinn.sif app/.devcontainer/container.def
@@ -82,33 +83,10 @@ Please replace `<full-path-to-script>` and `<script-name>` in the above command 
 > You may have to use the fakreroot option of singularity if you do not have root rights on your system. In this case, you can try building the image by running the command `singularity build --fakeroot calibrationpinn.sif app/.devcontainer/container.def`. However, the fakeroot option must be enabled by your system administrator. For further information, please refer to the [Singularity documentation](https://sylabs.io/docs/).
 
 
-### Miniconda
-Alternatively, you can create a *Miniconda* virtual environment and install the software dependencies in the environment via the following sequence of commands within the *app* directory:
-
-    conda update -n base conda
-    conda install -n base conda-libmamba-solver
-    conda config --set solver libmamba
-    conda env create -f requirements-conda.yml
-    conda activate venv-calibrationpinn
-
-After installing the dependencies, you can activate the virtual environment via:
-
-    conda activate venv-calibrationpinn
-
-You need *gmsh* as an additional dependency, which cannot be installed in the virtual environment. On macOS and Linux systems, *gmsh* can be installed via:
-
-    apt-get update
-    apt-get install gmsh
-
-In order to run the code on a Nvidia GPU, you also need the CUDA toolkit installed on your system.
-
-> [!NOTE]
-> You may need root rights to install packages on your system.
-
-> [!NOTE]
-> To run the code on a Nvidia GPU, you must also install the CUDA toolkit on your system. Since CUDA is not available on MacOS, you must remove the CUDA dependencies from requirements-conda.yml before installing the virtual environment.
 
 ## Citing
+
+
 If you use this research code, please cite the [related scientific publications](#related-scientic-publications) and the code as follows:
 
 Citation information follow as soon as the code is released.
