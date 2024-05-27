@@ -650,7 +650,7 @@ def calibration_step() -> None:
                     # resolution of results
                     self.num_points_per_edge = 512
                     # grid interpolation
-                    self.interpolation_method = "linear"
+                    self.interpolation_method = "nearest"
                     # save options
                     self.dpi = 300
                     self.file_format = "pdf"
@@ -676,8 +676,8 @@ def calibration_step() -> None:
                 max_displacement = np.nanmax(displacements)
                 
                 if dimension == "y":
-                    min_displacement = -0.01
-                    max_displacement = 0.01
+                    min_displacement = -0.005
+                    max_displacement = 0.005
 
                 # grid data
                 num_points_per_grid_dim = 128
