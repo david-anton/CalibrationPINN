@@ -265,8 +265,8 @@ def _plot_univariate_normal_distribution_histogram(
         file_name=file_name, subdir_name=output_subdir
     )
     figure.savefig(
-        output_path, bbox_inches="tight", format=config.file_format, dpi=config.dpi
-    )
+        output_path, format=config.file_format, dpi=config.dpi
+    ) #bbox_inches="tight"
     plt.close()
 
 
