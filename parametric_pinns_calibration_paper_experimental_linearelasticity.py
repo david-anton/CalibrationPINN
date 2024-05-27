@@ -674,7 +674,7 @@ def calibration_step() -> None:
                 max_coordinates_y = np.nanmax(coordinates_y)
                 min_displacement = np.nanmin(displacements)
                 max_displacement = np.nanmax(displacements)
-                
+
                 if dimension == "y":
                     min_displacement = -0.005
                     max_displacement = 0.005
