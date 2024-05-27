@@ -21,9 +21,9 @@ cm_in_inches = 1 / 2.54  # centimeters in inches
 class UnivariateNormalPlotterConfig:
     def __init__(self) -> None:
         # font sizes
-        self.label_size = 16
+        self.label_size = 14
         # font size in legend
-        self.font_size = 16
+        self.font_size = 14
         self.font = {"size": self.label_size}
 
         # title pad
