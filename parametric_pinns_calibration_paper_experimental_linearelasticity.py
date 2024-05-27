@@ -122,7 +122,7 @@ validation_interval = 1
 num_points_valid = 1024
 batch_size_valid = num_samples_valid
 # Calibration
-use_interpolated_calibration_data = False
+use_interpolated_calibration_data = True
 use_least_squares = True
 use_mcmc_emcee = True
 # Output
