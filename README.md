@@ -1,6 +1,6 @@
 # **CalibrationPINN**: Physics-informed neural networks for model calibration
 
-<!-- [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6913329.svg)](https://doi.org/10.5281/zenodo.6913329) -->
+[![DOI](https://zenodo.org/badge/803810465.svg)](https://zenodo.org/doi/10.5281/zenodo.11368998)
 
 The research code **CalibrationPINN** provides a framework for the calibration of constitutive models from full-field displacement data. In particular, this code repository provides the software for the related scientific publications:
 
@@ -89,15 +89,11 @@ Please replace `<full-path-to-script>` and `<script-name>` in the above command 
 
 If you use this research code, please cite the [related scientific publications](#related-scientic-publications) and the code as follows:
 
-Citation information follow as soon as the code is released.
-<!-- @article{anton2024calibrationWithParametricPINNs,
-    title={Deterministic and statistical calibration of constitutive models from full-field data with parametric physics-informed neural networks},
-    author={Anton, David and Tröger, Jendrik-Alexander and Wessels, Henning and Römer, Ulrich and Henkes, Alexander and Hartmann, Stefan},
-    year={2024},
-    journal={arXiv preprint},
-    volume={},
-    number={}
-    pages={},
-    publisher={},
-    doi={}
-} -->
+    @misc{anton_calibrationPINN,
+        title={CalibrationPINN: Physics-informed neural networks for model calibration},
+        author={Anton, David},
+        year={2024},
+        publisher={Zenodo},
+        doi={https://zenodo.org/doi/10.5281/zenodo.11368998},
+        note={Code available on https://github.com/david-anton/CalibrationPINN}
+    }
