@@ -94,6 +94,6 @@ If you use this research code, please cite the [related scientific publications]
         author={Anton, David},
         year={2024},
         publisher={Zenodo},
-        doi={https://zenodo.org/doi/10.5281/zenodo.11368998},
-        note={Code available on https://github.com/david-anton/CalibrationPINN}
+        doi={https://doi.org/10.5281/zenodo.11368998},
+        note={Code available from https://github.com/david-anton/CalibrationPINN}
     }
