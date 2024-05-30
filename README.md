@@ -18,8 +18,16 @@ This code is supposed to be executed in a [*Singularity container*](https://syla
 <!-- The [full paper]() is available open source. -->
 
 **Citing**:
-Will be added as soon as the preprint is published.
-<!-- @article{anton2024calibrationWithParametricPINNs,
+
+    @article{anton_parametricPINNsCalibration,
+        title={Deterministic and statistical calibration of constitutive models from full-field data with parametric physics-informed neural networks},
+        author={Anton, David and Tröger, Jendrik-Alexander and Wessels, Henning and Römer, Ulrich and Henkes, Alexander and Hartmann, Stefan},
+        year={2024},
+        journal={arXiv preprint},
+        doi={https://doi.org/10.48550/arXiv.2405.18311}
+    }
+
+<!-- @article{anton_parametricPINNsCalibration,
     title={Deterministic and statistical calibration of constitutive models from full-field data with parametric physics-informed neural networks},
     author={Anton, David and Tröger, Jendrik-Alexander and Wessels, Henning and Römer, Ulrich and Henkes, Alexander and Hartmann, Stefan},
     year={2024},
@@ -27,7 +35,6 @@ Will be added as soon as the preprint is published.
     volume={},
     number={}
     pages={},
-    publisher={},
     doi={}
 } -->
 
