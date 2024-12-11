@@ -137,7 +137,7 @@ else:
     input_file_name_calibration = "20231116_displacements_raw.csv"
 input_file_name_mcmc_samples_fem = "20231116_mcmc_samples_fem.csv"
 output_subdirectory = (
-    f"{output_date}_parametric_pinns_calibration_paper_experimental_linearelasticity"
+    f"20240523_parametric_pinns_calibration_paper_experimental_linearelasticity"
 )
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
