@@ -44,7 +44,7 @@ From: nvidia/cuda:12.2.2-cudnn8-devel-ubuntu22.04
     apt-get install -y gmsh
 
     # Install latex distribution (dependency required to save PGF plots using matplotlib)
-    apt-get install texlive-full
+    apt-get install -y texlive-full
 
     # Clean up
     apt-get clean && \
