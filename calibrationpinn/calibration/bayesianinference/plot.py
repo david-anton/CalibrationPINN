@@ -25,7 +25,7 @@ cm_in_inches = 1 / 2.54  # centimeters in inches
 class UnivariateNormalPlotterConfig:
     def __init__(self) -> None:
         # font sizes
-        self.font_size = 7  # 14
+        self.font_size = 6  # 14
         # font size in legend
         self.font = {"size": self.font_size}
 
@@ -57,12 +57,12 @@ class UnivariateNormalPlotterConfig:
         self.trace_linestyle = "solid"
 
         # major ticks
-        self.major_tick_label_size = 7  # 12
+        self.major_tick_label_size = 6  # 12
         self.major_ticks_size = self.font_size
         self.major_ticks_width = 2
 
         # minor ticks
-        self.minor_tick_label_size = 7  # 12
+        self.minor_tick_label_size = 6  # 12
         self.minor_ticks_size = self.font_size
         self.minor_ticks_width = 1
 
@@ -71,7 +71,7 @@ class UnivariateNormalPlotterConfig:
 
         # save options
         self.dpi = 300
-        self.figure_size = (6.5 * cm_in_inches, 6.5 * cm_in_inches)
+        self.figure_size = (6.0 * cm_in_inches, 4.5 * cm_in_inches)
         self.file_format = "pdf"
 
 
@@ -195,7 +195,7 @@ def _plot_univariate_normal_distribution_histogram(
     project_directory: ProjectDirectory,
     config: UnivariateNormalPlotterConfig,
 ) -> None:
-    title = "Posterior probability density"
+    # title = "Posterior probability density"
     mean = moments.mean
     standard_deviation = moments.standard_deviation
     figure, axes = plt.subplots(figsize=config.figure_size)
@@ -251,7 +251,7 @@ def _plot_univariate_normal_distribution_histogram(
     )
     axes.set_xticks(x_ticks)
     axes.set_xticklabels(x_tick_labels)
-    axes.set_title(title, pad=config.title_pad, **config.font)
+    # axes.set_title(title, pad=config.title_pad, **config.font)
     axes.legend(fontsize=config.font_size, loc="best")
     axes.set_xlabel(infer_parameter_label(parameter_name), **config.font)
     axes.set_ylabel("probability density", **config.font)
