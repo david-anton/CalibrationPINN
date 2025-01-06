@@ -210,7 +210,7 @@ def _plot_univariate_normal_distribution_histogram(
         )
     # Histogram
     range_hist = config.hist_range_in_std * standard_deviation
-    axes.hist(
+    hist_counts, hist_bins, hist_bars = axes.hist(
         samples,
         bins=config.hist_bins,
         range=(mean - range_hist, mean + range_hist),
@@ -256,8 +256,16 @@ def _plot_univariate_normal_distribution_histogram(
         color=config.pdf_interval_color,
         linestyle=config.pdf_interval_linestyle,
     )
+    # Set x-ticks
     axes.set_xticks(x_ticks)
     axes.set_xticklabels(x_tick_labels)
+    # Set y-labels
+    hist_count_exponent = math.floor(math.log10(np.amax(hist_counts)))
+    min_ytick = int(math.ceil(np.amin(hist_counts) / 10**hist_count_exponent))
+    max_ytick = int(math.floor(np.amax(hist_counts) / 10**hist_count_exponent))
+    integers_yticks = range(min_ytick, max_ytick + 1)
+    axes.set_yticks(integers_yticks)
+    axes.set_yticklabels([str(tick) for tick in integers_yticks])
     # axes.set_title(title, pad=config.title_pad, **config.font)
     axes.legend(fontsize=config.font_size, loc="best")
     axes.set_xlabel(infer_parameter_label(parameter_name), **config.font)
@@ -272,13 +280,7 @@ def _plot_univariate_normal_distribution_histogram(
         useMathText=True,
     )
     axes.yaxis.offsetText.set_fontsize(config.font_size)
-    # Forcing y-labels to be integers
-    yticks = axes.get_yticks()
-    min_ytick = int(math.ceil(np.amin(yticks)))
-    max_ytick = int(math.floor(np.amax(yticks)))
-    integers_yticks = range(min_ytick, max_ytick + 1)
-    axes.set_yticks(integers_yticks)
-    axes.set_yticklabels([str(tick) for tick in integers_yticks])
+
     # Save plot
     file_name = f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.{config.file_format}"
     output_path = project_directory.create_output_file_path(
