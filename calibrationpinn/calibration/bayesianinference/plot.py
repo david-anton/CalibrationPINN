@@ -278,7 +278,7 @@ def _plot_univariate_normal_distribution_histogram(
     max_ytick = int(math.floor(np.amax(yticks)))
     integers_yticks = range(min_ytick, max_ytick + 1)
     axes.set_yticks(integers_yticks)
-    axes.set_ylabel([str(tick) for tick in integers_yticks])
+    axes.set_yticklabels([str(tick) for tick in integers_yticks])
     # Save plot
     file_name = f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.{config.file_format}"
     output_path = project_directory.create_output_file_path(
