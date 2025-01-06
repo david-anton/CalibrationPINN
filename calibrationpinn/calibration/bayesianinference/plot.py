@@ -271,8 +271,13 @@ def _plot_univariate_normal_distribution_histogram(
         useOffset=False,
         useMathText=True,
     )
-    axes.yaxis.get_major_locator().set_params(integer=True)
     axes.yaxis.offsetText.set_fontsize(config.font_size)
+    # Forcing y-labels to be integers
+    yticks = axes.get_yticks()
+    min_ytick = min(yticks)
+    max_ytick = max(yticks)
+    num_yticks = math.floor(max_ytick) - math.ceil(min_ytick) + 1
+    axes.yaxis.set_major_locator(MaxNLocator(nbins=num_yticks, integer=True))
     # Save plot
     file_name = f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.{config.file_format}"
     output_path = project_directory.create_output_file_path(
