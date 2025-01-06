@@ -4,6 +4,7 @@ from typing import TypeAlias, Union
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pgf import FigureCanvasPgf as PltBackendPGF
+from matplotlib.ticker import MaxNLocator
 import numpy as np
 import scipy.stats
 
@@ -71,7 +72,7 @@ class UnivariateNormalPlotterConfig:
 
         # save options
         self.dpi = 300
-        self.figure_size = (6.0 * cm_in_inches, 4.5 * cm_in_inches)
+        self.figure_size = (6.5 * cm_in_inches, 5.0 * cm_in_inches)
         self.file_format = "pdf"
 
 
@@ -205,7 +206,7 @@ def _plot_univariate_normal_distribution_histogram(
             x=true_parameter,
             color=config.truth_color,
             linestyle=config.truth_linestyle,
-            label="truth",
+            label="NLS-FEM",
         )
     # Histogram
     range_hist = config.hist_range_in_std * standard_deviation
@@ -222,7 +223,13 @@ def _plot_univariate_normal_distribution_histogram(
         start=mean - range_hist, stop=mean + range_hist, num=10000, endpoint=True
     )
     y = scipy.stats.norm.pdf(x, loc=mean, scale=standard_deviation)
-    axes.plot(x, y, color=config.pdf_color, linestyle=config.pdf_linestyle, label="PDF")
+    axes.plot(
+        x,
+        y,
+        color=config.pdf_color,
+        linestyle=config.pdf_linestyle,
+        label="approx. PDF",
+    )
     x_ticks = [
         mean - (config.interval_num_stds * standard_deviation),
         mean,
@@ -264,6 +271,7 @@ def _plot_univariate_normal_distribution_histogram(
         useOffset=False,
         useMathText=True,
     )
+    axes.yaxis.set_major_locator(MaxNLocator(integer=True))
     axes.yaxis.offsetText.set_fontsize(config.font_size)
     # Save plot
     file_name = f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.{config.file_format}"
