@@ -25,9 +25,9 @@ cm_in_inches = 1 / 2.54  # centimeters in inches
 class UnivariateNormalPlotterConfig:
     def __init__(self) -> None:
         # font sizes
-        self.label_size = 14
+        self.label_size = 9  # 14
         # font size in legend
-        self.font_size = 14
+        self.font_size = 9  # 14
         self.font = {"size": self.label_size}
 
         # title pad
@@ -58,13 +58,13 @@ class UnivariateNormalPlotterConfig:
         self.trace_linestyle = "solid"
 
         # major ticks
-        self.major_tick_label_size = 12
+        self.major_tick_label_size = 9  # 12
         self.major_ticks_size = self.font_size
         self.major_ticks_width = 2
 
         # minor ticks
-        self.minor_tick_label_size = 12
-        self.minor_ticks_size = 12
+        self.minor_tick_label_size = 9  # 12
+        self.minor_ticks_size = self.font_size
         self.minor_ticks_width = 1
 
         # scientific notation
@@ -72,8 +72,7 @@ class UnivariateNormalPlotterConfig:
 
         # save options
         self.dpi = 300
-        self.figure_size = (16 * cm_in_inches, 12 * cm_in_inches)
-        # self.file_format = "pdf"
+        self.figure_size = (6 * cm_in_inches, 4.5 * cm_in_inches)
         self.file_format = "pdf"
 
 
