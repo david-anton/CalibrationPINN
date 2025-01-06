@@ -12,7 +12,7 @@ from calibrationpinn.statistics.utility import (
     MomentsMultivariateNormal,
     MomentsUnivariateNormal,
 )
-from calibrationpinn.types import NPArray
+from calibrationpinn.types import NPArray, PLTFigure
 
 matplotlib.backend_bases.register_backend("pgf", PltBackendPGF)
 
@@ -274,14 +274,17 @@ def _plot_univariate_normal_distribution_histogram(
         output_path, format=config.file_format, dpi=config.dpi
     )  # bbox_inches="tight"
 
-    # Save plot as PGF file
-    file_name_pgf = (
-        f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.pgf"
-    )
-    output_path_pgf = project_directory.create_output_file_path(
-        file_name=file_name_pgf, subdir_name=output_subdir
-    )
-    figure.savefig(output_path_pgf, format="pgf")
+    def save_figure_as_pgf(figure: PLTFigure) -> None:
+        figure.set_figheight(4.5 * cm_in_inches)
+        figure.set_figwidth(6 * cm_in_inches)
+        file_name_pgf = (
+            f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.pgf"
+        )
+        output_path_pgf = project_directory.create_output_file_path(
+            file_name=file_name_pgf, subdir_name=output_subdir
+        )
+        figure.savefig(output_path_pgf, format="pgf")
+
     plt.close()
 
 
