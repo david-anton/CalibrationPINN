@@ -30,7 +30,7 @@ class UnivariateNormalPlotterConfig:
         self.font = {"size": self.font_size}
 
         # title pad
-        self.title_pad = 10
+        self.title_pad = 8
 
         # truth
         self.truth_color = "tab:orange"
@@ -71,7 +71,7 @@ class UnivariateNormalPlotterConfig:
 
         # save options
         self.dpi = 300
-        self.figure_size = (7 * cm_in_inches, 5 * cm_in_inches)
+        self.figure_size = (6.5 * cm_in_inches, 6.5 * cm_in_inches)
         self.file_format = "pdf"
 
 
@@ -229,7 +229,8 @@ def _plot_univariate_normal_distribution_histogram(
         mean + (config.interval_num_stds * standard_deviation),
     ]
     x_tick_labels = [
-        str(round(tick, 2)) if tick >= 1.0 else str(round(tick, 6)) for tick in x_ticks
+        (str(round(tick, 0)) if tick >= 100.0 else str(round(tick, 2)))
+        for tick in x_ticks
     ]
     axes.axvline(
         x=mean,
