@@ -25,10 +25,9 @@ cm_in_inches = 1 / 2.54  # centimeters in inches
 class UnivariateNormalPlotterConfig:
     def __init__(self) -> None:
         # font sizes
-        self.label_size = 7  # 14
-        # font size in legend
         self.font_size = 7  # 14
-        self.font = {"size": self.label_size}
+        # font size in legend
+        self.font = {"size": self.font_size}
 
         # title pad
         self.title_pad = 10
@@ -264,6 +263,7 @@ def _plot_univariate_normal_distribution_histogram(
         useOffset=False,
         useMathText=True,
     )
+    axes.yaxis.offsetText.set_fontsize(config.font_size)
     # Save plot
     file_name = f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.{config.file_format}"
     output_path = project_directory.create_output_file_path(
@@ -274,15 +274,6 @@ def _plot_univariate_normal_distribution_histogram(
     )  # bbox_inches="tight"
 
     def save_figure_as_pgf(figure: PLTFigure) -> None:
-        plt.rcParams.update(
-            {
-                "figure.figsize": (6 * cm_in_inches, 4.5 * cm_in_inches),
-                "font.size": 9,
-                "axes.labelsize": 9,
-                "legend.fontsize": 9,
-                "text.usetex": True,
-            }
-        )
         file_name_pgf = (
             f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.pgf"
         )
