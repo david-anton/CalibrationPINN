@@ -236,7 +236,7 @@ def _plot_univariate_normal_distribution_histogram(
         mean + (config.interval_num_stds * standard_deviation),
     ]
     x_tick_labels = [
-        (str(int(round(tick, 0))) if tick >= 100.0 else str(round(tick, 2)))
+        (str(int(round(tick, 2))) if tick >= 1.0 else str(round(tick, 4)))
         for tick in x_ticks
     ]
     axes.axvline(
@@ -274,10 +274,11 @@ def _plot_univariate_normal_distribution_histogram(
     axes.yaxis.offsetText.set_fontsize(config.font_size)
     # Forcing y-labels to be integers
     yticks = axes.get_yticks()
-    min_ytick = min(yticks)
-    max_ytick = max(yticks)
-    num_yticks = int(math.ceil(max_ytick)) - int(math.floor(min_ytick))
-    axes.yaxis.set_major_locator(MaxNLocator(nbins=num_yticks, integer=True))
+    min_ytick = int(math.ceil(np.amin(yticks)))
+    max_ytick = int(math.floor(np.amax(yticks)))
+    integers_yticks = range(min_ytick, max_ytick + 1)
+    axes.set_yticks(integers_yticks)
+    axes.set_ylabel([str(tick) for tick in integers_yticks])
     # Save plot
     file_name = f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.{config.file_format}"
     output_path = project_directory.create_output_file_path(
