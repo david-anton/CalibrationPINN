@@ -275,8 +275,15 @@ def _plot_univariate_normal_distribution_histogram(
     )  # bbox_inches="tight"
 
     def save_figure_as_pgf(figure: PLTFigure) -> None:
-        figure.set_figheight(4.5 * cm_in_inches)
-        figure.set_figwidth(6 * cm_in_inches)
+        plt.rcParams.update(
+            {
+                "figure.figsize": (6 * cm_in_inches, 4.5 * cm_in_inches),
+                "font.size": 9,
+                "axes.labelsize": 9,
+                "legend.fontsize": 9,
+                "text.usetex": True,
+            }
+        )
         file_name_pgf = (
             f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.pgf"
         )
