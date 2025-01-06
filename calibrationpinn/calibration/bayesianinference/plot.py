@@ -30,7 +30,7 @@ class UnivariateNormalPlotterConfig:
         self.font = {"size": self.font_size}
 
         # title pad
-        self.title_pad = 8
+        self.title_pad = 5
 
         # truth
         self.truth_color = "tab:orange"
@@ -229,7 +229,7 @@ def _plot_univariate_normal_distribution_histogram(
         mean + (config.interval_num_stds * standard_deviation),
     ]
     x_tick_labels = [
-        (str(round(tick, 0)) if tick >= 100.0 else str(round(tick, 2)))
+        (str(int(round(tick, 0))) if tick >= 100.0 else str(round(tick, 2)))
         for tick in x_ticks
     ]
     axes.axvline(
@@ -271,7 +271,7 @@ def _plot_univariate_normal_distribution_histogram(
         file_name=file_name, subdir_name=output_subdir
     )
     figure.savefig(
-        output_path, format=config.file_format, dpi=config.dpi
+        output_path, format=config.file_format, dpi=config.dpi, bbox_inches="tight"
     )  # bbox_inches="tight"
 
     def save_figure_as_pgf(figure: PLTFigure) -> None:
