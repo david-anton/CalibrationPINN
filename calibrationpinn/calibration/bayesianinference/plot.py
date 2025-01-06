@@ -2,7 +2,6 @@ import math
 from typing import TypeAlias, Union
 
 import matplotlib.pyplot as plt
-import tikzplotlib
 import numpy as np
 import scipy.stats
 
@@ -272,12 +271,12 @@ def _plot_univariate_normal_distribution_histogram(
 
     # Save plot as PGF (TikZ) file
     file_name_tex = (
-        f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.tex"
+        f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.pgf"
     )
     output_path_tex = project_directory.create_output_file_path(
         file_name=file_name_tex, subdir_name=output_subdir
     )
-    tikzplotlib.save(output_path_tex)
+    figure.savefig(output_path_tex, format="pgf")
     plt.close()
 
 
