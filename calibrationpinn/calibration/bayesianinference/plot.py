@@ -3,7 +3,7 @@ from typing import TypeAlias, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pgf import PltBackendPGF
+from matplotlib.backends.backend_pgf import FigureCanvasPgf as PltBackendPGF
 import numpy as np
 import scipy.stats
 
