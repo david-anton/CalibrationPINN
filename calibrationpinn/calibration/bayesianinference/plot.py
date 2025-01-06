@@ -2,9 +2,8 @@ import math
 from typing import TypeAlias, Union
 
 import matplotlib
-
-matplotlib.use("pgf")
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pgf import PltBackendPGF
 import numpy as np
 import scipy.stats
 
@@ -13,7 +12,9 @@ from calibrationpinn.statistics.utility import (
     MomentsMultivariateNormal,
     MomentsUnivariateNormal,
 )
-from calibrationpinn.types import NPArray, PLTFigure
+from calibrationpinn.types import NPArray
+
+matplotlib.backend_bases.register_backend("pgf", PltBackendPGF)
 
 TrueParameter: TypeAlias = Union[float, None]
 TrueParametersTuple: TypeAlias = tuple[TrueParameter, ...]
@@ -73,7 +74,7 @@ class UnivariateNormalPlotterConfig:
         self.dpi = 300
         self.figure_size = (16 * cm_in_inches, 12 * cm_in_inches)
         # self.file_format = "pdf"
-        self.file_format = "pgf"
+        self.file_format = "pdf"
 
 
 def plot_posterior_normal_distributions(
@@ -272,6 +273,15 @@ def _plot_univariate_normal_distribution_histogram(
     figure.savefig(
         output_path, format=config.file_format, dpi=config.dpi
     )  # bbox_inches="tight"
+
+    # Save plot as PGF file
+    file_name_pgf = (
+        f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.pgf"
+    )
+    output_path_pgf = project_directory.create_output_file_path(
+        file_name=file_name_pgf, subdir_name=output_subdir
+    )
+    figure.savefig(output_path_pgf, format="pgf")
     plt.close()
 
 
