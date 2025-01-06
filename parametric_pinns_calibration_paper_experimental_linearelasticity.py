@@ -79,7 +79,7 @@ from calibrationpinn.training.training_standard_linearelasticity_simplifieddogbo
 from calibrationpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False  # True
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -136,9 +136,7 @@ if use_interpolated_calibration_data:
 else:
     input_file_name_calibration = "20231116_displacements_raw.csv"
 input_file_name_mcmc_samples_fem = "20231116_mcmc_samples_fem.csv"
-output_subdirectory = (
-    f"{output_date}_parametric_pinns_calibration_paper_experimental_linearelasticity"
-)
+output_subdirectory = "20240523_parametric_pinns_calibration_paper_experimental_linearelasticity"  # f"{output_date}_parametric_pinns_calibration_paper_experimental_linearelasticity"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
 if use_interpolated_calibration_data:
