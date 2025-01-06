@@ -285,6 +285,7 @@ def _plot_univariate_normal_distribution_histogram(
         )
         figure.savefig(output_path_pgf, format="pgf")
 
+    save_figure_as_pgf(figure)
     plt.close()
 
 
