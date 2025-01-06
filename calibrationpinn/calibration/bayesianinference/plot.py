@@ -1,6 +1,9 @@
 import math
 from typing import TypeAlias, Union
 
+import matplotlib
+
+matplotlib.use("pgf")
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
@@ -69,7 +72,8 @@ class UnivariateNormalPlotterConfig:
         # save options
         self.dpi = 300
         self.figure_size = (16 * cm_in_inches, 12 * cm_in_inches)
-        self.file_format = "pdf"
+        # self.file_format = "pdf"
+        self.file_format = "pgf"
 
 
 def plot_posterior_normal_distributions(
@@ -268,24 +272,6 @@ def _plot_univariate_normal_distribution_histogram(
     figure.savefig(
         output_path, format=config.file_format, dpi=config.dpi
     )  # bbox_inches="tight"
-
-    def _save_figure_as_pgf(figure: PLTFigure) -> None:
-        import matplotlib
-
-        matplotlib.use("pgf")
-
-        import matplotlib.pyplot as pltpgf
-
-        file_name_tex = (
-            f"estimated_pdf_{parameter_name.lower()}_{mcmc_algorithm.lower()}.pgf"
-        )
-        output_path_tex = project_directory.create_output_file_path(
-            file_name=file_name_tex, subdir_name=output_subdir
-        )
-        pltpgf.savefig(output_path_tex, format="pgf")
-        pltpgf.close()
-
-    _save_figure_as_pgf(figure)
     plt.close()
 
 
