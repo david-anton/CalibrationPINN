@@ -2,7 +2,9 @@ import os
 from datetime import date
 from time import perf_counter
 
+import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pgf import FigureCanvasPgf as PltBackendPGF
 import numpy as np
 import pandas as pd
 import torch
@@ -77,6 +79,8 @@ from calibrationpinn.training.training_standard_linearelasticity_simplifieddogbo
     train_parametric_pinn,
 )
 from calibrationpinn.types import NPArray, Tensor
+
+matplotlib.backend_bases.register_backend("pgf", PltBackendPGF)
 
 ### Configuration
 retrain_parametric_pinn = False  # True
@@ -623,7 +627,7 @@ def calibration_step() -> None:
             class PlotterConfigData:
                 def __init__(self) -> None:
                     # label size
-                    self.label_size = 18
+                    self.label_size = 8  # 18
                     # font size in legend
                     self.font_size = self.label_size
                     self.font = {"size": self.font_size}
@@ -633,12 +637,12 @@ def calibration_step() -> None:
                     self.x_label = "x [mm]"
                     self.y_label = "y [mm]"
                     # major ticks
-                    self.major_tick_label_size = 18
+                    self.major_tick_label_size = 8  # 18
                     self.major_ticks_size = self.font_size
                     self.major_ticks_width = 2
                     # minor ticks
-                    self.minor_tick_label_size = 14
-                    self.minor_ticks_size = 14
+                    self.minor_tick_label_size = 8  # 14
+                    self.minor_ticks_size = self.font_size
                     self.minor_ticks_width = 1
                     # scientific notation
                     self.scientific_notation_size = self.font_size
@@ -706,11 +710,13 @@ def calibration_step() -> None:
                 figure, axes = plt.subplots()
 
                 # figure size
-                fig_height = 4
+                cm_in_inches = 1 / 2.54  # centimeters in inches
+                fig_height = 4 * cm_in_inches
                 box_length = 80
                 box_height = 20
+                fig_width = (box_length / box_height) * fig_height + 4 * cm_in_inches
                 figure.set_figheight(fig_height)
-                figure.set_figwidth((box_length / box_height) * fig_height + 1)
+                figure.set_figwidth(fig_width)
 
                 # title and labels
                 title = f"Displacements in {dimension}-dimension"
@@ -801,12 +807,21 @@ def calibration_step() -> None:
                 save_path = project_directory.create_output_file_path(
                     file_name, output_subdir_calibration
                 )
-                dpi = 300
                 figure.savefig(
                     save_path,
                     format=plot_config.file_format,
                     bbox_inches="tight",
-                    dpi=dpi,
+                    dpi=plot_config.dpi,
+                )
+                # save as PGF file
+                file_name_pgf = f"dic_measurement_displacements_{dimension}.pgf"
+                save_path_pgf = project_directory.create_output_file_path(
+                    file_name_pgf, output_subdir_calibration
+                )
+                figure.savefig(
+                    save_path_pgf,
+                    format="pgf",
+                    bbox_inches="tight",
                 )
 
             displacements_np_x = displacements_np[:, 0]
