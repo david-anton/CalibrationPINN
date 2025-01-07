@@ -26,7 +26,7 @@ cm_in_inches = 1 / 2.54  # centimeters in inches
 class UnivariateNormalPlotterConfig:
     def __init__(self) -> None:
         # font sizes
-        self.font_size = 7  # 14
+        self.font_size = 6.5  # 14
         # font size in legend
         self.font = {"size": self.font_size}
 
@@ -59,12 +59,12 @@ class UnivariateNormalPlotterConfig:
         self.trace_linestyle = "solid"
 
         # major ticks
-        self.major_tick_label_size = 7  # 12
+        self.major_tick_label_size = 6.5  # 12
         self.major_ticks_size = self.font_size
         self.major_ticks_width = 2
 
         # minor ticks
-        self.minor_tick_label_size = 7  # 12
+        self.minor_tick_label_size = 6.5  # 12
         self.minor_ticks_size = self.font_size
         self.minor_ticks_width = 1
 
@@ -267,7 +267,7 @@ def _plot_univariate_normal_distribution_histogram(
     axes.set_xticklabels(x_tick_labels)
     # Set y-labels
     axes.yaxis.set_major_locator(MaxNLocator(nbins=4))
-    axes.legend(fontsize=config.font_size, loc="best")
+    axes.legend(fontsize=config.font_size, loc="upper right")
     axes.set_xlabel(infer_parameter_label(parameter_name), **config.font)
     axes.set_ylabel("probability density", **config.font)
     axes.tick_params(axis="both", which="minor", labelsize=config.minor_tick_label_size)
