@@ -44,7 +44,7 @@ class UnivariateNormalPlotterConfig:
         self.hist_bins = 128
         self.hist_range_in_std = 4
         self.hist_color = "tab:cyan"
-        self.hist_linewidth = 2
+        self.hist_linewidth = 0.8
 
         # pdf
         self.pdf_color = "tab:blue"
@@ -230,6 +230,7 @@ def _plot_univariate_normal_distribution_histogram(
         y,
         color=config.pdf_color,
         linestyle=config.pdf_linestyle,
+        linewidth=config.hist_linewidth,
         label="approx. PDF",
     )
     x_ticks = [
