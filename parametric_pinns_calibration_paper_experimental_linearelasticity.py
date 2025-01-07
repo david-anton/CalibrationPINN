@@ -636,10 +636,12 @@ def calibration_step() -> None:
                     self.major_tick_label_size = 10  # 18
                     self.major_ticks_size = self.font_size
                     self.major_ticks_width = 2
+                    self.major_tick_pad = 8
                     # minor ticks
                     self.minor_tick_label_size = 10  # 14
                     self.minor_ticks_size = self.font_size
                     self.minor_ticks_width = 1
+                    self.minor_tick_pad = 8
                     # scientific notation
                     self.scientific_notation_size = self.font_size
                     # color map
@@ -723,11 +725,13 @@ def calibration_step() -> None:
                     axis="both",
                     which="minor",
                     labelsize=plot_config.minor_tick_label_size,
+                    pad=plot_config.major_tick_pad,
                 )
                 axes.tick_params(
                     axis="both",
                     which="major",
                     labelsize=plot_config.major_tick_label_size,
+                    pad=plot_config.minor_tick_pad,
                 )
 
                 # ticks
