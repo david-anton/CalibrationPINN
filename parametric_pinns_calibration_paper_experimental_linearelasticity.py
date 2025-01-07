@@ -2,9 +2,7 @@ import os
 from datetime import date
 from time import perf_counter
 
-import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pgf import FigureCanvasPgf as PltBackendPGF
 import numpy as np
 import pandas as pd
 import torch
@@ -79,8 +77,6 @@ from calibrationpinn.training.training_standard_linearelasticity_simplifieddogbo
     train_parametric_pinn,
 )
 from calibrationpinn.types import NPArray, Tensor
-
-matplotlib.backend_bases.register_backend("pgf", PltBackendPGF)
 
 ### Configuration
 retrain_parametric_pinn = False  # True
@@ -812,16 +808,6 @@ def calibration_step() -> None:
                     format=plot_config.file_format,
                     bbox_inches="tight",
                     dpi=plot_config.dpi,
-                )
-                # save as PGF file
-                file_name_pgf = f"dic_measurement_displacements_{dimension}.pgf"
-                save_path_pgf = project_directory.create_output_file_path(
-                    file_name_pgf, output_subdir_calibration
-                )
-                figure.savefig(
-                    save_path_pgf,
-                    format="pgf",
-                    bbox_inches="tight",
                 )
 
             displacements_np_x = displacements_np[:, 0]
