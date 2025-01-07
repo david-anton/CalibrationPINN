@@ -2,7 +2,9 @@ import math
 from collections import namedtuple
 from typing import TypeAlias, Union
 
+import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pgf import FigureCanvasPgf as PltBackendPGF
 import numpy as np
 import scipy.stats
 import torch
@@ -27,6 +29,8 @@ from calibrationpinn.fem import run_simulation
 from calibrationpinn.io import ProjectDirectory
 from calibrationpinn.types import Device, Module, NPArray, PLTAxes, PLTFigure
 
+matplotlib.backend_bases.register_backend("pgf", PltBackendPGF)
+
 ProblemConfigLists: TypeAlias = Union[
     list[LinearElasticityProblemConfig_E_nu],
     list[LinearElasticityProblemConfig_K_G],
@@ -40,26 +44,26 @@ DomainConfigs: TypeAlias = Union[
     SimplifiedDogBoneDomainConfig,
 ]
 
+cm_in_inches = 1 / 2.54  # centimeters in inches
+
 
 class DisplacementsPlotterConfig2D:
     def __init__(self) -> None:
-        # label size
-        self.label_size = 16
         # font size in legend
-        self.font_size = 16
-        self.font = {"size": self.label_size}
+        self.font_size = 8  # 16
+        self.font = {"size": self.font_size}
         # title pad
         self.title_pad = 10
         # labels
         self.x_label = "x [mm]"
         self.y_label = "y [mm]"
         # major ticks
-        self.major_tick_label_size = 16
+        self.major_tick_label_size = 8  # 16
         self.major_ticks_size = self.font_size
         self.major_ticks_width = 2
         # minor ticks
-        self.minor_tick_label_size = 14
-        self.minor_ticks_size = 12
+        self.minor_tick_label_size = 8  # 14
+        self.minor_ticks_size = self.font_size
         self.minor_ticks_width = 1
         # scientific notation
         self.scientific_notation_size = self.font_size
@@ -430,12 +434,8 @@ def _plot_simulation_and_prediction(
     parameter_prefix = _get_file_name_parameter_prefix_from_problem(
         simulation_config.problem_config
     )
-    file_name_pinn = (
-        f"plot_{file_name_identifier}_PINN_{parameter_prefix}.{plot_config.file_format}"
-    )
-    file_name_fem = (
-        f"plot_{file_name_identifier}_FEM_{parameter_prefix}.{plot_config.file_format}"
-    )
+    file_name_pinn = f"plot_{file_name_identifier}_PINN_{parameter_prefix}"
+    file_name_fem = f"plot_{file_name_identifier}_FEM_{parameter_prefix}"
     _save_plot(
         figure_pinn, file_name_pinn, output_subdir, project_directory, plot_config
     )
@@ -601,23 +601,23 @@ def _plot_once(
     figure, axes = plt.subplots()
 
     def _set_figure_size(figure: PLTFigure) -> None:
-        fig_height = 4.0
+        fig_height = 4.0 * cm_in_inches
         if isinstance(simulation_config.domain_config, PlateWithHoleDomainConfig):
             box_length = simulation_config.domain_config.plate_length
             box_height = simulation_config.domain_config.plate_height
-            fig_width = (box_length / box_height) * fig_height + 1
+            fig_width = (box_length / box_height) * fig_height + 4 * cm_in_inches
         if isinstance(simulation_config.domain_config, PlateDomainConfig):
             box_length = simulation_config.domain_config.plate_length
             box_height = simulation_config.domain_config.plate_height
-            fig_width = (box_length / box_height) * fig_height + 1
+            fig_width = (box_length / box_height) * fig_height + 4 * cm_in_inches
         elif isinstance(simulation_config.domain_config, DogBoneDomainConfig):
             box_length = simulation_config.domain_config.box_length
             box_height = simulation_config.domain_config.box_height
-            fig_width = (box_length / box_height) * fig_height + 1
+            fig_width = (box_length / box_height) * fig_height + 2 * cm_in_inches
         elif isinstance(simulation_config.domain_config, SimplifiedDogBoneDomainConfig):
             box_length = simulation_config.domain_config.box_length
             box_height = simulation_config.domain_config.box_height
-            fig_width = (box_length / box_height) * fig_height + 1
+            fig_width = (box_length / box_height) * fig_height + 4 * cm_in_inches
         else:
             return
         figure.set_figheight(fig_height)
@@ -911,12 +911,25 @@ def _save_plot(
     project_directory: ProjectDirectory,
     plot_config: DisplacementsPlotterConfig2D,
 ) -> None:
+    # Save figure
+    file_name = f"{file_name}.{plot_config.file_format}"
     save_path = project_directory.create_output_file_path(file_name, output_subdir)
     figure.savefig(
         save_path,
         format=plot_config.file_format,
         bbox_inches="tight",
         dpi=plot_config.dpi,
+    )
+
+    # Save figure as PGF file
+    file_name_pgf = f"{file_name}.pgf"
+    save_path_pgf = project_directory.create_output_file_path(
+        file_name_pgf, output_subdir
+    )
+    figure.savefig(
+        save_path_pgf,
+        format="pgf",
+        bbox_inches="tight",
     )
 
 
