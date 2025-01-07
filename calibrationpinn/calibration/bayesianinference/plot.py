@@ -44,6 +44,7 @@ class UnivariateNormalPlotterConfig:
         self.hist_bins = 128
         self.hist_range_in_std = 4
         self.hist_color = "tab:cyan"
+        self.hist_linewidth = 2
 
         # pdf
         self.pdf_color = "tab:blue"
@@ -206,6 +207,7 @@ def _plot_univariate_normal_distribution_histogram(
             x=true_parameter,
             color=config.truth_color,
             linestyle=config.truth_linestyle,
+            linewidth=config.hist_linewidth,
             label="NLS-FEM",
         )
     # Histogram
@@ -236,38 +238,34 @@ def _plot_univariate_normal_distribution_histogram(
         mean + (config.interval_num_stds * standard_deviation),
     ]
     x_tick_labels = [
-        (str(int(round(tick, 2))) if tick >= 1.0 else str(round(tick, 4)))
+        (str(round(tick, 2)) if tick >= 1.0 else str(round(tick, 4)))
         for tick in x_ticks
     ]
     axes.axvline(
         x=mean,
         color=config.pdf_mean_color,
         linestyle=config.pdf_mean_linestyle,
+        linewidth=config.hist_linewidth,
         label="mean",
     )
     axes.axvline(
         x=mean - config.interval_num_stds * standard_deviation,
         color=config.pdf_interval_color,
         linestyle=config.pdf_interval_linestyle,
+        linewidth=config.hist_linewidth,
         label=r"$95\%$" + "-interval",
     )
     axes.axvline(
         x=mean + config.interval_num_stds * standard_deviation,
         color=config.pdf_interval_color,
         linestyle=config.pdf_interval_linestyle,
+        linewidth=config.hist_linewidth,
     )
     # Set x-ticks
     axes.set_xticks(x_ticks)
     axes.set_xticklabels(x_tick_labels)
     # Set y-labels
     axes.yaxis.set_major_locator(MaxNLocator(nbins=4))
-    # hist_count_exponent = math.floor(math.log10(np.amax(hist_counts)))
-    # min_ytick = int(math.ceil(np.amin(hist_counts) / 10**hist_count_exponent))
-    # max_ytick = int(math.floor(np.amax(hist_counts) / 10**hist_count_exponent))
-    # integers_yticks = range(min_ytick, max_ytick + 1)
-    # axes.set_yticks(integers_yticks)
-    # axes.set_yticklabels([str(tick) for tick in integers_yticks])
-    # axes.set_title(title, pad=config.title_pad, **config.font)
     axes.legend(fontsize=config.font_size, loc="best")
     axes.set_xlabel(infer_parameter_label(parameter_name), **config.font)
     axes.set_ylabel("probability density", **config.font)
