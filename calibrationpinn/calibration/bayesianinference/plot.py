@@ -260,7 +260,7 @@ def _plot_univariate_normal_distribution_histogram(
     axes.set_xticks(x_ticks)
     axes.set_xticklabels(x_tick_labels)
     # Set y-labels
-    axes.yaxis.set_major_locator(MaxNLocator(nbins=4, integer=True))
+    axes.yaxis.set_major_locator(MaxNLocator(nbins=4))
     # hist_count_exponent = math.floor(math.log10(np.amax(hist_counts)))
     # min_ytick = int(math.ceil(np.amin(hist_counts) / 10**hist_count_exponent))
     # max_ytick = int(math.floor(np.amax(hist_counts) / 10**hist_count_exponent))
