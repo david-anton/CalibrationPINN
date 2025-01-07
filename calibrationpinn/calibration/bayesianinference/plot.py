@@ -42,9 +42,9 @@ class UnivariateNormalPlotterConfig:
 
         # histogram
         self.hist_bins = 128
-        self.hist_range_in_std = 4
+        self.hist_range_in_std = 3.5
         self.hist_color = "tab:cyan"
-        self.hist_linewidth = 0.8
+        self.hist_linewidth = 1.0
 
         # pdf
         self.pdf_color = "tab:blue"
@@ -73,7 +73,7 @@ class UnivariateNormalPlotterConfig:
 
         # save options
         self.dpi = 300
-        self.figure_size = (6.5 * cm_in_inches, 5.0 * cm_in_inches)
+        self.figure_size = (6.0 * cm_in_inches, 5.0 * cm_in_inches)
         self.file_format = "pdf"
 
 
