@@ -26,7 +26,7 @@ cm_in_inches = 1 / 2.54  # centimeters in inches
 class UnivariateNormalPlotterConfig:
     def __init__(self) -> None:
         # font sizes
-        self.font_size = 6  # 14
+        self.font_size = 7  # 14
         # font size in legend
         self.font = {"size": self.font_size}
 
@@ -59,12 +59,12 @@ class UnivariateNormalPlotterConfig:
         self.trace_linestyle = "solid"
 
         # major ticks
-        self.major_tick_label_size = 6  # 12
+        self.major_tick_label_size = 7  # 12
         self.major_ticks_size = self.font_size
         self.major_ticks_width = 2
 
         # minor ticks
-        self.minor_tick_label_size = 6  # 12
+        self.minor_tick_label_size = 7  # 12
         self.minor_ticks_size = self.font_size
         self.minor_ticks_width = 1
 
@@ -73,7 +73,7 @@ class UnivariateNormalPlotterConfig:
 
         # save options
         self.dpi = 300
-        self.figure_size = (6.0 * cm_in_inches, 5.0 * cm_in_inches)
+        self.figure_size = (6.5 * cm_in_inches, 5.0 * cm_in_inches)
         self.file_format = "pdf"
 
 
@@ -397,8 +397,8 @@ def _plot_sampling_trace(
 
 def infer_parameter_label(parameter_name: str) -> str:
     if parameter_name == "bulk modulus":
-        return parameter_name + " " + r"$[Nmm^{-2}]$"
+        return parameter_name + " " + "[Nmm" + r"$^{-2}$" + "]"
     elif parameter_name == "shear modulus":
-        return parameter_name + " " + r"$[Nmm^{-2}]$"
+        return parameter_name + " " + "[Nmm" + r"$^{-2}$" + "]"
     else:
         return parameter_name
