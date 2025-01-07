@@ -639,7 +639,7 @@ def calibration_step() -> None:
                     # minor ticks
                     self.minor_tick_label_size = 10  # 14
                     self.minor_ticks_width = 1
-                    self.minor_tick_pad = 4
+                    self.minor_tick_pad = 5
                     # scientific notation
                     self.scientific_notation_size = self.font_size
                     # color map
@@ -808,7 +808,7 @@ def calibration_step() -> None:
                 figure.savefig(
                     save_path,
                     format=plot_config.file_format,
-                    bbox_inches="tight",
+                    # bbox_inches="tight",
                     dpi=plot_config.dpi,
                 )
 
