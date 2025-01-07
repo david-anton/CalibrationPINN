@@ -634,14 +634,12 @@ def calibration_step() -> None:
                     self.y_label = "y [mm]"
                     # major ticks
                     self.major_tick_label_size = 10  # 18
-                    self.major_ticks_size = self.font_size
                     self.major_ticks_width = 2
-                    self.major_tick_pad = 8
+                    self.major_tick_pad = 4
                     # minor ticks
                     self.minor_tick_label_size = 10  # 14
-                    self.minor_ticks_size = self.font_size
                     self.minor_ticks_width = 1
-                    self.minor_tick_pad = 8
+                    self.minor_tick_pad = 4
                     # scientific notation
                     self.scientific_notation_size = self.font_size
                     # color map
