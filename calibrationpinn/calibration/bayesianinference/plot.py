@@ -208,7 +208,7 @@ def _plot_univariate_normal_distribution_histogram(
             color=config.truth_color,
             linestyle=config.truth_linestyle,
             linewidth=config.hist_linewidth,
-            label="NLS-FEM",
+            label="true",
         )
     # Histogram
     range_hist = config.hist_range_in_std * standard_deviation
