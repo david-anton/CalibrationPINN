@@ -635,11 +635,11 @@ def calibration_step() -> None:
                     # major ticks
                     self.major_tick_label_size = 10  # 18
                     self.major_ticks_width = 2
-                    self.major_tick_pad = 4
+                    self.major_tick_pad = 10
                     # minor ticks
                     self.minor_tick_label_size = 10  # 14
                     self.minor_ticks_width = 1
-                    self.minor_tick_pad = 5
+                    self.minor_tick_pad = 10
                     # scientific notation
                     self.scientific_notation_size = self.font_size
                     # color map
@@ -723,13 +723,13 @@ def calibration_step() -> None:
                     axis="both",
                     which="minor",
                     labelsize=plot_config.minor_tick_label_size,
-                    pad=plot_config.major_tick_pad,
+                    pad=plot_config.minor_tick_pad,
                 )
                 axes.tick_params(
                     axis="both",
                     which="major",
                     labelsize=plot_config.major_tick_label_size,
-                    pad=plot_config.minor_tick_pad,
+                    pad=plot_config.major_tick_pad,
                 )
 
                 # ticks
@@ -752,7 +752,6 @@ def calibration_step() -> None:
                 axes.set_xticklabels(map(str, x_ticks.round(decimals=2)))
                 axes.set_yticks(y_ticks)
                 axes.set_yticklabels(map(str, y_ticks.round(decimals=2)))
-                axes.tick_params(axis="both", which="major", pad=15)
 
                 # normalizer
                 tick_values = MaxNLocator(
@@ -808,7 +807,7 @@ def calibration_step() -> None:
                 figure.savefig(
                     save_path,
                     format=plot_config.file_format,
-                    # bbox_inches="tight",
+                    bbox_inches="tight",
                     dpi=plot_config.dpi,
                 )
 
