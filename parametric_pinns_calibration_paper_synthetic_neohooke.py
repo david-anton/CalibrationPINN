@@ -60,7 +60,7 @@ from calibrationpinn.training.training_standard_neohooke_quarterplatewithhole im
 from calibrationpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = True
+retrain_parametric_pinn = False  # True
 # Set up
 num_material_parameters = 2
 edge_length = 100.0
@@ -112,9 +112,7 @@ current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
 input_subdir_training = f"20240523_training_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"  # f"{output_date}_training_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
 input_subdir_validation = f"20240523_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"  # f"{output_date}_validation_data_neohooke_quarterplatewithhole_K_{int(min_bulk_modulus)}_{int(max_bulk_modulus)}_G_{int(min_shear_modulus)}_{int(max_shear_modulus)}_edge_{int(edge_length)}_radius_{int(radius)}_traction_{int(traction_left_x)}_elementsize_{fem_element_size}"
-output_subdirectory = (
-    f"{output_date}_parametric_pinns_calibration_paper_synthetic_neohooke"
-)
+output_subdirectory = "20240523_parametric_pinns_calibration_paper_synthetic_neohooke"  # f"{output_date}_parametric_pinns_calibration_paper_synthetic_neohooke"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
 output_subdir_calibration = os.path.join(output_subdirectory, "calibration")
