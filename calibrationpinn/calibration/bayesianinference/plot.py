@@ -3,10 +3,10 @@ from typing import TypeAlias, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pgf import FigureCanvasPgf as PltBackendPGF
-from matplotlib.ticker import MaxNLocator
 import numpy as np
 import scipy.stats
+from matplotlib.backends.backend_pgf import FigureCanvasPgf as PltBackendPGF
+from matplotlib.ticker import MaxNLocator
 
 from calibrationpinn.io import ProjectDirectory
 from calibrationpinn.statistics.utility import (

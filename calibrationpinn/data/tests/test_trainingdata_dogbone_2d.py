@@ -459,14 +459,12 @@ def test_sample_traction_bc__y_true(
 
 ### Test collate_func()
 @pytest.fixture
-def fake_batch() -> (
-    list[
-        tuple[
-            TrainingData2DCollocation,
-            TrainingData2DTractionBC,
-        ]
+def fake_batch() -> list[
+    tuple[
+        TrainingData2DCollocation,
+        TrainingData2DTractionBC,
     ]
-):
+]:
     sample_collocation_0 = TrainingData2DCollocation(
         x_coor=torch.tensor([[1.0, 1.0]]),
         x_params=torch.tensor([[1.1, 1.1]]),

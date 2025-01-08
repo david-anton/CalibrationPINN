@@ -43,9 +43,9 @@ class StandardTrainingConfiguration:
     output_subdirectory: str
     project_directory: ProjectDirectory
     device: Device
-    training_dataset_data: Optional[
-        StretchedRodSimulationDatasetLinearElasticity1D
-    ] = None
+    training_dataset_data: Optional[StretchedRodSimulationDatasetLinearElasticity1D] = (
+        None
+    )
 
 
 def train_parametric_pinn(train_config: StandardTrainingConfiguration) -> None:

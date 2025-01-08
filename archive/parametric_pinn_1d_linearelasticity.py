@@ -102,13 +102,11 @@ set_default_dtype(torch.float64)
 set_seed(0)
 
 
-def create_datasets() -> (
-    tuple[
-        StretchedRodTrainingDataset1D,
-        StretchedRodSimulationDatasetLinearElasticity1D,
-        StretchedRodSimulationDatasetLinearElasticity1D,
-    ]
-):
+def create_datasets() -> tuple[
+    StretchedRodTrainingDataset1D,
+    StretchedRodSimulationDatasetLinearElasticity1D,
+    StretchedRodSimulationDatasetLinearElasticity1D,
+]:
     def _create_pinn_training_dataset() -> StretchedRodTrainingDataset1D:
         parameter_samples = sample_uniform_grid(
             min_parameters=[min_youngs_modulus],
