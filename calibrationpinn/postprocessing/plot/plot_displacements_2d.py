@@ -2,9 +2,7 @@ import math
 from collections import namedtuple
 from typing import TypeAlias, Union
 
-import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pgf import FigureCanvasPgf as PltBackendPGF
 import numpy as np
 import scipy.stats
 import torch
@@ -28,8 +26,6 @@ from calibrationpinn.fem import SimulationConfig as FEMSimulationConfig
 from calibrationpinn.fem import run_simulation
 from calibrationpinn.io import ProjectDirectory
 from calibrationpinn.types import Device, Module, NPArray, PLTAxes, PLTFigure
-
-matplotlib.backend_bases.register_backend("pgf", PltBackendPGF)
 
 ProblemConfigLists: TypeAlias = Union[
     list[LinearElasticityProblemConfig_E_nu],
@@ -479,9 +475,7 @@ def _plot_errors(
     parameter_prefix = _get_file_name_parameter_prefix_from_problem(
         simulation_config.problem_config
     )
-    file_name = (
-        f"plot_{file_name_identifier}_{parameter_prefix}.{plot_config.file_format}"
-    )
+    file_name = f"plot_{file_name_identifier}_{parameter_prefix}"
     _save_plot(figure, file_name, output_subdir, project_directory, plot_config)
 
 
@@ -897,9 +891,7 @@ def _plot_errors_histogram(
     parameter_prefix = _get_file_name_parameter_prefix_from_problem(
         simulation_config.problem_config
     )
-    file_name = (
-        f"plot_{file_name_identifier}_{parameter_prefix}.{plot_config.file_format}"
-    )
+    file_name = f"plot_{file_name_identifier}_{parameter_prefix}"
     _save_plot(figure, file_name, output_subdir, project_directory, plot_config)
     plt.close()
 
@@ -911,7 +903,6 @@ def _save_plot(
     project_directory: ProjectDirectory,
     plot_config: DisplacementsPlotterConfig2D,
 ) -> None:
-    # Save figure
     file_name = f"{file_name}.{plot_config.file_format}"
     save_path = project_directory.create_output_file_path(file_name, output_subdir)
     figure.savefig(
@@ -919,17 +910,6 @@ def _save_plot(
         format=plot_config.file_format,
         bbox_inches="tight",
         dpi=plot_config.dpi,
-    )
-
-    # Save figure as PGF file
-    file_name_pgf = f"{file_name}.pgf"
-    save_path_pgf = project_directory.create_output_file_path(
-        file_name_pgf, output_subdir
-    )
-    figure.savefig(
-        save_path_pgf,
-        format="pgf",
-        bbox_inches="tight",
     )
 
 
