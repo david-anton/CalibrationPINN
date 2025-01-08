@@ -208,7 +208,7 @@ def _plot_univariate_normal_distribution_histogram(
             color=config.truth_color,
             linestyle=config.truth_linestyle,
             linewidth=config.hist_linewidth,
-            label="truth",
+            label="NLS-FEM",
         )
     # Histogram
     range_hist = config.hist_range_in_std * standard_deviation
@@ -238,8 +238,12 @@ def _plot_univariate_normal_distribution_histogram(
         mean,
         mean + (config.interval_num_stds * standard_deviation),
     ]
+    # x_tick_labels = [
+    #     (str(round(tick, 2)) if tick >= 1.0 else str(round(tick, 4)))
+    #     for tick in x_ticks
+    # ]
     x_tick_labels = [
-        (str(round(tick, 2)) if tick >= 1.0 else str(round(tick, 4)))
+        (str(int(round(tick, 0))) if tick >= 1.0 else str(round(tick, 4)))
         for tick in x_ticks
     ]
     axes.axvline(
