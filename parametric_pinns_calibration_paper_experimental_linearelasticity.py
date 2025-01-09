@@ -79,7 +79,7 @@ from calibrationpinn.training.training_standard_linearelasticity_simplifieddogbo
 from calibrationpinn.types import NPArray, Tensor
 
 ### Configuration
-retrain_parametric_pinn = False  # True
+retrain_parametric_pinn = True
 # Set up
 material_model = "plane stress"
 num_material_parameters = 2
@@ -104,7 +104,7 @@ bcs_overlap_angle_distance_left = 1e-2
 bcs_overlap_distance_parallel_right = 1e-2
 training_batch_size = num_parameter_samples_pinn
 use_simulation_data = True
-regenerate_train_data = False  # True
+regenerate_train_data = True
 num_parameter_samples_data = 128
 num_data_points = 128
 num_training_epochs = 15000
@@ -116,7 +116,7 @@ fem_element_family = "Lagrange"
 fem_element_degree = 1
 fem_element_size = 0.1
 # Validation
-regenerate_valid_data = False  # True
+regenerate_valid_data = True
 num_samples_valid = 100
 validation_interval = 1
 num_points_valid = 1024
@@ -128,15 +128,15 @@ use_mcmc_emcee = True
 # Output
 current_date = date.today().strftime("%Y%m%d")
 output_date = current_date
-input_subdir_validation = f"20240523_validation_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"  # f"{output_date}_validation_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
-input_subdir_training = f"20240523_training_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"  # f"{output_date}_training_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
+input_subdir_validation = f"{output_date}_validation_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
+input_subdir_training = f"{output_date}_training_data_linearelasticity_simplifieddogbone_K_{min_bulk_modulus}_{max_bulk_modulus}_G_{min_shear_modulus}_{max_shear_modulus}_elementsize_{fem_element_size}"
 input_subdir_calibration = "parametric_pinns_calibration_paper"
 if use_interpolated_calibration_data:
     input_file_name_calibration = "20231116_displacements_interpolated.csv"
 else:
     input_file_name_calibration = "20231116_displacements_raw.csv"
 input_file_name_mcmc_samples_fem = "20231116_mcmc_samples_fem.csv"
-output_subdirectory = "20240523_parametric_pinns_calibration_paper_experimental_linearelasticity"  # f"{output_date}_parametric_pinns_calibration_paper_experimental_linearelasticity"
+output_subdirectory = f"{output_date}_parametric_pinns_calibration_paper_experimental_linearelasticity"
 output_subdir_training = os.path.join(output_subdirectory, "training")
 output_subdir_normalization = os.path.join(output_subdir_training, "normalization")
 if use_interpolated_calibration_data:
