@@ -17,7 +17,7 @@ This code is supposed to be executed in a [*Singularity container*](https://syla
 
 **Citing**:
 
-    @article{anton_parametricPINNsCalibration,
+    @article{anton_parametricPINNsCalibration_2025,
         title={Deterministic and statistical calibration of constitutive models from full-field data with parametric physics-informed neural networks},
         author={Anton, David and Tröger, Jendrik-Alexander and Wessels, Henning and Römer, Ulrich and Henkes, Alexander and Hartmann, Stefan},
         year={2025},
