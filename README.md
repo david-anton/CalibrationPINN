@@ -1,6 +1,6 @@
 # **CalibrationPINN**: Physics-informed neural networks for model calibration
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.11368998.svg)](https://doi.org/10.5281/zenodo.11368998)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15056850.svg)](https://doi.org/10.5281/zenodo.11368998)
 
 The research code **CalibrationPINN** provides a framework for the calibration of constitutive models from full-field displacement data. In particular, this code repository provides the software for the related scientific publications:
 
