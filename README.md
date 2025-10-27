@@ -15,28 +15,18 @@ This code is supposed to be executed in a [*Singularity container*](https://syla
 
 ### Deterministic and statistical calibration of constitutive models from full-field data with parametric physics-informed neural networks
 
-<!-- The [full paper]() is available open source. -->
-
 **Citing**:
 
     @article{anton_parametricPINNsCalibration,
         title={Deterministic and statistical calibration of constitutive models from full-field data with parametric physics-informed neural networks},
         author={Anton, David and Tröger, Jendrik-Alexander and Wessels, Henning and Römer, Ulrich and Henkes, Alexander and Hartmann, Stefan},
-        year={2024},
-        journal={arXiv preprint},
-        doi={https://doi.org/10.48550/arXiv.2405.18311}
+        year={2025},
+        journal={Advanced Modeling and Simulation in Engineering Sciences},
+        volume = {12},
+        number = {12},
+        doi={https://doi.org/10.1186/s40323-025-00285-7}
     }
 
-<!-- @article{anton_parametricPINNsCalibration,
-    title={Deterministic and statistical calibration of constitutive models from full-field data with parametric physics-informed neural networks},
-    author={Anton, David and Tröger, Jendrik-Alexander and Wessels, Henning and Römer, Ulrich and Henkes, Alexander and Hartmann, Stefan},
-    year={2024},
-    journal={arXiv preprint},
-    volume={},
-    number={}
-    pages={},
-    doi={}
-} -->
 
 The results in this publication can be reproduced with the following **scripts**, which can be found at the top level of this repository:
 - *parametric_pinns_calibration_paper_synthetic_linearelasticity.py* 
